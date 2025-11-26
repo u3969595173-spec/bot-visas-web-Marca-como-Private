@@ -1,0 +1,253 @@
+.checklist-documentos {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.checklist-header {
+  margin-bottom: 24px;
+}
+
+.checklist-header h2 {
+  font-size: 24px;
+  color: #2d3748;
+  margin-bottom: 16px;
+}
+
+.progreso-general {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.progreso-bar-container {
+  flex: 1;
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progreso-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #48bb78 0%, #38a169 100%);
+  transition: width 0.5s ease;
+}
+
+.progreso-porcentaje {
+  font-size: 16px;
+  font-weight: 700;
+  color: #48bb78;
+  min-width: 120px;
+  text-align: right;
+}
+
+.resumen-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.resumen-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  border-radius: 12px;
+  color: white;
+  text-align: center;
+}
+
+.resumen-card.completo {
+  background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+}
+
+.resumen-numero {
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.resumen-label {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.95;
+  margin-bottom: 4px;
+}
+
+.resumen-detalle {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.checklist-seccion {
+  margin-bottom: 32px;
+}
+
+.checklist-seccion h3 {
+  font-size: 18px;
+  color: #2d3748;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.checklist-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #f7fafc;
+  border-radius: 8px;
+  border-left: 4px solid #e2e8f0;
+  transition: all 0.3s;
+}
+
+.checklist-item:hover {
+  background: #edf2f7;
+}
+
+.checklist-item.completado {
+  border-left-color: #48bb78;
+  background: #f0fff4;
+}
+
+.checklist-item.pendiente-admin {
+  border-left-color: #ed8936;
+}
+
+.checklist-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: bold;
+  background: #e2e8f0;
+  color: #718096;
+  flex-shrink: 0;
+}
+
+.checklist-item.completado .checklist-icon {
+  background: #48bb78;
+  color: white;
+}
+
+.checklist-item.pendiente-admin .checklist-icon {
+  background: #ed8936;
+  color: white;
+}
+
+.checklist-info {
+  flex: 1;
+}
+
+.checklist-nombre {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge-requerido {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: #fed7d7;
+  color: #c53030;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.checklist-descripcion {
+  font-size: 14px;
+  color: #718096;
+}
+
+.checklist-estado {
+  flex-shrink: 0;
+}
+
+.estado-badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estado-ok {
+  background: #c6f6d5;
+  color: #22543d;
+}
+
+.estado-pendiente {
+  background: #fed7d7;
+  color: #742a2a;
+}
+
+.estado-proceso {
+  background: #feebc8;
+  color: #c05621;
+}
+
+.checklist-ayuda {
+  background: #fffaf0;
+  border: 2px solid #fbd38d;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.checklist-ayuda h4 {
+  color: #c05621;
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+
+.checklist-ayuda ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.checklist-ayuda li {
+  color: #744210;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.checklist-loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #a0aec0;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .resumen-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .checklist-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .checklist-estado {
+    width: 100%;
+  }
+
+  .estado-badge {
+    display: block;
+    text-align: center;
+  }
+}

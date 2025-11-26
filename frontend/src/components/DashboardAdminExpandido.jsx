@@ -11,6 +11,8 @@ function DashboardAdminExpandido({ onLogout }) {
   const [alojamientos, setAlojamientos] = useState([])
   const [estadisticas, setEstadisticas] = useState(null)
   const [reporteEstudiantes, setReporteEstudiantes] = useState(null)
+  const [alertasDocumentos, setAlertasDocumentos] = useState([])
+  const [mostrarAlertas, setMostrarAlertas] = useState(false)
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
@@ -46,6 +48,14 @@ function DashboardAdminExpandido({ onLogout }) {
         ])
         setEstudiantes(estRes.data)
         setEstadisticas(statsRes.data)
+        
+        // Cargar alertas de documentos
+        try {
+          const alertasRes = await axios.get(`${apiUrl}/api/admin/alertas-documentos`)
+          setAlertasDocumentos(alertasRes.data.alertas || [])
+        } catch (err) {
+          console.error('Error cargando alertas:', err)
+        }
       } else if (activeTab === 'documentos') {
         const docsRes = await axios.get(`${apiUrl}/api/admin/documentos-generados`)
         setDocumentosGenerados(docsRes.data)
@@ -237,6 +247,29 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
+  const enviarRecordatorios = async () => {
+    if (!confirm('¿Enviar recordatorios a todos los estudiantes con documentos pendientes?')) return
+    
+    try {
+      const res = await axios.post(`${apiUrl}/api/admin/enviar-recordatorios`)
+      alert(res.data.mensaje)
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const actualizarEstadoEstudiante = async (estudianteId, nuevoEstado) => {
+    try {
+      await axios.put(`${apiUrl}/api/admin/estudiantes/${estudianteId}/actualizar-estado`, null, {
+        params: { nuevo_estado: nuevoEstado }
+      })
+      alert('Estado actualizado correctamente')
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
   if (loading) {
     return <div className="loading">Cargando...</div>
   }
@@ -288,6 +321,43 @@ function DashboardAdminExpandido({ onLogout }) {
               <p>Rechazados</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Alertas de Documentos */}
+      {alertasDocumentos.length > 0 && (
+        <div className="alertas-panel">
+          <div className="alertas-header" onClick={() => setMostrarAlertas(!mostrarAlertas)}>
+            <h3>⚠️ Alertas de Documentación ({alertasDocumentos.length})</h3>
+            <button className="btn-toggle">{mostrarAlertas ? '▼' : '▶'}</button>
+          </div>
+          {mostrarAlertas && (
+            <div className="alertas-content">
+              <div className="alertas-acciones">
+                <button onClick={enviarRecordatorios} className="btn-recordatorios">
+                  📧 Enviar Recordatorios Masivos
+                </button>
+              </div>
+              <div className="alertas-lista">
+                {alertasDocumentos.map(alerta => (
+                  <div key={alerta.estudiante_id} className={`alerta-item urgencia-${alerta.urgencia}`}>
+                    <div className="alerta-info">
+                      <strong>{alerta.nombre}</strong>
+                      <span className="alerta-estado">{alerta.estado}</span>
+                    </div>
+                    <div className="alerta-detalles">
+                      <span>📄 {alerta.docs_subidos}/3 docs subidos</span>
+                      <span>✓ {alerta.docs_generados}/4 docs generados</span>
+                      <span>🕐 {alerta.dias_desde_registro} días</span>
+                    </div>
+                    <span className={`badge-urgencia ${alerta.urgencia}`}>
+                      {alerta.urgencia.toUpperCase()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

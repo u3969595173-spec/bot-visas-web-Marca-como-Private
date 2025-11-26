@@ -1256,6 +1256,219 @@ def asignar_alojamiento(
 # REPORTES
 # ============================================================================
 
+@app.get("/api/estudiantes/{estudiante_id}/descargar-expediente", tags=["Estudiantes"])
+def descargar_expediente_zip(
+    estudiante_id: int,
+    db: Session = Depends(get_db)
+):
+    """Descarga ZIP con todos los documentos del expediente"""
+    import os
+    import psycopg2
+    import zipfile
+    from io import BytesIO
+    import base64
+    from fastapi.responses import StreamingResponse
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    # Obtener datos del estudiante
+    cursor.execute("""
+        SELECT nombre, pasaporte
+        FROM estudiantes
+        WHERE id = %s
+    """, (estudiante_id,))
+    
+    estudiante = cursor.fetchone()
+    if not estudiante:
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    nombre, pasaporte = estudiante
+    
+    # Obtener documentos generados
+    cursor.execute("""
+        SELECT nombre_archivo, contenido_pdf, tipo_documento
+        FROM documentos_generados
+        WHERE estudiante_id = %s AND estado = 'aprobado'
+    """, (estudiante_id,))
+    
+    docs_generados = cursor.fetchall()
+    
+    # Obtener documentos subidos
+    cursor.execute("""
+        SELECT nombre_archivo, contenido, tipo_documento
+        FROM documentos
+        WHERE estudiante_id = %s
+    """, (estudiante_id,))
+    
+    docs_subidos = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    # Crear ZIP en memoria
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        # Agregar documentos generados
+        for doc in docs_generados:
+            nombre_archivo, contenido_b64, tipo = doc
+            contenido = base64.b64decode(contenido_b64)
+            zip_file.writestr(f"generados/{nombre_archivo}", contenido)
+        
+        # Agregar documentos subidos
+        for doc in docs_subidos:
+            nombre_archivo, contenido_b64, tipo = doc
+            if contenido_b64:
+                contenido = base64.b64decode(contenido_b64)
+                zip_file.writestr(f"subidos/{nombre_archivo}", contenido)
+    
+    zip_buffer.seek(0)
+    
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename=expediente_{pasaporte}_{nombre.replace(' ', '_')}.zip"
+        }
+    )
+
+
+@app.put("/api/admin/estudiantes/{estudiante_id}/actualizar-estado", tags=["Admin"])
+def actualizar_estado_estudiante(
+    estudiante_id: int,
+    nuevo_estado: str,
+    notas: Optional[str] = None,
+    fecha_evento: Optional[str] = None,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Actualiza estado del estudiante (cita_consular, visa_aprobada, visa_rechazada, llegada_espana)"""
+    verificar_token(credentials.credentials)
+    
+    from database.models import Estudiante as EstudianteModel
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    estados_validos = ['pendiente', 'aprobado', 'rechazado', 'cita_consular', 'visa_aprobada', 'visa_rechazada', 'llegada_espana']
+    
+    if nuevo_estado not in estados_validos:
+        raise HTTPException(status_code=400, detail="Estado no válido")
+    
+    estudiante.estado = nuevo_estado
+    if notas:
+        estudiante.notas = notas
+    estudiante.updated_at = datetime.utcnow()
+    
+    db.commit()
+    
+    return {"mensaje": "Estado actualizado correctamente", "nuevo_estado": nuevo_estado}
+
+
+@app.get("/api/admin/alertas-documentos", tags=["Admin"])
+def obtener_alertas_documentos(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Obtiene lista de estudiantes con documentos faltantes o incompletos"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT e.id, e.nombre, e.email, e.estado, e.created_at,
+               COUNT(d.id) as docs_subidos,
+               COUNT(dg.id) as docs_generados
+        FROM estudiantes e
+        LEFT JOIN documentos d ON e.id = d.estudiante_id
+        LEFT JOIN documentos_generados dg ON e.id = dg.estudiante_id AND dg.estado = 'aprobado'
+        WHERE e.estado != 'rechazado'
+        GROUP BY e.id, e.nombre, e.email, e.estado, e.created_at
+        HAVING COUNT(d.id) < 3 OR COUNT(dg.id) < 4
+        ORDER BY e.created_at ASC
+    """)
+    
+    alertas = []
+    for row in cursor.fetchall():
+        dias_desde_registro = (datetime.now() - row[4]).days if row[4] else 0
+        alertas.append({
+            'estudiante_id': row[0],
+            'nombre': row[1],
+            'email': row[2],
+            'estado': row[3],
+            'docs_subidos': row[5],
+            'docs_generados': row[6],
+            'dias_desde_registro': dias_desde_registro,
+            'urgencia': 'alta' if dias_desde_registro > 7 else 'media' if dias_desde_registro > 3 else 'baja'
+        })
+    
+    cursor.close()
+    conn.close()
+    
+    return {'total_alertas': len(alertas), 'alertas': alertas}
+
+
+@app.post("/api/admin/enviar-recordatorios", tags=["Admin"])
+def enviar_recordatorios_masivos(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Envía recordatorios por email a estudiantes con documentos pendientes"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    from api.email_utils import email_recordatorio_documentos
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    # Buscar estudiantes con documentación incompleta
+    cursor.execute("""
+        SELECT e.id, e.nombre, e.email, e.created_at,
+               COUNT(d.id) as docs_subidos
+        FROM estudiantes e
+        LEFT JOIN documentos d ON e.id = d.estudiante_id
+        WHERE e.estado = 'pendiente'
+        GROUP BY e.id, e.nombre, e.email, e.created_at
+        HAVING COUNT(d.id) < 3
+    """)
+    
+    enviados = 0
+    for row in cursor.fetchall():
+        est_id, nombre, email, created_at, docs_count = row
+        dias_desde_registro = (datetime.now() - created_at).days if created_at else 0
+        
+        # Solo enviar si han pasado más de 3 días
+        if dias_desde_registro > 3:
+            docs_faltantes = []
+            if docs_count < 1:
+                docs_faltantes.append("Título universitario")
+            if docs_count < 2:
+                docs_faltantes.append("Pasaporte")
+            if docs_count < 3:
+                docs_faltantes.append("Extracto bancario")
+            
+            try:
+                if email_recordatorio_documentos(nombre, email, docs_faltantes):
+                    enviados += 1
+            except Exception as e:
+                print(f"Error enviando a {email}: {e}")
+    
+    cursor.close()
+    conn.close()
+    
+    return {'mensaje': f'Recordatorios enviados: {enviados}'}
+
+
 @app.get("/api/admin/reportes/estudiantes", tags=["Admin - Reportes"])
 def reporte_estudiantes(
     fecha_inicio: Optional[str] = None,
