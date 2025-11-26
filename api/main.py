@@ -2120,27 +2120,40 @@ def listar_estudiantes(
     db: Session = Depends(get_db)
 ):
     """Lista todos los estudiantes con filtros opcionales"""
-    from database.models import Estudiante as EstudianteModel
+    # Usar SQL directo para evitar problemas con el ORM
+    query_text = """
+        SELECT 
+            id, 
+            COALESCE(nombre, nombre_completo, 'Estudiante ' || id::text) as nombre,
+            COALESCE(email, 'estudiante' || id::text || '@example.com') as email,
+            COALESCE(especialidad, especialidad_interes, tipo_visa, 'No especificado') as especialidad,
+            COALESCE(estado, estado_procesamiento, 'pendiente') as estado,
+            created_at
+        FROM estudiantes
+    """
     
-    query = db.query(EstudianteModel)
+    params = {"skip": skip, "limit": limit}
     
     if estado:
-        query = query.filter(EstudianteModel.estado == estado)
+        query_text += " WHERE COALESCE(estado, estado_procesamiento) = :estado"
+        params["estado"] = estado
     
-    estudiantes = query.order_by(EstudianteModel.created_at.desc()).offset(skip).limit(limit).all()
+    query_text += " ORDER BY created_at DESC OFFSET :skip LIMIT :limit"
+    
+    result = db.execute(text(query_text), params).fetchall()
     
     return [{
-        'id': e.id,
-        'nombre_completo': e.nombre or f"Estudiante {e.id}",
-        'email': e.email or f"estudiante{e.id}@example.com",
-        'especialidad_interes': e.especialidad or e.tipo_visa or 'No especificado',
-        'estado_procesamiento': e.estado,
-        'prioridad': 'BAJA',  # Valor por defecto
+        'id': row[0],
+        'nombre_completo': row[1],
+        'email': row[2],
+        'especialidad_interes': row[3],
+        'estado_procesamiento': row[4],
+        'prioridad': 'BAJA',
         'documentos_subidos': 0,
         'documentos_generados': 0,
-        'dias_desde_registro': (datetime.now() - e.created_at).days if e.created_at else 0,
-        'created_at': e.created_at.isoformat() if e.created_at else None
-    } for e in estudiantes]
+        'dias_desde_registro': (datetime.now() - row[5]).days if row[5] else 0,
+        'created_at': row[5].isoformat() if row[5] else None
+    } for row in result]
 
 
 @app.get("/api/admin/estudiantes/{estudiante_id}", response_model=EstudianteResponse, tags=["Admin"])
