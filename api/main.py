@@ -27,6 +27,19 @@ app = FastAPI(
 )
 
 # CORS - Permitir requests desde frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://bot-visas-api.onrender.com",
+        "https://*.vercel.app",  # Permitir todos los subdominios de Vercel
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.on_event("startup")
 async def startup_event():
     """Ejecutar migraciones al iniciar"""
@@ -202,7 +215,7 @@ async def startup_event():
         count = cursor.fetchone()[0]
         
         if count == 0:
-            print("📚 Insertando 52 universidades partner iniciales...")
+            print("[INFO] Insertando 52 universidades partner iniciales...")
             inserted = 0
             for uni in UNIVERSIDADES_DATA:
                 try:
@@ -221,21 +234,21 @@ async def startup_event():
                     ))
                     inserted += 1
                 except Exception as e:
-                    print(f"⚠️ Error insertando {uni['nombre']}: {e}")
+                    print(f"[WARN] Error insertando {uni['nombre']}: {e}")
                     continue
             
             conn.commit()
-            print(f"✅ Insertadas {inserted} universidades partner")
+            print(f"[OK] Insertadas {inserted} universidades partner")
         else:
-            print(f"ℹ️ Ya existen {count} universidades partner en la BD")
+            print(f"[INFO] Ya existen {count} universidades partner en la BD")
         
         cursor.close()
         conn.close()
-        print("✅ Tabla documentos_generados verificada/creada")
-        print("✅ Campos OCR agregados a documentos")
-        print("✅ Sistema de partnerships universitarios creado")
+        print("[OK] Tabla documentos_generados verificada/creada")
+        print("[OK] Campos OCR agregados a documentos")
+        print("[OK] Sistema de partnerships universitarios creado")
     except Exception as e:
-        print(f"⚠️ Error en startup: {e}")
+        print(f"[ERROR] Error en startup: {e}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -256,35 +269,58 @@ security = HTTPBearer()
 def login(datos: LoginRequest, db: Session = Depends(get_db)):
     """
     Login para admins
-    Usuario: admin / Contraseña: admin123 (cambiar en producción)
+    Email: leandroeloytamayoreyes@gmail.com / Contraseña: Eloy1940
     """
-    from passlib.hash import bcrypt
-    from database.models import Usuario
+    import bcrypt
+    import os
+    import psycopg2
     
-    # Buscar usuario por email
-    usuario = db.query(Usuario).filter(Usuario.email == datos.usuario).first()
-    
-    if not usuario:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas"
+    try:
+        # Conexión directa a la BD
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'))
+        cur = conn.cursor()
+        
+        # Buscar usuario por email
+        cur.execute('SELECT email, password, nombre, rol FROM usuarios WHERE email = %s', (datos.usuario,))
+        result = cur.fetchone()
+        
+        if not result:
+            cur.close()
+            conn.close()
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales incorrectas"
+            )
+        
+        email, password_hash, nombre, rol = result
+        
+        # Verificar contraseña con bcrypt
+        if not bcrypt.checkpw(datos.password.encode('utf-8'), password_hash.encode('utf-8')):
+            cur.close()
+            conn.close()
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales incorrectas"
+            )
+        
+        cur.close()
+        conn.close()
+        
+        # Crear token
+        token = crear_token({"usuario": email, "rol": rol})
+        return LoginResponse(
+            token=token,
+            tipo="Bearer",
+            usuario=nombre,
+            rol=rol
         )
-    
-    # Verificar contraseña
-    if not bcrypt.verify(datos.password, usuario.password):
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error en login: {str(e)}"
         )
-    
-    # Crear token
-    token = crear_token({"usuario": usuario.email, "rol": usuario.rol})
-    return LoginResponse(
-        token=token,
-        tipo="Bearer",
-        usuario=usuario.nombre,
-        rol=usuario.rol
-    )
 
 
 def obtener_usuario_actual(
@@ -352,7 +388,7 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
             from api.email_utils import email_bienvenida
             email_bienvenida(nuevo.nombre, nuevo.email)
         except Exception as e:
-            print(f"⚠️ Error enviando email: {e}")
+            print(f"[WARN] Error enviando email: {e}")
         
         return {
             "id": nuevo.id,
@@ -1373,7 +1409,7 @@ def asignar_curso(
             }
             email_curso_asignado(row[5], row[6], row[0], curso_detalles)
         except Exception as e:
-            print(f"⚠️ Error enviando email: {e}")
+            print(f"[WARN] Error enviando email: {e}")
     
     return {'mensaje': 'Curso asignado correctamente'}
 

@@ -114,17 +114,37 @@ class Estudiante(Base):
     __tablename__ = 'estudiantes'
     
     id = Column(Integer, primary_key=True)
+    nombre = Column(String(255))
+    email = Column(String(255))
+    telefono = Column(String(50))
+    pasaporte = Column(String(100))
+    edad = Column(Integer)
+    nacionalidad = Column(String(100))
+    ciudad_origen = Column(String(100))
+    especialidad = Column(String(255))
+    nivel_espanol = Column(String(50))
+    fondos_disponibles = Column(Integer)
     usuario_id = Column(Integer)
     fecha_cita = Column(DateTime)
     tipo_visa = Column(String(100))
     estado = Column(String(50), default='pendiente')
     documentos_estado = Column(String(50), default='pendiente')
+    curso_asignado_id = Column(Integer)
+    alojamiento_asignado_id = Column(Integer)
+    universidad_referidora_id = Column(Integer)
+    codigo_referido = Column(String(50))
     notas = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Database initialization
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:BAxjbuTZDB1ATRYk@db.ihdllnlbfcwrbftjzrjz.supabase.co:5432/postgres')
+from dotenv import load_dotenv
+load_dotenv()  # Cargar .env ANTES de crear engine
+
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise ValueError("❌ DATABASE_URL no encontrada en .env")
+
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
