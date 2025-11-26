@@ -1,0 +1,400 @@
+.dashboard-admin-expandido {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.dashboard-header {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-header h1 {
+  margin: 0 0 5px 0;
+  color: #2d3748;
+  font-size: 28px;
+}
+
+.bienvenida {
+  color: #718096;
+  margin: 0;
+}
+
+.btn-logout {
+  background: #f56565;
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-logout:hover {
+  background: #e53e3e;
+  transform: translateY(-2px);
+}
+
+/* Estadísticas */
+.estadisticas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+}
+
+.stat-icon {
+  font-size: 40px;
+  width: 70px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.stat-total .stat-icon {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+.stat-aprobados .stat-icon {
+  background: linear-gradient(135deg, #48bb78, #38a169);
+}
+
+.stat-pendientes .stat-icon {
+  background: linear-gradient(135deg, #ed8936, #dd6b20);
+}
+
+.stat-rechazados .stat-icon {
+  background: linear-gradient(135deg, #f56565, #e53e3e);
+}
+
+.stat-info h3 {
+  font-size: 32px;
+  margin: 0 0 5px 0;
+  color: #2d3748;
+}
+
+.stat-info p {
+  margin: 0;
+  color: #718096;
+  font-size: 14px;
+}
+
+/* Controles */
+.controles {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filtros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filtros button {
+  padding: 8px 20px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #4a5568;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.filtros button:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.filtros .filtro-activo {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border-color: transparent;
+}
+
+.buscador {
+  flex: 1;
+  min-width: 250px;
+  padding: 10px 15px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+.buscador:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Lista de estudiantes */
+.estudiantes-section {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.estudiantes-section h2 {
+  margin: 0 0 20px 0;
+  color: #2d3748;
+}
+
+.tabla-container {
+  overflow-x: auto;
+}
+
+.tabla-estudiantes {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-estudiantes th {
+  background: #f7fafc;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #4a5568;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.tabla-estudiantes td {
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #2d3748;
+}
+
+.tabla-estudiantes tr:hover {
+  background: #f7fafc;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.badge-pendiente {
+  background: rgba(237, 137, 54, 0.2);
+  color: #dd6b20;
+}
+
+.badge-aprobado {
+  background: rgba(72, 187, 120, 0.2);
+  color: #38a169;
+}
+
+.badge-rechazado {
+  background: rgba(245, 101, 101, 0.2);
+  color: #e53e3e;
+}
+
+.badge-en_revision {
+  background: rgba(66, 153, 225, 0.2);
+  color: #3182ce;
+}
+
+.acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-aprobar, .btn-rechazar {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.btn-aprobar {
+  background: #48bb78;
+  color: white;
+}
+
+.btn-aprobar:hover {
+  background: #38a169;
+  transform: scale(1.1);
+}
+
+.btn-rechazar {
+  background: #f56565;
+  color: white;
+}
+
+.btn-rechazar:hover {
+  background: #e53e3e;
+  transform: scale(1.1);
+}
+
+.sin-acciones {
+  color: #cbd5e0;
+  font-size: 18px;
+}
+
+.no-resultados {
+  text-align: center;
+  padding: 40px;
+  color: #718096;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+  margin: 0 0 10px 0;
+  color: #2d3748;
+}
+
+.modal-content p {
+  margin: 0 0 20px 0;
+  color: #718096;
+}
+
+.modal-content textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 20px;
+}
+
+.modal-content textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-cancelar, .btn-confirmar {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancelar {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.btn-cancelar:hover {
+  background: #cbd5e0;
+}
+
+.btn-confirmar {
+  background: #f56565;
+  color: white;
+}
+
+.btn-confirmar:hover {
+  background: #e53e3e;
+}
+
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #718096;
+  font-size: 18px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .estadisticas-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .controles {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filtros {
+    justify-content: center;
+  }
+
+  .buscador {
+    min-width: 100%;
+  }
+
+  .tabla-estudiantes {
+    font-size: 14px;
+  }
+
+  .tabla-estudiantes th,
+  .tabla-estudiantes td {
+    padding: 8px;
+  }
+}
