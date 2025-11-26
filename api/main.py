@@ -2677,6 +2677,183 @@ def limpiar_cache(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/estudiantes/{estudiante_id}/calcular-probabilidad", tags=["Estudiantes"])
+def calcular_probabilidad_exito(
+    estudiante_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Calcula probabilidad de éxito en solicitud de visa
+    Basado en múltiples factores del perfil del estudiante
+    """
+    try:
+        from api.predictor_exito import PredictorExito
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Obtener datos del estudiante
+        cursor.execute("""
+            SELECT e.nombre, e.nacionalidad, e.especialidad, e.nivel_idioma, 
+                   e.fondos_disponibles, e.created_at, c.nombre as curso
+            FROM estudiantes e
+            LEFT JOIN cursos c ON e.curso_asignado_id = c.id
+            WHERE e.id = %s
+        """, (estudiante_id,))
+        
+        estudiante = cursor.fetchone()
+        
+        if not estudiante:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        
+        # Contar documentos
+        cursor.execute("""
+            SELECT COUNT(*) FROM documentos WHERE estudiante_id = %s
+        """, (estudiante_id,))
+        docs_subidos = cursor.fetchone()[0]
+        
+        cursor.execute("""
+            SELECT COUNT(*) FROM documentos_generados 
+            WHERE estudiante_id = %s AND estado = 'aprobado'
+        """, (estudiante_id,))
+        docs_generados = cursor.fetchone()[0]
+        
+        cursor.close()
+        conn.close()
+        
+        # Calcular días desde registro
+        dias_registro = (datetime.now() - estudiante[5]).days if estudiante[5] else 0
+        
+        # Preparar datos para predictor
+        datos_estudiante = {
+            'nacionalidad': estudiante[1] or '',
+            'fondos_disponibles': float(estudiante[4] or 0),
+            'documentos_subidos': docs_subidos,
+            'documentos_generados': docs_generados,
+            'curso_asignado': estudiante[6] or '',
+            'nivel_idioma': estudiante[3] or 'B1',
+            'especialidad': estudiante[2] or '',
+            'dias_desde_registro': dias_registro,
+            'antecedentes': False  # Por ahora asumimos sin antecedentes
+        }
+        
+        # Calcular probabilidad
+        predictor = PredictorExito()
+        resultado = predictor.calcular_probabilidad(datos_estudiante)
+        
+        return {
+            'estudiante_id': estudiante_id,
+            'nombre': estudiante[0],
+            **resultado
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error calculando probabilidad: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/estudiantes/{estudiante_id}/analisis-completo", tags=["Admin"])
+def obtener_analisis_completo(
+    estudiante_id: int,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Análisis completo de estudiante con probabilidad de éxito y recomendaciones
+    """
+    verificar_token(credentials.credentials)
+    
+    try:
+        from api.predictor_exito import PredictorExito
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Obtener todos los datos del estudiante
+        cursor.execute("""
+            SELECT e.*, c.nombre as curso, c.precio as precio_curso,
+                   a.tipo as alojamiento
+            FROM estudiantes e
+            LEFT JOIN cursos c ON e.curso_asignado_id = c.id
+            LEFT JOIN alojamientos a ON e.alojamiento_asignado_id = a.id
+            WHERE e.id = %s
+        """, (estudiante_id,))
+        
+        estudiante = cursor.fetchone()
+        
+        if not estudiante:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        
+        # Obtener documentos
+        cursor.execute("""
+            SELECT tipo, nombre_archivo, fecha_subida 
+            FROM documentos 
+            WHERE estudiante_id = %s
+        """, (estudiante_id,))
+        documentos = cursor.fetchall()
+        
+        cursor.execute("""
+            SELECT tipo, estado, fecha_generacion, fecha_aprobacion
+            FROM documentos_generados 
+            WHERE estudiante_id = %s
+        """, (estudiante_id,))
+        docs_generados = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        # Preparar datos para predictor
+        datos_estudiante = {
+            'nacionalidad': estudiante[3] or '',
+            'fondos_disponibles': float(estudiante[6] or 0),
+            'documentos_subidos': len(documentos),
+            'documentos_generados': len([d for d in docs_generados if d[1] == 'aprobado']),
+            'curso_asignado': estudiante[17] or '',
+            'nivel_idioma': estudiante[5] or 'B1',
+            'especialidad': estudiante[4] or '',
+            'dias_desde_registro': (datetime.now() - estudiante[11]).days if estudiante[11] else 0,
+            'antecedentes': False
+        }
+        
+        # Calcular probabilidad
+        predictor = PredictorExito()
+        analisis = predictor.calcular_probabilidad(datos_estudiante)
+        
+        return {
+            'estudiante': {
+                'id': estudiante[0],
+                'nombre': estudiante[1],
+                'email': estudiante[2],
+                'nacionalidad': estudiante[3],
+                'estado': estudiante[9]
+            },
+            'analisis': analisis,
+            'documentacion': {
+                'subidos': len(documentos),
+                'generados_aprobados': len([d for d in docs_generados if d[1] == 'aprobado']),
+                'generados_pendientes': len([d for d in docs_generados if d[1] == 'pendiente'])
+            },
+            'curso': estudiante[17],
+            'alojamiento': estudiante[19]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error en análisis completo: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============================================================================
 # HEALTH CHECK
 # ============================================================================
