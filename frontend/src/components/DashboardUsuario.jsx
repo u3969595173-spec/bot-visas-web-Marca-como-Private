@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import PerfilEstudiante from './PerfilEstudiante';
 import CalculadoraVisa from './CalculadoraVisa';
 import GestorDocumentos from './GestorDocumentos';
 import ChatMensajes from './ChatMensajes';
 
-function DashboardUsuario({ estudianteId }) {
+function DashboardUsuario({ estudianteId: propEstudianteId }) {
+  const { id: paramId } = useParams();
+  const estudianteId = propEstudianteId || paramId;
   const [estudiante, setEstudiante] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('perfil');

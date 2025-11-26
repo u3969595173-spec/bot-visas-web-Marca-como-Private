@@ -71,6 +71,10 @@ function App() {
             }
           />
           <Route
+            path="/dashboard-usuario/:id"
+            element={<DashboardUsuario />}
+          />
+          <Route
             path="/admin/login"
             element={<LoginAdmin onLogin={() => setIsAuthenticated(true)} />}
           />

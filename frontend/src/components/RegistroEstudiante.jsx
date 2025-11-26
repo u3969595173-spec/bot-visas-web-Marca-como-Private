@@ -86,7 +86,22 @@ const RegistroEstudiante = () => {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => navigate(`/dashboard-usuario/${estudianteId}`)}
+              style={{
+                padding: '12px 30px',
+                background: '#38b2ac',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              🏠 Mi Panel
+            </button>
             <button 
               onClick={() => navigate('/portal')}
               style={{
@@ -100,7 +115,7 @@ const RegistroEstudiante = () => {
                 cursor: 'pointer'
               }}
             >
-              Consultar Mi Estado
+              Consultar Estado
             </button>
             <button 
               onClick={() => navigate('/')}
