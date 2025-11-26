@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import './DashboardAdminExpandido.css'
+import PartnersAdmin from './PartnersAdmin'
 
 function DashboardAdminExpandido({ onLogout }) {
   const [activeTab, setActiveTab] = useState('estudiantes')
@@ -419,12 +420,21 @@ function DashboardAdminExpandido({ onLogout }) {
           🏠 Alojamientos
         </button>
         <button 
+          className={`tab ${activeTab === 'partners' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('partners')}
+        >
+          🤝 Partnerships
+        </button>
+        <button 
           className={`tab ${activeTab === 'reportes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('reportes')}
         >
           📊 Reportes
         </button>
       </div>
+
+      {/* SECCIÓN: PARTNERSHIPS */}
+      {activeTab === 'partners' && <PartnersAdmin />}
 
       {/* SECCIÓN: ESTUDIANTES */}
       {activeTab === 'estudiantes' && (
