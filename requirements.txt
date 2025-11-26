@@ -15,7 +15,7 @@ alembic==1.13.1
 secure-smtplib==0.1.1
 
 # === VALIDATION ===
-pydantic==2.5.3
+pydantic==2.10.3
 phonenumbers==8.13.27
 
 # === UTILS ===
