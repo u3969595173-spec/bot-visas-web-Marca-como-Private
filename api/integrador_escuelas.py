@@ -397,6 +397,7 @@ class IntegradorEscuelas:
         Cursos verificados manualmente de universidades reales
         """
         cursos = [
+            # === MADRID ===
             {
                 "universidad": "Universidad Complutense de Madrid",
                 "nombre": "Máster Universitario en Inteligencia Artificial",
@@ -412,6 +413,50 @@ class IntegradorEscuelas:
                 "modalidad": "Presencial"
             },
             {
+                "universidad": "Universidad Autónoma de Madrid",
+                "nombre": "Máster en Biotecnología",
+                "descripcion": "Investigación avanzada en genética y biología molecular",
+                "duracion_meses": 12,
+                "precio_eur": 5500,
+                "ciudad": "Madrid",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 22,
+                "fecha_inicio": "2025-09-20",
+                "url": "https://www.uam.es",
+                "requisitos": ["Grado en Biología o afines", "Nivel B2"],
+                "modalidad": "Presencial"
+            },
+            {
+                "universidad": "Universidad Politécnica de Madrid",
+                "nombre": "Máster en Ingeniería Aeronáutica",
+                "descripcion": "Programa de excelencia en aeronáutica y sistemas aeroespaciales",
+                "duracion_meses": 24,
+                "precio_eur": 7200,
+                "ciudad": "Madrid",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 40,
+                "fecha_inicio": "2025-09-01",
+                "url": "https://www.upm.es",
+                "requisitos": ["Grado en Ingeniería", "Nivel B2 español", "Inglés B2"],
+                "modalidad": "Presencial"
+            },
+            {
+                "universidad": "IE University",
+                "nombre": "Master in Finance",
+                "descripcion": "Máster en finanzas con enfoque en mercados internacionales",
+                "duracion_meses": 10,
+                "precio_eur": 32000,
+                "ciudad": "Madrid",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 25,
+                "fecha_inicio": "2025-09-01",
+                "url": "https://www.ie.edu",
+                "requisitos": ["Grado universitario", "GMAT 600+", "Inglés C1"],
+                "modalidad": "Presencial"
+            },
+            
+            # === BARCELONA ===
+            {
                 "universidad": "Universidad de Barcelona",
                 "nombre": "Máster en Administración y Dirección de Empresas (MBA)",
                 "descripcion": "MBA internacional con enfoque en gestión estratégica y liderazgo",
@@ -426,17 +471,17 @@ class IntegradorEscuelas:
                 "modalidad": "Presencial"
             },
             {
-                "universidad": "Universidad Politécnica de Valencia",
-                "nombre": "Máster en Ingeniería Industrial",
-                "descripcion": "Programa técnico en ingeniería de procesos y automatización industrial",
+                "universidad": "Universidad Pompeu Fabra",
+                "nombre": "Máster en Economía",
+                "descripcion": "Programa de investigación en economía aplicada y análisis cuantitativo",
                 "duracion_meses": 12,
-                "precio_eur": 4500,
-                "ciudad": "Valencia",
+                "precio_eur": 6800,
+                "ciudad": "Barcelona",
                 "nivel_espanol_requerido": "B2",
-                "cupos_disponibles": 35,
-                "fecha_inicio": "2025-09-01",
-                "url": "https://www.upv.es",
-                "requisitos": ["Grado en Ingeniería", "Nivel B2 español"],
+                "cupos_disponibles": 30,
+                "fecha_inicio": "2025-09-15",
+                "url": "https://www.upf.edu",
+                "requisitos": ["Grado en Economía o afines", "Nivel B2", "Matemáticas avanzadas"],
                 "modalidad": "Presencial"
             },
             {
@@ -454,19 +499,175 @@ class IntegradorEscuelas:
                 "modalidad": "Presencial"
             },
             {
-                "universidad": "IE University",
-                "nombre": "Master in Finance",
-                "descripcion": "Máster en finanzas con enfoque en mercados internacionales",
-                "duracion_meses": 10,
-                "precio_eur": 32000,
-                "ciudad": "Madrid",
+                "universidad": "Universitat Politècnica de Catalunya",
+                "nombre": "Máster en Arquitectura",
+                "descripcion": "Programa de excelencia en diseño arquitectónico y urbanismo",
+                "duracion_meses": 24,
+                "precio_eur": 6500,
+                "ciudad": "Barcelona",
                 "nivel_espanol_requerido": "B2",
-                "cupos_disponibles": 25,
+                "cupos_disponibles": 35,
                 "fecha_inicio": "2025-09-01",
-                "url": "https://www.ie.edu",
-                "requisitos": ["Grado universitario", "GMAT 600+", "Inglés C1"],
+                "url": "https://www.upc.edu",
+                "requisitos": ["Grado en Arquitectura", "Portfolio", "Nivel B2"],
                 "modalidad": "Presencial"
             },
+            
+            # === VALENCIA ===
+            {
+                "universidad": "Universidad Politécnica de Valencia",
+                "nombre": "Máster en Ingeniería Industrial",
+                "descripcion": "Programa técnico en ingeniería de procesos y automatización industrial",
+                "duracion_meses": 12,
+                "precio_eur": 4500,
+                "ciudad": "Valencia",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 35,
+                "fecha_inicio": "2025-09-01",
+                "url": "https://www.upv.es",
+                "requisitos": ["Grado en Ingeniería", "Nivel B2 español"],
+                "modalidad": "Presencial"
+            },
+            {
+                "universidad": "Universidad de Valencia",
+                "nombre": "Máster en Ciencias Biomédicas",
+                "descripcion": "Investigación avanzada en biomedicina y salud pública",
+                "duracion_meses": 12,
+                "precio_eur": 5200,
+                "ciudad": "Valencia",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 25,
+                "fecha_inicio": "2025-09-10",
+                "url": "https://www.uv.es",
+                "requisitos": ["Grado en Medicina, Biología o afines", "Nivel B2"],
+                "modalidad": "Presencial"
+            },
+            
+            # === SEVILLA ===
+            {
+                "universidad": "Universidad de Sevilla",
+                "nombre": "Máster en Ingeniería de Telecomunicación",
+                "descripcion": "Programa en redes, comunicaciones y sistemas electrónicos",
+                "duracion_meses": 18,
+                "precio_eur": 4800,
+                "ciudad": "Sevilla",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 30,
+                "fecha_inicio": "2025-09-15",
+                "url": "https://www.us.es",
+                "requisitos": ["Grado en Ingeniería de Telecomunicación", "Nivel B2"],
+                "modalidad": "Presencial"
+            },
+            {
+                "universidad": "Universidad Pablo de Olavide",
+                "nombre": "Máster en Recursos Humanos",
+                "descripcion": "Gestión estratégica del talento y dirección de personas",
+                "duracion_meses": 10,
+                "precio_eur": 3900,
+                "ciudad": "Sevilla",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 28,
+                "fecha_inicio": "2025-10-01",
+                "url": "https://www.upo.es",
+                "requisitos": ["Grado universitario", "Nivel B2 español"],
+                "modalidad": "Presencial"
+            },
+            
+            # === MÁLAGA ===
+            {
+                "universidad": "Universidad de Málaga",
+                "nombre": "Máster en Turismo Electrónico",
+                "descripcion": "Marketing digital y gestión tecnológica del turismo",
+                "duracion_meses": 12,
+                "precio_eur": 4200,
+                "ciudad": "Málaga",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 32,
+                "fecha_inicio": "2025-09-20",
+                "url": "https://www.uma.es",
+                "requisitos": ["Grado en Turismo, Marketing o afines", "Nivel B2"],
+                "modalidad": "Presencial"
+            },
+            
+            # === BILBAO ===
+            {
+                "universidad": "Universidad del País Vasco",
+                "nombre": "Máster en Energías Renovables",
+                "descripcion": "Tecnologías sostenibles y gestión de energías limpias",
+                "duracion_meses": 12,
+                "precio_eur": 5100,
+                "ciudad": "Bilbao",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 26,
+                "fecha_inicio": "2025-09-15",
+                "url": "https://www.ehu.eus",
+                "requisitos": ["Grado en Ingeniería", "Nivel B2 español o euskera"],
+                "modalidad": "Presencial"
+            },
+            {
+                "universidad": "Universidad de Deusto",
+                "nombre": "Máster en Derecho de la Empresa",
+                "descripcion": "Asesoría jurídica empresarial y derecho mercantil",
+                "duracion_meses": 12,
+                "precio_eur": 8500,
+                "ciudad": "Bilbao",
+                "nivel_espanol_requerido": "C1",
+                "cupos_disponibles": 20,
+                "fecha_inicio": "2025-10-01",
+                "url": "https://www.deusto.es",
+                "requisitos": ["Grado en Derecho", "Nivel C1 español"],
+                "modalidad": "Presencial"
+            },
+            
+            # === GRANADA ===
+            {
+                "universidad": "Universidad de Granada",
+                "nombre": "Máster en Traducción e Interpretación",
+                "descripcion": "Traducción profesional multilingüe y servicios lingüísticos",
+                "duracion_meses": 12,
+                "precio_eur": 4400,
+                "ciudad": "Granada",
+                "nivel_espanol_requerido": "C1",
+                "cupos_disponibles": 24,
+                "fecha_inicio": "2025-09-10",
+                "url": "https://www.ugr.es",
+                "requisitos": ["Grado en Filología o Traducción", "Nivel C1 español + 2 idiomas más"],
+                "modalidad": "Presencial"
+            },
+            
+            # === SALAMANCA ===
+            {
+                "universidad": "Universidad de Salamanca",
+                "nombre": "Máster en Filosofía Contemporánea",
+                "descripcion": "Investigación filosófica y pensamiento crítico avanzado",
+                "duracion_meses": 12,
+                "precio_eur": 3800,
+                "ciudad": "Salamanca",
+                "nivel_espanol_requerido": "C1",
+                "cupos_disponibles": 18,
+                "fecha_inicio": "2025-09-15",
+                "url": "https://www.usal.es",
+                "requisitos": ["Grado en Filosofía o Humanidades", "Nivel C1"],
+                "modalidad": "Presencial"
+            },
+            
+            # === ZARAGOZA ===
+            {
+                "universidad": "Universidad de Zaragoza",
+                "nombre": "Máster en Química Industrial",
+                "descripcion": "Procesos químicos industriales y control de calidad",
+                "duracion_meses": 12,
+                "precio_eur": 4600,
+                "ciudad": "Zaragoza",
+                "nivel_espanol_requerido": "B2",
+                "cupos_disponibles": 22,
+                "fecha_inicio": "2025-09-01",
+                "url": "https://www.unizar.es",
+                "requisitos": ["Grado en Química o Ingeniería Química", "Nivel B2"],
+                "modalidad": "Presencial"
+            },
+            
+            # === ESCUELAS DE IDIOMAS ===
             {
                 "universidad": "Escuela Internacional Cervantes",
                 "nombre": "Curso Intensivo de Español - Nivel B1 a C2",
@@ -496,17 +697,31 @@ class IntegradorEscuelas:
                 "modalidad": "Presencial"
             },
             {
-                "universidad": "Universidad Autónoma de Madrid",
-                "nombre": "Máster en Biotecnología",
-                "descripcion": "Investigación avanzada en genética y biología molecular",
-                "duracion_meses": 12,
-                "precio_eur": 5500,
-                "ciudad": "Madrid",
-                "nivel_espanol_requerido": "B2",
-                "cupos_disponibles": 22,
-                "fecha_inicio": "2025-09-20",
-                "url": "https://www.uam.es",
-                "requisitos": ["Grado en Biología o afines", "Nivel B2"],
+                "universidad": "Enforex Spanish Schools",
+                "nombre": "Español para Profesionales",
+                "descripcion": "Español de negocios y comunicación profesional",
+                "duracion_meses": 4,
+                "precio_eur": 2800,
+                "ciudad": "Valencia",
+                "nivel_espanol_requerido": "B1",
+                "cupos_disponibles": 35,
+                "fecha_inicio": "2025-07-15",
+                "url": "https://www.enforex.com",
+                "requisitos": ["Nivel B1 previo", "Experiencia profesional"],
+                "modalidad": "Presencial"
+            },
+            {
+                "universidad": "Tandem International",
+                "nombre": "Español + Flamenco y Cultura Andaluza",
+                "descripcion": "Inmersión lingüística con clases de flamenco",
+                "duracion_meses": 2,
+                "precio_eur": 1600,
+                "ciudad": "Sevilla",
+                "nivel_espanol_requerido": "A1",
+                "cupos_disponibles": 30,
+                "fecha_inicio": "2025-08-01",
+                "url": "https://www.tandem-schools.com",
+                "requisitos": ["Sin requisitos previos"],
                 "modalidad": "Presencial"
             }
         ]
