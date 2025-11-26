@@ -27,11 +27,12 @@ function DashboardAdmin({ onLogout }) {
   const cargarDatos = async () => {
     setLoading(true)
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       const [estudiantesRes, estadisticasRes] = await Promise.all([
-        axios.get('/api/admin/estudiantes', {
+        axios.get(`${apiUrl}/api/admin/estudiantes`, {
           params: filtroEstado ? { estado: filtroEstado } : {},
         }),
-        axios.get('/api/admin/estadisticas'),
+        axios.get(`${apiUrl}/api/admin/estadisticas`),
       ])
 
       setEstudiantes(estudiantesRes.data)
@@ -60,7 +61,8 @@ function DashboardAdmin({ onLogout }) {
     if (!confirm(`¿Aprobar solicitud de ${nombre}?`)) return
 
     try {
-      await axios.post(`/api/admin/estudiantes/${estudianteId}/aprobar`)
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteId}/aprobar`)
       setSuccess(`✅ Estudiante ${nombre} aprobado correctamente`)
       cargarDatos()
       setTimeout(() => setSuccess(''), 3000)
@@ -74,7 +76,8 @@ function DashboardAdmin({ onLogout }) {
     if (!motivo) return
 
     try {
-      await axios.post(`/api/admin/estudiantes/${estudianteId}/rechazar`, null, {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteId}/rechazar`, null, {
         params: { motivo },
       })
       setSuccess(`⚠️ Estudiante ${nombre} marcado para revisión`)

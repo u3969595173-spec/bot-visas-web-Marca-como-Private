@@ -198,7 +198,7 @@ def _obtener_mensaje_estado(estado: str) -> str:
 # ENDPOINTS ADMIN (Requieren autenticación)
 # ============================================================================
 
-@app.get("/api/admin/estudiantes", response_model=List[EstudianteResponse], tags=["Admin"])
+@app.get("/api/admin/estudiantes", response_model=List[Dict], tags=["Admin"])
 def listar_estudiantes(
     estado: Optional[str] = None,
     skip: int = 0,
@@ -207,13 +207,23 @@ def listar_estudiantes(
     db: Session = Depends(get_db)
 ):
     """Lista todos los estudiantes con filtros opcionales"""
-    query = db.query(Estudiante)
+    from database.models import Estudiante as EstudianteModel
+    
+    query = db.query(EstudianteModel)
     
     if estado:
-        query = query.filter(Estudiante.estado_procesamiento == estado)
+        query = query.filter(EstudianteModel.estado == estado)
     
-    estudiantes = query.offset(skip).limit(limit).all()
-    return [EstudianteResponse.from_orm(e) for e in estudiantes]
+    estudiantes = query.order_by(EstudianteModel.created_at.desc()).offset(skip).limit(limit).all()
+    
+    return [{
+        'id': e.id,
+        'nombre_completo': f"Estudiante {e.id}",  # TODO: agregar nombre a la tabla
+        'email': f"estudiante{e.id}@example.com",  # TODO: agregar email
+        'especialidad_interes': e.tipo_visa or 'No especificado',
+        'estado_procesamiento': e.estado,
+        'created_at': e.created_at.isoformat() if e.created_at else None
+    } for e in estudiantes]
 
 
 @app.get("/api/admin/estudiantes/{estudiante_id}", response_model=EstudianteResponse, tags=["Admin"])
@@ -261,32 +271,18 @@ def aprobar_estudiante(
     db: Session = Depends(get_db)
 ):
     """Aprobar estudiante para envío"""
-    from modules.panel_revision_admin import PanelRevisionAdmin
-    from modules.notificaciones_email import NotificacionesEmail
+    from database.models import Estudiante as EstudianteModel
     
-    try:
-        resultado = PanelRevisionAdmin.aprobar_y_preparar_envio(
-            estudiante_id=estudiante_id,
-            admin_id=1,  # TODO: Usar ID real del token
-            mensaje_admin="Aprobado desde dashboard web"
-        )
-        
-        # Enviar email de aprobación
-        try:
-            estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
-            if estudiante:
-                estudiante_dict = {
-                    'id': estudiante.id,
-                    'nombre_completo': estudiante.nombre_completo,
-                    'email': estudiante.email
-                }
-                NotificacionesEmail.enviar_solicitud_aprobada(estudiante_dict)
-        except Exception as e:
-            print(f"⚠️ Error enviando email de aprobación: {e}")
-        
-        return resultado
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    estudiante.estado = 'aprobado'
+    estudiante.updated_at = datetime.utcnow()
+    db.commit()
+    
+    return {"message": "Estudiante aprobado correctamente", "id": estudiante_id}
 
 
 @app.post("/api/admin/estudiantes/{estudiante_id}/rechazar", tags=["Admin"])
@@ -297,7 +293,19 @@ def rechazar_estudiante(
     db: Session = Depends(get_db)
 ):
     """Rechazar estudiante y solicitar correcciones"""
-    from modules.panel_revision_admin import PanelRevisionAdmin
+    from database.models import Estudiante as EstudianteModel
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    estudiante.estado = 'rechazado'
+    estudiante.notas = motivo
+    estudiante.updated_at = datetime.utcnow()
+    db.commit()
+    
+    return {"message": "Estudiante marcado para revisión", "id": estudiante_id, "motivo": motivo}
     from modules.notificaciones_email import NotificacionesEmail
     
     try:
@@ -331,14 +339,20 @@ def obtener_estadisticas(
     db: Session = Depends(get_db)
 ):
     """Estadísticas del dashboard"""
-    dashboard = PanelAdministrativo.dashboard()
+    from database.models import Estudiante as EstudianteModel
+    
+    # Contar estudiantes por estado
+    total = db.query(EstudianteModel).count()
+    pendientes = db.query(EstudianteModel).filter(EstudianteModel.estado == 'pendiente').count()
+    aprobados = db.query(EstudianteModel).filter(EstudianteModel.estado == 'aprobado').count()
+    rechazados = db.query(EstudianteModel).filter(EstudianteModel.estado == 'rechazado').count()
     
     return EstadisticasResponse(
-        total_estudiantes=dashboard['resumen']['total_estudiantes'],
-        pendientes_revision=dashboard['resumen']['pendientes_revision_admin'],
-        aprobados=dashboard['resumen']['aprobados'],
-        enviados=dashboard['resumen']['enviados'],
-        por_especialidad=dashboard['por_especialidad']
+        total_estudiantes=total,
+        pendientes_revision=pendientes,
+        aprobados=aprobados,
+        enviados=aprobados,  # Por ahora enviados = aprobados
+        por_especialidad={}  # TODO: implementar después
     )
 
 
