@@ -2401,6 +2401,187 @@ def reenviar_notificacion(
 
 
 # ============================================================================
+# INTEGRACIÓN APIS ESCUELAS
+# ============================================================================
+
+@app.get("/api/admin/sincronizar-cursos-escuelas", tags=["Admin - Escuelas"])
+def sincronizar_cursos_desde_escuelas(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Sincroniza cursos desde APIs/scraping de escuelas españolas
+    Obtiene cursos actualizados de múltiples universidades
+    """
+    verificar_token(credentials.credentials)
+    
+    try:
+        from api.integrador_escuelas import IntegradorEscuelas
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Obtener cursos de todas las fuentes
+        cursos_externos = IntegradorEscuelas.sincronizar_todos_cursos()
+        
+        # Insertar/actualizar en base de datos
+        cursos_insertados = 0
+        cursos_actualizados = 0
+        
+        for curso_ext in cursos_externos:
+            # Verificar si el curso ya existe (por nombre y ciudad)
+            cursor.execute(
+                """
+                SELECT id, precio, cupos_disponibles 
+                FROM cursos 
+                WHERE nombre = %s AND ciudad = %s
+                """,
+                (curso_ext['nombre'], curso_ext['ciudad'])
+            )
+            curso_existente = cursor.fetchone()
+            
+            if curso_existente:
+                # Actualizar precio y cupos
+                cursor.execute(
+                    """
+                    UPDATE cursos 
+                    SET precio = %s, 
+                        cupos_disponibles = %s,
+                        descripcion = %s,
+                        activo = TRUE,
+                        updated_at = NOW()
+                    WHERE id = %s
+                    """,
+                    (curso_ext['precio_eur'], curso_ext['cupos_disponibles'], 
+                     curso_ext['descripcion'], curso_existente[0])
+                )
+                cursos_actualizados += 1
+            else:
+                # Insertar nuevo curso
+                cursor.execute(
+                    """
+                    INSERT INTO cursos (nombre, descripcion, duracion_meses, precio, 
+                                       ciudad, nivel_espanol_requerido, cupos_disponibles, activo, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE, NOW(), NOW())
+                    """,
+                    (curso_ext['nombre'], curso_ext['descripcion'], curso_ext['duracion_meses'],
+                     curso_ext['precio_eur'], curso_ext['ciudad'], curso_ext['nivel_espanol_requerido'],
+                     curso_ext['cupos_disponibles'])
+                )
+                cursos_insertados += 1
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            "exito": True,
+            "cursos_encontrados": len(cursos_externos),
+            "cursos_insertados": cursos_insertados,
+            "cursos_actualizados": cursos_actualizados,
+            "cursos_preview": cursos_externos[:5]  # Primeros 5 para preview
+        }
+        
+    except Exception as e:
+        print(f"Error sincronizando cursos: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/cursos/buscar-externos", tags=["Cursos"])
+def buscar_cursos_externos(
+    especialidad: Optional[str] = None,
+    ciudad: Optional[str] = None,
+    presupuesto_max: Optional[float] = None
+):
+    """
+    Busca cursos en APIs externas sin guardar en BD
+    Útil para búsqueda en tiempo real
+    """
+    try:
+        from api.integrador_escuelas import IntegradorEscuelas
+        
+        # Obtener todos los cursos disponibles
+        cursos = IntegradorEscuelas.sincronizar_todos_cursos()
+        
+        # Aplicar filtros
+        if especialidad:
+            cursos = IntegradorEscuelas.buscar_cursos_por_especialidad(especialidad, cursos)
+        
+        if ciudad:
+            cursos = IntegradorEscuelas.filtrar_por_ciudad(cursos, ciudad)
+        
+        if presupuesto_max:
+            cursos = IntegradorEscuelas.filtrar_por_presupuesto(cursos, presupuesto_max)
+        
+        return {
+            "total": len(cursos),
+            "cursos": cursos
+        }
+        
+    except Exception as e:
+        print(f"Error buscando cursos externos: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/cursos/{curso_id}/verificar-disponibilidad", tags=["Cursos"])
+def verificar_disponibilidad_externa(
+    curso_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Verifica disponibilidad en tiempo real desde la fuente externa
+    """
+    try:
+        from api.integrador_escuelas import IntegradorEscuelas
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Obtener curso de BD
+        cursor.execute(
+            "SELECT nombre, ciudad, cupos_disponibles FROM cursos WHERE id = %s",
+            (curso_id,)
+        )
+        curso = cursor.fetchone()
+        
+        if not curso:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Curso no encontrado")
+        
+        # Consultar disponibilidad real
+        cupos_actuales = IntegradorEscuelas.actualizar_disponibilidad_real(curso_id)
+        
+        # Actualizar en BD
+        cursor.execute(
+            "UPDATE cursos SET cupos_disponibles = %s, updated_at = NOW() WHERE id = %s",
+            (cupos_actuales, curso_id)
+        )
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "curso_id": curso_id,
+            "nombre": curso[0],
+            "cupos_disponibles": cupos_actuales,
+            "disponible": cupos_actuales > 0,
+            "actualizado": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error verificando disponibilidad: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # HEALTH CHECK
 # ============================================================================
 

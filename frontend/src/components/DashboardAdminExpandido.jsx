@@ -270,6 +270,37 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
+  const sincronizarCursosEscuelas = async () => {
+    if (!confirm('¿Sincronizar cursos desde APIs de escuelas? Esto actualizará precios y disponibilidad.')) return
+    
+    setLoading(true)
+    try {
+      const res = await axios.get(`${apiUrl}/api/admin/sincronizar-cursos-escuelas`)
+      alert(`✅ Sincronización completada!\n\n` +
+            `📚 Cursos encontrados: ${res.data.cursos_encontrados}\n` +
+            `➕ Cursos nuevos insertados: ${res.data.cursos_insertados}\n` +
+            `🔄 Cursos actualizados: ${res.data.cursos_actualizados}`)
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const verificarDisponibilidadCurso = async (cursoId) => {
+    try {
+      const res = await axios.get(`${apiUrl}/api/cursos/${cursoId}/verificar-disponibilidad`)
+      alert(`Disponibilidad verificada:\n\n` +
+            `📚 ${res.data.nombre}\n` +
+            `🎫 Cupos disponibles: ${res.data.cupos_disponibles}\n` +
+            `${res.data.disponible ? '✅ Curso disponible' : '❌ Sin cupos'}`)
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
   if (loading) {
     return <div className="loading">Cargando...</div>
   }
@@ -587,9 +618,14 @@ function DashboardAdminExpandido({ onLogout }) {
         <div className="cursos-section">
           <div className="section-header">
             <h2>📚 Gestión de Cursos</h2>
-            <button onClick={() => setShowAddCursoModal(true)} className="btn-add">
-              + Agregar Curso
-            </button>
+            <div className="header-actions">
+              <button onClick={sincronizarCursosEscuelas} className="btn-sync">
+                🔄 Sincronizar con Escuelas
+              </button>
+              <button onClick={() => setShowAddCursoModal(true)} className="btn-add">
+                + Agregar Curso
+              </button>
+            </div>
           </div>
 
           {cursos.length === 0 ? (
@@ -606,6 +642,7 @@ function DashboardAdminExpandido({ onLogout }) {
                     <th>Nivel Español</th>
                     <th>Cupos</th>
                     <th>Estado</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -621,6 +658,15 @@ function DashboardAdminExpandido({ onLogout }) {
                         <span className={`badge ${curso.activo ? 'badge-success' : 'badge-inactive'}`}>
                           {curso.activo ? 'Activo' : 'Inactivo'}
                         </span>
+                      </td>
+                      <td>
+                        <button 
+                          onClick={() => verificarDisponibilidadCurso(curso.id)}
+                          className="btn-verificar"
+                          title="Verificar disponibilidad en tiempo real"
+                        >
+                          🔍
+                        </button>
                       </td>
                     </tr>
                   ))}
