@@ -224,15 +224,10 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(nuevo)
         
-        # Enviar email de confirmación (sin bloquear)
+        # Enviar email de bienvenida
         try:
-            from api.notificaciones_email import NotificacionesEmail
-            NotificacionesEmail.enviar_confirmacion_registro({
-                'id': nuevo.id,
-                'nombre': nuevo.nombre,
-                'email': nuevo.email,
-                'especialidad': nuevo.especialidad
-            })
+            from api.email_utils import email_bienvenida
+            email_bienvenida(nuevo.nombre, nuevo.email)
         except Exception as e:
             print(f"⚠️ Error enviando email: {e}")
         
@@ -750,7 +745,63 @@ def aprobar_documento_generado(
     cursor.close()
     conn.close()
     
-    # TODO: Enviar email al estudiante con el documento adjunto
+    # Enviar email al estudiante con el documento adjunto
+    if enviar_a_estudiante:
+        try:
+            import smtplib
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+            from email.mime.application import MIMEApplication
+            import base64
+            
+            # Obtener email del estudiante
+            cursor2 = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require').cursor()
+            cursor2.execute("""
+                SELECT e.email, e.nombre, dg.nombre_archivo, dg.tipo_documento
+                FROM documentos_generados dg
+                JOIN estudiantes e ON dg.estudiante_id = e.id
+                WHERE dg.id = %s
+            """, (documento_id,))
+            
+            row = cursor2.fetchone()
+            if row:
+                estudiante_email, estudiante_nombre, nombre_archivo, tipo_doc = row
+                cursor2.close()
+                
+                # Configurar email
+                msg = MIMEMultipart()
+                msg['From'] = os.getenv('SMTP_USER')
+                msg['To'] = estudiante_email
+                msg['Subject'] = f'Documento Aprobado: {tipo_doc.replace("_", " ").title()}'
+                
+                # Cuerpo del email
+                body = f"""
+                <html>
+                <body>
+                    <h2>¡Hola {estudiante_nombre}!</h2>
+                    <p>Tu documento <strong>{tipo_doc.replace("_", " ").title()}</strong> ha sido aprobado y está listo.</p>
+                    <p>Puedes descargarlo desde tu perfil o encontrarlo adjunto en este correo.</p>
+                    <br>
+                    <p>Saludos,<br>Equipo de Estudio Visa España</p>
+                </body>
+                </html>
+                """
+                msg.attach(MIMEText(body, 'html'))
+                
+                # Adjuntar PDF
+                pdf_bytes = base64.b64decode(pdf_content)
+                pdf_attachment = MIMEApplication(pdf_bytes, _subtype='pdf')
+                pdf_attachment.add_header('Content-Disposition', 'attachment', filename=nombre_archivo)
+                msg.attach(pdf_attachment)
+                
+                # Enviar
+                smtp = smtplib.SMTP(os.getenv('SMTP_SERVER'), int(os.getenv('SMTP_PORT')))
+                smtp.starttls()
+                smtp.login(os.getenv('SMTP_USER'), os.getenv('SMTP_PASSWORD'))
+                smtp.send_message(msg)
+                smtp.quit()
+        except Exception as e:
+            print(f"Error enviando email: {str(e)}")
     
     return {
         'mensaje': 'Documento aprobado correctamente',
@@ -907,10 +958,143 @@ def asignar_curso(
     """, (curso_id, estudiante_id))
     
     conn.commit()
+    
+    # Obtener datos del curso y estudiante para el email
+    cursor.execute("""
+        SELECT c.nombre, c.duracion_meses, c.ciudad, c.nivel_espanol_requerido, c.precio_eur,
+               e.nombre, e.email
+        FROM cursos c
+        JOIN estudiantes e ON e.id = %s
+        WHERE c.id = %s
+    """, (estudiante_id, curso_id))
+    
+    row = cursor.fetchone()
     cursor.close()
     conn.close()
     
+    # Enviar email de notificación
+    if row:
+        try:
+            from api.email_utils import email_curso_asignado
+            curso_detalles = {
+                'duracion_meses': row[1],
+                'ciudad': row[2],
+                'nivel_espanol_requerido': row[3],
+                'precio_eur': row[4]
+            }
+            email_curso_asignado(row[5], row[6], row[0], curso_detalles)
+        except Exception as e:
+            print(f"⚠️ Error enviando email: {e}")
+    
     return {'mensaje': 'Curso asignado correctamente'}
+
+
+@app.get("/api/admin/estudiantes/{estudiante_id}/sugerir-cursos", tags=["Admin - Cursos"])
+def sugerir_cursos(
+    estudiante_id: int,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Sugiere cursos basados en el perfil del estudiante"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    # Obtener datos del estudiante
+    cursor.execute("""
+        SELECT especialidad, nivel_idioma, fondos_disponibles
+        FROM estudiantes
+        WHERE id = %s
+    """, (estudiante_id,))
+    
+    estudiante = cursor.fetchone()
+    if not estudiante:
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    especialidad, nivel_idioma, fondos = estudiante
+    
+    # Mapear nivel de idioma a nivel español requerido
+    nivel_map = {
+        'basico': ['A1', 'A2', 'Básico', 'Principiante'],
+        'intermedio': ['A1', 'A2', 'B1', 'Intermedio', 'Básico', 'Principiante'],
+        'avanzado': ['A1', 'A2', 'B1', 'B2', 'C1', 'Avanzado', 'Intermedio', 'Básico', 'Principiante']
+    }
+    
+    niveles_aceptables = nivel_map.get(nivel_idioma.lower() if nivel_idioma else 'basico', ['A1', 'A2'])
+    
+    # Buscar cursos compatibles
+    cursor.execute("""
+        SELECT id, nombre, descripcion, duracion_meses, precio_eur, ciudad,
+               nivel_espanol_requerido, cupos_disponibles
+        FROM cursos
+        WHERE activo = TRUE
+          AND cupos_disponibles > 0
+          AND precio_eur <= %s
+        ORDER BY 
+            CASE 
+                WHEN LOWER(descripcion) LIKE %s THEN 1
+                WHEN LOWER(nombre) LIKE %s THEN 2
+                ELSE 3
+            END,
+            precio_eur ASC
+        LIMIT 5
+    """, (fondos, f'%{especialidad.lower()}%' if especialidad else '%%', f'%{especialidad.lower()}%' if especialidad else '%%'))
+    
+    cursos = []
+    for row in cursor.fetchall():
+        # Calcular score de compatibilidad
+        score = 100
+        nivel_curso = row[6] if row[6] else ''
+        
+        # Penalizar si el nivel no es compatible
+        if nivel_curso and nivel_curso not in niveles_aceptables:
+            score -= 30
+        
+        # Bonus si coincide con especialidad
+        if especialidad and (especialidad.lower() in row[1].lower() or 
+                            (row[2] and especialidad.lower() in row[2].lower())):
+            score += 20
+        
+        # Penalizar si está cerca del límite de fondos
+        if row[4] and fondos:
+            ratio = row[4] / fondos
+            if ratio > 0.8:
+                score -= 15
+        
+        cursos.append({
+            'id': row[0],
+            'nombre': row[1],
+            'descripcion': row[2],
+            'duracion_meses': row[3],
+            'precio_eur': float(row[4]) if row[4] else None,
+            'ciudad': row[5],
+            'nivel_espanol_requerido': row[6],
+            'cupos_disponibles': row[7],
+            'compatibilidad': max(0, min(100, score)),
+            'razon': 'Compatible con tu perfil y fondos disponibles'
+        })
+    
+    # Ordenar por compatibilidad
+    cursos.sort(key=lambda x: x['compatibilidad'], reverse=True)
+    
+    cursor.close()
+    conn.close()
+    
+    return {
+        'estudiante_id': estudiante_id,
+        'cursos_sugeridos': cursos,
+        'criterios': {
+            'especialidad': especialidad,
+            'nivel_idioma': nivel_idioma,
+            'fondos_disponibles': float(fondos) if fondos else None
+        }
+    }
 
 
 # ============================================================================
@@ -1350,11 +1534,8 @@ def aprobar_estudiante(
     
     # Enviar email de notificación
     try:
-        from api.notificaciones_email import NotificacionesEmail
-        NotificacionesEmail.notificar_cambio_estado({
-            'nombre': estudiante.nombre,
-            'email': estudiante.email
-        }, 'aprobado')
+        from api.email_utils import email_aprobacion
+        email_aprobacion(estudiante.nombre, estudiante.email)
     except Exception as e:
         print(f"⚠️ Error enviando email: {e}")
     
@@ -1383,28 +1564,12 @@ def rechazar_estudiante(
     
     # Enviar email de notificación
     try:
-        from api.notificaciones_email import NotificacionesEmail
-        NotificacionesEmail.notificar_cambio_estado({
-            'nombre': estudiante.nombre,
-            'email': estudiante.email
-        }, 'rechazado', motivo)
+        from api.email_utils import email_rechazo
+        email_rechazo(estudiante.nombre, estudiante.email, motivo)
     except Exception as e:
         print(f"⚠️ Error enviando email: {e}")
     
     return {"message": "Estudiante marcado para revisión", "id": estudiante_id, "motivo": motivo}
-    from modules.notificaciones_email import NotificacionesEmail
-    
-    try:
-        resultado = PanelRevisionAdmin.rechazar_y_solicitar_revision(
-            estudiante_id=estudiante_id,
-            admin_id=1,
-            motivo_rechazo=motivo
-        )
-        
-        # Enviar email de revisión pendiente
-        try:
-            estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
-            if estudiante:
                 estudiante_dict = {
                     'id': estudiante.id,
                     'nombre_completo': estudiante.nombre_completo,
