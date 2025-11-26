@@ -4,6 +4,7 @@ import axios from 'axios';
 import PerfilEstudiante from './PerfilEstudiante';
 import CalculadoraVisa from './CalculadoraVisa';
 import GestorDocumentos from './GestorDocumentos';
+import ChatMensajes from './ChatMensajes';
 
 function DashboardUsuario({ estudianteId }) {
   const [estudiante, setEstudiante] = useState(null);
@@ -65,7 +66,7 @@ function DashboardUsuario({ estudianteId }) {
         gap: '10px',
         flexWrap: 'wrap'
       }}>
-        {['perfil', 'probabilidad', 'estado', 'documentos'].map(tab => (
+        {['perfil', 'probabilidad', 'estado', 'documentos', 'mensajes'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -135,6 +136,11 @@ function DashboardUsuario({ estudianteId }) {
       {/* TAB: Documentos */}
       {activeTab === 'documentos' && (
         <GestorDocumentos estudianteId={estudianteId} />
+      )}
+
+      {/* TAB: Mensajes */}
+      {activeTab === 'mensajes' && (
+        <ChatMensajes estudianteId={estudianteId} remitente="estudiante" />
       )}
     </div>
   );

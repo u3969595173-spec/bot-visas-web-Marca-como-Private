@@ -399,6 +399,98 @@ def _obtener_mensaje_estado(estado: str) -> str:
 
 
 # ============================================================================
+# MENSAJERÍA INTERNA
+# ============================================================================
+
+@app.get("/api/estudiantes/{estudiante_id}/mensajes", tags=["Mensajería"])
+def obtener_mensajes(estudiante_id: int, db: Session = Depends(get_db)):
+    """Obtiene todos los mensajes de un estudiante"""
+    from database.models import Estudiante as EstudianteModel
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    try:
+        cursor = db.connection().connection.cursor()
+        cursor.execute("""
+            SELECT id, remitente, mensaje, leido, created_at
+            FROM mensajes
+            WHERE estudiante_id = %s
+            ORDER BY created_at ASC
+        """, (estudiante_id,))
+        
+        mensajes = []
+        for row in cursor.fetchall():
+            mensajes.append({
+                'id': row[0],
+                'remitente': row[1],
+                'mensaje': row[2],
+                'leido': row[3],
+                'created_at': row[4].isoformat() if row[4] else None
+            })
+        
+        return {'total': len(mensajes), 'mensajes': mensajes}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.post("/api/estudiantes/{estudiante_id}/mensajes", tags=["Mensajería"])
+def enviar_mensaje(estudiante_id: int, datos: dict, db: Session = Depends(get_db)):
+    """Envía un mensaje (estudiante o admin)"""
+    from database.models import Estudiante as EstudianteModel
+    from datetime import datetime
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    remitente = datos.get('remitente', 'estudiante')  # 'estudiante' o 'admin'
+    mensaje = datos.get('mensaje', '')
+    
+    if not mensaje:
+        raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
+    
+    try:
+        cursor = db.connection().connection.cursor()
+        cursor.execute("""
+            INSERT INTO mensajes (estudiante_id, remitente, mensaje, created_at)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id
+        """, (estudiante_id, remitente, mensaje, datetime.utcnow()))
+        
+        mensaje_id = cursor.fetchone()[0]
+        db.commit()
+        
+        return {
+            'mensaje_id': mensaje_id,
+            'mensaje': 'Mensaje enviado correctamente'
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/mensajes/{mensaje_id}/marcar-leido", tags=["Mensajería"])
+def marcar_mensaje_leido(mensaje_id: int, db: Session = Depends(get_db)):
+    """Marca un mensaje como leído"""
+    try:
+        cursor = db.connection().connection.cursor()
+        cursor.execute("""
+            UPDATE mensajes 
+            SET leido = TRUE 
+            WHERE id = %s
+        """, (mensaje_id,))
+        
+        db.commit()
+        
+        return {'mensaje': 'Mensaje marcado como leído'}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
 # ENDPOINTS ADMIN (Requieren autenticación)
 # ============================================================================
 
