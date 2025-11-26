@@ -47,7 +47,7 @@ class ValidadorOCR:
         self.nivel_confianza = 0
         # API Key de OCR.space (gratis: 25,000 requests/mes)
         # Registrarse en: https://ocr.space/ocrapi
-        self.ocr_api_key = os.getenv('OCR_SPACE_API_KEY', 'K87899142388957')  # Free tier key
+        self.ocr_api_key = os.getenv('OCR_SPACE_API_KEY', 'K81993791988957')  # Free tier key
     
     def procesar_documento(self, ruta_archivo: str, tipo_documento: str) -> Dict:
         """
