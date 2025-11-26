@@ -10,12 +10,23 @@ const RegistroEstudiante = () => {
     email: '',
     telefono: '',
     pasaporte: '',
+    fecha_nacimiento: '',
     edad: '',
     nacionalidad: '',
+    pais_origen: '',
     ciudad_origen: '',
+    carrera_deseada: '',
     especialidad: '',
     nivel_espanol: 'basico',
-    tipo_visa: 'estudiante'
+    tipo_visa: 'estudiante',
+    fondos_disponibles: '',
+    fecha_inicio_estimada: '',
+    consentimiento_gdpr: false
+  });
+  const [archivos, setArchivos] = useState({
+    titulo: null,
+    pasaporte_archivo: null,
+    extractos: null
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,11 +35,21 @@ const RegistroEstudiante = () => {
   const [codigoAcceso, setCodigoAcceso] = useState(null);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const handleFileChange = (e) => {
+    const { name, files } = e.target;
+    if (files && files[0]) {
+      setArchivos(prev => ({
+        ...prev,
+        [name]: files[0]
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -36,9 +57,43 @@ const RegistroEstudiante = () => {
     setLoading(true);
     setError('');
 
+    // Validar consentimiento GDPR
+    if (!formData.consentimiento_gdpr) {
+      setError('Debes aceptar la política de privacidad y el tratamiento de datos');
+      setLoading(false);
+      return;
+    }
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const response = await axios.post(`${apiUrl}/api/estudiantes`, formData);
+      
+      // Crear FormData para enviar archivos
+      const formDataToSend = new FormData();
+      
+      // Agregar todos los campos del formulario
+      Object.keys(formData).forEach(key => {
+        if (key !== 'consentimiento_gdpr') {
+          formDataToSend.append(key, formData[key]);
+        }
+      });
+      formDataToSend.append('consentimiento_gdpr', formData.consentimiento_gdpr ? 'true' : 'false');
+      
+      // Agregar archivos si existen
+      if (archivos.titulo) {
+        formDataToSend.append('archivo_titulo', archivos.titulo);
+      }
+      if (archivos.pasaporte_archivo) {
+        formDataToSend.append('archivo_pasaporte', archivos.pasaporte_archivo);
+      }
+      if (archivos.extractos) {
+        formDataToSend.append('archivo_extractos', archivos.extractos);
+      }
+
+      const response = await axios.post(`${apiUrl}/api/estudiantes`, formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
       
       console.log('Respuesta del servidor:', response.data);
       const id = response.data.estudiante_id || response.data.id;
@@ -225,6 +280,20 @@ const RegistroEstudiante = () => {
               </div>
 
               <div className="form-group">
+                <label htmlFor="fecha_nacimiento">Fecha de Nacimiento *</label>
+                <input
+                  type="date"
+                  id="fecha_nacimiento"
+                  name="fecha_nacimiento"
+                  value={formData.fecha_nacimiento}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
                 <label htmlFor="edad">Edad *</label>
                 <input
                   type="number"
@@ -236,6 +305,19 @@ const RegistroEstudiante = () => {
                   min="18"
                   max="99"
                   placeholder="25"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="pais_origen">País de Origen *</label>
+                <input
+                  type="text"
+                  id="pais_origen"
+                  name="pais_origen"
+                  value={formData.pais_origen}
+                  onChange={handleChange}
+                  required
+                  placeholder="Ej: México"
                 />
               </div>
             </div>
@@ -271,6 +353,19 @@ const RegistroEstudiante = () => {
 
           <div className="form-section">
             <h3>Información Académica</h3>
+
+            <div className="form-group">
+              <label htmlFor="carrera_deseada">Carrera Deseada *</label>
+                <input
+                type="text"
+                id="carrera_deseada"
+                name="carrera_deseada"
+                value={formData.carrera_deseada}
+                onChange={handleChange}
+                required
+                placeholder="Ej: Licenciatura en Ingeniería, Máster en Derecho..."
+              />
+            </div>
 
             <div className="form-group">
               <label htmlFor="especialidad">Especialidad de Interés *</label>
@@ -316,6 +411,119 @@ const RegistroEstudiante = () => {
                   <option value="doctorado">Doctorado/Investigación</option>
                 </select>
               </div>
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h3>Información Financiera</h3>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="fondos_disponibles">Fondos Disponibles (€) *</label>
+                <input
+                  type="number"
+                  id="fondos_disponibles"
+                  name="fondos_disponibles"
+                  value={formData.fondos_disponibles}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="10000"
+                />
+                <small style={{color: '#718096', fontSize: '12px'}}>
+                  Mínimo recomendado: €10,000 para visa de estudiante
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="fecha_inicio_estimada">Fecha Estimada de Inicio *</label>
+                <input
+                  type="date"
+                  id="fecha_inicio_estimada"
+                  name="fecha_inicio_estimada"
+                  value={formData.fecha_inicio_estimada}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="form-section">
+            <h3>Documentos</h3>
+            <p style={{color: '#718096', fontSize: '14px', marginBottom: '15px'}}>
+              Sube los siguientes documentos en formato PDF o JPG (máx. 5MB cada uno)
+            </p>
+
+            <div className="form-group">
+              <label htmlFor="titulo">Título Académico *</label>
+              <input
+                type="file"
+                id="titulo"
+                name="titulo"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+              />
+              {archivos.titulo && (
+                <small style={{color: '#38b2ac'}}>✓ {archivos.titulo.name}</small>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="pasaporte_archivo">Copia del Pasaporte *</label>
+              <input
+                type="file"
+                id="pasaporte_archivo"
+                name="pasaporte_archivo"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+              />
+              {archivos.pasaporte_archivo && (
+                <small style={{color: '#38b2ac'}}>✓ {archivos.pasaporte_archivo.name}</small>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="extractos">Extractos Bancarios *</label>
+              <input
+                type="file"
+                id="extractos"
+                name="extractos"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+                required
+              />
+              {archivos.extractos && (
+                <small style={{color: '#38b2ac'}}>✓ {archivos.extractos.name}</small>
+              )}
+              <small style={{color: '#718096', fontSize: '12px', display: 'block', marginTop: '5px'}}>
+                Últimos 3 meses mostrando saldo suficiente
+              </small>
+            </div>
+          </div>
+
+          <div className="form-section">
+            <div className="form-group" style={{marginBottom: '0'}}>
+              <label style={{display: 'flex', alignItems: 'flex-start', cursor: 'pointer'}}>
+                <input
+                  type="checkbox"
+                  name="consentimiento_gdpr"
+                  checked={formData.consentimiento_gdpr}
+                  onChange={handleChange}
+                  required
+                  style={{marginRight: '10px', marginTop: '3px'}}
+                />
+                <span style={{fontSize: '14px', lineHeight: '1.5'}}>
+                  He leído y acepto la{' '}
+                  <a href="/politica-privacidad" target="_blank" style={{color: '#667eea', textDecoration: 'underline'}}>
+                    Política de Privacidad
+                  </a>{' '}
+                  y doy mi consentimiento para el tratamiento de mis datos personales conforme al RGPD *
+                </span>
+              </label>
             </div>
           </div>
 

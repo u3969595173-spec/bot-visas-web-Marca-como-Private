@@ -3,7 +3,7 @@ API REST con FastAPI para Dashboard Web
 Endpoints para estudiantes y panel de administración
 """
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Query
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Query, Form
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -346,14 +346,41 @@ def obtener_usuario_actual(
 # ============================================================================
 
 @app.post("/api/estudiantes", tags=["Estudiantes"])
-def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
+async def registrar_estudiante(
+    nombre: str = Form(...),
+    email: str = Form(...),
+    telefono: str = Form(...),
+    pasaporte: str = Form(...),
+    fecha_nacimiento: str = Form(...),
+    edad: int = Form(...),
+    nacionalidad: str = Form(...),
+    pais_origen: str = Form(...),
+    ciudad_origen: str = Form(...),
+    carrera_deseada: str = Form(...),
+    especialidad: str = Form(...),
+    nivel_espanol: str = Form(...),
+    tipo_visa: str = Form(...),
+    fondos_disponibles: float = Form(...),
+    fecha_inicio_estimada: str = Form(...),
+    consentimiento_gdpr: str = Form(...),
+    archivo_titulo: UploadFile = File(...),
+    archivo_pasaporte: UploadFile = File(...),
+    archivo_extractos: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
     """
-    Registro público de estudiantes
+    Registro público de estudiantes con archivos
     No requiere autenticación
     """
     try:
         import string
         import secrets
+        import os
+        from pathlib import Path
+        
+        # Crear directorio para archivos si no existe
+        uploads_dir = Path("uploads")
+        uploads_dir.mkdir(exist_ok=True)
         
         # Generar código de acceso único
         def generar_codigo_acceso(longitud=8):
@@ -364,7 +391,7 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
         # Verificar si ya existe el email
         check_email = db.execute(text("""
             SELECT id FROM estudiantes WHERE email = :email
-        """), {"email": datos.get('email')}).fetchone()
+        """), {"email": email}).fetchone()
         
         if check_email:
             raise HTTPException(
@@ -382,28 +409,64 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
                 break
             codigo_acceso = generar_codigo_acceso()
         
+        # Guardar archivos
+        def guardar_archivo(archivo: UploadFile, prefijo: str) -> str:
+            if not archivo:
+                return None
+            
+            # Generar nombre único
+            extension = archivo.filename.split('.')[-1]
+            nombre_archivo = f"{prefijo}_{secrets.token_hex(8)}.{extension}"
+            ruta_archivo = uploads_dir / nombre_archivo
+            
+            # Guardar archivo
+            with open(ruta_archivo, "wb") as buffer:
+                content = archivo.file.read()
+                buffer.write(content)
+            
+            return str(ruta_archivo)
+        
+        ruta_titulo = guardar_archivo(archivo_titulo, "titulo")
+        ruta_pasaporte = guardar_archivo(archivo_pasaporte, "pasaporte")
+        ruta_extractos = guardar_archivo(archivo_extractos, "extractos")
+        
         # Insertar nuevo estudiante con SQL directo
         result = db.execute(text("""
             INSERT INTO estudiantes (
-                nombre, email, telefono, pasaporte, edad, 
-                nacionalidad, ciudad_origen, especialidad, nivel_espanol, 
-                tipo_visa, estado, documentos_estado, codigo_acceso, created_at
+                nombre, email, telefono, pasaporte, fecha_nacimiento, edad, 
+                nacionalidad, pais_origen, ciudad_origen, carrera_deseada, especialidad, 
+                nivel_espanol, tipo_visa, fondos_disponibles, fecha_inicio_estimada,
+                archivo_titulo, archivo_pasaporte, archivo_extractos,
+                consentimiento_gdpr, fecha_consentimiento,
+                estado, documentos_estado, codigo_acceso, created_at
             ) VALUES (
-                :nombre, :email, :telefono, :pasaporte, :edad,
-                :nacionalidad, :ciudad_origen, :especialidad, :nivel_espanol,
-                :tipo_visa, 'pendiente', 'pendiente', :codigo_acceso, NOW()
+                :nombre, :email, :telefono, :pasaporte, :fecha_nacimiento, :edad,
+                :nacionalidad, :pais_origen, :ciudad_origen, :carrera_deseada, :especialidad,
+                :nivel_espanol, :tipo_visa, :fondos_disponibles, :fecha_inicio_estimada,
+                :archivo_titulo, :archivo_pasaporte, :archivo_extractos,
+                :consentimiento_gdpr, NOW(),
+                'pendiente', 'pendiente', :codigo_acceso, NOW()
             ) RETURNING id, codigo_acceso
         """), {
-            "nombre": datos.get('nombre'),
-            "email": datos.get('email'),
-            "telefono": datos.get('telefono'),
-            "pasaporte": datos.get('pasaporte'),
-            "edad": datos.get('edad'),
-            "nacionalidad": datos.get('nacionalidad'),
-            "ciudad_origen": datos.get('ciudad_origen'),
-            "especialidad": datos.get('especialidad'),
-            "nivel_espanol": datos.get('nivel_espanol'),
-            "tipo_visa": datos.get('tipo_visa', 'estudiante'),
+            "nombre": nombre,
+            "email": email,
+            "telefono": telefono,
+            "pasaporte": pasaporte,
+            "fecha_nacimiento": fecha_nacimiento,
+            "edad": edad,
+            "nacionalidad": nacionalidad,
+            "pais_origen": pais_origen,
+            "ciudad_origen": ciudad_origen,
+            "carrera_deseada": carrera_deseada,
+            "especialidad": especialidad,
+            "nivel_espanol": nivel_espanol,
+            "tipo_visa": tipo_visa,
+            "fondos_disponibles": fondos_disponibles,
+            "fecha_inicio_estimada": fecha_inicio_estimada,
+            "archivo_titulo": ruta_titulo,
+            "archivo_pasaporte": ruta_pasaporte,
+            "archivo_extractos": ruta_extractos,
+            "consentimiento_gdpr": consentimiento_gdpr == 'true',
             "codigo_acceso": codigo_acceso
         })
         
@@ -416,7 +479,7 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
         # Enviar email de bienvenida con código de acceso
         try:
             from api.email_utils import email_bienvenida_con_codigo
-            email_bienvenida_con_codigo(datos.get('nombre'), datos.get('email'), nuevo_id, codigo_final)
+            email_bienvenida_con_codigo(nombre, email, nuevo_id, codigo_final)
         except Exception as e:
             print(f"[WARN] Error enviando email: {e}")
         
@@ -432,6 +495,7 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         db.rollback()
+        print(f"[ERROR] Error en registro: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
