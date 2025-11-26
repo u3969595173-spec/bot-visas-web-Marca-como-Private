@@ -66,6 +66,47 @@ async def startup_event():
             ON documentos_generados(estado);
         """)
         
+        # Crear tabla cursos
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS cursos (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(255) NOT NULL,
+                descripcion TEXT,
+                duracion_meses INTEGER,
+                precio_eur DECIMAL(10,2),
+                ciudad VARCHAR(100),
+                nivel_espanol_requerido VARCHAR(50),
+                cupos_disponibles INTEGER DEFAULT 0,
+                activo BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        # Crear tabla alojamientos
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS alojamientos (
+                id SERIAL PRIMARY KEY,
+                tipo VARCHAR(100) NOT NULL,
+                direccion TEXT,
+                ciudad VARCHAR(100),
+                precio_mensual_eur DECIMAL(10,2),
+                capacidad INTEGER DEFAULT 1,
+                disponible BOOLEAN DEFAULT TRUE,
+                descripcion TEXT,
+                servicios TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        # Agregar columnas a estudiantes si no existen
+        cursor.execute("""
+            ALTER TABLE estudiantes 
+            ADD COLUMN IF NOT EXISTS curso_asignado_id INTEGER REFERENCES cursos(id),
+            ADD COLUMN IF NOT EXISTS alojamiento_asignado_id INTEGER REFERENCES alojamientos(id);
+        """)
+        
         conn.commit()
         cursor.close()
         conn.close()
@@ -714,6 +755,383 @@ def aprobar_documento_generado(
     return {
         'mensaje': 'Documento aprobado correctamente',
         'enviado_estudiante': enviar_a_estudiante
+    }
+
+
+# ============================================================================
+# GESTIÓN DE CURSOS
+# ============================================================================
+
+@app.get("/api/admin/cursos", tags=["Admin - Cursos"])
+def listar_cursos(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Lista todos los cursos disponibles"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT id, nombre, descripcion, duracion_meses, precio_eur, ciudad,
+               nivel_espanol_requerido, cupos_disponibles, activo
+        FROM cursos
+        ORDER BY nombre
+    """)
+    
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    cursos = []
+    for row in rows:
+        cursos.append({
+            'id': row[0],
+            'nombre': row[1],
+            'descripcion': row[2],
+            'duracion_meses': row[3],
+            'precio_eur': float(row[4]) if row[4] else None,
+            'ciudad': row[5],
+            'nivel_espanol_requerido': row[6],
+            'cupos_disponibles': row[7],
+            'activo': row[8]
+        })
+    
+    return cursos
+
+
+@app.post("/api/admin/cursos", tags=["Admin - Cursos"])
+def crear_curso(
+    curso: dict,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Crea un nuevo curso"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO cursos (nombre, descripcion, duracion_meses, precio_eur, ciudad,
+                           nivel_espanol_requerido, cupos_disponibles, activo)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
+    """, (
+        curso.get('nombre'),
+        curso.get('descripcion'),
+        curso.get('duracion_meses'),
+        curso.get('precio_eur'),
+        curso.get('ciudad'),
+        curso.get('nivel_espanol_requerido'),
+        curso.get('cupos_disponibles', 0),
+        curso.get('activo', True)
+    ))
+    
+    curso_id = cursor.fetchone()[0]
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return {'id': curso_id, 'mensaje': 'Curso creado correctamente'}
+
+
+@app.put("/api/admin/cursos/{curso_id}", tags=["Admin - Cursos"])
+def actualizar_curso(
+    curso_id: int,
+    curso: dict,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Actualiza un curso"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE cursos
+        SET nombre = %s, descripcion = %s, duracion_meses = %s, precio_eur = %s,
+            ciudad = %s, nivel_espanol_requerido = %s, cupos_disponibles = %s,
+            activo = %s, updated_at = CURRENT_TIMESTAMP
+        WHERE id = %s
+    """, (
+        curso.get('nombre'),
+        curso.get('descripcion'),
+        curso.get('duracion_meses'),
+        curso.get('precio_eur'),
+        curso.get('ciudad'),
+        curso.get('nivel_espanol_requerido'),
+        curso.get('cupos_disponibles'),
+        curso.get('activo'),
+        curso_id
+    ))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return {'mensaje': 'Curso actualizado correctamente'}
+
+
+@app.post("/api/admin/estudiantes/{estudiante_id}/asignar-curso", tags=["Admin - Cursos"])
+def asignar_curso(
+    estudiante_id: int,
+    curso_id: int,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Asigna un curso a un estudiante"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE estudiantes
+        SET curso_asignado_id = %s
+        WHERE id = %s
+    """, (curso_id, estudiante_id))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return {'mensaje': 'Curso asignado correctamente'}
+
+
+# ============================================================================
+# GESTIÓN DE ALOJAMIENTOS
+# ============================================================================
+
+@app.get("/api/admin/alojamientos", tags=["Admin - Alojamientos"])
+def listar_alojamientos(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Lista todos los alojamientos"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT id, tipo, direccion, ciudad, precio_mensual_eur, capacidad,
+               disponible, descripcion, servicios
+        FROM alojamientos
+        ORDER BY ciudad, tipo
+    """)
+    
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    
+    alojamientos = []
+    for row in rows:
+        alojamientos.append({
+            'id': row[0],
+            'tipo': row[1],
+            'direccion': row[2],
+            'ciudad': row[3],
+            'precio_mensual_eur': float(row[4]) if row[4] else None,
+            'capacidad': row[5],
+            'disponible': row[6],
+            'descripcion': row[7],
+            'servicios': row[8]
+        })
+    
+    return alojamientos
+
+
+@app.post("/api/admin/alojamientos", tags=["Admin - Alojamientos"])
+def crear_alojamiento(
+    alojamiento: dict,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Crea un nuevo alojamiento"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        INSERT INTO alojamientos (tipo, direccion, ciudad, precio_mensual_eur,
+                                 capacidad, disponible, descripcion, servicios)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
+    """, (
+        alojamiento.get('tipo'),
+        alojamiento.get('direccion'),
+        alojamiento.get('ciudad'),
+        alojamiento.get('precio_mensual_eur'),
+        alojamiento.get('capacidad', 1),
+        alojamiento.get('disponible', True),
+        alojamiento.get('descripcion'),
+        alojamiento.get('servicios')
+    ))
+    
+    alojamiento_id = cursor.fetchone()[0]
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return {'id': alojamiento_id, 'mensaje': 'Alojamiento creado correctamente'}
+
+
+@app.put("/api/admin/alojamientos/{alojamiento_id}", tags=["Admin - Alojamientos"])
+def actualizar_alojamiento(
+    alojamiento_id: int,
+    alojamiento: dict,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Actualiza un alojamiento"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE alojamientos
+        SET tipo = %s, direccion = %s, ciudad = %s, precio_mensual_eur = %s,
+            capacidad = %s, disponible = %s, descripcion = %s, servicios = %s,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = %s
+    """, (
+        alojamiento.get('tipo'),
+        alojamiento.get('direccion'),
+        alojamiento.get('ciudad'),
+        alojamiento.get('precio_mensual_eur'),
+        alojamiento.get('capacidad'),
+        alojamiento.get('disponible'),
+        alojamiento.get('descripcion'),
+        alojamiento.get('servicios'),
+        alojamiento_id
+    ))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return {'mensaje': 'Alojamiento actualizado correctamente'}
+
+
+@app.post("/api/admin/estudiantes/{estudiante_id}/asignar-alojamiento", tags=["Admin - Alojamientos"])
+def asignar_alojamiento(
+    estudiante_id: int,
+    alojamiento_id: int,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Asigna un alojamiento a un estudiante"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE estudiantes
+        SET alojamiento_asignado_id = %s
+        WHERE id = %s
+    """, (alojamiento_id, estudiante_id))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    return {'mensaje': 'Alojamiento asignado correctamente'}
+
+
+# ============================================================================
+# REPORTES
+# ============================================================================
+
+@app.get("/api/admin/reportes/estudiantes", tags=["Admin - Reportes"])
+def reporte_estudiantes(
+    fecha_inicio: Optional[str] = None,
+    fecha_fin: Optional[str] = None,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Genera reporte detallado de estudiantes"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    query = """
+        SELECT e.id, e.nombre, e.email, e.nacionalidad, e.especialidad,
+               e.estado, e.created_at, c.nombre as curso, a.tipo as alojamiento
+        FROM estudiantes e
+        LEFT JOIN cursos c ON e.curso_asignado_id = c.id
+        LEFT JOIN alojamientos a ON e.alojamiento_asignado_id = a.id
+        WHERE 1=1
+    """
+    params = []
+    
+    if fecha_inicio:
+        query += " AND e.created_at >= %s"
+        params.append(fecha_inicio)
+    
+    if fecha_fin:
+        query += " AND e.created_at <= %s"
+        params.append(fecha_fin)
+    
+    query += " ORDER BY e.created_at DESC"
+    
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    
+    estudiantes = []
+    for row in rows:
+        estudiantes.append({
+            'id': row[0],
+            'nombre': row[1],
+            'email': row[2],
+            'nacionalidad': row[3],
+            'especialidad': row[4],
+            'estado': row[5],
+            'fecha_registro': row[6].isoformat() if row[6] else None,
+            'curso': row[7],
+            'alojamiento': row[8]
+        })
+    
+    cursor.close()
+    conn.close()
+    
+    return {
+        'total': len(estudiantes),
+        'estudiantes': estudiantes,
+        'fecha_generacion': datetime.now().isoformat()
     }
 
 
