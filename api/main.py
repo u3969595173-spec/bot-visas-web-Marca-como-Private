@@ -120,7 +120,76 @@ async def startup_event():
         cursor.execute("""
             ALTER TABLE estudiantes 
             ADD COLUMN IF NOT EXISTS curso_asignado_id INTEGER REFERENCES cursos(id),
-            ADD COLUMN IF NOT EXISTS alojamiento_asignado_id INTEGER REFERENCES alojamientos(id);
+            ADD COLUMN IF NOT EXISTS alojamiento_asignado_id INTEGER REFERENCES alojamientos(id),
+            ADD COLUMN IF NOT EXISTS universidad_referidora_id INTEGER,
+            ADD COLUMN IF NOT EXISTS codigo_referido VARCHAR(50);
+        """)
+        
+        # Crear tabla universidades_partner
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS universidades_partner (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(255) NOT NULL,
+                codigo_referido VARCHAR(50) UNIQUE NOT NULL,
+                email_contacto VARCHAR(255),
+                persona_contacto VARCHAR(255),
+                telefono VARCHAR(50),
+                tipo_comision VARCHAR(50) DEFAULT 'porcentaje',
+                porcentaje_comision DECIMAL(5,2) DEFAULT 15.00,
+                monto_fijo_comision DECIMAL(10,2) DEFAULT 0,
+                activo BOOLEAN DEFAULT TRUE,
+                logo_url TEXT,
+                notas TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_universidades_codigo 
+            ON universidades_partner(codigo_referido);
+        """)
+        
+        # Crear tabla comisiones
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS comisiones (
+                id SERIAL PRIMARY KEY,
+                universidad_id INTEGER REFERENCES universidades_partner(id),
+                estudiante_id INTEGER REFERENCES estudiantes(id),
+                monto_curso DECIMAL(10,2),
+                monto_comision DECIMAL(10,2),
+                estado VARCHAR(50) DEFAULT 'pendiente',
+                fecha_matricula TIMESTAMP,
+                fecha_pago TIMESTAMP,
+                notas TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_comisiones_universidad 
+            ON comisiones(universidad_id);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_comisiones_estado 
+            ON comisiones(estado);
+        """)
+        
+        # Agregar foreign key a estudiantes
+        cursor.execute("""
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints 
+                    WHERE constraint_name = 'fk_estudiantes_universidad'
+                ) THEN
+                    ALTER TABLE estudiantes 
+                    ADD CONSTRAINT fk_estudiantes_universidad 
+                    FOREIGN KEY (universidad_referidora_id) 
+                    REFERENCES universidades_partner(id);
+                END IF;
+            END $$;
         """)
         
         conn.commit()
@@ -128,6 +197,7 @@ async def startup_event():
         conn.close()
         print("✅ Tabla documentos_generados verificada/creada")
         print("✅ Campos OCR agregados a documentos")
+        print("✅ Sistema de partnerships universitarios creado")
     except Exception as e:
         print(f"⚠️ Error en startup: {e}")
 
@@ -3276,6 +3346,486 @@ def obtener_analisis_completo(
         raise
     except Exception as e:
         print(f"Error en análisis completo: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# PARTNERSHIPS UNIVERSITARIOS
+# ============================================================================
+
+@app.post("/api/admin/partners/universidades", tags=["Admin - Partners"])
+def crear_universidad_partner(
+    datos: Dict,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Crear nueva universidad partner"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO universidades_partner 
+            (nombre, codigo_referido, email_contacto, persona_contacto, telefono,
+             tipo_comision, porcentaje_comision, monto_fijo_comision, logo_url, notas)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            datos.get('nombre'),
+            datos.get('codigo_referido'),
+            datos.get('email_contacto'),
+            datos.get('persona_contacto'),
+            datos.get('telefono'),
+            datos.get('tipo_comision', 'porcentaje'),
+            datos.get('porcentaje_comision', 15.0),
+            datos.get('monto_fijo_comision', 0),
+            datos.get('logo_url'),
+            datos.get('notas')
+        ))
+        
+        universidad_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            'exito': True,
+            'universidad_id': universidad_id,
+            'mensaje': 'Universidad partner creada exitosamente'
+        }
+        
+    except Exception as e:
+        print(f"Error creando universidad partner: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/partners/universidades", tags=["Admin - Partners"])
+def listar_universidades_partner(
+    activo: Optional[bool] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Listar todas las universidades partner"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT u.id, u.nombre, u.codigo_referido, u.email_contacto, 
+                   u.persona_contacto, u.telefono, u.tipo_comision, 
+                   u.porcentaje_comision, u.monto_fijo_comision, u.activo,
+                   u.logo_url, u.notas, u.created_at,
+                   COUNT(DISTINCT e.id) as total_referidos,
+                   COUNT(DISTINCT CASE WHEN e.estado = 'matriculado' THEN e.id END) as matriculados,
+                   COALESCE(SUM(CASE WHEN c.estado = 'pagado' THEN c.monto_comision ELSE 0 END), 0) as total_pagado,
+                   COALESCE(SUM(CASE WHEN c.estado = 'pendiente' THEN c.monto_comision ELSE 0 END), 0) as total_pendiente
+            FROM universidades_partner u
+            LEFT JOIN estudiantes e ON e.universidad_referidora_id = u.id
+            LEFT JOIN comisiones c ON c.universidad_id = u.id
+        """
+        
+        if activo is not None:
+            query += " WHERE u.activo = %s"
+            cursor.execute(query + " GROUP BY u.id ORDER BY u.nombre", (activo,))
+        else:
+            cursor.execute(query + " GROUP BY u.id ORDER BY u.nombre")
+        
+        universidades = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        resultado = []
+        for u in universidades:
+            resultado.append({
+                'id': u[0],
+                'nombre': u[1],
+                'codigo_referido': u[2],
+                'email_contacto': u[3],
+                'persona_contacto': u[4],
+                'telefono': u[5],
+                'tipo_comision': u[6],
+                'porcentaje_comision': float(u[7]) if u[7] else 0,
+                'monto_fijo_comision': float(u[8]) if u[8] else 0,
+                'activo': u[9],
+                'logo_url': u[10],
+                'notas': u[11],
+                'created_at': u[12].isoformat() if u[12] else None,
+                'stats': {
+                    'total_referidos': u[13],
+                    'matriculados': u[14],
+                    'tasa_conversion': round((u[14] / u[13] * 100) if u[13] > 0 else 0, 1),
+                    'total_pagado': float(u[15]),
+                    'total_pendiente': float(u[16])
+                }
+            })
+        
+        return {
+            'universidades': resultado,
+            'total': len(resultado)
+        }
+        
+    except Exception as e:
+        print(f"Error listando universidades: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/partners/universidades/{universidad_id}", tags=["Admin - Partners"])
+def actualizar_universidad_partner(
+    universidad_id: int,
+    datos: Dict,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Actualizar datos de universidad partner"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE universidades_partner 
+            SET nombre = %s,
+                email_contacto = %s,
+                persona_contacto = %s,
+                telefono = %s,
+                tipo_comision = %s,
+                porcentaje_comision = %s,
+                monto_fijo_comision = %s,
+                logo_url = %s,
+                notas = %s,
+                activo = %s,
+                updated_at = NOW()
+            WHERE id = %s
+        """, (
+            datos.get('nombre'),
+            datos.get('email_contacto'),
+            datos.get('persona_contacto'),
+            datos.get('telefono'),
+            datos.get('tipo_comision'),
+            datos.get('porcentaje_comision'),
+            datos.get('monto_fijo_comision'),
+            datos.get('logo_url'),
+            datos.get('notas'),
+            datos.get('activo'),
+            universidad_id
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {'exito': True, 'mensaje': 'Universidad actualizada'}
+        
+    except Exception as e:
+        print(f"Error actualizando universidad: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/partners/universidades/{universidad_id}/estudiantes", tags=["Admin - Partners"])
+def listar_estudiantes_referidos(
+    universidad_id: int,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Lista estudiantes referidos por universidad"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT e.id, e.nombre, e.email, e.nacionalidad, e.especialidad,
+                   e.estado, e.created_at, c.nombre as curso,
+                   com.monto_comision, com.estado as estado_comision
+            FROM estudiantes e
+            LEFT JOIN cursos c ON e.curso_asignado_id = c.id
+            LEFT JOIN comisiones com ON com.estudiante_id = e.id AND com.universidad_id = %s
+            WHERE e.universidad_referidora_id = %s
+            ORDER BY e.created_at DESC
+        """, (universidad_id, universidad_id))
+        
+        estudiantes = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        resultado = []
+        for est in estudiantes:
+            resultado.append({
+                'id': est[0],
+                'nombre': est[1],
+                'email': est[2],
+                'nacionalidad': est[3],
+                'especialidad': est[4],
+                'estado': est[5],
+                'created_at': est[6].isoformat() if est[6] else None,
+                'curso': est[7],
+                'comision': {
+                    'monto': float(est[8]) if est[8] else 0,
+                    'estado': est[9] or 'no_generada'
+                }
+            })
+        
+        return {
+            'estudiantes': resultado,
+            'total': len(resultado)
+        }
+        
+    except Exception as e:
+        print(f"Error listando estudiantes referidos: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/partners/comisiones/generar", tags=["Admin - Partners"])
+def generar_comision(
+    datos: Dict,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Genera comisión para estudiante matriculado"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        estudiante_id = datos.get('estudiante_id')
+        monto_curso = datos.get('monto_curso')
+        
+        # Obtener universidad referidora
+        cursor.execute("""
+            SELECT universidad_referidora_id FROM estudiantes WHERE id = %s
+        """, (estudiante_id,))
+        
+        result = cursor.fetchone()
+        if not result or not result[0]:
+            raise HTTPException(status_code=400, detail="Estudiante no tiene universidad referidora")
+        
+        universidad_id = result[0]
+        
+        # Obtener configuración de comisión
+        cursor.execute("""
+            SELECT tipo_comision, porcentaje_comision, monto_fijo_comision
+            FROM universidades_partner WHERE id = %s
+        """, (universidad_id,))
+        
+        config = cursor.fetchone()
+        tipo_comision, porcentaje, monto_fijo = config
+        
+        # Calcular comisión
+        if tipo_comision == 'porcentaje':
+            monto_comision = monto_curso * (porcentaje / 100)
+        else:
+            monto_comision = monto_fijo
+        
+        # Crear registro de comisión
+        cursor.execute("""
+            INSERT INTO comisiones 
+            (universidad_id, estudiante_id, monto_curso, monto_comision, 
+             estado, fecha_matricula)
+            VALUES (%s, %s, %s, %s, 'pendiente', NOW())
+            RETURNING id
+        """, (universidad_id, estudiante_id, monto_curso, monto_comision))
+        
+        comision_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            'exito': True,
+            'comision_id': comision_id,
+            'monto_comision': float(monto_comision)
+        }
+        
+    except Exception as e:
+        print(f"Error generando comisión: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/partners/comisiones", tags=["Admin - Partners"])
+def listar_comisiones(
+    universidad_id: Optional[int] = None,
+    estado: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Lista todas las comisiones"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT c.id, c.monto_curso, c.monto_comision, c.estado,
+                   c.fecha_matricula, c.fecha_pago, c.notas,
+                   u.nombre as universidad, e.nombre as estudiante
+            FROM comisiones c
+            JOIN universidades_partner u ON c.universidad_id = u.id
+            JOIN estudiantes e ON c.estudiante_id = e.id
+            WHERE 1=1
+        """
+        
+        params = []
+        if universidad_id:
+            query += " AND c.universidad_id = %s"
+            params.append(universidad_id)
+        if estado:
+            query += " AND c.estado = %s"
+            params.append(estado)
+        
+        query += " ORDER BY c.created_at DESC"
+        
+        cursor.execute(query, params)
+        comisiones = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        resultado = []
+        for com in comisiones:
+            resultado.append({
+                'id': com[0],
+                'monto_curso': float(com[1]),
+                'monto_comision': float(com[2]),
+                'estado': com[3],
+                'fecha_matricula': com[4].isoformat() if com[4] else None,
+                'fecha_pago': com[5].isoformat() if com[5] else None,
+                'notas': com[6],
+                'universidad': com[7],
+                'estudiante': com[8]
+            })
+        
+        return {
+            'comisiones': resultado,
+            'total': len(resultado),
+            'total_pendiente': sum(c['monto_comision'] for c in resultado if c['estado'] == 'pendiente'),
+            'total_pagado': sum(c['monto_comision'] for c in resultado if c['estado'] == 'pagado')
+        }
+        
+    except Exception as e:
+        print(f"Error listando comisiones: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/partners/comisiones/{comision_id}/marcar-pagado", tags=["Admin - Partners"])
+def marcar_comision_pagada(
+    comision_id: int,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Marca comisión como pagada"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE comisiones 
+            SET estado = 'pagado', fecha_pago = NOW()
+            WHERE id = %s
+        """, (comision_id,))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {'exito': True, 'mensaje': 'Comisión marcada como pagada'}
+        
+    except Exception as e:
+        print(f"Error marcando comisión: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/partners/dashboard", tags=["Admin - Partners"])
+def dashboard_partners(
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Dashboard general de partnerships"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Estadísticas generales
+        cursor.execute("""
+            SELECT 
+                COUNT(DISTINCT u.id) as total_universidades,
+                COUNT(DISTINCT e.id) as total_referidos,
+                COUNT(DISTINCT CASE WHEN e.estado = 'matriculado' THEN e.id END) as total_matriculados,
+                COALESCE(SUM(CASE WHEN c.estado = 'pendiente' THEN c.monto_comision ELSE 0 END), 0) as comisiones_pendientes,
+                COALESCE(SUM(CASE WHEN c.estado = 'pagado' THEN c.monto_comision ELSE 0 END), 0) as comisiones_pagadas
+            FROM universidades_partner u
+            LEFT JOIN estudiantes e ON e.universidad_referidora_id = u.id
+            LEFT JOIN comisiones c ON c.universidad_id = u.id
+            WHERE u.activo = TRUE
+        """)
+        
+        stats = cursor.fetchone()
+        
+        # Top universidades
+        cursor.execute("""
+            SELECT u.nombre, COUNT(e.id) as total_referidos,
+                   COALESCE(SUM(c.monto_comision), 0) as total_comisiones
+            FROM universidades_partner u
+            LEFT JOIN estudiantes e ON e.universidad_referidora_id = u.id
+            LEFT JOIN comisiones c ON c.universidad_id = u.id
+            WHERE u.activo = TRUE
+            GROUP BY u.id, u.nombre
+            ORDER BY total_referidos DESC
+            LIMIT 5
+        """)
+        
+        top_universidades = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            'stats': {
+                'total_universidades': stats[0],
+                'total_referidos': stats[1],
+                'total_matriculados': stats[2],
+                'tasa_conversion': round((stats[2] / stats[1] * 100) if stats[1] > 0 else 0, 1),
+                'comisiones_pendientes': float(stats[3]),
+                'comisiones_pagadas': float(stats[4])
+            },
+            'top_universidades': [
+                {
+                    'nombre': u[0],
+                    'total_referidos': u[1],
+                    'total_comisiones': float(u[2])
+                }
+                for u in top_universidades
+            ]
+        }
+        
+    except Exception as e:
+        print(f"Error en dashboard partners: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
