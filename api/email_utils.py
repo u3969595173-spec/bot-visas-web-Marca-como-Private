@@ -58,7 +58,7 @@ def enviar_email(
         return False
 
 
-def email_bienvenida(nombre: str, email: str) -> bool:
+def email_bienvenida(nombre: str, email: str, estudiante_id: int = None) -> bool:
     """Email de bienvenida al registrarse"""
     asunto = "¡Bienvenido a Estudio Visa España!"
     cuerpo = f"""
@@ -68,6 +68,13 @@ def email_bienvenida(nombre: str, email: str) -> bool:
             <h2 style="color: #667eea;">¡Hola {nombre}!</h2>
             <p>Gracias por registrarte en <strong>Estudio Visa España</strong>.</p>
             <p>Hemos recibido tu solicitud y nuestro equipo está revisando tu expediente.</p>
+            
+            {f'''<div style="background: #e6fffa; border: 2px solid #38b2ac; padding: 20px; border-radius: 10px; margin: 20px 0; text-align: center;">
+                <p style="margin: 0 0 10px 0; font-size: 14px; color: #2c7a7b;"><strong>Tu ID de Seguimiento:</strong></p>
+                <p style="margin: 0; font-size: 48px; font-weight: bold; color: #2c7a7b;">{estudiante_id}</p>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #2c7a7b;">⚠️ Guarda este número para consultar tu estado</p>
+            </div>''' if estudiante_id else ''}
+            
             <p>Te notificaremos por email cuando haya actualizaciones.</p>
             <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
                 <h3 style="margin-top: 0; color: #667eea;">Próximos pasos:</h3>

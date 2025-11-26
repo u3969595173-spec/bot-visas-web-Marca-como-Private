@@ -387,12 +387,13 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
         # Enviar email de bienvenida
         try:
             from api.email_utils import email_bienvenida
-            email_bienvenida(nuevo.nombre, nuevo.email)
+            email_bienvenida(nuevo.nombre, nuevo.email, nuevo.id)
         except Exception as e:
             print(f"[WARN] Error enviando email: {e}")
         
         return {
             "id": nuevo.id,
+            "estudiante_id": nuevo.id,
             "mensaje": "Registro exitoso. Revisa tu email para más información.",
             "estado": nuevo.estado
         }

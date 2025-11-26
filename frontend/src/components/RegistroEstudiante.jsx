@@ -39,9 +39,14 @@ const RegistroEstudiante = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await axios.post(`${apiUrl}/api/estudiantes`, formData);
       
-      setEstudianteId(response.data.estudiante_id || response.data.id);
+      console.log('Respuesta del servidor:', response.data);
+      const id = response.data.estudiante_id || response.data.id;
+      console.log('ID extraído:', id);
+      
+      setEstudianteId(id);
       setSuccess(true);
     } catch (err) {
+      console.error('Error al registrar:', err);
       setError(err.response?.data?.detail || 'Error al registrar estudiante');
     } finally {
       setLoading(false);
@@ -49,6 +54,7 @@ const RegistroEstudiante = () => {
   };
 
   if (success) {
+    console.log('Mostrando pantalla de éxito, ID:', estudianteId);
     return (
       <div className="registro-success">
         <div className="success-card">
@@ -73,7 +79,7 @@ const RegistroEstudiante = () => {
               color: '#2c7a7b',
               margin: '10px 0'
             }}>
-              {estudianteId}
+              {estudianteId || 'Cargando...'}
             </p>
             <p style={{ fontSize: '14px', color: '#2c7a7b', marginTop: '10px' }}>
               ⚠️ Guarda este número para consultar tu estado
