@@ -411,30 +411,39 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
     """
     Obtiene datos de un estudiante (sin auth para estudiante)
     """
-    from database.models import Estudiante as EstudianteModel
+    # Usar SQL directo para evitar problemas con columnas del ORM
+    query = text("""
+        SELECT 
+            id, nombre, email, telefono, pasaporte, edad, 
+            nacionalidad, ciudad_origen, especialidad, nivel_espanol, 
+            tipo_visa, estado, documentos_estado, notas, 
+            created_at, updated_at
+        FROM estudiantes 
+        WHERE id = :estudiante_id
+    """)
     
-    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    result = db.execute(query, {"estudiante_id": estudiante_id}).fetchone()
     
-    if not estudiante:
+    if not result:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
     return {
-        "id": estudiante.id,
-        "nombre": estudiante.nombre,
-        "email": estudiante.email,
-        "telefono": estudiante.telefono,
-        "pasaporte": estudiante.pasaporte,
-        "edad": estudiante.edad,
-        "nacionalidad": estudiante.nacionalidad,
-        "ciudad_origen": estudiante.ciudad_origen,
-        "especialidad": estudiante.especialidad,
-        "nivel_espanol": estudiante.nivel_espanol,
-        "tipo_visa": estudiante.tipo_visa,
-        "estado": estudiante.estado,
-        "documentos_estado": estudiante.documentos_estado,
-        "notas": estudiante.notas,
-        "created_at": estudiante.created_at.isoformat() if estudiante.created_at else None,
-        "updated_at": estudiante.updated_at.isoformat() if estudiante.updated_at else None
+        "id": result[0],
+        "nombre": result[1],
+        "email": result[2],
+        "telefono": result[3],
+        "pasaporte": result[4],
+        "edad": result[5],
+        "nacionalidad": result[6],
+        "ciudad_origen": result[7],
+        "especialidad": result[8],
+        "nivel_espanol": result[9],
+        "tipo_visa": result[10],
+        "estado": result[11],
+        "documentos_estado": result[12],
+        "notas": result[13],
+        "created_at": result[14].isoformat() if result[14] else None,
+        "updated_at": result[15].isoformat() if result[15] else None
     }
 
 
