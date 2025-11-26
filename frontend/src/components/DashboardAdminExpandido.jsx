@@ -10,6 +10,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [cursos, setCursos] = useState([])
   const [alojamientos, setAlojamientos] = useState([])
   const [estadisticas, setEstadisticas] = useState(null)
+  const [reporteEstudiantes, setReporteEstudiantes] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
@@ -18,6 +19,9 @@ function DashboardAdminExpandido({ onLogout }) {
   const [generandoDocs, setGenerandoDocs] = useState(false)
   const [showAddCursoModal, setShowAddCursoModal] = useState(false)
   const [showAddAlojamientoModal, setShowAddAlojamientoModal] = useState(false)
+  const [showCursosSugeridosModal, setShowCursosSugeridosModal] = useState(false)
+  const [cursosSugeridos, setCursosSugeridos] = useState([])
+  const [estudianteParaCurso, setEstudianteParaCurso] = useState(null)
   const [nuevoCurso, setNuevoCurso] = useState({ nombre: '', descripcion: '', duracion_meses: 6, precio_eur: 0, ciudad: '', nivel_espanol_requerido: '', cupos_disponibles: 0 })
   const [nuevoAlojamiento, setNuevoAlojamiento] = useState({ tipo: '', direccion: '', ciudad: '', precio_mensual_eur: 0, capacidad: 1, disponible: true, descripcion: '', servicios: '' })
   const navigate = useNavigate()
@@ -51,6 +55,9 @@ function DashboardAdminExpandido({ onLogout }) {
       } else if (activeTab === 'alojamientos') {
         const alojRes = await axios.get(`${apiUrl}/api/admin/alojamientos`)
         setAlojamientos(alojRes.data)
+      } else if (activeTab === 'reportes') {
+        const reporteRes = await axios.get(`${apiUrl}/api/admin/reportes/estudiantes`)
+        setReporteEstudiantes(reporteRes.data)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -71,14 +78,45 @@ function DashboardAdminExpandido({ onLogout }) {
   }
 
   const aprobarEstudiante = async (id) => {
-    if (!confirm('¿Está seguro de aprobar este estudiante?')) return
-    
+    // Primero mostrar cursos sugeridos
     try {
-      await axios.post(`${apiUrl}/api/admin/estudiantes/${id}/aprobar`)
-      alert('Estudiante aprobado correctamente')
+      const res = await axios.get(`${apiUrl}/api/admin/estudiantes/${id}/sugerir-cursos`)
+      setCursosSugeridos(res.data.cursos_sugeridos)
+      setEstudianteParaCurso(id)
+      setShowCursosSugeridosModal(true)
+    } catch (err) {
+      // Si no hay cursos o falla, aprobar directamente
+      if (confirm('¿Está seguro de aprobar este estudiante sin asignar curso?')) {
+        try {
+          await axios.post(`${apiUrl}/api/admin/estudiantes/${id}/aprobar`)
+          alert('Estudiante aprobado correctamente')
+          cargarDatos()
+        } catch (err2) {
+          alert('Error: ' + (err2.response?.data?.detail || err2.message))
+        }
+      }
+    }
+  }
+
+  const aprobarConCurso = async (cursoId = null) => {
+    try {
+      // Asignar curso si fue seleccionado
+      if (cursoId) {
+        await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteParaCurso}/asignar-curso`, null, {
+          params: { curso_id: cursoId }
+        })
+      }
+      
+      // Aprobar estudiante
+      await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteParaCurso}/aprobar`)
+      
+      alert('Estudiante aprobado' + (cursoId ? ' y curso asignado' : ''))
+      setShowCursosSugeridosModal(false)
+      setCursosSugeridos([])
+      setEstudianteParaCurso(null)
       cargarDatos()
     } catch (err) {
-      alert('Error al aprobar estudiante: ' + (err.response?.data?.detail || err.message))
+      alert('Error: ' + (err.response?.data?.detail || err.message))
     }
   }
 
@@ -278,6 +316,12 @@ function DashboardAdminExpandido({ onLogout }) {
           onClick={() => setActiveTab('alojamientos')}
         >
           🏠 Alojamientos
+        </button>
+        <button 
+          className={`tab ${activeTab === 'reportes' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('reportes')}
+        >
+          📊 Reportes
         </button>
       </div>
 
@@ -713,6 +757,179 @@ function DashboardAdminExpandido({ onLogout }) {
               </button>
               <button onClick={crearAlojamiento} className="btn-submit">
                 Crear Alojamiento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SECCIÓN: REPORTES */}
+      {activeTab === 'reportes' && (
+        <div className="reportes-section">
+          <h2>📊 Reportes y Estadísticas</h2>
+          
+          {!reporteEstudiantes ? (
+            <div className="loading">Cargando reportes...</div>
+          ) : (
+            <>
+              {/* Resumen general */}
+              <div className="reporte-resumen">
+                <div className="reporte-card">
+                  <h3>Total Registrados</h3>
+                  <div className="reporte-numero">{reporteEstudiantes.total}</div>
+                </div>
+                <div className="reporte-card">
+                  <h3>Aprobados</h3>
+                  <div className="reporte-numero success">
+                    {reporteEstudiantes.estudiantes.filter(e => e.estado === 'aprobado').length}
+                  </div>
+                </div>
+                <div className="reporte-card">
+                  <h3>Pendientes</h3>
+                  <div className="reporte-numero warning">
+                    {reporteEstudiantes.estudiantes.filter(e => e.estado === 'pendiente').length}
+                  </div>
+                </div>
+                <div className="reporte-card">
+                  <h3>Rechazados</h3>
+                  <div className="reporte-numero danger">
+                    {reporteEstudiantes.estudiantes.filter(e => e.estado === 'rechazado').length}
+                  </div>
+                </div>
+              </div>
+
+              {/* Estadísticas por nacionalidad */}
+              <div className="reporte-seccion">
+                <h3>Estudiantes por Nacionalidad</h3>
+                <div className="tabla-wrapper">
+                  <table className="tabla-reportes">
+                    <thead>
+                      <tr>
+                        <th>Nacionalidad</th>
+                        <th>Total</th>
+                        <th>Aprobados</th>
+                        <th>Tasa Éxito</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(
+                        reporteEstudiantes.estudiantes.reduce((acc, est) => {
+                          const nac = est.nacionalidad || 'Sin especificar'
+                          if (!acc[nac]) acc[nac] = { total: 0, aprobados: 0 }
+                          acc[nac].total++
+                          if (est.estado === 'aprobado') acc[nac].aprobados++
+                          return acc
+                        }, {})
+                      ).map(([nac, stats]) => (
+                        <tr key={nac}>
+                          <td>{nac}</td>
+                          <td>{stats.total}</td>
+                          <td>{stats.aprobados}</td>
+                          <td>
+                            <span className={`badge ${stats.aprobados / stats.total > 0.7 ? 'badge-success' : stats.aprobados / stats.total > 0.4 ? 'badge-warning' : 'badge-danger'}`}>
+                              {((stats.aprobados / stats.total) * 100).toFixed(0)}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Estadísticas por curso */}
+              <div className="reporte-seccion">
+                <h3>Estudiantes por Curso</h3>
+                <div className="tabla-wrapper">
+                  <table className="tabla-reportes">
+                    <thead>
+                      <tr>
+                        <th>Curso</th>
+                        <th>Estudiantes Asignados</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(
+                        reporteEstudiantes.estudiantes.reduce((acc, est) => {
+                          const curso = est.curso || 'Sin asignar'
+                          acc[curso] = (acc[curso] || 0) + 1
+                          return acc
+                        }, {})
+                      ).map(([curso, count]) => (
+                        <tr key={curso}>
+                          <td>{curso}</td>
+                          <td>{count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Botón de exportar */}
+              <div className="reporte-acciones">
+                <button 
+                  onClick={() => {
+                    const dataStr = JSON.stringify(reporteEstudiantes, null, 2)
+                    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr)
+                    const exportFileDefaultName = `reporte_estudiantes_${new Date().toISOString().split('T')[0]}.json`
+                    const linkElement = document.createElement('a')
+                    linkElement.setAttribute('href', dataUri)
+                    linkElement.setAttribute('download', exportFileDefaultName)
+                    linkElement.click()
+                  }}
+                  className="btn-export"
+                >
+                  📥 Exportar JSON
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Modal: Cursos Sugeridos */}
+      {showCursosSugeridosModal && (
+        <div className="modal-overlay" onClick={() => setShowCursosSugeridosModal(false)}>
+          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
+            <h3>📚 Cursos Sugeridos para el Estudiante</h3>
+            
+            {cursosSugeridos.length === 0 ? (
+              <div className="no-data">No hay cursos disponibles que coincidan con el perfil</div>
+            ) : (
+              <div className="cursos-sugeridos-lista">
+                {cursosSugeridos.map(curso => (
+                  <div key={curso.id} className="curso-sugerido-card">
+                    <div className="curso-sugerido-header">
+                      <h4>{curso.nombre}</h4>
+                      <span className={`compatibilidad-badge compatibilidad-${Math.floor(curso.compatibilidad / 20)}`}>
+                        {curso.compatibilidad}% compatible
+                      </span>
+                    </div>
+                    <p className="curso-descripcion">{curso.descripcion}</p>
+                    <div className="curso-detalles">
+                      <span>🕐 {curso.duracion_meses} meses</span>
+                      <span>📍 {curso.ciudad}</span>
+                      <span>💶 €{curso.precio_eur}</span>
+                      <span>📖 {curso.nivel_espanol_requerido}</span>
+                    </div>
+                    <button 
+                      onClick={() => aprobarConCurso(curso.id)}
+                      className="btn-seleccionar-curso"
+                    >
+                      ✓ Seleccionar este curso
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div className="modal-actions">
+              <button onClick={() => setShowCursosSugeridosModal(false)} className="btn-cancel">
+                Cancelar
+              </button>
+              <button onClick={() => aprobarConCurso(null)} className="btn-submit-secondary">
+                Aprobar sin asignar curso
               </button>
             </div>
           </div>
