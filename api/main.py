@@ -427,6 +427,250 @@ def generar_reporte_pdf(estudiante_id: int, tipo: str = 'completo', db: Session 
     )
 
 
+# ============================================================================
+# GENERACIÓN DE DOCUMENTOS OFICIALES (ADMIN)
+# ============================================================================
+
+@app.post("/api/admin/estudiantes/{estudiante_id}/generar-documentos", tags=["Admin - Documentos"])
+def generar_documentos_estudiante(
+    estudiante_id: int,
+    tipos_documentos: List[str],
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Genera documentos oficiales para un estudiante
+    tipos_documentos: ['carta_aceptacion', 'carta_motivacion', 'formulario_solicitud', 'certificado_matricula']
+    """
+    verificar_token(credentials.credentials)
+    
+    from database.models import Estudiante as EstudianteModel
+    from api.generador_documentos import GeneradorDocumentosOficiales
+    import base64
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    datos_estudiante = {
+        'id': estudiante.id,
+        'nombre': estudiante.nombre,
+        'email': estudiante.email,
+        'telefono': estudiante.telefono,
+        'pasaporte': estudiante.pasaporte,
+        'edad': estudiante.edad,
+        'nacionalidad': estudiante.nacionalidad,
+        'ciudad_origen': estudiante.ciudad_origen,
+        'especialidad': estudiante.especialidad,
+        'nivel_espanol': estudiante.nivel_espanol,
+        'tipo_visa': estudiante.tipo_visa
+    }
+    
+    documentos_generados = []
+    
+    for tipo in tipos_documentos:
+        try:
+            # Generar PDF según tipo
+            if tipo == 'carta_aceptacion':
+                pdf_buffer = GeneradorDocumentosOficiales.generar_carta_aceptacion(datos_estudiante)
+                nombre = f"Carta_Aceptacion_{estudiante.id}.pdf"
+            elif tipo == 'carta_motivacion':
+                pdf_buffer = GeneradorDocumentosOficiales.generar_carta_motivacion(datos_estudiante)
+                nombre = f"Carta_Motivacion_{estudiante.id}.pdf"
+            elif tipo == 'formulario_solicitud':
+                pdf_buffer = GeneradorDocumentosOficiales.generar_formulario_solicitud(datos_estudiante)
+                nombre = f"Formulario_Solicitud_{estudiante.id}.pdf"
+            elif tipo == 'certificado_matricula':
+                pdf_buffer = GeneradorDocumentosOficiales.generar_certificado_matricula(datos_estudiante)
+                nombre = f"Certificado_Matricula_{estudiante.id}.pdf"
+            else:
+                continue
+            
+            # Convertir a base64 para almacenar
+            pdf_content = pdf_buffer.read()
+            pdf_base64 = base64.b64encode(pdf_content).decode('utf-8')
+            
+            # Guardar en base de datos usando SQL directo
+            import os
+            import psycopg2
+            conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO documentos_generados 
+                (estudiante_id, tipo_documento, nombre_archivo, contenido_pdf, estado, generado_por)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (estudiante_id, tipo, nombre, pdf_base64, 'generado', 'admin'))
+            
+            doc_id = cursor.fetchone()[0]
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            documentos_generados.append({
+                'id': doc_id,
+                'tipo': tipo,
+                'nombre': nombre,
+                'estado': 'generado'
+            })
+            
+        except Exception as e:
+            print(f"Error generando documento {tipo}: {e}")
+            continue
+    
+    return {
+        'estudiante_id': estudiante_id,
+        'documentos_generados': documentos_generados,
+        'total': len(documentos_generados)
+    }
+
+
+@app.get("/api/admin/documentos-generados", tags=["Admin - Documentos"])
+def listar_documentos_generados(
+    estudiante_id: Optional[int] = None,
+    estado: Optional[str] = None,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Lista todos los documentos generados con filtros opcionales"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    query = """
+        SELECT dg.id, dg.estudiante_id, dg.tipo_documento, dg.nombre_archivo,
+               dg.estado, dg.fecha_generacion, dg.enviado_estudiante,
+               e.nombre as estudiante_nombre
+        FROM documentos_generados dg
+        JOIN estudiantes e ON dg.estudiante_id = e.id
+        WHERE 1=1
+    """
+    params = []
+    
+    if estudiante_id:
+        query += " AND dg.estudiante_id = %s"
+        params.append(estudiante_id)
+    
+    if estado:
+        query += " AND dg.estado = %s"
+        params.append(estado)
+    
+    query += " ORDER BY dg.fecha_generacion DESC"
+    
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    
+    documentos = []
+    for row in rows:
+        documentos.append({
+            'id': row[0],
+            'estudiante_id': row[1],
+            'tipo_documento': row[2],
+            'nombre_archivo': row[3],
+            'estado': row[4],
+            'fecha_generacion': row[5].isoformat() if row[5] else None,
+            'enviado_estudiante': row[6],
+            'estudiante_nombre': row[7]
+        })
+    
+    cursor.close()
+    conn.close()
+    
+    return documentos
+
+
+@app.get("/api/admin/documentos-generados/{documento_id}/descargar", tags=["Admin - Documentos"])
+def descargar_documento_generado(
+    documento_id: int,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Descarga un documento generado"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    import base64
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT nombre_archivo, contenido_pdf
+        FROM documentos_generados
+        WHERE id = %s
+    """, (documento_id,))
+    
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    
+    if not row:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+    
+    nombre_archivo, contenido_base64 = row
+    pdf_content = base64.b64decode(contenido_base64)
+    
+    from io import BytesIO
+    buffer = BytesIO(pdf_content)
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"}
+    )
+
+
+@app.put("/api/admin/documentos-generados/{documento_id}/aprobar", tags=["Admin - Documentos"])
+def aprobar_documento_generado(
+    documento_id: int,
+    enviar_a_estudiante: bool = True,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Aprueba un documento y opcionalmente lo envía al estudiante"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        UPDATE documentos_generados
+        SET estado = 'aprobado',
+            fecha_aprobacion = CURRENT_TIMESTAMP,
+            enviado_estudiante = %s,
+            aprobado_por = 'admin'
+        WHERE id = %s
+        RETURNING estudiante_id
+    """, (enviar_a_estudiante, documento_id))
+    
+    result = cursor.fetchone()
+    if not result:
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+    
+    estudiante_id = result[0]
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    # TODO: Enviar email al estudiante con el documento adjunto
+    
+    return {
+        'mensaje': 'Documento aprobado correctamente',
+        'enviado_estudiante': enviar_a_estudiante
+    }
+
+
 @app.get("/api/estudiantes/{estudiante_id}/estado", tags=["Estudiantes"])
 def consultar_estado(estudiante_id: int, db: Session = Depends(get_db)):
     """
