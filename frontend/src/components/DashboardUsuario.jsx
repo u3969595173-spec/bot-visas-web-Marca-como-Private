@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import PerfilEstudiante from './PerfilEstudiante';
 import CalculadoraVisa from './CalculadoraVisa';
+import GestorDocumentos from './GestorDocumentos';
 
 function DashboardUsuario({ estudianteId }) {
   const [estudiante, setEstudiante] = useState(null);
@@ -133,23 +134,7 @@ function DashboardUsuario({ estudianteId }) {
 
       {/* TAB: Documentos */}
       {activeTab === 'documentos' && (
-        <div className="card">
-          <h2 style={{ marginBottom: '20px' }}>📄 Gestión de Documentos</h2>
-          <p style={{ color: '#718096', marginBottom: '20px' }}>
-            Estado actual: <strong>{estudiante?.documentos_estado || 'Pendiente'}</strong>
-          </p>
-          <div style={{
-            background: '#f7fafc',
-            padding: '30px',
-            borderRadius: '10px',
-            textAlign: 'center'
-          }}>
-            <p style={{ fontSize: '48px', marginBottom: '15px' }}>📤</p>
-            <p style={{ color: '#718096' }}>
-              El sistema de carga de documentos estará disponible pronto
-            </p>
-          </div>
-        </div>
+        <GestorDocumentos estudianteId={estudianteId} />
       )}
     </div>
   );

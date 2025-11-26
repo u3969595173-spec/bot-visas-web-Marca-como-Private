@@ -1,0 +1,245 @@
+.documentos-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.documentos-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.documentos-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.documentos-header h2 {
+  color: #333;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.documentos-header p {
+  color: #666;
+  font-size: 16px;
+}
+
+.upload-section {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 30px;
+}
+
+.upload-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+}
+
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.upload-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.upload-label:hover:not(:has(.uploading)) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.upload-icon {
+  font-size: 24px;
+}
+
+.uploading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.upload-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.upload-hint {
+  margin-top: 8px;
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+}
+
+.documentos-lista {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 30px;
+}
+
+.documentos-lista h3 {
+  color: #333;
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.documentos-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.documentos-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.documento-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border-left: 4px solid #667eea;
+  transition: all 0.3s ease;
+}
+
+.documento-card:hover {
+  background: #f3f4f6;
+  transform: translateX(5px);
+}
+
+.documento-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.documento-info {
+  flex: 1;
+}
+
+.documento-info h4 {
+  color: #333;
+  font-size: 16px;
+  margin: 0 0 8px 0;
+}
+
+.documento-nombre {
+  color: #666;
+  font-size: 14px;
+  margin: 5px 0;
+}
+
+.documento-tamano {
+  color: #999;
+  font-size: 13px;
+  margin: 5px 0;
+}
+
+.documento-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.badge-pendiente {
+  background: rgba(255, 193, 7, 0.2);
+  color: #f59e0b;
+}
+
+.badge-revision {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.badge-aprobado {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.badge-rechazado {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.documento-notas {
+  margin-top: 10px;
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #666;
+}
+
+.documentos-info {
+  background: #eff6ff;
+  border-radius: 12px;
+  padding: 25px;
+  border-left: 4px solid #3b82f6;
+}
+
+.documentos-info h4 {
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.documentos-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.documentos-info li {
+  padding: 8px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .upload-form {
+    grid-template-columns: 1fr;
+  }
+}

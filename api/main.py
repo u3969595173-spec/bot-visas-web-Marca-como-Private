@@ -3,7 +3,7 @@ API REST con FastAPI para Dashboard Web
 Endpoints para estudiantes y panel de administración
 """
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -253,6 +253,116 @@ def calcular_probabilidad_visa(estudiante_id: int, db: Session = Depends(get_db)
         'estudiante_nombre': estudiante.nombre,
         'analisis': analisis
     }
+
+
+@app.post("/api/estudiantes/{estudiante_id}/documentos", tags=["Estudiantes"])
+async def subir_documento(
+    estudiante_id: int,
+    tipo_documento: str,
+    archivo: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Sube un documento para el estudiante
+    """
+    import base64
+    from datetime import datetime
+    
+    # Verificar que el estudiante existe
+    from database.models import Estudiante as EstudianteModel
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Validar tipo de archivo
+    allowed_extensions = ['.pdf', '.jpg', '.jpeg', '.png']
+    file_extension = archivo.filename[archivo.filename.rfind('.'):].lower()
+    
+    if file_extension not in allowed_extensions:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Tipo de archivo no permitido. Use: {', '.join(allowed_extensions)}"
+        )
+    
+    # Leer archivo y convertir a base64
+    contenido = await archivo.read()
+    tamano_bytes = len(contenido)
+    
+    # Validar tamaño (máximo 5MB)
+    if tamano_bytes > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Archivo muy grande. Máximo 5MB")
+    
+    # Convertir a base64 para almacenar en DB
+    contenido_base64 = base64.b64encode(contenido).decode('utf-8')
+    url_archivo = f"data:application/{file_extension[1:]};base64,{contenido_base64}"
+    
+    # Guardar en base de datos
+    try:
+        cursor = db.connection().connection.cursor()
+        cursor.execute("""
+            INSERT INTO documentos 
+            (estudiante_id, tipo_documento, nombre_archivo, url_archivo, tamano_bytes, estado, created_at)
+            VALUES (%s, %s, %s, %s, %s, 'pendiente', %s)
+            RETURNING id
+        """, (estudiante_id, tipo_documento, archivo.filename, url_archivo, tamano_bytes, datetime.utcnow()))
+        
+        documento_id = cursor.fetchone()[0]
+        db.commit()
+        
+        # Actualizar estado de documentos del estudiante
+        estudiante.documentos_estado = 'en_revision'
+        db.commit()
+        
+        return {
+            "mensaje": "Documento subido correctamente",
+            "documento_id": documento_id,
+            "nombre_archivo": archivo.filename,
+            "tamano_bytes": tamano_bytes
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al guardar documento: {str(e)}")
+
+
+@app.get("/api/estudiantes/{estudiante_id}/documentos", tags=["Estudiantes"])
+def listar_documentos(estudiante_id: int, db: Session = Depends(get_db)):
+    """
+    Lista todos los documentos de un estudiante
+    """
+    from database.models import Estudiante as EstudianteModel
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    try:
+        cursor = db.connection().connection.cursor()
+        cursor.execute("""
+            SELECT id, tipo_documento, nombre_archivo, tamano_bytes, estado, notas, created_at
+            FROM documentos
+            WHERE estudiante_id = %s
+            ORDER BY created_at DESC
+        """, (estudiante_id,))
+        
+        documentos = []
+        for row in cursor.fetchall():
+            documentos.append({
+                'id': row[0],
+                'tipo_documento': row[1],
+                'nombre_archivo': row[2],
+                'tamano_bytes': row[3],
+                'estado': row[4],
+                'notas': row[5],
+                'created_at': row[6].isoformat() if row[6] else None
+            })
+        
+        return {
+            'total': len(documentos),
+            'documentos': documentos
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al listar documentos: {str(e)}")
 
 
 @app.get("/api/estudiantes/{estudiante_id}/estado", tags=["Estudiantes"])
