@@ -136,6 +136,18 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(nuevo)
         
+        # Enviar email de confirmación (sin bloquear)
+        try:
+            from api.notificaciones_email import NotificacionesEmail
+            NotificacionesEmail.enviar_confirmacion_registro({
+                'id': nuevo.id,
+                'nombre': nuevo.nombre,
+                'email': nuevo.email,
+                'especialidad': nuevo.especialidad
+            })
+        except Exception as e:
+            print(f"⚠️ Error enviando email: {e}")
+        
         return {
             "id": nuevo.id,
             "mensaje": "Registro exitoso. Revisa tu email para más información.",
@@ -578,6 +590,16 @@ def aprobar_estudiante(
     estudiante.updated_at = datetime.utcnow()
     db.commit()
     
+    # Enviar email de notificación
+    try:
+        from api.notificaciones_email import NotificacionesEmail
+        NotificacionesEmail.notificar_cambio_estado({
+            'nombre': estudiante.nombre,
+            'email': estudiante.email
+        }, 'aprobado')
+    except Exception as e:
+        print(f"⚠️ Error enviando email: {e}")
+    
     return {"message": "Estudiante aprobado correctamente", "id": estudiante_id}
 
 
@@ -600,6 +622,16 @@ def rechazar_estudiante(
     estudiante.notas = motivo
     estudiante.updated_at = datetime.utcnow()
     db.commit()
+    
+    # Enviar email de notificación
+    try:
+        from api.notificaciones_email import NotificacionesEmail
+        NotificacionesEmail.notificar_cambio_estado({
+            'nombre': estudiante.nombre,
+            'email': estudiante.email
+        }, 'rechazado', motivo)
+    except Exception as e:
+        print(f"⚠️ Error enviando email: {e}")
     
     return {"message": "Estudiante marcado para revisión", "id": estudiante_id, "motivo": motivo}
     from modules.notificaciones_email import NotificacionesEmail
