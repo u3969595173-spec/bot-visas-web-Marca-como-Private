@@ -42,24 +42,37 @@ security = HTTPBearer()
 # ============================================================================
 
 @app.post("/api/login", response_model=LoginResponse, tags=["Auth"])
-def login(datos: LoginRequest):
+def login(datos: LoginRequest, db: Session = Depends(get_db)):
     """
     Login para admins
     Usuario: admin / Contraseña: admin123 (cambiar en producción)
     """
-    # TODO: Implementar verificación real contra DB
-    if datos.usuario == "admin" and datos.password == "admin123":
-        token = crear_token({"usuario": datos.usuario, "rol": "admin"})
-        return LoginResponse(
-            token=token,
-            tipo="Bearer",
-            usuario=datos.usuario,
-            rol="admin"
+    from passlib.hash import bcrypt
+    from database.models import Usuario
+    
+    # Buscar usuario por email
+    usuario = db.query(Usuario).filter(Usuario.email == datos.usuario).first()
+    
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales incorrectas"
         )
     
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Credenciales incorrectas"
+    # Verificar contraseña
+    if not bcrypt.verify(datos.password, usuario.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales incorrectas"
+        )
+    
+    # Crear token
+    token = crear_token({"usuario": usuario.email, "rol": usuario.rol})
+    return LoginResponse(
+        token=token,
+        tipo="Bearer",
+        usuario=usuario.nombre,
+        rol=usuario.rol
     )
 
 
