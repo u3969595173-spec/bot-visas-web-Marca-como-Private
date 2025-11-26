@@ -102,9 +102,18 @@ const PerfilEstudiante = ({ estudianteId }) => {
           </div>
         </div>
         {!editing && (
-          <button className="btn-edit" onClick={() => setEditing(true)}>
-            ✏️ Editar Perfil
-          </button>
+          <div className="perfil-header-actions">
+            <button className="btn-edit" onClick={() => setEditing(true)}>
+              ✏️ Editar Perfil
+            </button>
+            <a 
+              href={`${apiUrl}/api/estudiantes/${estudianteId}/reporte-pdf?tipo=completo`}
+              download
+              className="btn-download-profile"
+            >
+              📄 Descargar PDF
+            </a>
+          </div>
         )}
       </div>
 

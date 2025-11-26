@@ -101,6 +101,12 @@
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
+.perfil-header-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
 .btn-edit {
   background: white;
   color: #667eea;
@@ -115,6 +121,23 @@
 .btn-edit:hover {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-download-profile {
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  color: white;
+  text-decoration: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.btn-download-profile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(17, 153, 142, 0.3);
 }
 
 .alert {

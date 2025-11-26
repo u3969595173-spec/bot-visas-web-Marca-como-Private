@@ -4,6 +4,7 @@ Endpoints para estudiantes y panel de administración
 """
 
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
@@ -375,6 +376,55 @@ def listar_documentos(estudiante_id: int, db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al listar documentos: {str(e)}")
+
+
+@app.get("/api/estudiantes/{estudiante_id}/reporte-pdf", tags=["Reportes"])
+def generar_reporte_pdf(estudiante_id: int, tipo: str = 'completo', db: Session = Depends(get_db)):
+    """
+    Genera un PDF con el reporte del estudiante
+    tipo: 'completo' o 'analisis'
+    """
+    from database.models import Estudiante as EstudianteModel
+    from api.generador_pdf import GeneradorReportesPDF
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    estudiante_data = {
+        'id': estudiante.id,
+        'nombre': estudiante.nombre,
+        'email': estudiante.email,
+        'telefono': estudiante.telefono,
+        'pasaporte': estudiante.pasaporte,
+        'edad': estudiante.edad,
+        'nacionalidad': estudiante.nacionalidad,
+        'ciudad_origen': estudiante.ciudad_origen,
+        'especialidad': estudiante.especialidad,
+        'nivel_espanol': estudiante.nivel_espanol,
+        'tipo_visa': estudiante.tipo_visa,
+        'estado': estudiante.estado,
+        'documentos_estado': estudiante.documentos_estado,
+        'notas': estudiante.notas
+    }
+    
+    if tipo == 'analisis':
+        # Generar análisis de visa
+        from api.calculadora_visa import CalculadoraProbabilidadVisa
+        analisis = CalculadoraProbabilidadVisa.calcular_probabilidad(estudiante_data)
+        pdf_buffer = GeneradorReportesPDF.generar_reporte_analisis_visa(estudiante_data, analisis)
+        filename = f"analisis_visa_{estudiante.id}.pdf"
+    else:
+        # Generar reporte completo
+        pdf_buffer = GeneradorReportesPDF.generar_reporte_completo_estudiante(estudiante_data)
+        filename = f"reporte_estudiante_{estudiante.id}.pdf"
+    
+    return StreamingResponse(
+        pdf_buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 @app.get("/api/estudiantes/{estudiante_id}/estado", tags=["Estudiantes"])

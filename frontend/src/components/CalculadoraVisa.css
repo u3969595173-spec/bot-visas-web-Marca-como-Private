@@ -242,6 +242,7 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-bottom: 15px;
 }
 
 .btn-recalcular:hover {
@@ -249,6 +250,27 @@
   color: white;
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-download-pdf {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(135deg, #11998e, #38ef7d);
+  color: white;
+  text-decoration: none;
+  text-align: center;
+  display: block;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-download-pdf:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(17, 153, 142, 0.4);
 }
 
 @media (max-width: 768px) {

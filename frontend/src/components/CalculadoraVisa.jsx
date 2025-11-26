@@ -126,6 +126,14 @@ const CalculadoraVisa = ({ estudianteId }) => {
       >
         🔄 Recalcular Probabilidad
       </button>
+
+      <a 
+        href={`${apiUrl}/api/estudiantes/${estudianteId}/reporte-pdf?tipo=analisis`}
+        download
+        className="btn-download-pdf"
+      >
+        📥 Descargar Análisis PDF
+      </a>
     </div>
   );
 };
