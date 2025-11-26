@@ -1969,24 +1969,23 @@ def consultar_estado(estudiante_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
     return {
-        "nombre": estudiante.nombre_completo,
-        "estado_procesamiento": estudiante.estado_procesamiento,
-        "estado_visa": estudiante.estado_visa,
+        "nombre": estudiante.nombre,
+        "estado_procesamiento": estudiante.estado,
+        "estado_visa": estudiante.tipo_visa,
         "fecha_registro": estudiante.created_at,
-        "curso_seleccionado": estudiante.curso_seleccionado_id,
-        "mensaje": _obtener_mensaje_estado(estudiante.estado_procesamiento)
+        "curso_seleccionado": estudiante.curso_asignado_id,
+        "mensaje": _obtener_mensaje_estado(estudiante.estado)
     }
 
 
 def _obtener_mensaje_estado(estado: str) -> str:
     """Mensajes amigables por estado"""
     mensajes = {
-        "registrado": "Tu solicitud ha sido recibida. Estamos procesando tu información.",
-        "procesado_automaticamente": "Hemos analizado tu perfil. Un asesor revisará tu caso pronto.",
-        "pendiente_revision_admin": "Tu caso está siendo revisado por nuestro equipo.",
-        "aprobado_admin": "¡Felicidades! Tu solicitud ha sido aprobada. Te contactaremos pronto.",
-        "enviado_estudiante": "Te hemos enviado toda la información. Revisa tu email.",
-        "rechazado_admin": "Necesitamos información adicional. Te contactaremos."
+        "pendiente": "Tu solicitud ha sido recibida. Estamos procesando tu información.",
+        "en_revision": "Tu caso está siendo revisado por nuestro equipo.",
+        "aprobado": "¡Felicidades! Tu solicitud ha sido aprobada. Te contactaremos pronto.",
+        "rechazado": "Necesitamos información adicional. Te contactaremos.",
+        "completado": "¡Proceso completado! Te hemos enviado toda la información."
     }
     return mensajes.get(estado, "En proceso")
 
