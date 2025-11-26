@@ -2171,19 +2171,7 @@ def rechazar_estudiante(
     except Exception as e:
         print(f"⚠️ Error enviando email: {e}")
     
-    return {"message": "Estudiante marcado para revisión", "id": estudiante_id, "motivo": motivo}
-                estudiante_dict = {
-                    'id': estudiante.id,
-                    'nombre_completo': estudiante.nombre_completo,
-                    'email': estudiante.email
-                }
-                NotificacionesEmail.enviar_solicitud_pendiente_revision(estudiante_dict, motivo)
-        except Exception as e:
-            print(f"⚠️ Error enviando email de revisión: {e}")
-        
-        return resultado
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"message": "Estudiante rechazado", "id": estudiante_id, "motivo": motivo}
 
 
 @app.get("/api/admin/estadisticas", response_model=EstadisticasResponse, tags=["Admin"])
