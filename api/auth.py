@@ -2,7 +2,7 @@
 Autenticación JWT para API
 """
 
-import jwt
+from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 import config
