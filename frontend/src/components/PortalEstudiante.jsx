@@ -14,7 +14,8 @@ function PortalEstudiante() {
     setEstudiante(null)
 
     try {
-      const response = await axios.get(`/api/estudiantes/${estudianteId}/estado`)
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/estado`)
       setEstudiante(response.data)
     } catch (err) {
       setError('No se encontró ningún estudiante con ese ID. Verifica el número.')
