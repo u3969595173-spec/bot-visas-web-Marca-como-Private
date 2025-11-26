@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import './DashboardAdminExpandido.css'
 
 function DashboardAdminExpandido({ onLogout }) {
-  const [activeSection, setActiveSection] = useState('estudiantes')
   const [estudiantes, setEstudiantes] = useState([])
-  const [cursos, setCursos] = useState([])
-  const [alojamientos, setAlojamientos] = useState([])
   const [estadisticas, setEstadisticas] = useState(null)
-  const [reportes, setReportes] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [showModal, setShowModal] = useState(null)
+  const [filtro, setFiltro] = useState('todos')
+  const [busqueda, setBusqueda] = useState('')
+  const [motivoRechazo, setMotivoRechazo] = useState('')
+  const [estudianteSeleccionado, setEstudianteSeleccionado] = useState(null)
   const navigate = useNavigate()
+
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -19,30 +21,22 @@ function DashboardAdminExpandido({ onLogout }) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     }
     cargarDatos()
-  }, [activeSection])
+  }, [])
 
   const cargarDatos = async () => {
     setLoading(true)
     try {
-      if (activeSection === 'estudiantes' || activeSection === 'inicio') {
-        const [estRes, statsRes] = await Promise.all([
-          axios.get('/api/admin/estudiantes'),
-          axios.get('/api/admin/estadisticas')
-        ])
-        setEstudiantes(estRes.data)
-        setEstadisticas(statsRes.data)
-      } else if (activeSection === 'cursos') {
-        const res = await axios.get('/api/cursos', { params: { limit: 100 } })
-        setCursos(res.data.cursos)
-      } else if (activeSection === 'alojamiento') {
-        const res = await axios.get('/api/alojamientos', { params: { limit: 100 } })
-        setAlojamientos(res.data.alojamientos)
-      } else if (activeSection === 'reportes') {
-        const res = await axios.get('/api/admin/reportes/mensual')
-        setReportes(res.data)
-      }
+      const [estRes, statsRes] = await Promise.all([
+        axios.get(`${apiUrl}/api/admin/estudiantes`),
+        axios.get(`${apiUrl}/api/admin/estadisticas`)
+      ])
+      setEstudiantes(estRes.data)
+      setEstadisticas(statsRes.data)
     } catch (err) {
       console.error('Error:', err)
+      if (err.response?.status === 401) {
+        handleLogout()
+      }
     } finally {
       setLoading(false)
     }
@@ -56,545 +50,233 @@ function DashboardAdminExpandido({ onLogout }) {
     navigate('/admin/login')
   }
 
-  const crearCurso = async (datos) => {
+  const aprobarEstudiante = async (id) => {
+    if (!confirm('¿Está seguro de aprobar este estudiante?')) return
+    
     try {
-      await axios.post('/api/admin/cursos', datos)
-      alert('Curso creado correctamente')
+      await axios.post(`${apiUrl}/api/admin/estudiantes/${id}/aprobar`)
+      alert('Estudiante aprobado correctamente')
       cargarDatos()
-      setShowModal(null)
     } catch (err) {
-      alert('Error al crear curso')
+      alert('Error al aprobar estudiante: ' + (err.response?.data?.detail || err.message))
     }
   }
 
-  const crearAlojamiento = async (datos) => {
-    try {
-      await axios.post('/api/admin/alojamientos', datos)
-      alert('Alojamiento creado correctamente')
-      cargarDatos()
-      setShowModal(null)
-    } catch (err) {
-      alert('Error al crear alojamiento')
+  const rechazarEstudiante = async (id) => {
+    setEstudianteSeleccionado(id)
+  }
+
+  const confirmarRechazo = async () => {
+    if (!motivoRechazo.trim()) {
+      alert('Por favor ingrese un motivo de rechazo')
+      return
     }
+
+    try {
+      await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteSeleccionado}/rechazar`, {
+        motivo: motivoRechazo
+      })
+      alert('Estudiante rechazado')
+      setEstudianteSeleccionado(null)
+      setMotivoRechazo('')
+      cargarDatos()
+    } catch (err) {
+      alert('Error al rechazar estudiante: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const estudiantesFiltrados = estudiantes.filter(est => {
+    const cumpleFiltro = filtro === 'todos' || est.estado === filtro
+    const cumpleBusqueda = !busqueda || 
+      est.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      est.email?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      est.especialidad?.toLowerCase().includes(busqueda.toLowerCase())
+    
+    return cumpleFiltro && cumpleBusqueda
+  })
+
+  if (loading) {
+    return <div className="loading">Cargando...</div>
   }
 
   return (
-    <div className="container" style={{ paddingBottom: '40px' }}>
+    <div className="dashboard-admin-expandido">
       {/* Header */}
-      <div style={{
-        background: 'white',
-        padding: '20px',
-        borderRadius: '10px',
-        marginBottom: '30px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+      <div className="dashboard-header">
         <div>
-          <h1 style={{ marginBottom: '5px' }}>Panel de Administración</h1>
-          <p style={{ color: '#718096' }}>
-            Bienvenido, {localStorage.getItem('usuario')}
-          </p>
+          <h1>Panel de Administración</h1>
+          <p className="bienvenida">Bienvenido, {localStorage.getItem('usuario')}</p>
         </div>
-        <button onClick={handleLogout} className="btn btn-danger">
+        <button onClick={handleLogout} className="btn-logout">
           Cerrar Sesión
         </button>
       </div>
 
-      {/* Menú lateral */}
-      <div style={{ display: 'grid', gridTemplateColumns: '250px 1fr', gap: '20px' }}>
-        {/* Sidebar */}
-        <div className="card" style={{ height: 'fit-content' }}>
-          <h3 style={{ marginBottom: '20px' }}>Secciones</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {[
-              { id: 'inicio', label: '📊 Inicio', icon: '📊' },
-              { id: 'estudiantes', label: '👥 Estudiantes', icon: '👥' },
-              { id: 'cursos', label: '📚 Cursos', icon: '📚' },
-              { id: 'alojamiento', label: '🏠 Alojamiento', icon: '🏠' },
-              { id: 'documentos', label: '📄 Documentos', icon: '📄' },
-              { id: 'reportes', label: '📈 Reportes', icon: '📈' }
-            ].map(section => (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id)}
-                className="btn"
-                style={{
-                  background: activeSection === section.id ? '#667eea' : 'transparent',
-                  color: activeSection === section.id ? 'white' : '#2d3748',
-                  border: activeSection === section.id ? 'none' : '2px solid #e2e8f0',
-                  textAlign: 'left',
-                  padding: '12px 20px'
-                }}
-              >
-                {section.icon} {section.label}
-              </button>
-            ))}
+      {/* Estadísticas */}
+      {estadisticas && (
+        <div className="estadisticas-grid">
+          <div className="stat-card stat-total">
+            <div className="stat-icon">👥</div>
+            <div className="stat-info">
+              <h3>{estadisticas.total}</h3>
+              <p>Total Estudiantes</p>
+            </div>
+          </div>
+          
+          <div className="stat-card stat-aprobados">
+            <div className="stat-icon">✅</div>
+            <div className="stat-info">
+              <h3>{estadisticas.aprobados}</h3>
+              <p>Aprobados</p>
+            </div>
+          </div>
+          
+          <div className="stat-card stat-pendientes">
+            <div className="stat-icon">⏳</div>
+            <div className="stat-info">
+              <h3>{estadisticas.pendientes}</h3>
+              <p>Pendientes</p>
+            </div>
+          </div>
+          
+          <div className="stat-card stat-rechazados">
+            <div className="stat-icon">❌</div>
+            <div className="stat-info">
+              <h3>{estadisticas.rechazados}</h3>
+              <p>Rechazados</p>
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Contenido principal */}
-        <div>
-          {loading && <div className="loading">Cargando...</div>}
+      {/* Filtros y búsqueda */}
+      <div className="controles">
+        <div className="filtros">
+          <button 
+            className={filtro === 'todos' ? 'filtro-activo' : ''}
+            onClick={() => setFiltro('todos')}
+          >
+            Todos
+          </button>
+          <button 
+            className={filtro === 'pendiente' ? 'filtro-activo' : ''}
+            onClick={() => setFiltro('pendiente')}
+          >
+            Pendientes
+          </button>
+          <button 
+            className={filtro === 'aprobado' ? 'filtro-activo' : ''}
+            onClick={() => setFiltro('aprobado')}
+          >
+            Aprobados
+          </button>
+          <button 
+            className={filtro === 'rechazado' ? 'filtro-activo' : ''}
+            onClick={() => setFiltro('rechazado')}
+          >
+            Rechazados
+          </button>
+        </div>
+        
+        <input
+          type="text"
+          placeholder="Buscar por nombre, email o especialidad..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="buscador"
+        />
+      </div>
 
-          {/* SECCIÓN: INICIO */}
-          {activeSection === 'inicio' && estadisticas && !loading && (
-            <div>
-              <h2 style={{ marginBottom: '20px' }}>Dashboard General</h2>
-              
-              {/* Tarjetas de estadísticas */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '20px',
-                marginBottom: '30px'
-              }}>
-                <div className="card" style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '10px' }}>👥</div>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#667eea' }}>
-                    {estadisticas.total_estudiantes}
-                  </div>
-                  <div style={{ color: '#718096' }}>Total Estudiantes</div>
-                </div>
-                
-                <div className="card" style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '10px' }}>⏳</div>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#ed8936' }}>
-                    {estadisticas.pendientes_revision}
-                  </div>
-                  <div style={{ color: '#718096' }}>Pendientes Revisión</div>
-                </div>
-                
-                <div className="card" style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '10px' }}>✅</div>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#48bb78' }}>
-                    {estadisticas.aprobados}
-                  </div>
-                  <div style={{ color: '#718096' }}>Aprobados</div>
-                </div>
-                
-                <div className="card" style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '10px' }}>📧</div>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#4299e1' }}>
-                    {estadisticas.enviados}
-                  </div>
-                  <div style={{ color: '#718096' }}>Enviados</div>
-                </div>
-              </div>
-
-              {/* Gráfico de especialidades */}
-              <div className="card">
-                <h3 style={{ marginBottom: '20px' }}>Estudiantes por Especialidad</h3>
-                <div style={{ display: 'grid', gap: '10px' }}>
-                  {Object.entries(estadisticas.por_especialidad || {}).map(([esp, count]) => (
-                    <div key={esp} style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '10px',
-                      background: '#f7fafc',
-                      borderRadius: '5px'
-                    }}>
-                      <span>{esp}</span>
-                      <span style={{ fontWeight: 'bold', color: '#667eea' }}>{count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN: ESTUDIANTES */}
-          {activeSection === 'estudiantes' && !loading && (
-            <div className="card">
-              <h2 style={{ marginBottom: '20px' }}>Gestión de Estudiantes</h2>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Especialidad</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
+      {/* Lista de estudiantes */}
+      <div className="estudiantes-section">
+        <h2>Gestión de Estudiantes ({estudiantesFiltrados.length})</h2>
+        
+        {estudiantesFiltrados.length === 0 ? (
+          <p className="no-resultados">No se encontraron estudiantes</p>
+        ) : (
+          <div className="tabla-container">
+            <table className="tabla-estudiantes">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Especialidad</th>
+                  <th>Tipo Visa</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {estudiantesFiltrados.map(est => (
+                  <tr key={est.id}>
+                    <td>{est.id}</td>
+                    <td>{est.nombre || 'N/A'}</td>
+                    <td>{est.email || 'N/A'}</td>
+                    <td>{est.especialidad || 'N/A'}</td>
+                    <td>{est.tipo_visa || 'N/A'}</td>
+                    <td>
+                      <span className={`badge badge-${est.estado}`}>
+                        {est.estado?.toUpperCase()}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="acciones">
+                        {est.estado === 'pendiente' && (
+                          <>
+                            <button 
+                              onClick={() => aprobarEstudiante(est.id)}
+                              className="btn-aprobar"
+                              title="Aprobar"
+                            >
+                              ✓
+                            </button>
+                            <button 
+                              onClick={() => rechazarEstudiante(est.id)}
+                              className="btn-rechazar"
+                              title="Rechazar"
+                            >
+                              ✗
+                            </button>
+                          </>
+                        )}
+                        {est.estado !== 'pendiente' && (
+                          <span className="sin-acciones">-</span>
+                        )}
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {estudiantes.map(est => (
-                    <tr key={est.id}>
-                      <td>#{est.id}</td>
-                      <td>{est.nombre_completo}</td>
-                      <td>{est.email}</td>
-                      <td>{est.especialidad_interes}</td>
-                      <td>
-                        <span className={`badge ${
-                          est.estado_procesamiento === 'aprobado_admin' ? 'badge-success' :
-                          est.estado_procesamiento === 'pendiente_revision_admin' ? 'badge-warning' :
-                          'badge-info'
-                        }`}>
-                          {est.estado_procesamiento}
-                        </span>
-                      </td>
-                      <td>
-                        <button className="btn" style={{ padding: '5px 10px', fontSize: '12px' }}>
-                          Ver Detalles
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {/* SECCIÓN: CURSOS */}
-          {activeSection === 'cursos' && !loading && (
-            <div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '20px'
-              }}>
-                <h2>Gestión de Cursos</h2>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setShowModal('curso')}
-                >
-                  + Nuevo Curso
-                </button>
-              </div>
-
-              <div className="card">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Nombre</th>
-                      <th>Escuela</th>
-                      <th>Ciudad</th>
-                      <th>Precio</th>
-                      <th>Duración</th>
-                      <th>Estado</th>
-                      <th>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cursos.map(curso => (
-                      <tr key={curso.id}>
-                        <td>#{curso.id}</td>
-                        <td>{curso.nombre}</td>
-                        <td>{curso.escuela}</td>
-                        <td>{curso.ciudad}</td>
-                        <td>{curso.precio}€</td>
-                        <td>{curso.duracion_meses}m</td>
-                        <td>
-                          <span className={`badge ${curso.disponible ? 'badge-success' : 'badge-danger'}`}>
-                            {curso.disponible ? 'Activo' : 'Inactivo'}
-                          </span>
-                        </td>
-                        <td>
-                          <button className="btn" style={{ padding: '5px 10px', fontSize: '12px' }}>
-                            Editar
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN: ALOJAMIENTO */}
-          {activeSection === 'alojamiento' && !loading && (
-            <div>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '20px'
-              }}>
-                <h2>Gestión de Alojamientos</h2>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => setShowModal('alojamiento')}
-                >
-                  + Nuevo Alojamiento
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gap: '20px' }}>
-                {alojamientos.map(aloj => (
-                  <div key={aloj.id} className="card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <div>
-                        <h3>{aloj.tipo.replace('_', ' ')}</h3>
-                        <p style={{ color: '#718096' }}>
-                          📍 {aloj.direccion}, {aloj.ciudad}
-                        </p>
-                        <div style={{ marginTop: '10px' }}>
-                          <strong>{aloj.precio_mensual}€/mes</strong> •
-                          {aloj.num_habitaciones} hab • {aloj.metros_cuadrados}m²
-                        </div>
-                      </div>
-                      <div>
-                        <span className={`badge ${aloj.disponible ? 'badge-success' : 'badge-danger'}`}>
-                          {aloj.disponible ? 'Disponible' : 'Ocupado'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
                 ))}
-              </div>
-            </div>
-          )}
-
-          {/* SECCIÓN: REPORTES */}
-          {activeSection === 'reportes' && reportes && !loading && (
-            <div>
-              <h2 style={{ marginBottom: '20px' }}>Reportes y Análisis</h2>
-              
-              <div className="card">
-                <h3>Resumen Ejecutivo</h3>
-                <pre style={{ background: '#f7fafc', padding: '20px', borderRadius: '5px', overflow: 'auto' }}>
-                  {JSON.stringify(reportes.resumen_ejecutivo, null, 2)}
-                </pre>
-              </div>
-            </div>
-          )}
-        </div>
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Modal para crear curso */}
-      {showModal === 'curso' && (
-        <Modal onClose={() => setShowModal(null)}>
-          <FormularioCurso onSubmit={crearCurso} onCancel={() => setShowModal(null)} />
-        </Modal>
-      )}
-
-      {/* Modal para crear alojamiento */}
-      {showModal === 'alojamiento' && (
-        <Modal onClose={() => setShowModal(null)}>
-          <FormularioAlojamiento onSubmit={crearAlojamiento} onCancel={() => setShowModal(null)} />
-        </Modal>
+      {/* Modal de rechazo */}
+      {estudianteSeleccionado && (
+        <div className="modal-overlay" onClick={() => setEstudianteSeleccionado(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Rechazar Estudiante</h3>
+            <p>Por favor indique el motivo del rechazo:</p>
+            <textarea
+              value={motivoRechazo}
+              onChange={(e) => setMotivoRechazo(e.target.value)}
+              placeholder="Ej: Documentación incompleta"
+              rows="4"
+            />
+            <div className="modal-actions">
+              <button onClick={() => setEstudianteSeleccionado(null)} className="btn-cancelar">
+                Cancelar
+              </button>
+              <button onClick={confirmarRechazo} className="btn-confirmar">
+                Confirmar Rechazo
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
-  )
-}
-
-// Componente Modal
-function Modal({ children, onClose }) {
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    }} onClick={onClose}>
-      <div
-        className="card"
-        style={{ maxWidth: '600px', width: '90%', maxHeight: '90vh', overflow: 'auto' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-    </div>
-  )
-}
-
-// Formulario de curso
-function FormularioCurso({ onSubmit, onCancel }) {
-  const [datos, setDatos] = useState({
-    nombre: '',
-    escuela: '',
-    ciudad: '',
-    especialidad: '',
-    precio: '',
-    duracion_meses: '',
-    nivel_minimo_espanol: 'B1',
-    descripcion: '',
-    requisitos: ''
-  })
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    onSubmit({
-      ...datos,
-      precio: parseFloat(datos.precio),
-      duracion_meses: parseInt(datos.duracion_meses)
-    })
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <h2 style={{ marginBottom: '20px' }}>Nuevo Curso</h2>
-      
-      <div className="form-group">
-        <label>Nombre del Curso *</label>
-        <input
-          type="text"
-          value={datos.nombre}
-          onChange={(e) => setDatos({ ...datos, nombre: e.target.value })}
-          required
-        />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-        <div className="form-group">
-          <label>Escuela *</label>
-          <input
-            type="text"
-            value={datos.escuela}
-            onChange={(e) => setDatos({ ...datos, escuela: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Ciudad *</label>
-          <input
-            type="text"
-            value={datos.ciudad}
-            onChange={(e) => setDatos({ ...datos, ciudad: e.target.value })}
-            required
-          />
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label>Especialidad *</label>
-        <input
-          type="text"
-          value={datos.especialidad}
-          onChange={(e) => setDatos({ ...datos, especialidad: e.target.value })}
-          required
-        />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-        <div className="form-group">
-          <label>Precio (€) *</label>
-          <input
-            type="number"
-            value={datos.precio}
-            onChange={(e) => setDatos({ ...datos, precio: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Duración (meses) *</label>
-          <input
-            type="number"
-            value={datos.duracion_meses}
-            onChange={(e) => setDatos({ ...datos, duracion_meses: e.target.value })}
-            required
-          />
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-        <button type="submit" className="btn btn-primary">
-          Crear Curso
-        </button>
-        <button type="button" className="btn" onClick={onCancel}>
-          Cancelar
-        </button>
-      </div>
-    </form>
-  )
-}
-
-// Formulario de alojamiento
-function FormularioAlojamiento({ onSubmit, onCancel }) {
-  const [datos, setDatos] = useState({
-    tipo: 'piso_compartido',
-    direccion: '',
-    ciudad: '',
-    precio_mensual: '',
-    gastos_incluidos: false,
-    num_habitaciones: '1',
-    num_banos: '1',
-    metros_cuadrados: ''
-  })
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    onSubmit({
-      ...datos,
-      precio_mensual: parseFloat(datos.precio_mensual),
-      num_habitaciones: parseInt(datos.num_habitaciones),
-      num_banos: parseInt(datos.num_banos),
-      metros_cuadrados: parseInt(datos.metros_cuadrados)
-    })
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <h2 style={{ marginBottom: '20px' }}>Nuevo Alojamiento</h2>
-      
-      <div className="form-group">
-        <label>Tipo *</label>
-        <select
-          value={datos.tipo}
-          onChange={(e) => setDatos({ ...datos, tipo: e.target.value })}
-          required
-        >
-          <option value="piso_compartido">Piso Compartido</option>
-          <option value="estudio">Estudio</option>
-          <option value="residencia">Residencia</option>
-          <option value="habitacion">Habitación</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label>Dirección *</label>
-        <input
-          type="text"
-          value={datos.direccion}
-          onChange={(e) => setDatos({ ...datos, direccion: e.target.value })}
-          required
-        />
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-        <div className="form-group">
-          <label>Ciudad *</label>
-          <input
-            type="text"
-            value={datos.ciudad}
-            onChange={(e) => setDatos({ ...datos, ciudad: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Precio Mensual (€) *</label>
-          <input
-            type="number"
-            value={datos.precio_mensual}
-            onChange={(e) => setDatos({ ...datos, precio_mensual: e.target.value })}
-            required
-          />
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-        <button type="submit" className="btn btn-primary">
-          Crear Alojamiento
-        </button>
-        <button type="button" className="btn" onClick={onCancel}>
-          Cancelar
-        </button>
-      </div>
-    </form>
   )
 }
 
