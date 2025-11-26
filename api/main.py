@@ -100,6 +100,22 @@ async def startup_event():
             );
         """)
         
+        # Actualizar tabla documentos con campos OCR
+        cursor.execute("""
+            ALTER TABLE documentos 
+            ADD COLUMN IF NOT EXISTS ocr_procesado BOOLEAN DEFAULT FALSE,
+            ADD COLUMN IF NOT EXISTS ocr_datos_extraidos JSONB,
+            ADD COLUMN IF NOT EXISTS ocr_validacion JSONB,
+            ADD COLUMN IF NOT EXISTS ocr_nivel_confianza INTEGER DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS ocr_alertas JSONB,
+            ADD COLUMN IF NOT EXISTS ocr_fecha_procesamiento TIMESTAMP;
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_documentos_ocr_procesado 
+            ON documentos(ocr_procesado);
+        """)
+        
         # Agregar columnas a estudiantes si no existen
         cursor.execute("""
             ALTER TABLE estudiantes 
@@ -111,6 +127,7 @@ async def startup_event():
         cursor.close()
         conn.close()
         print("✅ Tabla documentos_generados verificada/creada")
+        print("✅ Campos OCR agregados a documentos")
     except Exception as e:
         print(f"⚠️ Error en startup: {e}")
 
@@ -348,6 +365,272 @@ def calcular_probabilidad_visa(estudiante_id: int, db: Session = Depends(get_db)
         'estudiante_nombre': estudiante.nombre,
         'analisis': analisis
     }
+
+
+@app.post("/api/documentos/{documento_id}/validar-ocr", tags=["Documentos - OCR"])
+async def validar_documento_ocr(
+    documento_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Valida documento usando OCR inteligente
+    Extrae información y detecta errores automáticamente
+    """
+    try:
+        from api.ocr_processor import OCRProcessor
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Obtener documento
+        cursor.execute("""
+            SELECT tipo_documento, nombre_archivo, url_archivo
+            FROM documentos
+            WHERE id = %s
+        """, (documento_id,))
+        
+        documento = cursor.fetchone()
+        
+        if not documento:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Documento no encontrado")
+        
+        tipo_doc, nombre_archivo, url_archivo = documento
+        
+        # Extraer base64 de la URL (formato: data:image/jpeg;base64,...)
+        if not url_archivo or 'base64,' not in url_archivo:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=400, detail="Documento no contiene imagen válida")
+        
+        imagen_base64 = url_archivo.split('base64,')[1]
+        
+        # Procesar con OCR
+        ocr = OCRProcessor()
+        resultado = ocr.procesar_documento(imagen_base64, tipo_doc)
+        
+        if not resultado.get('exito'):
+            cursor.close()
+            conn.close()
+            return {
+                'exito': False,
+                'error': resultado.get('error', 'Error desconocido'),
+                'documento_id': documento_id
+            }
+        
+        # Guardar resultados en DB
+        validacion = resultado.get('validacion', {})
+        
+        cursor.execute("""
+            UPDATE documentos
+            SET 
+                ocr_procesado = TRUE,
+                ocr_texto_extraido = %s,
+                ocr_datos_extraidos = %s,
+                ocr_valido = %s,
+                ocr_advertencias = %s,
+                ocr_errores = %s,
+                estado = CASE 
+                    WHEN %s THEN 'aprobado'
+                    WHEN array_length(%s, 1) > 0 THEN 'rechazado'
+                    ELSE 'en_revision'
+                END,
+                updated_at = NOW()
+            WHERE id = %s
+        """, (
+            resultado.get('texto_extraido', ''),
+            str(validacion.get('datos_extraidos', {})),
+            validacion.get('valido', False),
+            str(validacion.get('advertencias', [])),
+            str(validacion.get('errores', [])),
+            validacion.get('valido', False),
+            validacion.get('errores', []),
+            documento_id
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        # Generar reporte legible
+        reporte = ocr.generar_reporte_validacion(resultado)
+        
+        return {
+            'exito': True,
+            'documento_id': documento_id,
+            'tipo_detectado': resultado.get('tipo_detectado'),
+            'valido': validacion.get('valido', False),
+            'datos_extraidos': validacion.get('datos_extraidos', {}),
+            'advertencias': validacion.get('advertencias', []),
+            'errores': validacion.get('errores', []),
+            'reporte': reporte,
+            'tiempo_procesamiento': resultado.get('tiempo_procesamiento', 0)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error en validación OCR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/documentos/batch-validar-ocr", tags=["Documentos - OCR"])
+async def validar_documentos_batch(
+    estudiante_id: int,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Valida todos los documentos de un estudiante en lote
+    Útil para procesamiento masivo
+    """
+    verificar_token(credentials.credentials)
+    
+    try:
+        from api.ocr_processor import OCRProcessor
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Obtener documentos no procesados
+        cursor.execute("""
+            SELECT id, tipo_documento
+            FROM documentos
+            WHERE estudiante_id = %s 
+            AND (ocr_procesado IS NULL OR ocr_procesado = FALSE)
+        """, (estudiante_id,))
+        
+        documentos = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        if not documentos:
+            return {
+                'exito': True,
+                'mensaje': 'No hay documentos pendientes de validación',
+                'procesados': 0
+            }
+        
+        # Procesar cada documento
+        resultados = []
+        exitosos = 0
+        
+        for doc_id, tipo_doc in documentos:
+            try:
+                resultado = await validar_documento_ocr(doc_id, db)
+                if resultado.get('exito'):
+                    exitosos += 1
+                resultados.append({
+                    'documento_id': doc_id,
+                    'tipo': tipo_doc,
+                    'resultado': resultado
+                })
+            except Exception as e:
+                resultados.append({
+                    'documento_id': doc_id,
+                    'tipo': tipo_doc,
+                    'error': str(e)
+                })
+        
+        return {
+            'exito': True,
+            'procesados': exitosos,
+            'total': len(documentos),
+            'resultados': resultados
+        }
+        
+    except Exception as e:
+        print(f"Error en validación batch: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/documentos/{documento_id}/ocr-report", tags=["Admin - Documentos"])
+def obtener_reporte_ocr(
+    documento_id: int,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Obtiene reporte detallado de validación OCR de un documento
+    """
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        import ast
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                d.tipo_documento,
+                d.nombre_archivo,
+                d.estado,
+                d.ocr_procesado,
+                d.ocr_texto_extraido,
+                d.ocr_datos_extraidos,
+                d.ocr_valido,
+                d.ocr_advertencias,
+                d.ocr_errores,
+                e.nombre as estudiante_nombre
+            FROM documentos d
+            JOIN estudiantes e ON d.estudiante_id = e.id
+            WHERE d.id = %s
+        """, (documento_id,))
+        
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Documento no encontrado")
+        
+        (tipo_doc, nombre_archivo, estado, ocr_procesado, texto_extraido, 
+         datos_extraidos, ocr_valido, advertencias, errores, estudiante) = row
+        
+        if not ocr_procesado:
+            return {
+                'documento_id': documento_id,
+                'procesado': False,
+                'mensaje': 'Documento no ha sido procesado por OCR'
+            }
+        
+        # Parsear strings a objetos Python
+        try:
+            datos_dict = ast.literal_eval(datos_extraidos) if datos_extraidos else {}
+            advertencias_list = ast.literal_eval(advertencias) if advertencias else []
+            errores_list = ast.literal_eval(errores) if errores else []
+        except:
+            datos_dict = {}
+            advertencias_list = []
+            errores_list = []
+        
+        return {
+            'documento_id': documento_id,
+            'estudiante': estudiante,
+            'tipo_documento': tipo_doc,
+            'nombre_archivo': nombre_archivo,
+            'estado': estado,
+            'procesado': True,
+            'valido': ocr_valido,
+            'datos_extraidos': datos_dict,
+            'advertencias': advertencias_list,
+            'errores': errores_list,
+            'texto_completo': texto_extraido
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error obteniendo reporte OCR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/estudiantes/{estudiante_id}/documentos", tags=["Estudiantes"])
@@ -2003,6 +2286,148 @@ async def subir_documento(
         'filename': archivo.filename,
         'path': str(file_path)
     }
+
+
+@app.post("/api/documentos/{documento_id}/validar-ocr", tags=["Documentos"])
+async def validar_documento_ocr(
+    documento_id: int,
+    tipo_documento: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Procesa documento con OCR y valida contenido
+    
+    Tipos soportados: pasaporte, dni, extracto_bancario, carta_admision, certificado_idioma
+    """
+    try:
+        import os
+        import psycopg2
+        from api.validador_ocr import ValidadorOCR
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Obtener documento de BD
+        cursor.execute("""
+            SELECT d.id, d.estudiante_id, d.tipo, d.nombre_archivo, d.ruta_archivo
+            FROM documentos d
+            WHERE d.id = %s
+        """, (documento_id,))
+        
+        doc = cursor.fetchone()
+        
+        if not doc:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Documento no encontrado")
+        
+        doc_id, estudiante_id, tipo, nombre, ruta = doc
+        
+        # Verificar archivo existe
+        if not os.path.exists(ruta):
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Archivo no encontrado en servidor")
+        
+        # Procesar con OCR
+        validador = ValidadorOCR()
+        resultado = validador.procesar_documento(ruta, tipo_documento)
+        
+        if resultado['exito']:
+            # Guardar resultados en BD
+            cursor.execute("""
+                UPDATE documentos 
+                SET ocr_procesado = TRUE,
+                    ocr_datos_extraidos = %s,
+                    ocr_validacion = %s,
+                    ocr_nivel_confianza = %s,
+                    ocr_alertas = %s,
+                    ocr_fecha_procesamiento = NOW()
+                WHERE id = %s
+            """, (
+                json.dumps(resultado['datos_extraidos']),
+                json.dumps(resultado['validacion']),
+                resultado['nivel_confianza'],
+                json.dumps(resultado['alertas']),
+                documento_id
+            ))
+            
+            conn.commit()
+            
+            # Registrar en historial
+            cursor.execute("""
+                INSERT INTO historial_acciones (estudiante_id, accion, detalles, fecha)
+                VALUES (%s, %s, %s, NOW())
+            """, (
+                estudiante_id,
+                'documento_validado_ocr',
+                f"Documento {nombre} procesado con OCR - Confianza: {resultado['nivel_confianza']}%"
+            ))
+            
+            conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        return resultado
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error en validación OCR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/estudiantes/{estudiante_id}/documentos/ocr-status", tags=["Documentos"])
+def obtener_status_ocr(
+    estudiante_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene estado de validación OCR de todos los documentos del estudiante
+    """
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT d.id, d.tipo, d.nombre_archivo, d.ocr_procesado, 
+                   d.ocr_nivel_confianza, d.ocr_alertas, d.ocr_fecha_procesamiento
+            FROM documentos d
+            WHERE d.estudiante_id = %s
+            ORDER BY d.fecha_subida DESC
+        """, (estudiante_id,))
+        
+        documentos = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        resultado = []
+        for doc in documentos:
+            resultado.append({
+                'id': doc[0],
+                'tipo': doc[1],
+                'nombre': doc[2],
+                'ocr_procesado': doc[3] or False,
+                'nivel_confianza': doc[4] or 0,
+                'alertas': json.loads(doc[5]) if doc[5] else [],
+                'fecha_procesamiento': doc[6].isoformat() if doc[6] else None
+            })
+        
+        return {
+            'estudiante_id': estudiante_id,
+            'total_documentos': len(resultado),
+            'procesados_ocr': sum(1 for d in resultado if d['ocr_procesado']),
+            'confianza_promedio': sum(d['nivel_confianza'] for d in resultado) / len(resultado) if resultado else 0,
+            'documentos': resultado
+        }
+        
+    except Exception as e:
+        print(f"Error obteniendo status OCR: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/estudiantes/{estudiante_id}/documentos", tags=["Documentos"])

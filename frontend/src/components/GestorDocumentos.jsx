@@ -9,6 +9,8 @@ const GestorDocumentos = ({ estudianteId }) => {
   const [tipoDocumento, setTipoDocumento] = useState('pasaporte');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [ocrStatus, setOcrStatus] = useState({});
+  const [processingOcr, setProcessingOcr] = useState({});
 
   const tiposDocumento = [
     { value: 'pasaporte', label: 'Pasaporte' },
@@ -23,6 +25,7 @@ const GestorDocumentos = ({ estudianteId }) => {
 
   useEffect(() => {
     cargarDocumentos();
+    cargarOcrStatus();
   }, [estudianteId]);
 
   const cargarDocumentos = async () => {
@@ -34,6 +37,47 @@ const GestorDocumentos = ({ estudianteId }) => {
     } catch (err) {
       setError('Error al cargar documentos');
       setLoading(false);
+    }
+  };
+
+  const cargarOcrStatus = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/documentos/ocr-status`);
+      const statusMap = {};
+      response.data.documentos.forEach(doc => {
+        statusMap[doc.id] = {
+          procesado: doc.ocr_procesado,
+          confianza: doc.nivel_confianza,
+          alertas: doc.alertas
+        };
+      });
+      setOcrStatus(statusMap);
+    } catch (err) {
+      console.error('Error al cargar status OCR:', err);
+    }
+  };
+
+  const validarConOcr = async (documentoId, tipoDoc) => {
+    setProcessingOcr({ ...processingOcr, [documentoId]: true });
+    
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.post(
+        `${apiUrl}/api/documentos/${documentoId}/validar-ocr?tipo_documento=${tipoDoc}`
+      );
+      
+      if (response.data.exito) {
+        setSuccess(`✅ Documento validado con ${response.data.nivel_confianza}% confianza`);
+        cargarOcrStatus();
+        setTimeout(() => setSuccess(''), 5000);
+      } else {
+        setError('Error en validación OCR: ' + response.data.error);
+      }
+    } catch (err) {
+      setError('Error al validar documento: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setProcessingOcr({ ...processingOcr, [documentoId]: false });
     }
   };
 
@@ -193,6 +237,9 @@ const GestorDocumentos = ({ estudianteId }) => {
           <div className="documentos-grid">
             {documentos.map((doc) => {
               const badge = getEstadoBadge(doc.estado);
+              const ocr = ocrStatus[doc.id] || {};
+              const isProcessing = processingOcr[doc.id];
+              
               return (
                 <div key={doc.id} className="documento-card">
                   <div className="documento-icon">
@@ -205,6 +252,37 @@ const GestorDocumentos = ({ estudianteId }) => {
                     <span className={`documento-badge ${badge.class}`}>
                       {badge.text}
                     </span>
+                    
+                    {/* Estado OCR */}
+                    {ocr.procesado && (
+                      <div className="ocr-status">
+                        <div className="ocr-confianza">
+                          <strong>Confianza OCR:</strong>
+                          <span className={`confianza-${ocr.confianza >= 80 ? 'alta' : ocr.confianza >= 60 ? 'media' : 'baja'}`}>
+                            {ocr.confianza}%
+                          </span>
+                        </div>
+                        {ocr.alertas && ocr.alertas.length > 0 && (
+                          <div className="ocr-alertas">
+                            {ocr.alertas.map((alerta, idx) => (
+                              <div key={idx} className="alerta-item">⚠️ {alerta}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Botón Validar OCR */}
+                    {!ocr.procesado && (
+                      <button
+                        className="btn-validar-ocr"
+                        onClick={() => validarConOcr(doc.id, doc.tipo_documento)}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? '🔄 Validando...' : '🔍 Validar con OCR'}
+                      </button>
+                    )}
+                    
                     {doc.notas && (
                       <div className="documento-notas">
                         <strong>Notas:</strong> {doc.notas}
