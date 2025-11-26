@@ -3,6 +3,7 @@ import axios from 'axios';
 import './CalculadoraVisa.css';
 
 const CalculadoraVisa = ({ estudianteId }) => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const [analisis, setAnalisis] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -13,7 +14,6 @@ const CalculadoraVisa = ({ estudianteId }) => {
 
   const calcularProbabilidad = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/probabilidad-visa`);
       setAnalisis(response.data.analisis);
       setLoading(false);
