@@ -11,20 +11,29 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
   const estudianteId = propEstudianteId || paramId;
   const [estudiante, setEstudiante] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('perfil');
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('[DEBUG] DashboardUsuario montado con ID:', estudianteId);
     cargarDatos();
   }, [estudianteId]);
 
   const cargarDatos = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const estRes = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}`);
+      const url = `${apiUrl}/api/estudiantes/${estudianteId}`;
+      console.log('[DEBUG] Cargando datos desde:', url);
+      
+      const estRes = await axios.get(url);
+      console.log('[DEBUG] Datos recibidos:', estRes.data);
       setEstudiante(estRes.data);
+      setError(null);
     } catch (err) {
-      console.error('Error cargando datos:', err);
+      console.error('[ERROR] Error cargando datos:', err);
+      console.error('[ERROR] Detalles:', err.response?.data);
+      setError(err.response?.data?.detail || err.message || 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -35,6 +44,53 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       <div className="container">
         <div style={{ textAlign: 'center', padding: '50px' }}>
           <p>Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container">
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '50px',
+          background: '#fff3cd',
+          borderRadius: '10px',
+          margin: '20px'
+        }}>
+          <h2 style={{ color: '#856404' }}>⚠️ Error al cargar datos</h2>
+          <p style={{ color: '#856404' }}>{error}</p>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => {
+              setLoading(true);
+              setError(null);
+              cargarDatos();
+            }}
+          >
+            🔄 Reintentar
+          </button>
+          <button 
+            className="btn" 
+            style={{ marginLeft: '10px' }}
+            onClick={() => navigate('/')}
+          >
+            ← Volver al inicio
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!estudiante) {
+    return (
+      <div className="container">
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <h2>⚠️ No se encontraron datos del estudiante</h2>
+          <button className="btn btn-primary" onClick={() => navigate('/')}>
+            ← Volver al inicio
+          </button>
         </div>
       </div>
     );
