@@ -24,7 +24,8 @@ function LoginAdmin({ onLogin }) {
     setError('')
 
     try {
-      const response = await axios.post('/api/login', formData)
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await axios.post(`${apiUrl}/api/login`, formData)
       
       // Guardar token
       localStorage.setItem('token', response.data.token)
