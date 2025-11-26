@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
 import RegistroEstudiante from './components/RegistroEstudiante'
+import LoginEstudiante from './components/LoginEstudiante'
 import LoginAdmin from './components/LoginAdmin'
 import DashboardAdminExpandido from './components/DashboardAdminExpandido'
 import DashboardUsuario from './components/DashboardUsuario'
@@ -24,6 +25,9 @@ function App() {
               🎓 Agencia Educativa España
             </Link>
             <div style={styles.navLinks}>
+              <Link to="/estudiante/login" style={styles.navLink}>
+                🎓 Acceso Estudiantes
+              </Link>
               {!estudianteId && (
                 <Link to="/registro" style={styles.navLink}>
                   Registrarse
@@ -52,6 +56,7 @@ function App() {
 
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/estudiante/login" element={<LoginEstudiante />} />
           <Route 
             path="/registro" 
             element={<RegistroEstudiante onRegistro={(id) => {
