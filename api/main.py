@@ -218,6 +218,43 @@ def actualizar_estudiante_publico(estudiante_id: int, datos: dict, db: Session =
     }
 
 
+@app.get("/api/estudiantes/{estudiante_id}/probabilidad-visa", tags=["Estudiantes"])
+def calcular_probabilidad_visa(estudiante_id: int, db: Session = Depends(get_db)):
+    """
+    Calcula la probabilidad de aprobación de visa del estudiante
+    """
+    from database.models import Estudiante as EstudianteModel
+    from api.calculadora_visa import CalculadoraProbabilidadVisa
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Preparar datos para el cálculo
+    estudiante_data = {
+        'nombre': estudiante.nombre,
+        'email': estudiante.email,
+        'telefono': estudiante.telefono,
+        'pasaporte': estudiante.pasaporte,
+        'edad': estudiante.edad,
+        'nacionalidad': estudiante.nacionalidad,
+        'ciudad_origen': estudiante.ciudad_origen,
+        'especialidad': estudiante.especialidad,
+        'nivel_espanol': estudiante.nivel_espanol,
+        'tipo_visa': estudiante.tipo_visa
+    }
+    
+    # Calcular probabilidad
+    analisis = CalculadoraProbabilidadVisa.calcular_probabilidad(estudiante_data)
+    
+    return {
+        'estudiante_id': estudiante_id,
+        'estudiante_nombre': estudiante.nombre,
+        'analisis': analisis
+    }
+
+
 @app.get("/api/estudiantes/{estudiante_id}/estado", tags=["Estudiantes"])
 def consultar_estado(estudiante_id: int, db: Session = Depends(get_db)):
     """

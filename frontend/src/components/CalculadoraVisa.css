@@ -1,0 +1,278 @@
+.calculadora-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.calculadora-loading,
+.calculadora-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.calculadora-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.calculadora-header h2 {
+  color: #333;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.calculadora-header p {
+  color: #666;
+  font-size: 16px;
+}
+
+.resultado-principal {
+  background: white;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.probabilidad-circulo {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 8px solid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.probabilidad-inner {
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.probabilidad-numero {
+  font-size: 48px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.probabilidad-label {
+  font-size: 14px;
+  margin-top: 5px;
+  opacity: 0.9;
+}
+
+.resultado-info {
+  flex: 1;
+}
+
+.resultado-badge {
+  display: inline-block;
+  padding: 8px 20px;
+  border-radius: 20px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.resultado-mensaje {
+  font-size: 20px;
+  color: #333;
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.resultado-puntos {
+  font-size: 16px;
+  color: #666;
+}
+
+.factores-section {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+}
+
+.factores-section h3 {
+  color: #333;
+  font-size: 22px;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.factores-grid {
+  display: grid;
+  gap: 20px;
+}
+
+.factor-card {
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+}
+
+.factor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.factor-nombre {
+  font-weight: 600;
+  color: #333;
+  font-size: 16px;
+}
+
+.factor-puntos {
+  background: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #667eea;
+  font-size: 14px;
+}
+
+.factor-barra {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.factor-barra-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 4px;
+}
+
+.factor-comentario {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+}
+
+.recomendaciones-section {
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+}
+
+.recomendaciones-section h3 {
+  color: #333;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+.recomendaciones-lista {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recomendaciones-lista li {
+  padding: 15px;
+  margin-bottom: 10px;
+  background: #f0fdf4;
+  border-left: 4px solid #10b981;
+  border-radius: 8px;
+  color: #333;
+}
+
+.recomendacion-urgente {
+  background: #fef2f2 !important;
+  border-left-color: #ef4444 !important;
+  font-weight: 600;
+}
+
+.siguiente-paso {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 25px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.siguiente-paso-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.siguiente-paso h4 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+}
+
+.siguiente-paso p {
+  margin: 0;
+  opacity: 0.95;
+  font-size: 15px;
+}
+
+.btn-recalcular {
+  width: 100%;
+  padding: 16px;
+  background: white;
+  border: 2px solid #667eea;
+  color: #667eea;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-recalcular:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+@media (max-width: 768px) {
+  .resultado-principal {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .probabilidad-circulo {
+    width: 150px;
+    height: 150px;
+  }
+
+  .probabilidad-inner {
+    width: 120px;
+    height: 120px;
+  }
+
+  .probabilidad-numero {
+    font-size: 36px;
+  }
+
+  .siguiente-paso {
+    flex-direction: column;
+    text-align: center;
+  }
+}

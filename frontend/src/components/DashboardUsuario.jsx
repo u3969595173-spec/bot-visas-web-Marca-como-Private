@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import PerfilEstudiante from './PerfilEstudiante';
+import CalculadoraVisa from './CalculadoraVisa';
 
 function DashboardUsuario({ estudianteId }) {
   const [estudiante, setEstudiante] = useState(null);
@@ -63,7 +64,7 @@ function DashboardUsuario({ estudianteId }) {
         gap: '10px',
         flexWrap: 'wrap'
       }}>
-        {['perfil', 'estado', 'documentos'].map(tab => (
+        {['perfil', 'probabilidad', 'estado', 'documentos'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -82,6 +83,11 @@ function DashboardUsuario({ estudianteId }) {
       {/* TAB: Perfil */}
       {activeTab === 'perfil' && (
         <PerfilEstudiante estudianteId={estudianteId} />
+      )}
+
+      {/* TAB: Probabilidad */}
+      {activeTab === 'probabilidad' && (
+        <CalculadoraVisa estudianteId={estudianteId} />
       )}
 
       {/* TAB: Estado */}
