@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: bot_visas_db
+    environment:
+      POSTGRES_DB: bot_visas
+      POSTGRES_USER: botadmin
+      POSTGRES_PASSWORD: changeme123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - bot_network
+
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bot_visas_backend
+    environment:
+      DATABASE_URL: postgresql://botadmin:changeme123@db:5432/bot_visas
+      JWT_SECRET_KEY: tu-clave-secreta-super-segura-cambiar-en-produccion
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - bot_network
+    volumes:
+      - .:/app
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Frontend (React)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bot_visas_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - bot_network
+
+volumes:
+  postgres_data:
+
+networks:
+  bot_network:
+    driver: bridge

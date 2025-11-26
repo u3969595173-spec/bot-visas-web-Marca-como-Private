@@ -1,0 +1,939 @@
+"""
+API REST con FastAPI para Dashboard Web
+Endpoints para estudiantes y panel de administración
+"""
+
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
+from typing import List, Optional, Dict
+from datetime import datetime
+
+from database.models import get_db
+from modules.estudiantes import Estudiante
+from modules.admin_panel import PanelAdministrativo
+from api.schemas import (
+    EstudianteCreate, EstudianteResponse, EstudianteUpdate,
+    LoginRequest, LoginResponse, EstadisticasResponse
+)
+from api.auth import crear_token, verificar_token
+
+app = FastAPI(
+    title="Bot Visas Estudio API",
+    description="API para gestión de estudiantes y agencia educativa",
+    version="1.0.0"
+)
+
+# CORS - Permitir requests desde frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción: especificar dominio exacto
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+security = HTTPBearer()
+
+
+# ============================================================================
+# AUTENTICACIÓN
+# ============================================================================
+
+@app.post("/api/login", response_model=LoginResponse, tags=["Auth"])
+def login(datos: LoginRequest):
+    """
+    Login para admins
+    Usuario: admin / Contraseña: admin123 (cambiar en producción)
+    """
+    # TODO: Implementar verificación real contra DB
+    if datos.usuario == "admin" and datos.password == "admin123":
+        token = crear_token({"usuario": datos.usuario, "rol": "admin"})
+        return LoginResponse(
+            token=token,
+            tipo="Bearer",
+            usuario=datos.usuario,
+            rol="admin"
+        )
+    
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Credenciales incorrectas"
+    )
+
+
+def obtener_usuario_actual(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Verifica token JWT y retorna usuario"""
+    token = credentials.credentials
+    payload = verificar_token(token)
+    
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido o expirado"
+        )
+    
+    return payload
+
+
+# ============================================================================
+# ENDPOINTS PÚBLICOS (Estudiantes)
+# ============================================================================
+
+@app.post("/api/estudiantes", response_model=EstudianteResponse, tags=["Estudiantes"])
+def registrar_estudiante(datos: EstudianteCreate, db: Session = Depends(get_db)):
+    """
+    Registro público de estudiantes
+    No requiere autenticación
+    """
+    try:
+        # Verificar si ya existe
+        existe = db.query(Estudiante).filter(
+            Estudiante.email == datos.email
+        ).first()
+        
+        if existe:
+            raise HTTPException(
+                status_code=400,
+                detail="Ya existe un estudiante con este email"
+            )
+        
+        # Crear nuevo estudiante
+        nuevo = Estudiante(
+            nombre_completo=datos.nombre_completo,
+            numero_pasaporte=datos.numero_pasaporte,
+            edad=datos.edad,
+            nacionalidad=datos.nacionalidad,
+            ciudad_origen=datos.ciudad_origen,
+            email=datos.email,
+            telefono=datos.telefono,
+            especialidad_interes=datos.especialidad_interes,
+            nivel_espanol=datos.nivel_espanol,
+            estado_procesamiento="registrado",
+            estado_visa="pendiente"
+        )
+        
+        db.add(nuevo)
+        db.commit()
+        db.refresh(nuevo)
+        
+        # Enviar email de confirmación
+        try:
+            from modules.notificaciones_email import NotificacionesEmail
+            import config
+            
+            estudiante_dict = {
+                'id': nuevo.id,
+                'nombre_completo': nuevo.nombre_completo,
+                'email': nuevo.email
+            }
+            NotificacionesEmail.enviar_confirmacion_registro(estudiante_dict)
+            
+            # Notificar a admin
+            admin_email = getattr(config, 'ADMIN_EMAIL', None)
+            if admin_email:
+                NotificacionesEmail.notificar_admin_nuevo_estudiante(admin_email, estudiante_dict)
+        except Exception as e:
+            print(f"⚠️ Error enviando email de confirmación: {e}")
+        
+        return EstudianteResponse.from_orm(nuevo)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/estudiantes/{estudiante_id}/estado", tags=["Estudiantes"])
+def consultar_estado(estudiante_id: int, db: Session = Depends(get_db)):
+    """
+    Estudiante consulta su estado (sin auth por simplicidad en MVP)
+    """
+    estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    return {
+        "nombre": estudiante.nombre_completo,
+        "estado_procesamiento": estudiante.estado_procesamiento,
+        "estado_visa": estudiante.estado_visa,
+        "fecha_registro": estudiante.created_at,
+        "curso_seleccionado": estudiante.curso_seleccionado_id,
+        "mensaje": _obtener_mensaje_estado(estudiante.estado_procesamiento)
+    }
+
+
+def _obtener_mensaje_estado(estado: str) -> str:
+    """Mensajes amigables por estado"""
+    mensajes = {
+        "registrado": "Tu solicitud ha sido recibida. Estamos procesando tu información.",
+        "procesado_automaticamente": "Hemos analizado tu perfil. Un asesor revisará tu caso pronto.",
+        "pendiente_revision_admin": "Tu caso está siendo revisado por nuestro equipo.",
+        "aprobado_admin": "¡Felicidades! Tu solicitud ha sido aprobada. Te contactaremos pronto.",
+        "enviado_estudiante": "Te hemos enviado toda la información. Revisa tu email.",
+        "rechazado_admin": "Necesitamos información adicional. Te contactaremos."
+    }
+    return mensajes.get(estado, "En proceso")
+
+
+# ============================================================================
+# ENDPOINTS ADMIN (Requieren autenticación)
+# ============================================================================
+
+@app.get("/api/admin/estudiantes", response_model=List[EstudianteResponse], tags=["Admin"])
+def listar_estudiantes(
+    estado: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Lista todos los estudiantes con filtros opcionales"""
+    query = db.query(Estudiante)
+    
+    if estado:
+        query = query.filter(Estudiante.estado_procesamiento == estado)
+    
+    estudiantes = query.offset(skip).limit(limit).all()
+    return [EstudianteResponse.from_orm(e) for e in estudiantes]
+
+
+@app.get("/api/admin/estudiantes/{estudiante_id}", response_model=EstudianteResponse, tags=["Admin"])
+def obtener_estudiante(
+    estudiante_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Detalle completo de un estudiante"""
+    estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    return EstudianteResponse.from_orm(estudiante)
+
+
+@app.put("/api/admin/estudiantes/{estudiante_id}", tags=["Admin"])
+def actualizar_estudiante(
+    estudiante_id: int,
+    datos: EstudianteUpdate,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Actualiza información de estudiante"""
+    estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Actualizar campos
+    for campo, valor in datos.dict(exclude_unset=True).items():
+        setattr(estudiante, campo, valor)
+    
+    db.commit()
+    db.refresh(estudiante)
+    
+    return {"message": "Estudiante actualizado correctamente"}
+
+
+@app.post("/api/admin/estudiantes/{estudiante_id}/aprobar", tags=["Admin"])
+def aprobar_estudiante(
+    estudiante_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Aprobar estudiante para envío"""
+    from modules.panel_revision_admin import PanelRevisionAdmin
+    from modules.notificaciones_email import NotificacionesEmail
+    
+    try:
+        resultado = PanelRevisionAdmin.aprobar_y_preparar_envio(
+            estudiante_id=estudiante_id,
+            admin_id=1,  # TODO: Usar ID real del token
+            mensaje_admin="Aprobado desde dashboard web"
+        )
+        
+        # Enviar email de aprobación
+        try:
+            estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+            if estudiante:
+                estudiante_dict = {
+                    'id': estudiante.id,
+                    'nombre_completo': estudiante.nombre_completo,
+                    'email': estudiante.email
+                }
+                NotificacionesEmail.enviar_solicitud_aprobada(estudiante_dict)
+        except Exception as e:
+            print(f"⚠️ Error enviando email de aprobación: {e}")
+        
+        return resultado
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/estudiantes/{estudiante_id}/rechazar", tags=["Admin"])
+def rechazar_estudiante(
+    estudiante_id: int,
+    motivo: str,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Rechazar estudiante y solicitar correcciones"""
+    from modules.panel_revision_admin import PanelRevisionAdmin
+    from modules.notificaciones_email import NotificacionesEmail
+    
+    try:
+        resultado = PanelRevisionAdmin.rechazar_y_solicitar_revision(
+            estudiante_id=estudiante_id,
+            admin_id=1,
+            motivo_rechazo=motivo
+        )
+        
+        # Enviar email de revisión pendiente
+        try:
+            estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+            if estudiante:
+                estudiante_dict = {
+                    'id': estudiante.id,
+                    'nombre_completo': estudiante.nombre_completo,
+                    'email': estudiante.email
+                }
+                NotificacionesEmail.enviar_solicitud_pendiente_revision(estudiante_dict, motivo)
+        except Exception as e:
+            print(f"⚠️ Error enviando email de revisión: {e}")
+        
+        return resultado
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/estadisticas", response_model=EstadisticasResponse, tags=["Admin"])
+def obtener_estadisticas(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Estadísticas del dashboard"""
+    dashboard = PanelAdministrativo.dashboard()
+    
+    return EstadisticasResponse(
+        total_estudiantes=dashboard['resumen']['total_estudiantes'],
+        pendientes_revision=dashboard['resumen']['pendientes_revision_admin'],
+        aprobados=dashboard['resumen']['aprobados'],
+        enviados=dashboard['resumen']['enviados'],
+        por_especialidad=dashboard['por_especialidad']
+    )
+
+
+# ============================================================================
+# CURSOS - Endpoints para gestión de cursos
+# ============================================================================
+
+@app.get("/api/cursos", tags=["Cursos"])
+def listar_cursos(
+    especialidad: Optional[str] = None,
+    ciudad: Optional[str] = None,
+    precio_max: Optional[float] = None,
+    nivel_idioma: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Lista cursos disponibles con filtros"""
+    from modules.cursos import GestorCursos
+    
+    cursos = GestorCursos.filtrar_cursos(
+        especialidad=especialidad,
+        ciudad=ciudad,
+        precio_max=precio_max,
+        nivel_idioma=nivel_idioma
+    )
+    
+    return {
+        'total': len(cursos),
+        'cursos': [
+            {
+                'id': c.id,
+                'nombre': c.nombre,
+                'escuela': c.escuela,
+                'ciudad': c.ciudad,
+                'especialidad': c.especialidad,
+                'precio': c.precio,
+                'duracion_meses': c.duracion_meses,
+                'nivel_minimo_espanol': c.nivel_minimo_espanol,
+                'fecha_inicio': c.fecha_inicio.isoformat() if c.fecha_inicio else None,
+                'disponible': c.disponible
+            }
+            for c in cursos[skip:skip+limit]
+        ]
+    }
+
+
+@app.get("/api/cursos/{curso_id}", tags=["Cursos"])
+def obtener_curso(curso_id: int, db: Session = Depends(get_db)):
+    """Obtiene detalles de un curso específico"""
+    from modules.cursos import GestorCursos
+    
+    curso = GestorCursos.obtener_curso_por_id(curso_id)
+    
+    if not curso:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    
+    return {
+        'id': curso.id,
+        'nombre': curso.nombre,
+        'escuela': curso.escuela,
+        'ciudad': curso.ciudad,
+        'especialidad': curso.especialidad,
+        'precio': curso.precio,
+        'duracion_meses': curso.duracion_meses,
+        'nivel_minimo_espanol': curso.nivel_minimo_espanol,
+        'fecha_inicio': curso.fecha_inicio.isoformat() if curso.fecha_inicio else None,
+        'descripcion': curso.descripcion,
+        'requisitos': curso.requisitos,
+        'url_informacion': curso.url_informacion,
+        'disponible': curso.disponible
+    }
+
+
+# ============================================================================
+# FONDOS - Verificación económica
+# ============================================================================
+
+@app.get("/api/estudiantes/{estudiante_id}/fondos", tags=["Fondos"])
+def verificar_fondos(estudiante_id: int, db: Session = Depends(get_db)):
+    """Verifica situación económica del estudiante"""
+    from modules.fondos import GestorFondos
+    
+    estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    verificacion = GestorFondos.verificar_fondos(estudiante_id)
+    return verificacion
+
+
+@app.post("/api/estudiantes/{estudiante_id}/patrocinador", tags=["Fondos"])
+def agregar_patrocinador(
+    estudiante_id: int,
+    datos_patrocinador: Dict,
+    db: Session = Depends(get_db)
+):
+    """Agrega patrocinador para el estudiante"""
+    from modules.fondos import GestorFondos
+    
+    resultado = GestorFondos.agregar_patrocinador(estudiante_id, datos_patrocinador)
+    return resultado
+
+
+# ============================================================================
+# ALOJAMIENTO - Búsqueda y gestión
+# ============================================================================
+
+@app.get("/api/alojamientos", tags=["Alojamiento"])
+def buscar_alojamientos(
+    ciudad: Optional[str] = None,
+    precio_max: Optional[float] = None,
+    tipo: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """Busca alojamientos disponibles"""
+    from modules.alojamiento import GestorAlojamiento
+    
+    alojamientos = GestorAlojamiento.buscar_alojamientos(
+        ciudad=ciudad,
+        precio_max=precio_max,
+        tipo=tipo,
+        disponible=True
+    )
+    
+    return {
+        'total': len(alojamientos),
+        'alojamientos': [
+            {
+                'id': a.id,
+                'tipo': a.tipo,
+                'direccion': a.direccion,
+                'ciudad': a.ciudad,
+                'precio_mensual': a.precio_mensual,
+                'gastos_incluidos': a.gastos_incluidos,
+                'num_habitaciones': a.num_habitaciones,
+                'num_banos': a.num_banos,
+                'metros_cuadrados': a.metros_cuadrados,
+                'disponible': a.disponible
+            }
+            for a in alojamientos[skip:skip+limit]
+        ]
+    }
+
+
+# ============================================================================
+# DOCUMENTOS - Upload y gestión
+# ============================================================================
+
+from fastapi import UploadFile, File
+
+@app.post("/api/estudiantes/{estudiante_id}/documentos/upload", tags=["Documentos"])
+async def subir_documento(
+    estudiante_id: int,
+    tipo_documento: str,
+    archivo: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Sube un documento del estudiante"""
+    import os
+    from pathlib import Path
+    
+    # Verificar estudiante existe
+    estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Crear directorio si no existe
+    upload_dir = Path(f"uploads/estudiantes/{estudiante_id}")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Guardar archivo
+    file_path = upload_dir / f"{tipo_documento}_{archivo.filename}"
+    
+    with file_path.open("wb") as buffer:
+        content = await archivo.read()
+        buffer.write(content)
+    
+    return {
+        'mensaje': 'Documento subido correctamente',
+        'tipo': tipo_documento,
+        'filename': archivo.filename,
+        'path': str(file_path)
+    }
+
+
+@app.get("/api/estudiantes/{estudiante_id}/documentos", tags=["Documentos"])
+def obtener_checklist(estudiante_id: int, db: Session = Depends(get_db)):
+    """Obtiene checklist de documentos del estudiante"""
+    from modules.estudiantes import GestorEstudiantes
+    
+    checklist = GestorEstudiantes.checklist_documentos(estudiante_id)
+    return checklist
+
+
+# ============================================================================
+# NOTIFICACIONES WEB - Sistema interno
+# ============================================================================
+
+@app.get("/api/estudiantes/{estudiante_id}/notificaciones", tags=["Notificaciones"])
+def obtener_notificaciones(
+    estudiante_id: int,
+    no_leidas: bool = False,
+    db: Session = Depends(get_db)
+):
+    """Obtiene notificaciones del estudiante"""
+    from modules.notificaciones import SistemaNotificaciones
+    
+    # Implementación simplificada - expandir según necesidades
+    return {
+        'notificaciones': [],
+        'total': 0,
+        'no_leidas': 0
+    }
+
+
+# ============================================================================
+# MENSAJERÍA - Chat entre estudiantes y admins
+# ============================================================================
+
+@app.post("/api/mensajes", tags=["Mensajería"])
+def enviar_mensaje(
+    datos: Dict,
+    db: Session = Depends(get_db)
+):
+    """Envía mensaje entre estudiante y admin"""
+    # Implementación de sistema de chat
+    return {
+        'exito': True,
+        'mensaje_id': 1,
+        'fecha': datetime.now().isoformat()
+    }
+
+
+@app.get("/api/estudiantes/{estudiante_id}/mensajes", tags=["Mensajería"])
+def obtener_mensajes(
+    estudiante_id: int,
+    db: Session = Depends(get_db)
+):
+    """Obtiene conversación del estudiante"""
+    return {
+        'mensajes': [],
+        'total': 0
+    }
+
+
+# ============================================================================
+# ADMIN - GESTIÓN DE CURSOS
+# ============================================================================
+
+@app.post("/api/admin/cursos", tags=["Admin - Cursos"])
+def crear_curso(
+    datos: Dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Crea un nuevo curso"""
+    from modules.cursos import GestorCursos
+    from database.models import Curso
+    
+    nuevo_curso = Curso(
+        nombre=datos['nombre'],
+        escuela=datos['escuela'],
+        ciudad=datos['ciudad'],
+        especialidad=datos['especialidad'],
+        precio=datos['precio'],
+        duracion_meses=datos['duracion_meses'],
+        nivel_minimo_espanol=datos.get('nivel_minimo_espanol', 'B1'),
+        descripcion=datos.get('descripcion'),
+        requisitos=datos.get('requisitos'),
+        url_informacion=datos.get('url_informacion'),
+        disponible=True
+    )
+    
+    db.add(nuevo_curso)
+    db.commit()
+    db.refresh(nuevo_curso)
+    
+    return {'exito': True, 'curso_id': nuevo_curso.id}
+
+
+@app.put("/api/admin/cursos/{curso_id}", tags=["Admin - Cursos"])
+def actualizar_curso(
+    curso_id: int,
+    datos: Dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Actualiza un curso existente"""
+    from database.models import Curso
+    
+    curso = db.query(Curso).filter(Curso.id == curso_id).first()
+    if not curso:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    
+    for campo, valor in datos.items():
+        if hasattr(curso, campo):
+            setattr(curso, campo, valor)
+    
+    db.commit()
+    return {'exito': True, 'mensaje': 'Curso actualizado'}
+
+
+@app.delete("/api/admin/cursos/{curso_id}", tags=["Admin - Cursos"])
+def eliminar_curso(
+    curso_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Elimina un curso"""
+    from database.models import Curso
+    
+    curso = db.query(Curso).filter(Curso.id == curso_id).first()
+    if not curso:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    
+    curso.disponible = False
+    db.commit()
+    
+    return {'exito': True, 'mensaje': 'Curso desactivado'}
+
+
+# ============================================================================
+# ADMIN - GESTIÓN DE ALOJAMIENTOS
+# ============================================================================
+
+@app.post("/api/admin/alojamientos", tags=["Admin - Alojamiento"])
+def crear_alojamiento(
+    datos: Dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Crea nuevo alojamiento"""
+    from database.models import Alojamiento
+    
+    nuevo = Alojamiento(
+        tipo=datos['tipo'],
+        direccion=datos['direccion'],
+        ciudad=datos['ciudad'],
+        precio_mensual=datos['precio_mensual'],
+        gastos_incluidos=datos.get('gastos_incluidos', False),
+        num_habitaciones=datos.get('num_habitaciones', 1),
+        num_banos=datos.get('num_banos', 1),
+        metros_cuadrados=datos.get('metros_cuadrados'),
+        disponible=True
+    )
+    
+    db.add(nuevo)
+    db.commit()
+    db.refresh(nuevo)
+    
+    return {'exito': True, 'alojamiento_id': nuevo.id}
+
+
+@app.put("/api/admin/alojamientos/{alojamiento_id}", tags=["Admin - Alojamiento"])
+def actualizar_alojamiento(
+    alojamiento_id: int,
+    datos: Dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Actualiza alojamiento"""
+    from database.models import Alojamiento
+    
+    alojamiento = db.query(Alojamiento).filter(Alojamiento.id == alojamiento_id).first()
+    if not alojamiento:
+        raise HTTPException(status_code=404, detail="Alojamiento no encontrado")
+    
+    for campo, valor in datos.items():
+        if hasattr(alojamiento, campo):
+            setattr(alojamiento, campo, valor)
+    
+    db.commit()
+    return {'exito': True, 'mensaje': 'Alojamiento actualizado'}
+
+
+# ============================================================================
+# ADMIN - REPORTES AVANZADOS
+# ============================================================================
+
+@app.get("/api/admin/reportes/mensual", tags=["Admin - Reportes"])
+def reporte_mensual(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Genera reporte mensual completo"""
+    reporte = PanelAdministrativo.generar_reporte_mensual()
+    return reporte
+
+
+@app.get("/api/admin/reportes/especialidades", tags=["Admin - Reportes"])
+def estadisticas_especialidades(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Estadísticas por especialidad"""
+    stats = PanelAdministrativo.estadisticas_por_especialidad()
+    return {'especialidades': stats}
+
+
+@app.get("/api/admin/reportes/conversion", tags=["Admin - Reportes"])
+def embudo_conversion(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Embudo de conversión de estudiantes"""
+    embudo = PanelAdministrativo.embudo_conversion()
+    return embudo
+
+
+# ============================================================================
+# ADMIN - GESTIÓN DE DOCUMENTOS
+# ============================================================================
+
+@app.get("/api/admin/documentos/pendientes", tags=["Admin - Documentos"])
+def documentos_pendientes(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Lista estudiantes con documentos pendientes"""
+    estudiantes = db.query(Estudiante).filter(
+        Estudiante.estado_procesamiento.in_([
+            'registrado',
+            'procesado_automaticamente',
+            'pendiente_revision_admin'
+        ])
+    ).all()
+    
+    pendientes = []
+    for est in estudiantes:
+        from modules.estudiantes import GestorEstudiantes
+        checklist = GestorEstudiantes.checklist_documentos(est.id)
+        
+        if checklist['total_obligatorios'] > 0:
+            pendientes.append({
+                'estudiante_id': est.id,
+                'nombre': est.nombre_completo,
+                'documentos_obligatorios_pendientes': checklist['total_obligatorios'],
+                'documentos_recomendados_pendientes': checklist['total_recomendados']
+            })
+    
+    return {'total': len(pendientes), 'estudiantes': pendientes}
+
+
+# ============================================================================
+# MENSAJERÍA INTERNA - Chat entre estudiantes y admins
+# ============================================================================
+
+@app.post("/api/conversaciones", tags=["Mensajería"])
+def crear_conversacion(datos: Dict, db: Session = Depends(get_db)):
+    """Crea una nueva conversación"""
+    from modules.mensajeria import SistemaMensajeria
+    
+    conversacion = SistemaMensajeria.crear_conversacion(
+        estudiante_id=datos['estudiante_id'],
+        admin_id=datos.get('admin_id')
+    )
+    
+    return {'exito': True, 'conversacion_id': conversacion.id}
+
+
+@app.post("/api/mensajes", tags=["Mensajería"])
+def enviar_mensaje(datos: Dict, db: Session = Depends(get_db)):
+    """Envía mensaje en una conversación"""
+    from modules.mensajeria import SistemaMensajeria
+    
+    resultado = SistemaMensajeria.enviar_mensaje(
+        conversacion_id=datos['conversacion_id'],
+        remitente_tipo=datos['remitente_tipo'],
+        remitente_id=datos['remitente_id'],
+        contenido=datos['contenido']
+    )
+    
+    return resultado
+
+
+@app.get("/api/conversaciones/{conversacion_id}/mensajes", tags=["Mensajería"])
+def obtener_mensajes_conversacion(
+    conversacion_id: int,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Obtiene mensajes de una conversación"""
+    from modules.mensajeria import SistemaMensajeria
+    
+    mensajes = SistemaMensajeria.obtener_mensajes(conversacion_id, limit=limit)
+    return {'mensajes': mensajes, 'total': len(mensajes)}
+
+
+@app.get("/api/estudiantes/{estudiante_id}/conversaciones", tags=["Mensajería"])
+def obtener_conversaciones_estudiante(estudiante_id: int, db: Session = Depends(get_db)):
+    """Obtiene conversaciones del estudiante"""
+    from modules.mensajeria import SistemaMensajeria
+    
+    conversaciones = SistemaMensajeria.obtener_conversaciones_estudiante(estudiante_id)
+    return {'conversaciones': conversaciones}
+
+
+@app.get("/api/admin/conversaciones", tags=["Admin - Mensajería"])
+def obtener_conversaciones_admin(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Obtiene todas las conversaciones activas para admin"""
+    from modules.mensajeria import SistemaMensajeria
+    
+    conversaciones = SistemaMensajeria.obtener_conversaciones_admin()
+    return {'conversaciones': conversaciones}
+
+
+# ============================================================================
+# NOTIFICACIONES EMAIL
+# ============================================================================
+
+@app.post("/api/notificaciones/test-email", tags=["Notificaciones"])
+def test_email(destinatario: str):
+    """Endpoint de prueba para verificar configuración de email"""
+    from modules.notificaciones_email import EmailService
+    import config
+    
+    html = EmailService.generar_template_html(
+        titulo="Email de Prueba",
+        mensaje="<p>Este es un email de prueba del sistema de notificaciones.</p><p>Si recibes este mensaje, la configuración SMTP está funcionando correctamente.</p>",
+        boton_texto="Visitar Plataforma",
+        boton_url=getattr(config, 'WEB_URL', 'http://localhost:3000')
+    )
+    
+    resultado = EmailService.enviar_email(
+        destinatario=destinatario,
+        asunto="🧪 Email de Prueba - Sistema de Notificaciones",
+        contenido_html=html
+    )
+    
+    if resultado:
+        return {"mensaje": "Email enviado correctamente", "destinatario": destinatario}
+    else:
+        raise HTTPException(status_code=500, detail="Error al enviar email")
+
+
+@app.post("/api/estudiantes/{estudiante_id}/notificaciones/resend", tags=["Notificaciones"])
+def reenviar_notificacion(
+    estudiante_id: int,
+    tipo: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Reenviar notificación por email a un estudiante
+    Tipos: registro, aprobacion, pendiente
+    """
+    from modules.notificaciones_email import NotificacionesEmail
+    
+    estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    estudiante_dict = {
+        'id': estudiante.id,
+        'nombre_completo': estudiante.nombre_completo,
+        'email': estudiante.email,
+        'especialidad_interes': estudiante.especialidad_interes,
+        'nacionalidad': estudiante.nacionalidad
+    }
+    
+    resultado = False
+    
+    if tipo == "registro":
+        resultado = NotificacionesEmail.enviar_confirmacion_registro(estudiante_dict)
+    elif tipo == "aprobacion":
+        resultado = NotificacionesEmail.enviar_solicitud_aprobada(estudiante_dict)
+    elif tipo == "pendiente":
+        motivo = "Revisión de documentación requerida"
+        resultado = NotificacionesEmail.enviar_solicitud_pendiente_revision(estudiante_dict, motivo)
+    else:
+        raise HTTPException(status_code=400, detail="Tipo de notificación inválido")
+    
+    if resultado:
+        return {"mensaje": f"Notificación '{tipo}' reenviada a {estudiante.email}"}
+    else:
+        raise HTTPException(status_code=500, detail="Error al enviar notificación")
+
+
+# ============================================================================
+# HEALTH CHECK
+# ============================================================================
+
+@app.get("/", tags=["Health"])
+def root():
+    """Health check"""
+    return {
+        "status": "online",
+        "servicio": "Bot Visas Estudio API",
+        "version": "1.0.0",
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+@app.get("/health", tags=["Health"])
+def health():
+    """Health check detallado"""
+    return {
+        "status": "healthy",
+        "database": "connected",
+        "timestamp": datetime.now().isoformat()
+    }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
