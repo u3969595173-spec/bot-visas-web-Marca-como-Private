@@ -3,6 +3,7 @@ import axios from 'axios';
 import './PerfilEstudiante.css';
 
 const PerfilEstudiante = ({ estudianteId }) => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const [estudiante, setEstudiante] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -16,7 +17,6 @@ const PerfilEstudiante = ({ estudianteId }) => {
 
   const cargarDatos = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const token = localStorage.getItem('token');
       const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -44,7 +44,6 @@ const PerfilEstudiante = ({ estudianteId }) => {
     setSuccess('');
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const token = localStorage.getItem('token');
       await axios.put(`${apiUrl}/api/estudiantes/${estudianteId}`, formData, {
         headers: token ? { Authorization: `Bearer ${token}` } : {}
