@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, D
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
-import config
+import os
 
 Base = declarative_base()
 
@@ -124,7 +124,8 @@ class Estudiante(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 # Database initialization
-engine = create_engine(config.DATABASE_URL)
+DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://postgres:BAxjbuTZDB1ATRYk@db.ihdllnlbfcwrbftjzrjz.supabase.co:5432/postgres')
+engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
