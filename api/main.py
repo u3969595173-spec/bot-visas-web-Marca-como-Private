@@ -33,6 +33,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:3000",
         "https://bot-visas-api.onrender.com",
+        "https://bot-visas-web-marca-como-private-s785-g4twzsjhe.vercel.app",
         "https://*.vercel.app",  # Permitir todos los subdominios de Vercel
     ],
     allow_credentials=True,
