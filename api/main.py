@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from typing import List, Optional, Dict
 from datetime import datetime
 
@@ -1965,18 +1966,26 @@ def consultar_estado(estudiante_id: int, db: Session = Depends(get_db)):
     Estudiante consulta su estado (sin auth por simplicidad en MVP)
     """
     try:
-        estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+        # Query solo los campos que necesitamos
+        result = db.execute(
+            text("""
+                SELECT id, nombre, email, tipo_visa, estado, created_at, curso_asignado_id
+                FROM estudiantes 
+                WHERE id = :estudiante_id
+            """),
+            {"estudiante_id": estudiante_id}
+        ).fetchone()
         
-        if not estudiante:
+        if not result:
             raise HTTPException(status_code=404, detail="Estudiante no encontrado")
         
         return {
-            "nombre": estudiante.nombre or "Estudiante",
-            "estado_procesamiento": estudiante.estado or "pendiente",
-            "estado_visa": estudiante.tipo_visa or "estudiante",
-            "fecha_registro": estudiante.created_at.isoformat() if estudiante.created_at else None,
-            "curso_seleccionado": estudiante.curso_asignado_id,
-            "mensaje": _obtener_mensaje_estado(estudiante.estado or "pendiente")
+            "nombre": result[1] or "Estudiante",
+            "estado_procesamiento": result[4] or "pendiente",
+            "estado_visa": result[3] or "estudiante",
+            "fecha_registro": result[5].isoformat() if result[5] else None,
+            "curso_seleccionado": result[6],
+            "mensaje": _obtener_mensaje_estado(result[4] or "pendiente")
         }
     except HTTPException:
         raise
