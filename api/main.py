@@ -130,15 +130,16 @@ async def startup_event():
             CREATE TABLE IF NOT EXISTS universidades_partner (
                 id SERIAL PRIMARY KEY,
                 nombre VARCHAR(255) NOT NULL,
+                pais VARCHAR(100) DEFAULT 'España',
                 codigo_referido VARCHAR(50) UNIQUE NOT NULL,
                 email_contacto VARCHAR(255),
                 persona_contacto VARCHAR(255),
                 telefono VARCHAR(50),
                 tipo_comision VARCHAR(50) DEFAULT 'porcentaje',
-                porcentaje_comision DECIMAL(5,2) DEFAULT 15.00,
-                monto_fijo_comision DECIMAL(10,2) DEFAULT 0,
-                activo BOOLEAN DEFAULT TRUE,
+                valor_comision DECIMAL(10,2) DEFAULT 15.00,
+                estado VARCHAR(50) DEFAULT 'activo',
                 logo_url TEXT,
+                sitio_web VARCHAR(255),
                 notas TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -193,6 +194,41 @@ async def startup_event():
         """)
         
         conn.commit()
+        
+        # ===== SEED: Insertar universidades partner iniciales =====
+        from api.seed_universidades import UNIVERSIDADES_DATA
+        
+        cursor.execute("SELECT COUNT(*) FROM universidades_partner")
+        count = cursor.fetchone()[0]
+        
+        if count == 0:
+            print("📚 Insertando 52 universidades partner iniciales...")
+            inserted = 0
+            for uni in UNIVERSIDADES_DATA:
+                try:
+                    cursor.execute("""
+                        INSERT INTO universidades_partner (
+                            nombre, pais, email_contacto, telefono, 
+                            tipo_comision, valor_comision, codigo_referido, 
+                            estado, logo_url, sitio_web, notas
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (codigo_referido) DO NOTHING
+                    """, (
+                        uni["nombre"], uni["pais"], uni["email_contacto"], 
+                        uni["telefono"], uni["tipo_comision"], uni["valor_comision"],
+                        uni["codigo_referido"], uni["estado"], 
+                        uni.get("logo_url", ""), uni["sitio_web"], uni["notas"]
+                    ))
+                    inserted += 1
+                except Exception as e:
+                    print(f"⚠️ Error insertando {uni['nombre']}: {e}")
+                    continue
+            
+            conn.commit()
+            print(f"✅ Insertadas {inserted} universidades partner")
+        else:
+            print(f"ℹ️ Ya existen {count} universidades partner en la BD")
+        
         cursor.close()
         conn.close()
         print("✅ Tabla documentos_generados verificada/creada")
