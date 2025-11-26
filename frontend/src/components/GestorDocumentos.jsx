@@ -3,6 +3,7 @@ import axios from 'axios';
 import './GestorDocumentos.css';
 
 const GestorDocumentos = ({ estudianteId }) => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const [documentos, setDocumentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -30,7 +31,6 @@ const GestorDocumentos = ({ estudianteId }) => {
 
   const cargarDocumentos = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/documentos`);
       setDocumentos(response.data.documentos);
       setLoading(false);
@@ -42,7 +42,6 @@ const GestorDocumentos = ({ estudianteId }) => {
 
   const cargarOcrStatus = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/documentos/ocr-status`);
       const statusMap = {};
       response.data.documentos.forEach(doc => {
@@ -62,7 +61,6 @@ const GestorDocumentos = ({ estudianteId }) => {
     setProcessingOcr({ ...processingOcr, [documentoId]: true });
     
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await axios.post(
         `${apiUrl}/api/documentos/${documentoId}/validar-ocr?tipo_documento=${tipoDoc}`
       );
@@ -103,7 +101,6 @@ const GestorDocumentos = ({ estudianteId }) => {
     setSuccess('');
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const formData = new FormData();
       formData.append('archivo', file);
 

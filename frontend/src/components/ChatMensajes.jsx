@@ -3,6 +3,7 @@ import axios from 'axios';
 import './ChatMensajes.css';
 
 const ChatMensajes = ({ estudianteId, remitente = 'estudiante' }) => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
   const [mensajes, setMensajes] = useState([]);
   const [nuevoMensaje, setNuevoMensaje] = useState('');
   const [loading, setLoading] = useState(true);
@@ -25,7 +26,6 @@ const ChatMensajes = ({ estudianteId, remitente = 'estudiante' }) => {
 
   const cargarMensajes = async () => {
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/mensajes`);
       setMensajes(response.data.mensajes);
       setLoading(false);
@@ -41,7 +41,6 @@ const ChatMensajes = ({ estudianteId, remitente = 'estudiante' }) => {
 
     setEnviando(true);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       await axios.post(`${apiUrl}/api/estudiantes/${estudianteId}/mensajes`, {
         remitente,
         mensaje: nuevoMensaje
