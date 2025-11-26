@@ -218,9 +218,9 @@ def listar_estudiantes(
     
     return [{
         'id': e.id,
-        'nombre_completo': f"Estudiante {e.id}",  # TODO: agregar nombre a la tabla
-        'email': f"estudiante{e.id}@example.com",  # TODO: agregar email
-        'especialidad_interes': e.tipo_visa or 'No especificado',
+        'nombre_completo': e.nombre or f"Estudiante {e.id}",
+        'email': e.email or f"estudiante{e.id}@example.com",
+        'especialidad_interes': e.especialidad or e.tipo_visa or 'No especificado',
         'estado_procesamiento': e.estado,
         'created_at': e.created_at.isoformat() if e.created_at else None
     } for e in estudiantes]
