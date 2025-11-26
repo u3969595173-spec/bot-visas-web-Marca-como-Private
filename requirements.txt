@@ -50,9 +50,12 @@ requests==2.31.0
 # === SCHEDULING (Para recordatorios automáticos) ===
 apscheduler==3.10.4
 
-# === IMAGE PROCESSING (Para OCR de documentos) ===
-pytesseract==0.3.10
+# === IMAGE PROCESSING (Para OCR de documentos con API) ===
 Pillow==10.1.0
-opencv-python-headless==4.8.1.78
-numpy==1.26.2
 # selenium==4.16.0
+
+# === OCR usando API en la nube (sin instalación local) ===
+# OCR.space API: 25,000 requests/mes gratis
+# pytesseract==0.3.10  # No necesario - usamos API
+# opencv-python-headless==4.8.1.78  # No necesario
+# numpy==1.26.2  # No necesario para OCR API

@@ -1,19 +1,16 @@
 """
 Validador OCR Inteligente para Documentos
 Extrae y valida información de pasaportes, DNI, extractos bancarios, cartas de admisión
+USA OCR.space API (25,000 requests/mes gratis) - Sin instalación de Tesseract
 """
 
-import pytesseract
+import requests
 from PIL import Image
-import cv2
-import numpy as np
 import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import json
-
-# Configurar ruta de Tesseract (ajustar según instalación)
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+import os
 
 
 class ValidadorOCR:
@@ -48,6 +45,9 @@ class ValidadorOCR:
         self.resultados = {}
         self.alertas = []
         self.nivel_confianza = 0
+        # API Key de OCR.space (gratis: 25,000 requests/mes)
+        # Registrarse en: https://ocr.space/ocrapi
+        self.ocr_api_key = os.getenv('OCR_SPACE_API_KEY', 'K87899142388957')  # Free tier key
     
     def procesar_documento(self, ruta_archivo: str, tipo_documento: str) -> Dict:
         """
@@ -61,15 +61,15 @@ class ValidadorOCR:
             Dict con datos extraídos, validación y alertas
         """
         try:
-            # Preprocesar imagen
-            imagen_procesada = self._preprocesar_imagen(ruta_archivo)
+            # Validar imagen
+            ruta_validada = self._preprocesar_imagen(ruta_archivo)
             
-            # Extraer texto con OCR
-            texto = self._extraer_texto(imagen_procesada)
+            # Extraer texto con OCR.space API
+            texto = self._extraer_texto(ruta_validada)
             
             # Validar según tipo de documento
             if tipo_documento == 'pasaporte':
-                validacion = self._validar_pasaporte(texto, imagen_procesada)
+                validacion = self._validar_pasaporte(texto)
             elif tipo_documento == 'dni':
                 validacion = self._validar_dni(texto)
             elif tipo_documento == 'extracto_bancario':
@@ -99,48 +99,62 @@ class ValidadorOCR:
                 'tipo_documento': tipo_documento
             }
     
-    def _preprocesar_imagen(self, ruta_archivo: str) -> np.ndarray:
+    def _preprocesar_imagen(self, ruta_archivo: str) -> str:
         """
-        Preprocesa imagen para mejorar OCR
-        - Conversión a escala de grises
-        - Aumento de contraste
-        - Reducción de ruido
-        - Binarización
+        Verifica y prepara imagen para OCR
+        Retorna la ruta del archivo (ya no procesamos localmente)
         """
-        # Cargar imagen
-        imagen = cv2.imread(ruta_archivo)
+        if not os.path.exists(ruta_archivo):
+            raise ValueError("Archivo no encontrado")
         
-        if imagen is None:
-            raise ValueError("No se pudo cargar la imagen")
-        
-        # Convertir a escala de grises
-        gris = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
-        
-        # Reducir ruido
-        sin_ruido = cv2.fastNlMeansDenoising(gris)
-        
-        # Aumentar contraste (CLAHE)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        contraste = clahe.apply(sin_ruido)
-        
-        # Binarización adaptativa
-        binaria = cv2.adaptiveThreshold(
-            contraste, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY, 11, 2
-        )
-        
-        return binaria
+        # Verificar que es una imagen válida
+        try:
+            img = Image.open(ruta_archivo)
+            img.verify()
+            return ruta_archivo
+        except Exception as e:
+            raise ValueError(f"Archivo no es una imagen válida: {e}")
     
-    def _extraer_texto(self, imagen: np.ndarray) -> str:
-        """Extrae texto de imagen con Tesseract OCR"""
-        # Configuración personalizada de Tesseract
-        config = '--oem 3 --psm 6'  # OEM 3: Default, PSM 6: Assume a single uniform block of text
-        
-        texto = pytesseract.image_to_string(imagen, lang='spa+eng', config=config)
-        
-        return texto.strip()
+    def _extraer_texto(self, ruta_archivo: str) -> str:
+        """
+        Extrae texto de imagen usando OCR.space API
+        API gratuita: 25,000 requests/mes
+        """
+        try:
+            # Preparar request a OCR.space
+            with open(ruta_archivo, 'rb') as f:
+                response = requests.post(
+                    'https://api.ocr.space/parse/image',
+                    files={'file': f},
+                    data={
+                        'apikey': self.ocr_api_key,
+                        'language': 'spa',  # Español
+                        'isOverlayRequired': False,
+                        'detectOrientation': True,
+                        'scale': True,
+                        'OCREngine': 2  # Engine 2 es mejor para documentos
+                    },
+                    timeout=30
+                )
+            
+            result = response.json()
+            
+            if result.get('IsErroredOnProcessing'):
+                raise Exception(f"Error en OCR: {result.get('ErrorMessage', 'Unknown error')}")
+            
+            # Extraer texto parseado
+            if result.get('ParsedResults'):
+                texto = result['ParsedResults'][0].get('ParsedText', '')
+                return texto.strip()
+            else:
+                raise Exception("No se pudo extraer texto del documento")
+                
+        except requests.exceptions.Timeout:
+            raise Exception("Timeout al procesar OCR - intente de nuevo")
+        except Exception as e:
+            raise Exception(f"Error al extraer texto: {str(e)}")
     
-    def _validar_pasaporte(self, texto: str, imagen: np.ndarray) -> Dict:
+    def _validar_pasaporte(self, texto: str) -> Dict:
         """
         Valida pasaporte:
         - Número de pasaporte
