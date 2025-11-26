@@ -20,6 +20,7 @@ const RegistroEstudiante = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [estudianteId, setEstudianteId] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,10 +39,8 @@ const RegistroEstudiante = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await axios.post(`${apiUrl}/api/estudiantes`, formData);
       
+      setEstudianteId(response.data.estudiante_id || response.data.id);
       setSuccess(true);
-      setTimeout(() => {
-        navigate('/login-estudiante');
-      }, 2000);
     } catch (err) {
       setError(err.response?.data?.detail || 'Error al registrar estudiante');
     } finally {
@@ -55,8 +54,64 @@ const RegistroEstudiante = () => {
         <div className="success-card">
           <div className="success-icon">✓</div>
           <h2>¡Registro Exitoso!</h2>
-          <p>Tu solicitud ha sido recibida. Revisa tu email para instrucciones.</p>
-          <p className="redirect-text">Redirigiendo al login...</p>
+          <p>Tu solicitud ha sido recibida.</p>
+          
+          <div style={{
+            background: '#e6fffa',
+            border: '2px solid #38b2ac',
+            borderRadius: '10px',
+            padding: '20px',
+            margin: '20px 0',
+            textAlign: 'center'
+          }}>
+            <p style={{ fontSize: '14px', color: '#2c7a7b', marginBottom: '10px' }}>
+              <strong>Tu ID de Seguimiento:</strong>
+            </p>
+            <p style={{
+              fontSize: '48px',
+              fontWeight: 'bold',
+              color: '#2c7a7b',
+              margin: '10px 0'
+            }}>
+              {estudianteId}
+            </p>
+            <p style={{ fontSize: '14px', color: '#2c7a7b', marginTop: '10px' }}>
+              ⚠️ Guarda este número para consultar tu estado
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
+            <button 
+              onClick={() => navigate('/portal')}
+              style={{
+                padding: '12px 30px',
+                background: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Consultar Mi Estado
+            </button>
+            <button 
+              onClick={() => navigate('/')}
+              style={{
+                padding: '12px 30px',
+                background: '#e2e8f0',
+                color: '#2d3748',
+                border: 'none',
+                borderRadius: '5px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Volver al Inicio
+            </button>
+          </div>
         </div>
       </div>
     );
