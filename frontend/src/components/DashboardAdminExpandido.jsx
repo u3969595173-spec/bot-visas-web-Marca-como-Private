@@ -7,6 +7,8 @@ function DashboardAdminExpandido({ onLogout }) {
   const [activeTab, setActiveTab] = useState('estudiantes')
   const [estudiantes, setEstudiantes] = useState([])
   const [documentosGenerados, setDocumentosGenerados] = useState([])
+  const [cursos, setCursos] = useState([])
+  const [alojamientos, setAlojamientos] = useState([])
   const [estadisticas, setEstadisticas] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('todos')
@@ -14,6 +16,10 @@ function DashboardAdminExpandido({ onLogout }) {
   const [motivoRechazo, setMotivoRechazo] = useState('')
   const [estudianteSeleccionado, setEstudianteSeleccionado] = useState(null)
   const [generandoDocs, setGenerandoDocs] = useState(false)
+  const [showAddCursoModal, setShowAddCursoModal] = useState(false)
+  const [showAddAlojamientoModal, setShowAddAlojamientoModal] = useState(false)
+  const [nuevoCurso, setNuevoCurso] = useState({ nombre: '', descripcion: '', duracion_meses: 6, precio_eur: 0, ciudad: '', nivel_espanol_requerido: '', cupos_disponibles: 0 })
+  const [nuevoAlojamiento, setNuevoAlojamiento] = useState({ tipo: '', direccion: '', ciudad: '', precio_mensual_eur: 0, capacidad: 1, disponible: true, descripcion: '', servicios: '' })
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -39,6 +45,12 @@ function DashboardAdminExpandido({ onLogout }) {
       } else if (activeTab === 'documentos') {
         const docsRes = await axios.get(`${apiUrl}/api/admin/documentos-generados`)
         setDocumentosGenerados(docsRes.data)
+      } else if (activeTab === 'cursos') {
+        const cursosRes = await axios.get(`${apiUrl}/api/admin/cursos`)
+        setCursos(cursosRes.data)
+      } else if (activeTab === 'alojamientos') {
+        const alojRes = await axios.get(`${apiUrl}/api/admin/alojamientos`)
+        setAlojamientos(alojRes.data)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -139,6 +151,54 @@ function DashboardAdminExpandido({ onLogout }) {
     window.open(`${apiUrl}/api/admin/documentos-generados/${docId}/descargar`, '_blank')
   }
 
+  const crearCurso = async () => {
+    try {
+      await axios.post(`${apiUrl}/api/admin/cursos`, nuevoCurso)
+      alert('Curso creado correctamente')
+      setShowAddCursoModal(false)
+      setNuevoCurso({ nombre: '', descripcion: '', duracion_meses: 6, precio_eur: 0, ciudad: '', nivel_espanol_requerido: '', cupos_disponibles: 0 })
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const crearAlojamiento = async () => {
+    try {
+      await axios.post(`${apiUrl}/api/admin/alojamientos`, nuevoAlojamiento)
+      alert('Alojamiento creado correctamente')
+      setShowAddAlojamientoModal(false)
+      setNuevoAlojamiento({ tipo: '', direccion: '', ciudad: '', precio_mensual_eur: 0, capacidad: 1, disponible: true, descripcion: '', servicios: '' })
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const asignarCurso = async (estudianteId, cursoId) => {
+    try {
+      await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteId}/asignar-curso`, null, {
+        params: { curso_id: cursoId }
+      })
+      alert('Curso asignado correctamente')
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const asignarAlojamiento = async (estudianteId, alojamientoId) => {
+    try {
+      await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteId}/asignar-alojamiento`, null, {
+        params: { alojamiento_id: alojamientoId }
+      })
+      alert('Alojamiento asignado correctamente')
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
   if (loading) {
     return <div className="loading">Cargando...</div>
   }
@@ -206,6 +266,18 @@ function DashboardAdminExpandido({ onLogout }) {
           onClick={() => setActiveTab('documentos')}
         >
           📄 Documentos Generados
+        </button>
+        <button 
+          className={`tab ${activeTab === 'cursos' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('cursos')}
+        >
+          📚 Cursos
+        </button>
+        <button 
+          className={`tab ${activeTab === 'alojamientos' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('alojamientos')}
+        >
+          🏠 Alojamientos
         </button>
       </div>
 
@@ -393,6 +465,257 @@ function DashboardAdminExpandido({ onLogout }) {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* SECCIÓN: CURSOS */}
+      {activeTab === 'cursos' && (
+        <div className="cursos-section">
+          <div className="section-header">
+            <h2>📚 Gestión de Cursos</h2>
+            <button onClick={() => setShowAddCursoModal(true)} className="btn-add">
+              + Agregar Curso
+            </button>
+          </div>
+
+          {cursos.length === 0 ? (
+            <div className="no-data">No hay cursos registrados</div>
+          ) : (
+            <div className="tabla-wrapper">
+              <table className="tabla-cursos">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Duración</th>
+                    <th>Precio</th>
+                    <th>Ciudad</th>
+                    <th>Nivel Español</th>
+                    <th>Cupos</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cursos.map(curso => (
+                    <tr key={curso.id}>
+                      <td>{curso.nombre}</td>
+                      <td>{curso.duracion_meses} meses</td>
+                      <td>€{curso.precio_eur}</td>
+                      <td>{curso.ciudad}</td>
+                      <td>{curso.nivel_espanol_requerido}</td>
+                      <td>{curso.cupos_disponibles}</td>
+                      <td>
+                        <span className={`badge ${curso.activo ? 'badge-success' : 'badge-inactive'}`}>
+                          {curso.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SECCIÓN: ALOJAMIENTOS */}
+      {activeTab === 'alojamientos' && (
+        <div className="alojamientos-section">
+          <div className="section-header">
+            <h2>🏠 Gestión de Alojamientos</h2>
+            <button onClick={() => setShowAddAlojamientoModal(true)} className="btn-add">
+              + Agregar Alojamiento
+            </button>
+          </div>
+
+          {alojamientos.length === 0 ? (
+            <div className="no-data">No hay alojamientos registrados</div>
+          ) : (
+            <div className="tabla-wrapper">
+              <table className="tabla-alojamientos">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Dirección</th>
+                    <th>Ciudad</th>
+                    <th>Precio/Mes</th>
+                    <th>Capacidad</th>
+                    <th>Disponible</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alojamientos.map(aloj => (
+                    <tr key={aloj.id}>
+                      <td>{aloj.tipo}</td>
+                      <td>{aloj.direccion}</td>
+                      <td>{aloj.ciudad}</td>
+                      <td>€{aloj.precio_mensual_eur}/mes</td>
+                      <td>{aloj.capacidad} personas</td>
+                      <td>
+                        <span className={`badge ${aloj.disponible ? 'badge-success' : 'badge-danger'}`}>
+                          {aloj.disponible ? 'Disponible' : 'Ocupado'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modal: Agregar Curso */}
+      {showAddCursoModal && (
+        <div className="modal-overlay" onClick={() => setShowAddCursoModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Agregar Nuevo Curso</h3>
+            <div className="form-group">
+              <label>Nombre del Curso</label>
+              <input 
+                type="text" 
+                value={nuevoCurso.nombre} 
+                onChange={(e) => setNuevoCurso({...nuevoCurso, nombre: e.target.value})}
+                placeholder="Ej: Curso de Español Intensivo"
+              />
+            </div>
+            <div className="form-group">
+              <label>Descripción</label>
+              <textarea 
+                value={nuevoCurso.descripcion} 
+                onChange={(e) => setNuevoCurso({...nuevoCurso, descripcion: e.target.value})}
+                placeholder="Descripción del curso"
+              />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Duración (meses)</label>
+                <input 
+                  type="number" 
+                  value={nuevoCurso.duracion_meses} 
+                  onChange={(e) => setNuevoCurso({...nuevoCurso, duracion_meses: parseInt(e.target.value)})}
+                />
+              </div>
+              <div className="form-group">
+                <label>Precio (EUR)</label>
+                <input 
+                  type="number" 
+                  value={nuevoCurso.precio_eur} 
+                  onChange={(e) => setNuevoCurso({...nuevoCurso, precio_eur: parseFloat(e.target.value)})}
+                />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Ciudad</label>
+                <input 
+                  type="text" 
+                  value={nuevoCurso.ciudad} 
+                  onChange={(e) => setNuevoCurso({...nuevoCurso, ciudad: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label>Nivel Español Requerido</label>
+                <input 
+                  type="text" 
+                  value={nuevoCurso.nivel_espanol_requerido} 
+                  onChange={(e) => setNuevoCurso({...nuevoCurso, nivel_espanol_requerido: e.target.value})}
+                  placeholder="Ej: A2, B1, B2"
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Cupos Disponibles</label>
+              <input 
+                type="number" 
+                value={nuevoCurso.cupos_disponibles} 
+                onChange={(e) => setNuevoCurso({...nuevoCurso, cupos_disponibles: parseInt(e.target.value)})}
+              />
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setShowAddCursoModal(false)} className="btn-cancel">
+                Cancelar
+              </button>
+              <button onClick={crearCurso} className="btn-submit">
+                Crear Curso
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Agregar Alojamiento */}
+      {showAddAlojamientoModal && (
+        <div className="modal-overlay" onClick={() => setShowAddAlojamientoModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3>Agregar Nuevo Alojamiento</h3>
+            <div className="form-group">
+              <label>Tipo de Alojamiento</label>
+              <input 
+                type="text" 
+                value={nuevoAlojamiento.tipo} 
+                onChange={(e) => setNuevoAlojamiento({...nuevoAlojamiento, tipo: e.target.value})}
+                placeholder="Ej: Apartamento, Residencia, Familia"
+              />
+            </div>
+            <div className="form-group">
+              <label>Dirección</label>
+              <input 
+                type="text" 
+                value={nuevoAlojamiento.direccion} 
+                onChange={(e) => setNuevoAlojamiento({...nuevoAlojamiento, direccion: e.target.value})}
+              />
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>Ciudad</label>
+                <input 
+                  type="text" 
+                  value={nuevoAlojamiento.ciudad} 
+                  onChange={(e) => setNuevoAlojamiento({...nuevoAlojamiento, ciudad: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label>Precio Mensual (EUR)</label>
+                <input 
+                  type="number" 
+                  value={nuevoAlojamiento.precio_mensual_eur} 
+                  onChange={(e) => setNuevoAlojamiento({...nuevoAlojamiento, precio_mensual_eur: parseFloat(e.target.value)})}
+                />
+              </div>
+            </div>
+            <div className="form-group">
+              <label>Capacidad (personas)</label>
+              <input 
+                type="number" 
+                value={nuevoAlojamiento.capacidad} 
+                onChange={(e) => setNuevoAlojamiento({...nuevoAlojamiento, capacidad: parseInt(e.target.value)})}
+              />
+            </div>
+            <div className="form-group">
+              <label>Descripción</label>
+              <textarea 
+                value={nuevoAlojamiento.descripcion} 
+                onChange={(e) => setNuevoAlojamiento({...nuevoAlojamiento, descripcion: e.target.value})}
+                placeholder="Descripción del alojamiento"
+              />
+            </div>
+            <div className="form-group">
+              <label>Servicios</label>
+              <textarea 
+                value={nuevoAlojamiento.servicios} 
+                onChange={(e) => setNuevoAlojamiento({...nuevoAlojamiento, servicios: e.target.value})}
+                placeholder="Ej: WiFi, Cocina, Limpieza"
+              />
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setShowAddAlojamientoModal(false)} className="btn-cancel">
+                Cancelar
+              </button>
+              <button onClick={crearAlojamiento} className="btn-submit">
+                Crear Alojamiento
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

@@ -3,7 +3,7 @@ API REST con FastAPI para Dashboard Web
 Endpoints para estudiantes y panel de administración
 """
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Query
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -887,7 +887,7 @@ def actualizar_curso(
 @app.post("/api/admin/estudiantes/{estudiante_id}/asignar-curso", tags=["Admin - Cursos"])
 def asignar_curso(
     estudiante_id: int,
-    curso_id: int,
+    curso_id: int = Query(...),
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
@@ -1042,7 +1042,7 @@ def actualizar_alojamiento(
 @app.post("/api/admin/estudiantes/{estudiante_id}/asignar-alojamiento", tags=["Admin - Alojamientos"])
 def asignar_alojamiento(
     estudiante_id: int,
-    alojamiento_id: int,
+    alojamiento_id: int = Query(...),
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
