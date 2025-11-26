@@ -1964,19 +1964,25 @@ def consultar_estado(estudiante_id: int, db: Session = Depends(get_db)):
     """
     Estudiante consulta su estado (sin auth por simplicidad en MVP)
     """
-    estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
-    
-    if not estudiante:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-    
-    return {
-        "nombre": estudiante.nombre,
-        "estado_procesamiento": estudiante.estado,
-        "estado_visa": estudiante.tipo_visa,
-        "fecha_registro": estudiante.created_at,
-        "curso_seleccionado": estudiante.curso_asignado_id,
-        "mensaje": _obtener_mensaje_estado(estudiante.estado)
-    }
+    try:
+        estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+        
+        if not estudiante:
+            raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        
+        return {
+            "nombre": estudiante.nombre or "Estudiante",
+            "estado_procesamiento": estudiante.estado or "pendiente",
+            "estado_visa": estudiante.tipo_visa or "estudiante",
+            "fecha_registro": estudiante.created_at.isoformat() if estudiante.created_at else None,
+            "curso_seleccionado": estudiante.curso_asignado_id,
+            "mensaje": _obtener_mensaje_estado(estudiante.estado or "pendiente")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] Error en consultar_estado: {e}")
+        raise HTTPException(status_code=500, detail=f"Error consultando estado: {str(e)}")
 
 
 def _obtener_mensaje_estado(estado: str) -> str:
