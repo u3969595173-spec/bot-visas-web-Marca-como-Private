@@ -2581,6 +2581,102 @@ def verificar_disponibilidad_externa(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/admin/scrapers/health", tags=["Admin - Escuelas"])
+def obtener_salud_scrapers(
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Obtiene reporte de salud de todos los scrapers
+    """
+    verificar_token(credentials.credentials)
+    
+    try:
+        from api.monitor_scrapers import MonitorScrapers
+        
+        monitor = MonitorScrapers()
+        report = monitor.get_health_report()
+        
+        return report
+        
+    except Exception as e:
+        print(f"Error obteniendo salud scrapers: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/scrapers/clear-alerts", tags=["Admin - Escuelas"])
+def limpiar_alertas_scrapers(
+    source: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Limpia alertas de scrapers (después de arreglar problemas)
+    """
+    verificar_token(credentials.credentials)
+    
+    try:
+        from api.monitor_scrapers import MonitorScrapers
+        
+        monitor = MonitorScrapers()
+        monitor.clear_alerts(source)
+        
+        return {
+            "exito": True,
+            "mensaje": f"Alertas limpiadas: {source or 'todas'}"
+        }
+        
+    except Exception as e:
+        print(f"Error limpiando alertas: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/cache/stats", tags=["Admin - Escuelas"])
+def obtener_estadisticas_cache(
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Obtiene estadísticas del sistema de cache
+    """
+    verificar_token(credentials.credentials)
+    
+    try:
+        from api.cache_manager import CacheManager
+        
+        cache = CacheManager()
+        stats = cache.get_stats()
+        
+        return stats
+        
+    except Exception as e:
+        print(f"Error obteniendo stats cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/cache/clear", tags=["Admin - Escuelas"])
+def limpiar_cache(
+    source: Optional[str] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Limpia cache de cursos (forzar nuevo scraping)
+    """
+    verificar_token(credentials.credentials)
+    
+    try:
+        from api.cache_manager import CacheManager
+        
+        cache = CacheManager()
+        cache.clear(source)
+        
+        return {
+            "exito": True,
+            "mensaje": f"Cache limpiado: {source or 'todo'}"
+        }
+        
+    except Exception as e:
+        print(f"Error limpiando cache: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============================================================================
 # HEALTH CHECK
 # ============================================================================

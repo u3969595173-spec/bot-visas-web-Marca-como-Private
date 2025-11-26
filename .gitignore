@@ -13,3 +13,11 @@ ENV/
 .env
 .DS_Store
 *.log
+
+# Cache de scrapers
+cache/
+*.cache
+
+# Logs de monitoreo
+scraper_monitor.json
+monitor_*.log

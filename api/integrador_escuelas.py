@@ -9,17 +9,29 @@ import json
 import re
 from datetime import datetime
 import time
+from api.cache_manager import CacheManager
+from api.monitor_scrapers import MonitorScrapers
 
 
 class IntegradorEscuelas:
     """Integrador con scraping REAL de portales educativos españoles"""
     
-    @staticmethod
-    def scrape_educations_com(especialidad: str = None, ciudad: str = None) -> List[Dict]:
+    cache = CacheManager()
+    monitor = MonitorScrapers()
+    
+    @classmethod
+    def scrape_educations_com(cls, especialidad: str = None, ciudad: str = None, use_cache: bool = True) -> List[Dict]:
         """
         Scraping REAL de Educations.com - Portal internacional de cursos
         URL: https://www.educations.com/search/spain/master-degree
         """
+        # Verificar cache primero
+        if use_cache:
+            filters = {'especialidad': especialidad, 'ciudad': ciudad}
+            cached_cursos = cls.cache.get('educations', filters)
+            if cached_cursos is not None:
+                return cached_cursos
+        
         cursos = []
         
         try:
@@ -98,17 +110,33 @@ class IntegradorEscuelas:
             
             print(f"✅ Educations.com: {len(cursos)} cursos obtenidos")
             
+            # Guardar en cache
+            if use_cache and len(cursos) > 0:
+                filters = {'especialidad': especialidad, 'ciudad': ciudad}
+                cls.cache.set('educations', cursos, filters)
+            
+            # Registrar éxito en monitor
+            cls.monitor.log_execution('educations', True, len(cursos))
+            
         except Exception as e:
             print(f"❌ Error scraping Educations.com: {e}")
+            cls.monitor.log_execution('educations', False, 0, str(e))
         
         return cursos
     
-    @staticmethod
-    def scrape_emagister_com(especialidad: str = None, ciudad: str = None) -> List[Dict]:
+    @classmethod
+    def scrape_emagister_com(cls, especialidad: str = None, ciudad: str = None, use_cache: bool = True) -> List[Dict]:
         """
         Scraping REAL de Emagister.com - Agregador de cursos en España
         URL: https://www.emagister.com/cursos-espana-kwes-1073.htm
         """
+        # Verificar cache
+        if use_cache:
+            filters = {'especialidad': especialidad, 'ciudad': ciudad}
+            cached_cursos = cls.cache.get('emagister', filters)
+            if cached_cursos is not None:
+                return cached_cursos
+        
         cursos = []
         
         try:
@@ -172,17 +200,29 @@ class IntegradorEscuelas:
             
             print(f"✅ Emagister.com: {len(cursos)} cursos obtenidos")
             
+            # Guardar en cache
+            if use_cache and len(cursos) > 0:
+                filters = {'especialidad': especialidad, 'ciudad': ciudad}
+                cls.cache.set('emagister', cursos, filters)
+            
         except Exception as e:
             print(f"❌ Error scraping Emagister.com: {e}")
         
         return cursos
     
-    @staticmethod
-    def scrape_masters_bcn(especialidad: str = None) -> List[Dict]:
+    @classmethod
+    def scrape_masters_bcn(cls, especialidad: str = None, use_cache: bool = True) -> List[Dict]:
         """
         Scraping de MastersBCN - Cursos de Barcelona
         URL: https://www.mastersbcn.com/
         """
+        # Verificar cache
+        if use_cache:
+            filters = {'especialidad': especialidad}
+            cached_cursos = cls.cache.get('masters_bcn', filters)
+            if cached_cursos is not None:
+                return cached_cursos
+        
         cursos = []
         
         try:
@@ -224,17 +264,28 @@ class IntegradorEscuelas:
             
             print(f"✅ MastersBCN: {len(cursos)} cursos obtenidos")
             
+            # Guardar en cache
+            if use_cache and len(cursos) > 0:
+                filters = {'especialidad': especialidad}
+                cls.cache.set('masters_bcn', cursos, filters)
+            
         except Exception as e:
             print(f"❌ Error scraping MastersBCN: {e}")
         
         return cursos
     
-    @staticmethod
-    def scrape_ucm_oficial() -> List[Dict]:
+    @classmethod
+    def scrape_ucm_oficial(cls, use_cache: bool = True) -> List[Dict]:
         """
         Scraping de la Universidad Complutense Madrid - Sitio oficial
         URL real de la oferta académica
         """
+        # Verificar cache
+        if use_cache:
+            cached_cursos = cls.cache.get('ucm_oficial')
+            if cached_cursos is not None:
+                return cached_cursos
+        
         cursos = []
         
         try:
@@ -273,6 +324,10 @@ class IntegradorEscuelas:
                         continue
             
             print(f"✅ UCM Oficial: {len(cursos)} cursos obtenidos")
+            
+            # Guardar en cache
+            if use_cache and len(cursos) > 0:
+                cls.cache.set('ucm_oficial', cursos)
             
         except Exception as e:
             print(f"❌ Error scraping UCM: {e}")
