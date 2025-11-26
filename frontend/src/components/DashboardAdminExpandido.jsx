@@ -4,13 +4,16 @@ import axios from 'axios'
 import './DashboardAdminExpandido.css'
 
 function DashboardAdminExpandido({ onLogout }) {
+  const [activeTab, setActiveTab] = useState('estudiantes')
   const [estudiantes, setEstudiantes] = useState([])
+  const [documentosGenerados, setDocumentosGenerados] = useState([])
   const [estadisticas, setEstadisticas] = useState(null)
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
   const [motivoRechazo, setMotivoRechazo] = useState('')
   const [estudianteSeleccionado, setEstudianteSeleccionado] = useState(null)
+  const [generandoDocs, setGenerandoDocs] = useState(false)
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -21,17 +24,22 @@ function DashboardAdminExpandido({ onLogout }) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     }
     cargarDatos()
-  }, [])
+  }, [activeTab])
 
   const cargarDatos = async () => {
     setLoading(true)
     try {
-      const [estRes, statsRes] = await Promise.all([
-        axios.get(`${apiUrl}/api/admin/estudiantes`),
-        axios.get(`${apiUrl}/api/admin/estadisticas`)
-      ])
-      setEstudiantes(estRes.data)
-      setEstadisticas(statsRes.data)
+      if (activeTab === 'estudiantes') {
+        const [estRes, statsRes] = await Promise.all([
+          axios.get(`${apiUrl}/api/admin/estudiantes`),
+          axios.get(`${apiUrl}/api/admin/estadisticas`)
+        ])
+        setEstudiantes(estRes.data)
+        setEstadisticas(statsRes.data)
+      } else if (activeTab === 'documentos') {
+        const docsRes = await axios.get(`${apiUrl}/api/admin/documentos-generados`)
+        setDocumentosGenerados(docsRes.data)
+      }
     } catch (err) {
       console.error('Error:', err)
       if (err.response?.status === 401) {
@@ -95,6 +103,42 @@ function DashboardAdminExpandido({ onLogout }) {
     return cumpleFiltro && cumpleBusqueda
   })
 
+  const generarDocumentos = async (estudianteId) => {
+    if (!confirm('¿Generar todos los documentos oficiales para este estudiante?')) return
+    
+    setGenerandoDocs(true)
+    try {
+      await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteId}/generar-documentos`, {
+        tipos_documentos: ['carta_aceptacion', 'carta_motivacion', 'formulario_solicitud', 'certificado_matricula']
+      })
+      alert('Documentos generados correctamente')
+      setActiveTab('documentos')
+      cargarDatos()
+    } catch (err) {
+      alert('Error al generar documentos: ' + (err.response?.data?.detail || err.message))
+    } finally {
+      setGenerandoDocs(false)
+    }
+  }
+
+  const aprobarDocumento = async (docId) => {
+    if (!confirm('¿Aprobar este documento y enviarlo al estudiante?')) return
+    
+    try {
+      await axios.put(`${apiUrl}/api/admin/documentos-generados/${docId}/aprobar`, {
+        enviar_a_estudiante: true
+      })
+      alert('Documento aprobado y enviado')
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const descargarDocumento = (docId) => {
+    window.open(`${apiUrl}/api/admin/documentos-generados/${docId}/descargar`, '_blank')
+  }
+
   if (loading) {
     return <div className="loading">Cargando...</div>
   }
@@ -149,8 +193,27 @@ function DashboardAdminExpandido({ onLogout }) {
         </div>
       )}
 
-      {/* Filtros y búsqueda */}
-      <div className="controles">
+      {/* Tabs */}
+      <div className="tabs-container">
+        <button 
+          className={`tab ${activeTab === 'estudiantes' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('estudiantes')}
+        >
+          👥 Estudiantes
+        </button>
+        <button 
+          className={`tab ${activeTab === 'documentos' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('documentos')}
+        >
+          📄 Documentos Generados
+        </button>
+      </div>
+
+      {/* SECCIÓN: ESTUDIANTES */}
+      {activeTab === 'estudiantes' && (
+        <>
+          {/* Filtros y búsqueda */}
+          <div className="controles">
         <div className="filtros">
           <button 
             className={filtro === 'todos' ? 'filtro-activo' : ''}
@@ -240,7 +303,15 @@ function DashboardAdminExpandido({ onLogout }) {
                             </button>
                           </>
                         )}
-                        {est.estado !== 'pendiente' && (
+                        <button 
+                          onClick={() => generarDocumentos(est.id)}
+                          className="btn-generar-docs"
+                          title="Generar Documentos"
+                          disabled={generandoDocs}
+                        >
+                          📄
+                        </button>
+                        {est.estado !== 'pendiente' && !generandoDocs && (
                           <span className="sin-acciones">-</span>
                         )}
                       </div>
@@ -252,6 +323,78 @@ function DashboardAdminExpandido({ onLogout }) {
           </div>
         )}
       </div>
+      </>
+      )}
+
+      {/* SECCIÓN: DOCUMENTOS GENERADOS */}
+      {activeTab === 'documentos' && (
+        <div className="documentos-section">
+          <h2>Documentos Generados ({documentosGenerados.length})</h2>
+          
+          <div className="documentos-info">
+            <p>📄 Aquí puedes generar documentos oficiales para los estudiantes, revisarlos y aprobarlos.</p>
+          </div>
+
+          {documentosGenerados.length === 0 ? (
+            <div className="no-documentos">
+              <p>No hay documentos generados aún</p>
+              <p>Ve a la pestaña de Estudiantes y genera documentos para cada estudiante</p>
+            </div>
+          ) : (
+            <div className="tabla-container">
+              <table className="tabla-documentos">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Estudiante</th>
+                    <th>Tipo Documento</th>
+                    <th>Archivo</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {documentosGenerados.map(doc => (
+                    <tr key={doc.id}>
+                      <td>{doc.id}</td>
+                      <td>{doc.estudiante_nombre}</td>
+                      <td>{doc.tipo_documento.replace('_', ' ').toUpperCase()}</td>
+                      <td>{doc.nombre_archivo}</td>
+                      <td>
+                        <span className={`badge badge-${doc.estado}`}>
+                          {doc.estado.toUpperCase()}
+                        </span>
+                      </td>
+                      <td>{new Date(doc.fecha_generacion).toLocaleDateString()}</td>
+                      <td>
+                        <div className="acciones">
+                          <button 
+                            onClick={() => descargarDocumento(doc.id)}
+                            className="btn-descargar"
+                            title="Descargar PDF"
+                          >
+                            📥
+                          </button>
+                          {doc.estado === 'generado' && (
+                            <button 
+                              onClick={() => aprobarDocumento(doc.id)}
+                              className="btn-aprobar"
+                              title="Aprobar y Enviar"
+                            >
+                              ✓
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal de rechazo */}
       {estudianteSeleccionado && (

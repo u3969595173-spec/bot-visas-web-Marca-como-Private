@@ -364,6 +364,140 @@
   font-size: 18px;
 }
 
+/* Tabs */
+.tabs-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab {
+  padding: 12px 30px;
+  border: none;
+  background: transparent;
+  color: #4a5568;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab:hover {
+  background: #f7fafc;
+}
+
+.tab-active {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+/* Botón generar documentos */
+.btn-generar-docs {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  background: linear-gradient(135deg, #4299e1, #667eea);
+  color: white;
+  transition: all 0.3s;
+  margin-left: 5px;
+}
+
+.btn-generar-docs:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 3px 10px rgba(66, 153, 225, 0.4);
+}
+
+.btn-generar-docs:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-descargar {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  background: #4299e1;
+  color: white;
+  transition: all 0.3s;
+}
+
+.btn-descargar:hover {
+  background: #3182ce;
+  transform: scale(1.1);
+}
+
+/* Sección documentos */
+.documentos-section {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.documentos-section h2 {
+  margin: 0 0 20px 0;
+  color: #2d3748;
+}
+
+.documentos-info {
+  background: linear-gradient(135deg, #e0e7ff, #f3e8ff);
+  padding: 15px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #667eea;
+}
+
+.documentos-info p {
+  margin: 0;
+  color: #4a5568;
+}
+
+.no-documentos {
+  text-align: center;
+  padding: 60px 20px;
+  color: #718096;
+}
+
+.no-documentos p:first-child {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.tabla-documentos {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla-documentos th {
+  background: #f7fafc;
+  padding: 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #4a5568;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.tabla-documentos td {
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #2d3748;
+}
+
+.tabla-documentos tr:hover {
+  background: #f7fafc;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .dashboard-header {
