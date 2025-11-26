@@ -97,6 +97,32 @@ class Reminder(Base):
     sent = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+# Web platform models
+class Usuario(Base):
+    __tablename__ = 'usuarios'
+    
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(255), nullable=False)
+    email = Column(String(255), unique=True, nullable=False)
+    password = Column(String(255), nullable=False)
+    telefono = Column(String(50))
+    rol = Column(String(50), default='estudiante')
+    fecha_registro = Column(DateTime, default=datetime.utcnow)
+    activo = Column(Boolean, default=True)
+
+class Estudiante(Base):
+    __tablename__ = 'estudiantes'
+    
+    id = Column(Integer, primary_key=True)
+    usuario_id = Column(Integer)
+    fecha_cita = Column(DateTime)
+    tipo_visa = Column(String(100))
+    estado = Column(String(50), default='pendiente')
+    documentos_estado = Column(String(50), default='pendiente')
+    notas = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Database initialization
 engine = create_engine(config.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
