@@ -212,3 +212,57 @@ def email_curso_asignado(nombre: str, email: str, curso_nombre: str, curso_detal
     </html>
     """
     return enviar_email(email, asunto, cuerpo)
+
+
+def email_bienvenida_con_codigo(nombre: str, email: str, estudiante_id: int, codigo_acceso: str) -> bool:
+    """Email de bienvenida con código de acceso seguro"""
+    asunto = "¡Bienvenido a Estudio Visa España! - Tu Código de Acceso"
+    cuerpo = f"""
+    <html>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
+            <h2 style="color: #667eea;">¡Hola {nombre}!</h2>
+            <p>Gracias por registrarte en <strong>Estudio Visa España</strong>.</p>
+            <p>Hemos recibido tu solicitud y nuestro equipo está revisando tu expediente.</p>
+            
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; margin: 30px 0; text-align: center; color: white; box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);">
+                <p style="margin: 0 0 10px 0; font-size: 16px; opacity: 0.9;">🔐 Tu Código de Acceso Seguro</p>
+                <div style="background: white; padding: 20px; border-radius: 10px; margin: 15px 0;">
+                    <p style="margin: 0; font-size: 36px; font-weight: bold; color: #667eea; letter-spacing: 4px;">{codigo_acceso}</p>
+                </div>
+                <p style="margin: 15px 0 0 0; font-size: 13px; opacity: 0.9;">⚠️ Guarda este código para acceder a tu panel</p>
+                <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.8;">ID de referencia: #{estudiante_id}</p>
+            </div>
+            
+            <div style="background: #f0f4ff; padding: 20px; border-radius: 10px; border-left: 4px solid #667eea; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #667eea;">🚀 Cómo acceder a tu panel:</h3>
+                <ol style="margin: 10px 0;">
+                    <li>Ve a nuestra página web</li>
+                    <li>Haz clic en <strong>"🎓 Acceso Estudiantes"</strong></li>
+                    <li>Ingresa tu código: <strong style="color: #667eea;">{codigo_acceso}</strong></li>
+                    <li>Accede a toda tu información y documentos</li>
+                </ol>
+            </div>
+            
+            <p>Te notificaremos por email cuando haya actualizaciones.</p>
+            <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #667eea;">📋 Próximos pasos:</h3>
+                <ul>
+                    <li>Revisión de documentos por nuestro equipo</li>
+                    <li>Sugerencia de cursos compatibles</li>
+                    <li>Generación de documentos oficiales</li>
+                    <li>Preparación para visa de estudiante</li>
+                </ul>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                <p style="margin: 0;"><strong>⚠️ Importante:</strong> No compartas tu código con nadie. Es tu acceso personal y seguro.</p>
+            </div>
+            
+            <p>Si tienes dudas, no dudes en contactarnos.</p>
+            <p style="margin-top: 30px;">Saludos,<br><strong>Equipo de Estudio Visa España</strong></p>
+        </div>
+    </body>
+    </html>
+    """
+    return enviar_email(email, asunto, cuerpo)

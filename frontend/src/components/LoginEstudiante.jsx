@@ -4,7 +4,7 @@ import axios from 'axios';
 import './LoginEstudiante.css';
 
 const LoginEstudiante = () => {
-  const [estudianteId, setEstudianteId] = useState('');
+  const [codigoAcceso, setCodigoAcceso] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -17,18 +17,18 @@ const LoginEstudiante = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       
-      // Verificar que el estudiante existe
-      const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}`);
+      // Verificar que el código existe y obtener ID del estudiante
+      const response = await axios.get(`${apiUrl}/api/estudiantes/codigo/${codigoAcceso}`);
       
       if (response.data && response.data.id) {
-        // Estudiante existe, redirigir al dashboard
-        navigate(`/dashboard-usuario/${estudianteId}`);
+        // Código válido, redirigir al dashboard
+        navigate(`/dashboard-usuario/${response.data.id}`);
       }
     } catch (err) {
       if (err.response?.status === 404) {
-        setError('No se encontró ningún estudiante con ese ID');
+        setError('Código de acceso inválido. Por favor verifica tu código.');
       } else {
-        setError('Error al verificar el ID. Por favor intenta de nuevo.');
+        setError('Error al verificar el código. Por favor intenta de nuevo.');
       }
       setLoading(false);
     }
@@ -39,27 +39,34 @@ const LoginEstudiante = () => {
       <div className="login-estudiante-card">
         <div className="login-header">
           <h1>🎓 Acceso Estudiantes</h1>
-          <p>Ingresa tu ID de estudiante para acceder a tu panel</p>
+          <p>Ingresa tu código de acceso para ver tu panel</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
-            <label htmlFor="estudianteId">
-              <strong>ID de Estudiante</strong>
+            <label htmlFor="codigoAcceso">
+              <strong>Código de Acceso</strong>
             </label>
             <input
-              type="number"
-              id="estudianteId"
+              type="text"
+              id="codigoAcceso"
               className="form-control"
-              placeholder="Ej: 1, 2, 3..."
-              value={estudianteId}
-              onChange={(e) => setEstudianteId(e.target.value)}
+              placeholder="Ej: X7K9M2P4"
+              value={codigoAcceso}
+              onChange={(e) => setCodigoAcceso(e.target.value.toUpperCase())}
               required
-              min="1"
+              maxLength="10"
               disabled={loading}
+              style={{ 
+                textTransform: 'uppercase', 
+                letterSpacing: '2px',
+                fontSize: '18px',
+                textAlign: 'center',
+                fontWeight: 'bold'
+              }}
             />
             <small className="form-text">
-              💡 Tu ID fue enviado a tu email al registrarte
+              💡 Tu código fue enviado a tu email al registrarte
             </small>
           </div>
 
@@ -72,7 +79,7 @@ const LoginEstudiante = () => {
           <button 
             type="submit" 
             className="btn btn-primary btn-block"
-            disabled={loading || !estudianteId}
+            disabled={loading || !codigoAcceso || codigoAcceso.length < 6}
           >
             {loading ? '🔄 Verificando...' : '🚀 Acceder a Mi Panel'}
           </button>
@@ -89,7 +96,7 @@ const LoginEstudiante = () => {
           
           <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
             <p style={{ fontSize: '14px', color: '#64748b' }}>
-              ¿Olvidaste tu ID? Revisa el email que recibiste al registrarte
+              ¿Olvidaste tu código? Revisa el email que recibiste al registrarte
             </p>
           </div>
         </div>

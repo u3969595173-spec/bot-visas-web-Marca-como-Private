@@ -352,57 +352,111 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
     No requiere autenticación
     """
     try:
-        from database.models import Estudiante as EstudianteModel
+        import string
+        import secrets
         
-        # Verificar si ya existe
-        existe = db.query(EstudianteModel).filter(
-            EstudianteModel.email == datos.get('email')
-        ).first()
+        # Generar código de acceso único
+        def generar_codigo_acceso(longitud=8):
+            caracteres = string.ascii_uppercase + string.digits
+            caracteres = caracteres.replace('O', '').replace('I', '').replace('0', '').replace('1', '')
+            return ''.join(secrets.choice(caracteres) for _ in range(longitud))
         
-        if existe:
+        # Verificar si ya existe el email
+        check_email = db.execute(text("""
+            SELECT id FROM estudiantes WHERE email = :email
+        """), {"email": datos.get('email')}).fetchone()
+        
+        if check_email:
             raise HTTPException(
                 status_code=400,
                 detail="Ya existe un estudiante con este email"
             )
         
-        # Crear nuevo estudiante
-        nuevo = EstudianteModel(
-            nombre=datos.get('nombre'),
-            email=datos.get('email'),
-            telefono=datos.get('telefono'),
-            pasaporte=datos.get('pasaporte'),
-            edad=datos.get('edad'),
-            nacionalidad=datos.get('nacionalidad'),
-            ciudad_origen=datos.get('ciudad_origen'),
-            especialidad=datos.get('especialidad'),
-            nivel_espanol=datos.get('nivel_espanol'),
-            tipo_visa=datos.get('tipo_visa', 'estudiante'),
-            estado='pendiente',
-            documentos_estado='pendiente'
-        )
+        # Generar código único
+        codigo_acceso = generar_codigo_acceso()
+        while True:
+            check = db.execute(text("""
+                SELECT id FROM estudiantes WHERE codigo_acceso = :codigo
+            """), {"codigo": codigo_acceso}).fetchone()
+            if not check:
+                break
+            codigo_acceso = generar_codigo_acceso()
         
-        db.add(nuevo)
+        # Insertar nuevo estudiante con SQL directo
+        result = db.execute(text("""
+            INSERT INTO estudiantes (
+                nombre, email, telefono, pasaporte, edad, 
+                nacionalidad, ciudad_origen, especialidad, nivel_espanol, 
+                tipo_visa, estado, documentos_estado, codigo_acceso, created_at
+            ) VALUES (
+                :nombre, :email, :telefono, :pasaporte, :edad,
+                :nacionalidad, :ciudad_origen, :especialidad, :nivel_espanol,
+                :tipo_visa, 'pendiente', 'pendiente', :codigo_acceso, NOW()
+            ) RETURNING id, codigo_acceso
+        """), {
+            "nombre": datos.get('nombre'),
+            "email": datos.get('email'),
+            "telefono": datos.get('telefono'),
+            "pasaporte": datos.get('pasaporte'),
+            "edad": datos.get('edad'),
+            "nacionalidad": datos.get('nacionalidad'),
+            "ciudad_origen": datos.get('ciudad_origen'),
+            "especialidad": datos.get('especialidad'),
+            "nivel_espanol": datos.get('nivel_espanol'),
+            "tipo_visa": datos.get('tipo_visa', 'estudiante'),
+            "codigo_acceso": codigo_acceso
+        })
+        
+        row = result.fetchone()
         db.commit()
-        db.refresh(nuevo)
         
-        # Enviar email de bienvenida
+        nuevo_id = row[0]
+        codigo_final = row[1]
+        
+        # Enviar email de bienvenida con código de acceso
         try:
-            from api.email_utils import email_bienvenida
-            email_bienvenida(nuevo.nombre, nuevo.email, nuevo.id)
+            from api.email_utils import email_bienvenida_con_codigo
+            email_bienvenida_con_codigo(datos.get('nombre'), datos.get('email'), nuevo_id, codigo_final)
         except Exception as e:
             print(f"[WARN] Error enviando email: {e}")
         
         return {
-            "id": nuevo.id,
-            "estudiante_id": nuevo.id,
-            "mensaje": "Registro exitoso. Revisa tu email para más información.",
-            "estado": nuevo.estado
+            "id": nuevo_id,
+            "estudiante_id": nuevo_id,
+            "codigo_acceso": codigo_final,
+            "mensaje": "Registro exitoso. Revisa tu email para tu código de acceso.",
+            "estado": "pendiente"
         }
         
     except HTTPException:
         raise
     except Exception as e:
         db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/estudiantes/codigo/{codigo_acceso}", tags=["Estudiantes"])
+def verificar_codigo_acceso(codigo_acceso: str, db: Session = Depends(get_db)):
+    """
+    Verifica un código de acceso y devuelve el ID del estudiante
+    """
+    try:
+        result = db.execute(text("""
+            SELECT id, nombre, email FROM estudiantes 
+            WHERE codigo_acceso = :codigo
+        """), {"codigo": codigo_acceso.upper()}).fetchone()
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Código de acceso inválido")
+        
+        return {
+            "id": result[0],
+            "nombre": result[1],
+            "email": result[2]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 

@@ -21,6 +21,7 @@ const RegistroEstudiante = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [estudianteId, setEstudianteId] = useState(null);
+  const [codigoAcceso, setCodigoAcceso] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -41,9 +42,12 @@ const RegistroEstudiante = () => {
       
       console.log('Respuesta del servidor:', response.data);
       const id = response.data.estudiante_id || response.data.id;
+      const codigo = response.data.codigo_acceso;
       console.log('ID extraído:', id);
+      console.log('Código de acceso:', codigo);
       
       setEstudianteId(id);
+      setCodigoAcceso(codigo);
       setSuccess(true);
     } catch (err) {
       console.error('Error al registrar:', err);
@@ -63,26 +67,41 @@ const RegistroEstudiante = () => {
           <p>Tu solicitud ha sido recibida.</p>
           
           <div style={{
-            background: '#e6fffa',
-            border: '2px solid #38b2ac',
-            borderRadius: '10px',
-            padding: '20px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '15px',
+            padding: '30px',
             margin: '20px 0',
-            textAlign: 'center'
+            textAlign: 'center',
+            color: 'white',
+            boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)'
           }}>
-            <p style={{ fontSize: '14px', color: '#2c7a7b', marginBottom: '10px' }}>
-              <strong>Tu ID de Seguimiento:</strong>
+            <p style={{ fontSize: '16px', marginBottom: '10px', opacity: 0.9 }}>
+              <strong>🔐 Tu Código de Acceso Seguro</strong>
             </p>
-            <p style={{
-              fontSize: '48px',
-              fontWeight: 'bold',
-              color: '#2c7a7b',
-              margin: '10px 0'
+            <div style={{
+              background: 'white',
+              borderRadius: '10px',
+              padding: '20px',
+              margin: '15px 0'
             }}>
-              {estudianteId || 'Cargando...'}
+              <p style={{
+                fontSize: '42px',
+                fontWeight: 'bold',
+                color: '#667eea',
+                margin: '0',
+                letterSpacing: '4px'
+              }}>
+                {codigoAcceso || 'Cargando...'}
+              </p>
+            </div>
+            <p style={{ fontSize: '13px', marginTop: '10px', opacity: 0.9 }}>
+              ⚠️ Guarda este código para acceder a tu panel
             </p>
-            <p style={{ fontSize: '14px', color: '#2c7a7b', marginTop: '10px' }}>
-              ⚠️ Guarda este número para consultar tu estado
+            <p style={{ fontSize: '12px', marginTop: '5px', opacity: 0.8 }}>
+              ID de referencia: #{estudianteId}
+            </p>
+            <p style={{ fontSize: '12px', marginTop: '10px', opacity: 0.9 }}>
+              📧 También lo recibirás por email
             </p>
           </div>
 
