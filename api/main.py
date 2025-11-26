@@ -96,16 +96,18 @@ def obtener_usuario_actual(
 # ENDPOINTS PÚBLICOS (Estudiantes)
 # ============================================================================
 
-@app.post("/api/estudiantes", response_model=EstudianteResponse, tags=["Estudiantes"])
-def registrar_estudiante(datos: EstudianteCreate, db: Session = Depends(get_db)):
+@app.post("/api/estudiantes", tags=["Estudiantes"])
+def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
     """
     Registro público de estudiantes
     No requiere autenticación
     """
     try:
+        from database.models import Estudiante as EstudianteModel
+        
         # Verificar si ya existe
-        existe = db.query(Estudiante).filter(
-            Estudiante.email == datos.email
+        existe = db.query(EstudianteModel).filter(
+            EstudianteModel.email == datos.get('email')
         ).first()
         
         if existe:
@@ -115,44 +117,30 @@ def registrar_estudiante(datos: EstudianteCreate, db: Session = Depends(get_db))
             )
         
         # Crear nuevo estudiante
-        nuevo = Estudiante(
-            nombre_completo=datos.nombre_completo,
-            numero_pasaporte=datos.numero_pasaporte,
-            edad=datos.edad,
-            nacionalidad=datos.nacionalidad,
-            ciudad_origen=datos.ciudad_origen,
-            email=datos.email,
-            telefono=datos.telefono,
-            especialidad_interes=datos.especialidad_interes,
-            nivel_espanol=datos.nivel_espanol,
-            estado_procesamiento="registrado",
-            estado_visa="pendiente"
+        nuevo = EstudianteModel(
+            nombre=datos.get('nombre'),
+            email=datos.get('email'),
+            telefono=datos.get('telefono'),
+            pasaporte=datos.get('pasaporte'),
+            edad=datos.get('edad'),
+            nacionalidad=datos.get('nacionalidad'),
+            ciudad_origen=datos.get('ciudad_origen'),
+            especialidad=datos.get('especialidad'),
+            nivel_espanol=datos.get('nivel_espanol'),
+            tipo_visa=datos.get('tipo_visa', 'estudiante'),
+            estado='pendiente',
+            documentos_estado='pendiente'
         )
         
         db.add(nuevo)
         db.commit()
         db.refresh(nuevo)
         
-        # Enviar email de confirmación
-        try:
-            from modules.notificaciones_email import NotificacionesEmail
-            import config
-            
-            estudiante_dict = {
-                'id': nuevo.id,
-                'nombre_completo': nuevo.nombre_completo,
-                'email': nuevo.email
-            }
-            NotificacionesEmail.enviar_confirmacion_registro(estudiante_dict)
-            
-            # Notificar a admin
-            admin_email = getattr(config, 'ADMIN_EMAIL', None)
-            if admin_email:
-                NotificacionesEmail.notificar_admin_nuevo_estudiante(admin_email, estudiante_dict)
-        except Exception as e:
-            print(f"⚠️ Error enviando email de confirmación: {e}")
-        
-        return EstudianteResponse.from_orm(nuevo)
+        return {
+            "id": nuevo.id,
+            "mensaje": "Registro exitoso. Revisa tu email para más información.",
+            "estado": nuevo.estado
+        }
         
     except HTTPException:
         raise
