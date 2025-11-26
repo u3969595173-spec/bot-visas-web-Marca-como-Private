@@ -2110,6 +2110,10 @@ def listar_estudiantes(
         'email': e.email or f"estudiante{e.id}@example.com",
         'especialidad_interes': e.especialidad or e.tipo_visa or 'No especificado',
         'estado_procesamiento': e.estado,
+        'prioridad': 'BAJA',  # Valor por defecto
+        'documentos_subidos': 0,
+        'documentos_generados': 0,
+        'dias_desde_registro': (datetime.now() - e.created_at).days if e.created_at else 0,
         'created_at': e.created_at.isoformat() if e.created_at else None
     } for e in estudiantes]
 
