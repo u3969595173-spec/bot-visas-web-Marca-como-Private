@@ -27,6 +27,52 @@ app = FastAPI(
 )
 
 # CORS - Permitir requests desde frontend
+@app.on_event("startup")
+async def startup_event():
+    """Ejecutar migraciones al iniciar"""
+    import os
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Crear tabla documentos_generados si no existe
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS documentos_generados (
+                id SERIAL PRIMARY KEY,
+                estudiante_id INTEGER REFERENCES estudiantes(id) ON DELETE CASCADE,
+                tipo_documento VARCHAR(100) NOT NULL,
+                nombre_archivo VARCHAR(255) NOT NULL,
+                contenido_pdf TEXT NOT NULL,
+                estado VARCHAR(50) DEFAULT 'generado',
+                notas TEXT,
+                generado_por VARCHAR(100),
+                aprobado_por VARCHAR(100),
+                fecha_generacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                fecha_aprobacion TIMESTAMP,
+                enviado_estudiante BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_documentos_generados_estudiante 
+            ON documentos_generados(estudiante_id);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_documentos_generados_estado 
+            ON documentos_generados(estado);
+        """)
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("✅ Tabla documentos_generados verificada/creada")
+    except Exception as e:
+        print(f"⚠️ Error en startup: {e}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # En producción: especificar dominio exacto
