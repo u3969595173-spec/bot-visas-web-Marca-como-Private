@@ -149,6 +149,75 @@ def registrar_estudiante(datos: dict, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
+@app.get("/api/estudiantes/{estudiante_id}", tags=["Estudiantes"])
+def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)):
+    """
+    Obtiene datos de un estudiante (sin auth para estudiante)
+    """
+    from database.models import Estudiante as EstudianteModel
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    return {
+        "id": estudiante.id,
+        "nombre": estudiante.nombre,
+        "email": estudiante.email,
+        "telefono": estudiante.telefono,
+        "pasaporte": estudiante.pasaporte,
+        "edad": estudiante.edad,
+        "nacionalidad": estudiante.nacionalidad,
+        "ciudad_origen": estudiante.ciudad_origen,
+        "especialidad": estudiante.especialidad,
+        "nivel_espanol": estudiante.nivel_espanol,
+        "tipo_visa": estudiante.tipo_visa,
+        "estado": estudiante.estado,
+        "documentos_estado": estudiante.documentos_estado,
+        "notas": estudiante.notas,
+        "created_at": estudiante.created_at.isoformat() if estudiante.created_at else None,
+        "updated_at": estudiante.updated_at.isoformat() if estudiante.updated_at else None
+    }
+
+
+@app.put("/api/estudiantes/{estudiante_id}", tags=["Estudiantes"])
+def actualizar_estudiante_publico(estudiante_id: int, datos: dict, db: Session = Depends(get_db)):
+    """
+    Actualiza datos de un estudiante (sin auth para estudiante)
+    """
+    from database.models import Estudiante as EstudianteModel
+    from datetime import datetime
+    
+    estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Actualizar campos permitidos
+    campos_permitidos = ['nombre', 'email', 'telefono', 'pasaporte', 'edad', 
+                         'nacionalidad', 'ciudad_origen', 'especialidad', 
+                         'nivel_espanol', 'tipo_visa']
+    
+    for campo in campos_permitidos:
+        if campo in datos:
+            setattr(estudiante, campo, datos[campo])
+    
+    estudiante.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(estudiante)
+    
+    return {
+        "mensaje": "Datos actualizados correctamente",
+        "estudiante": {
+            "id": estudiante.id,
+            "nombre": estudiante.nombre,
+            "email": estudiante.email
+        }
+    }
+
+
 @app.get("/api/estudiantes/{estudiante_id}/estado", tags=["Estudiantes"])
 def consultar_estado(estudiante_id: int, db: Session = Depends(get_db)):
     """
