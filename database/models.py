@@ -204,6 +204,49 @@ class ProgramaUniversitario(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class BlogPost(Base):
+    __tablename__ = 'blog_posts'
+    
+    id = Column(Integer, primary_key=True)
+    titulo = Column(String(500), nullable=False)
+    slug = Column(String(500), unique=True, nullable=False)
+    contenido = Column(Text, nullable=False)
+    extracto = Column(Text)
+    categoria = Column(String(100))
+    autor_nombre = Column(String(200), default='Equipo Editorial')
+    imagen_portada = Column(String(500))
+    meta_description = Column(String(300))
+    meta_keywords = Column(String(500))
+    visitas = Column(Integer, default=0)
+    publicado = Column(Boolean, default=False)
+    destacado = Column(Boolean, default=False)
+    fecha_publicacion = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Testimonio(Base):
+    __tablename__ = 'testimonios'
+    
+    id = Column(Integer, primary_key=True)
+    estudiante_id = Column(Integer)
+    nombre_completo = Column(String(200), nullable=False)
+    pais_origen = Column(String(100), nullable=False)
+    programa_estudio = Column(String(300))
+    universidad = Column(String(300))
+    ciudad_espana = Column(String(100))
+    rating = Column(Integer)
+    titulo = Column(String(300))
+    testimonio = Column(Text, nullable=False)
+    foto_url = Column(String(500))
+    video_url = Column(String(500))
+    email_contacto = Column(String(200))
+    aprobado = Column(Boolean, default=False)
+    destacado = Column(Boolean, default=False)
+    visible = Column(Boolean, default=True)
+    fecha_experiencia = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Database initialization
 from dotenv import load_dotenv
 load_dotenv()  # Cargar .env ANTES de crear engine

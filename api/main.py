@@ -20,6 +20,8 @@ from api.schemas import (
     LoginRequest, LoginResponse, EstadisticasResponse
 )
 from api.auth import crear_token, verificar_token
+from api.blog_routes import router as blog_router
+from api.testimonios_routes import router as testimonios_router
 
 app = FastAPI(
     title="Bot Visas Estudio API",
@@ -149,6 +151,62 @@ async def startup_event():
             CREATE INDEX IF NOT EXISTS idx_universidades_tipo ON universidades_espana(tipo);
             CREATE INDEX IF NOT EXISTS idx_programas_universidad ON programas_universitarios(universidad_id);
             CREATE INDEX IF NOT EXISTS idx_programas_tipo ON programas_universitarios(tipo_programa);
+        """)
+        
+        # Crear tabla blog_posts
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS blog_posts (
+                id SERIAL PRIMARY KEY,
+                titulo VARCHAR(500) NOT NULL,
+                slug VARCHAR(500) UNIQUE NOT NULL,
+                contenido TEXT NOT NULL,
+                extracto TEXT,
+                categoria VARCHAR(100),
+                autor_nombre VARCHAR(200) DEFAULT 'Equipo Editorial',
+                imagen_portada VARCHAR(500),
+                meta_description VARCHAR(300),
+                meta_keywords VARCHAR(500),
+                visitas INTEGER DEFAULT 0,
+                publicado BOOLEAN DEFAULT FALSE,
+                destacado BOOLEAN DEFAULT FALSE,
+                fecha_publicacion TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        # Crear tabla testimonios
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS testimonios (
+                id SERIAL PRIMARY KEY,
+                estudiante_id INTEGER,
+                nombre_completo VARCHAR(200) NOT NULL,
+                pais_origen VARCHAR(100) NOT NULL,
+                programa_estudio VARCHAR(300),
+                universidad VARCHAR(300),
+                ciudad_espana VARCHAR(100),
+                rating INTEGER,
+                titulo VARCHAR(300),
+                testimonio TEXT NOT NULL,
+                foto_url VARCHAR(500),
+                video_url VARCHAR(500),
+                email_contacto VARCHAR(200),
+                aprobado BOOLEAN DEFAULT FALSE,
+                destacado BOOLEAN DEFAULT FALSE,
+                visible BOOLEAN DEFAULT TRUE,
+                fecha_experiencia TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        # Índices para blog y testimonios
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_blog_categoria ON blog_posts(categoria);
+            CREATE INDEX IF NOT EXISTS idx_blog_publicado ON blog_posts(publicado);
+            CREATE INDEX IF NOT EXISTS idx_blog_slug ON blog_posts(slug);
+            CREATE INDEX IF NOT EXISTS idx_testimonios_aprobado ON testimonios(aprobado);
+            CREATE INDEX IF NOT EXISTS idx_testimonios_destacado ON testimonios(destacado);
         """)
         
         conn.commit()
@@ -358,6 +416,10 @@ security = HTTPBearer()
 # ============================================================================
 # AUTENTICACIÓN
 # ============================================================================
+
+# Incluir routers de blog y testimonios
+app.include_router(blog_router, prefix="/api")
+app.include_router(testimonios_router, prefix="/api")
 
 @app.post("/api/login", response_model=LoginResponse, tags=["Auth"])
 def login(datos: LoginRequest, db: Session = Depends(get_db)):
