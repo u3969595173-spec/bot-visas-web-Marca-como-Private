@@ -55,14 +55,26 @@ function App() {
             </Link>
             <div style={styles.navLinks}>
               {estudianteId && <Notificaciones estudianteId={estudianteId} />}
-              <Link to="/estudiante/login" style={styles.navLink}>
-                🎓 Acceso Estudiantes
-              </Link>
+              
+              {/* Solo mostrar cuando NO hay estudiante logueado */}
               {!estudianteId && (
-                <Link to="/registro" style={styles.navLink}>
-                  Registrarse
-                </Link>
+                <>
+                  <Link to="/estudiante/login" style={styles.navLink}>
+                    🎓 Acceso Estudiantes
+                  </Link>
+                  <Link to="/registro" style={styles.navLink}>
+                    Registrarse
+                  </Link>
+                  <Link to="/portal" style={styles.navLink}>
+                    Consultar Estado
+                  </Link>
+                  <Link to="/admin/login" style={styles.navLink}>
+                    🔐 Admin
+                  </Link>
+                </>
               )}
+              
+              {/* Menú cuando hay estudiante logueado */}
               {estudianteId && (
                 <>
                   <Link to="/estudiante/dashboard" style={styles.navLink}>
@@ -85,24 +97,16 @@ function App() {
                   </Link>
                 </>
               )}
+              
+              {/* Enlaces comunes para todos */}
               <Link to="/blog" style={styles.navLink}>
                 📝 Blog
               </Link>
               <Link to="/testimonios" style={styles.navLink}>
                 ⭐ Testimonios
               </Link>
-              <Link to="/portal" style={styles.navLink}>
-                Consultar Estado
-              </Link>
-              {!isAuthenticated ? (
-                <Link to="/admin/login" style={styles.navLink}>
-                  Admin
-                </Link>
-              ) : (
-                <Link to="/admin/login" style={styles.navLink}>
-                  Admin
-                </Link>
-              )}
+              
+              {/* Menú admin cuando está autenticado como admin */}
               {isAuthenticated && (
                 <>
                   <Link to="/admin/universidades" style={styles.navLink}>
