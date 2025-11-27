@@ -25,6 +25,7 @@ import AdminChats from './components/AdminChats'
 import DashboardAnalytics from './components/DashboardAnalytics'
 import GestorDocumentos from './components/GestorDocumentos'
 import AdminDocumentos from './components/AdminDocumentos'
+import AdminServicios from './components/AdminServicios'
 import Home from './components/Home'
 
 function App() {
@@ -287,6 +288,16 @@ function App() {
             element={
               isAuthenticated ? (
                 <AdminDocumentos />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/servicios"
+            element={
+              isAuthenticated ? (
+                <AdminServicios />
               ) : (
                 <Navigate to="/admin/login" />
               )

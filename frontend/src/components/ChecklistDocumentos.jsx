@@ -5,6 +5,7 @@ import './ChecklistDocumentos.css'
 function ChecklistDocumentos({ estudianteId }) {
   const [documentos, setDocumentos] = useState([])
   const [documentosGenerados, setDocumentosGenerados] = useState([])
+  const [serviciosSolicitados, setServiciosSolicitados] = useState([])
   const [loading, setLoading] = useState(true)
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -28,6 +29,7 @@ function ChecklistDocumentos({ estudianteId }) {
 
   useEffect(() => {
     cargarDocumentos()
+    cargarServiciosSolicitados()
   }, [])
 
   const cargarDocumentos = async () => {
@@ -42,6 +44,28 @@ function ChecklistDocumentos({ estudianteId }) {
       console.error('Error cargando documentos:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const cargarServiciosSolicitados = async () => {
+    try {
+      const res = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/servicios-solicitados`)
+      setServiciosSolicitados(res.data.servicios || [])
+    } catch (err) {
+      console.error('Error cargando servicios:', err)
+    }
+  }
+
+  const solicitarServicio = async (servicioId, servicioNombre) => {
+    try {
+      await axios.post(`${apiUrl}/api/estudiantes/${estudianteId}/solicitar-servicio`, {
+        servicio_id: servicioId,
+        servicio_nombre: servicioNombre
+      })
+      alert(`✅ Solicitud de "${servicioNombre}" enviada. El administrador te contactará con el precio.`)
+      cargarServiciosSolicitados()
+    } catch (err) {
+      alert('Error al solicitar servicio')
     }
   }
 
@@ -62,6 +86,10 @@ function ChecklistDocumentos({ estudianteId }) {
     return documentosGenerados.some(d => 
       d.tipo_documento === tipoId && d.estado === 'aprobado'
     )
+  }
+
+  const servicioSolicitado = (servicioId) => {
+    return serviciosSolicitados.some(s => s.servicio_id === servicioId)
   }
 
   const progreso = calcularProgreso()
@@ -114,10 +142,11 @@ function ChecklistDocumentos({ estudianteId }) {
           {documentosRequeridos.map(doc => {
             const subido = tieneDocumento(doc.id)
             const esServicio = doc.servicio === true
+            const yasolicitado = servicioSolicitado(doc.id)
             return (
-              <div key={doc.id} className={`checklist-item ${subido ? 'completado' : ''} ${esServicio ? 'item-servicio' : ''}`}>
+              <div key={doc.id} className={`checklist-item ${subido ? 'completado' : ''} ${esServicio ? 'item-servicio' : ''} ${yasolicitado ? 'servicio-solicitado' : ''}`}>
                 <div className="checklist-icon">
-                  {subido ? '✓' : doc.requerido ? '!' : '○'}
+                  {subido ? '✓' : yasolicitado ? '⏳' : doc.requerido ? '!' : '○'}
                 </div>
                 <div className="checklist-info">
                   <div className="checklist-nombre">
@@ -130,8 +159,15 @@ function ChecklistDocumentos({ estudianteId }) {
                 <div className="checklist-estado">
                   {subido ? (
                     <span className="estado-badge estado-ok">✓ Subido</span>
+                  ) : yasolicitado ? (
+                    <span className="estado-badge estado-proceso">⏳ Solicitado</span>
                   ) : esServicio ? (
-                    <span className="estado-badge estado-servicio">💼 Disponible</span>
+                    <button 
+                      className="btn-solicitar-servicio"
+                      onClick={() => solicitarServicio(doc.id, doc.nombre)}
+                    >
+                      💼 Solicitar
+                    </button>
                   ) : (
                     <span className="estado-badge estado-pendiente">Pendiente</span>
                   )}

@@ -6392,6 +6392,182 @@ def calcular_probabilidad_exito(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/estudiantes/{estudiante_id}/solicitar-servicio", tags=["Servicios"])
+def solicitar_servicio(
+    estudiante_id: int,
+    datos: dict,
+    db: Session = Depends(get_db)
+):
+    """Estudiante solicita un servicio adicional (antecedentes penales, cita embajada, etc)"""
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Verificar si ya solicitó este servicio
+        cursor.execute("""
+            SELECT id FROM servicios_solicitados 
+            WHERE estudiante_id = %s AND servicio_id = %s
+        """, (estudiante_id, datos.get('servicio_id')))
+        
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=400, detail="Ya solicitaste este servicio")
+        
+        # Insertar solicitud
+        cursor.execute("""
+            INSERT INTO servicios_solicitados (estudiante_id, servicio_id, servicio_nombre, estado)
+            VALUES (%s, %s, %s, 'pendiente')
+            RETURNING id
+        """, (estudiante_id, datos.get('servicio_id'), datos.get('servicio_nombre')))
+        
+        servicio_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            'success': True,
+            'servicio_id': servicio_id,
+            'mensaje': 'Solicitud enviada. El administrador te contactará.'
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error solicitando servicio: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/estudiantes/{estudiante_id}/servicios-solicitados", tags=["Servicios"])
+def obtener_servicios_solicitados(
+    estudiante_id: int,
+    db: Session = Depends(get_db)
+):
+    """Obtiene servicios solicitados por un estudiante"""
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, servicio_id, servicio_nombre, estado, precio, notas, fecha_solicitud
+            FROM servicios_solicitados
+            WHERE estudiante_id = %s
+            ORDER BY fecha_solicitud DESC
+        """, (estudiante_id,))
+        
+        servicios = []
+        for row in cursor.fetchall():
+            servicios.append({
+                'id': row[0],
+                'servicio_id': row[1],
+                'servicio_nombre': row[2],
+                'estado': row[3],
+                'precio': float(row[4]) if row[4] else None,
+                'notas': row[5],
+                'fecha_solicitud': row[6].isoformat() if row[6] else None
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return {'servicios': servicios}
+        
+    except Exception as e:
+        print(f"Error obteniendo servicios: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/admin/servicios-solicitados", tags=["Admin"])
+def obtener_todos_servicios_solicitados(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Admin obtiene todas las solicitudes de servicios de todos los estudiantes"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT s.id, s.estudiante_id, e.nombre as estudiante_nombre, e.email,
+                   s.servicio_id, s.servicio_nombre, s.estado, s.precio, s.notas, 
+                   s.fecha_solicitud, s.fecha_respuesta
+            FROM servicios_solicitados s
+            JOIN estudiantes e ON s.estudiante_id = e.id
+            ORDER BY s.fecha_solicitud DESC
+        """)
+        
+        servicios = []
+        for row in cursor.fetchall():
+            servicios.append({
+                'id': row[0],
+                'estudiante_id': row[1],
+                'estudiante_nombre': row[2],
+                'estudiante_email': row[3],
+                'servicio_id': row[4],
+                'servicio_nombre': row[5],
+                'estado': row[6],
+                'precio': float(row[7]) if row[7] else None,
+                'notas': row[8],
+                'fecha_solicitud': row[9].isoformat() if row[9] else None,
+                'fecha_respuesta': row[10].isoformat() if row[10] else None
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return {'servicios': servicios, 'total': len(servicios)}
+        
+    except Exception as e:
+        print(f"Error obteniendo servicios admin: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/servicios-solicitados/{servicio_id}", tags=["Admin"])
+def actualizar_servicio_solicitado(
+    servicio_id: int,
+    datos: dict,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Admin actualiza estado, precio y notas de un servicio solicitado"""
+    verificar_token(credentials.credentials)
+    
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE servicios_solicitados
+            SET estado = %s, precio = %s, notas = %s, fecha_respuesta = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (datos.get('estado'), datos.get('precio'), datos.get('notas'), servicio_id))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {'success': True, 'mensaje': 'Servicio actualizado'}
+        
+    except Exception as e:
+        print(f"Error actualizando servicio: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/admin/estudiantes/{estudiante_id}/analisis-completo", tags=["Admin"])
 def obtener_analisis_completo(
     estudiante_id: int,

@@ -466,6 +466,12 @@ function DashboardAdminExpandido({ onLogout }) {
           📄 Documentos Generados
         </button>
         <button 
+          className={`tab ${activeTab === 'servicios' ? 'tab-active' : ''}`}
+          onClick={() => navigate('/admin/servicios')}
+        >
+          💼 Servicios Solicitados
+        </button>
+        <button 
           className={`tab ${activeTab === 'alertas' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('alertas')}
         >
