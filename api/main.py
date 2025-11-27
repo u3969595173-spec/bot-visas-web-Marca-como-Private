@@ -24,6 +24,7 @@ from api.blog_routes import router as blog_router
 from api.testimonios_routes import router as testimonios_router
 from api.notificaciones_routes import router as notificaciones_router
 from api.chat_routes import router as chat_router
+from api.analytics_routes import router as analytics_router
 
 app = FastAPI(
     title="Bot Visas Estudio API",
@@ -465,6 +466,7 @@ app.include_router(blog_router, prefix="/api")
 app.include_router(testimonios_router, prefix="/api")
 app.include_router(notificaciones_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
+app.include_router(analytics_router, prefix="/api")
 
 @app.post("/api/login", response_model=LoginResponse, tags=["Auth"])
 def login(datos: LoginRequest, db: Session = Depends(get_db)):

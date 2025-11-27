@@ -22,6 +22,7 @@ import AdminTestimonios from './components/AdminTestimonios'
 import Notificaciones from './components/Notificaciones'
 import ChatWidget from './components/ChatWidget'
 import AdminChats from './components/AdminChats'
+import DashboardAnalytics from './components/DashboardAnalytics'
 import Home from './components/Home'
 
 function App() {
@@ -109,6 +110,9 @@ function App() {
                   </Link>
                   <Link to="/admin/chats" style={styles.navLink}>
                     💬 Chats
+                  </Link>
+                  <Link to="/admin/analytics" style={styles.navLink}>
+                    📊 Analytics
                   </Link>
                 </>
               )}
@@ -245,6 +249,16 @@ function App() {
             element={
               isAuthenticated ? (
                 <AdminChats />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              isAuthenticated ? (
+                <DashboardAnalytics />
               ) : (
                 <Navigate to="/admin/login" />
               )
