@@ -358,6 +358,35 @@ async def startup_event():
         except Exception as e:
             print(f"⚠️ Error creando tabla contactos_universidades: {e}")
         
+        # Crear tabla servicios_solicitados
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS servicios_solicitados (
+                    id SERIAL PRIMARY KEY,
+                    estudiante_id INTEGER REFERENCES estudiantes(id) ON DELETE CASCADE,
+                    servicio_id VARCHAR(100) NOT NULL,
+                    servicio_nombre VARCHAR(200) NOT NULL,
+                    estado VARCHAR(50) DEFAULT 'pendiente',
+                    precio DECIMAL(10, 2),
+                    fecha_solicitud TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    fecha_completado TIMESTAMP,
+                    notas_admin TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_servicios_estudiante 
+                ON servicios_solicitados(estudiante_id);
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_servicios_estado 
+                ON servicios_solicitados(estado);
+            """)
+            print("✅ Tabla servicios_solicitados verificada")
+        except Exception as e:
+            print(f"⚠️ Error creando tabla servicios_solicitados: {e}")
+        
         # Crear tabla proceso_visa_pasos para tracking completo
         try:
             cursor.execute("""
