@@ -104,6 +104,51 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
 
   return (
     <div className="container">
+      {/* Alerta de Perfil Incompleto */}
+      {!estudiante.perfil_completo && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          color: 'white',
+          padding: '25px',
+          borderRadius: '10px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '15px',
+          boxShadow: '0 4px 15px rgba(240, 147, 251, 0.3)'
+        }}>
+          <div>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '20px' }}>
+              ⚠️ Completa tu Perfil
+            </h3>
+            <p style={{ margin: 0, fontSize: '15px', opacity: 0.95 }}>
+              Necesitamos información adicional para procesar tu solicitud de visa
+            </p>
+          </div>
+          <button
+            onClick={() => navigate(`/completar-perfil/${estudianteId}`)}
+            style={{
+              background: 'white',
+              color: '#f5576c',
+              padding: '12px 25px',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+              transition: 'transform 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            📝 Completar Ahora
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',

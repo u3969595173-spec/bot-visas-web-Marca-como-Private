@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
 import RegistroEstudiante from './components/RegistroEstudiante'
+import CompletarPerfil from './components/CompletarPerfil'
 import LoginEstudiante from './components/LoginEstudiante'
 import LoginAdmin from './components/LoginAdmin'
 import DashboardAdminExpandido from './components/DashboardAdminExpandido'
@@ -140,6 +141,10 @@ function App() {
               setEstudianteId(id)
               localStorage.setItem('estudiante_id', id)
             }} />} 
+          />
+          <Route 
+            path="/completar-perfil/:estudianteId" 
+            element={<CompletarPerfil />} 
           />
           <Route path="/portal" element={<PortalEstudiante />} />
           <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />

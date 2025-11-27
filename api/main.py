@@ -1000,6 +1000,117 @@ def actualizar_estudiante_publico(estudiante_id: int, datos: dict, db: Session =
     }
 
 
+@app.put("/api/estudiantes/{estudiante_id}/completar-perfil", tags=["Estudiantes"])
+async def completar_perfil_estudiante(
+    estudiante_id: int,
+    codigo_acceso: str = Query(...),
+    pasaporte: str = Form(...),
+    fecha_nacimiento: str = Form(...),
+    edad: int = Form(...),
+    nacionalidad: str = Form(...),
+    pais_origen: str = Form(...),
+    ciudad_origen: str = Form(...),
+    carrera_deseada: str = Form(...),
+    especialidad: str = Form(...),
+    nivel_espanol: str = Form(...),
+    tipo_visa: str = Form(...),
+    fondos_disponibles: float = Form(...),
+    fecha_inicio_estimada: str = Form(...),
+    archivo_titulo: UploadFile = File(None),
+    archivo_pasaporte: UploadFile = File(None),
+    archivo_extractos: UploadFile = File(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Completa el perfil del estudiante con información sensible
+    Requiere código de acceso para autenticación
+    """
+    import os
+    import psycopg2
+    from pathlib import Path
+    import secrets
+    
+    # Verificar código de acceso
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT id, nombre, email FROM estudiantes 
+        WHERE id = %s AND codigo_acceso = %s
+    """, (estudiante_id, codigo_acceso))
+    
+    estudiante = cursor.fetchone()
+    if not estudiante:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Código de acceso inválido")
+    
+    try:
+        # Directorio de uploads
+        uploads_dir = Path("uploads")
+        uploads_dir.mkdir(exist_ok=True)
+        
+        # Función para guardar archivos
+        def guardar_archivo(archivo: UploadFile, prefijo: str) -> str:
+            if not archivo or not archivo.filename:
+                return None
+            
+            extension = archivo.filename.split('.')[-1]
+            nombre_archivo = f"{prefijo}_{secrets.token_hex(8)}.{extension}"
+            ruta_archivo = uploads_dir / nombre_archivo
+            
+            with open(ruta_archivo, "wb") as buffer:
+                content = archivo.file.read()
+                buffer.write(content)
+            
+            return str(ruta_archivo)
+        
+        ruta_titulo = guardar_archivo(archivo_titulo, "titulo")
+        ruta_pasaporte = guardar_archivo(archivo_pasaporte, "pasaporte")
+        ruta_extractos = guardar_archivo(archivo_extractos, "extractos")
+        
+        # Actualizar estudiante
+        cursor.execute("""
+            UPDATE estudiantes SET
+                pasaporte = %s,
+                fecha_nacimiento = %s,
+                edad = %s,
+                nacionalidad = %s,
+                pais_origen = %s,
+                ciudad_origen = %s,
+                carrera_deseada = %s,
+                especialidad = %s,
+                nivel_espanol = %s,
+                tipo_visa = %s,
+                fondos_disponibles = %s,
+                fecha_inicio_estimada = %s,
+                archivo_titulo = COALESCE(%s, archivo_titulo),
+                archivo_pasaporte = COALESCE(%s, archivo_pasaporte),
+                archivo_extractos = COALESCE(%s, archivo_extractos),
+                perfil_completo = TRUE,
+                updated_at = NOW()
+            WHERE id = %s
+        """, (
+            pasaporte, fecha_nacimiento, edad, nacionalidad,
+            pais_origen, ciudad_origen, carrera_deseada, especialidad,
+            nivel_espanol, tipo_visa, fondos_disponibles, fecha_inicio_estimada,
+            ruta_titulo, ruta_pasaporte, ruta_extractos,
+            estudiante_id
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            "mensaje": "Perfil completado exitosamente",
+            "estudiante_id": estudiante_id
+        }
+        
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=f"Error al completar perfil: {str(e)}")
+
+
 @app.get("/api/estudiantes/{estudiante_id}/probabilidad-visa", tags=["Estudiantes"])
 def calcular_probabilidad_visa(estudiante_id: int, db: Session = Depends(get_db)):
     """
