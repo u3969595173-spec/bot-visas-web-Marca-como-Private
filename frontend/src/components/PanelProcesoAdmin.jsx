@@ -102,12 +102,18 @@ function PanelProcesoAdmin() {
   const cargarEstudiantes = async () => {
     try {
       const token = localStorage.getItem('token')
+      console.log('[PanelProcesoAdmin] Token:', token ? 'EXISTS' : 'NULL')
+      console.log('[PanelProcesoAdmin] Cargando desde:', `${apiUrl}/api/admin/estudiantes`)
+      
       const res = await axios.get(`${apiUrl}/api/admin/estudiantes`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setEstudiantes(res.data.estudiantes || [])
+      
+      console.log('[PanelProcesoAdmin] Response:', res.data)
+      setEstudiantes(res.data.estudiantes || res.data || [])
     } catch (err) {
-      console.error('Error cargando estudiantes:', err)
+      console.error('[PanelProcesoAdmin] Error cargando estudiantes:', err)
+      console.error('[PanelProcesoAdmin] Error details:', err.response?.data)
     } finally {
       setLoading(false)
     }
