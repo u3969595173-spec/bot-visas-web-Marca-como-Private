@@ -261,6 +261,18 @@ class Notificacion(Base):
     prioridad = Column(String(20), default='normal')  # 'baja', 'normal', 'alta', 'urgente'
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class MensajeChat(Base):
+    __tablename__ = 'mensajes_chat'
+    
+    id = Column(Integer, primary_key=True)
+    estudiante_id = Column(Integer, nullable=False)
+    admin_id = Column(Integer)  # NULL si mensaje es del estudiante
+    remitente = Column(String(20), nullable=False)  # 'estudiante' o 'admin'
+    mensaje = Column(Text, nullable=False)
+    leido = Column(Boolean, default=False)
+    tipo = Column(String(20), default='texto')  # 'texto', 'sistema', 'archivo'
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Database initialization
 from dotenv import load_dotenv
 load_dotenv()  # Cargar .env ANTES de crear engine

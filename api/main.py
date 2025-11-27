@@ -23,6 +23,7 @@ from api.auth import crear_token, verificar_token
 from api.blog_routes import router as blog_router
 from api.testimonios_routes import router as testimonios_router
 from api.notificaciones_routes import router as notificaciones_router
+from api.chat_routes import router as chat_router
 
 app = FastAPI(
     title="Bot Visas Estudio API",
@@ -229,6 +230,26 @@ async def startup_event():
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_notificaciones_estudiante ON notificaciones(estudiante_id);
             CREATE INDEX IF NOT EXISTS idx_notificaciones_leida ON notificaciones(leida);
+        """)
+        
+        # Tabla mensajes_chat
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS mensajes_chat (
+                id SERIAL PRIMARY KEY,
+                estudiante_id INTEGER NOT NULL,
+                admin_id INTEGER,
+                remitente VARCHAR(20) NOT NULL,
+                mensaje TEXT NOT NULL,
+                leido BOOLEAN DEFAULT FALSE,
+                tipo VARCHAR(20) DEFAULT 'texto',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_mensajes_estudiante ON mensajes_chat(estudiante_id);
+            CREATE INDEX IF NOT EXISTS idx_mensajes_leido ON mensajes_chat(leido);
+            CREATE INDEX IF NOT EXISTS idx_mensajes_remitente ON mensajes_chat(remitente);
         """)
         
         conn.commit()
@@ -443,6 +464,7 @@ security = HTTPBearer()
 app.include_router(blog_router, prefix="/api")
 app.include_router(testimonios_router, prefix="/api")
 app.include_router(notificaciones_router, prefix="/api")
+app.include_router(chat_router, prefix="/api")
 
 @app.post("/api/login", response_model=LoginResponse, tags=["Auth"])
 def login(datos: LoginRequest, db: Session = Depends(get_db)):

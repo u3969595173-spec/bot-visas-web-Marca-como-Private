@@ -20,6 +20,8 @@ import AdminBlog from './components/AdminBlog'
 import TestimoniosLista from './components/TestimoniosLista'
 import AdminTestimonios from './components/AdminTestimonios'
 import Notificaciones from './components/Notificaciones'
+import ChatWidget from './components/ChatWidget'
+import AdminChats from './components/AdminChats'
 import Home from './components/Home'
 
 function App() {
@@ -104,6 +106,9 @@ function App() {
                   </Link>
                   <Link to="/admin/testimonios" style={styles.navLink}>
                     ⭐ Testimonios
+                  </Link>
+                  <Link to="/admin/chats" style={styles.navLink}>
+                    💬 Chats
                   </Link>
                 </>
               )}
@@ -235,7 +240,20 @@ function App() {
               )
             }
           />
+          <Route
+            path="/admin/chats"
+            element={
+              isAuthenticated ? (
+                <AdminChats />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
         </Routes>
+        
+        {/* Chat widget flotante para estudiantes */}
+        {estudianteId && <ChatWidget estudianteId={estudianteId} />}
       </div>
     </BrowserRouter>
   )
