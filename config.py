@@ -80,24 +80,19 @@ RECOMMENDED_DOCUMENTS = [
 ]
 
 # === SMTP Email Configuration ===
-# Usando servicio de prueba Mailtrap (desarrollo/testing)
-SMTP_SERVER = "sandbox.smtp.mailtrap.io"
-SMTP_PORT = 2525
-SMTP_USER = "4a2b3c4d5e6f7g"  # Usuario Mailtrap (temporal)
-SMTP_PASSWORD = "1234567890abcd"  # Password Mailtrap (temporal)
-FROM_EMAIL = "noreply@agenciaeducativa.com"
-FROM_NAME = "Agencia Educativa España"
-
-# Opción 2: SendGrid (más profesional para producción)
-# SMTP_SERVER = "smtp.sendgrid.net"
-# SMTP_PORT = 587
-# SMTP_USER = "apikey"
-# SMTP_PASSWORD = "tu-sendgrid-api-key"
+# Gmail Configuration (Producción)
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_USER = "estudiovisaespana@gmail.com"
+SMTP_PASSWORD = "yhub bwvs fqeh ofaj"  # App Password de Gmail
+FROM_EMAIL = "estudiovisaespana@gmail.com"
+FROM_NAME = "Visa Estudio España"
 
 # === Web Configuration ===
-WEB_URL = "http://localhost:3000"  # URL del frontend (cambiar en producción)
+WEB_URL = "http://localhost:3000"  # URL del frontend (cambiar cuando tengas dominio)
 API_URL = "http://localhost:8000"  # URL del backend
-ADMIN_EMAIL = "admin@agenciaeducativa.com"  # Email del administrador para notificaciones
+ADMIN_EMAIL = "estudiovisaespana@gmail.com"  # Email del administrador para notificaciones
+COMPANY_PHONE = ""  # Teléfono de contacto (vacío por ahora)
 
 # === JWT Configuration ===
 SECRET_KEY = "tu-clave-secreta-super-segura-cambiar-en-produccion"
