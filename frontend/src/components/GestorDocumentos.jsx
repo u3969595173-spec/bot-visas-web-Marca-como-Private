@@ -55,10 +55,9 @@ const GestorDocumentos = ({ estudianteId }) => {
         formData.append('archivos', file);
       });
       
-      // Agregar una categoría por cada archivo
-      acceptedFiles.forEach(() => {
-        formData.append('categorias', categoriaSeleccionada);
-      });
+      // Agregar categorías como string separado por comas
+      const categoriasStr = acceptedFiles.map(() => categoriaSeleccionada).join(',');
+      formData.append('categorias', categoriasStr);
       
       const response = await fetch(`${API_BASE_URL}/api/documentos/${estudianteId}/subir`, {
         method: 'POST',

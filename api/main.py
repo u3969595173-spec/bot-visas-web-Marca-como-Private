@@ -5368,7 +5368,7 @@ async def subir_documento(
 async def subir_documentos_multi(
     estudiante_id: int,
     archivos: list[UploadFile] = File(...),
-    categorias: list[str] = Form(...)
+    categorias: str = Form(...)
 ):
     """Subir múltiples documentos del estudiante (usado por GestorDocumentos.jsx)"""
     import os
@@ -5381,6 +5381,9 @@ async def subir_documentos_multi(
     cursor = conn.cursor()
     
     try:
+        # Parsear categorías (vienen como string separado por comas)
+        categorias_list = [c.strip() for c in categorias.split(',')]
+        
         # Verificar estudiante
         cursor.execute("SELECT id FROM estudiantes WHERE id = %s", (estudiante_id,))
         if not cursor.fetchone():
@@ -5389,16 +5392,16 @@ async def subir_documentos_multi(
             raise HTTPException(status_code=404, detail='Estudiante no encontrado')
         
         # Validar que coincidan archivos y categorías
-        if len(archivos) != len(categorias):
+        if len(archivos) != len(categorias_list):
             raise HTTPException(
                 status_code=400, 
-                detail=f'Número de archivos ({len(archivos)}) no coincide con categorías ({len(categorias)})'
+                detail=f'Número de archivos ({len(archivos)}) no coincide con categorías ({len(categorias_list)})'
             )
         
         documentos_creados = []
         
         for i, archivo in enumerate(archivos):
-            categoria = categorias[i]
+            categoria = categorias_list[i]
             
             # Validar categoría
             categorias_validas = ['pasaporte', 'visa', 'academicos', 'financieros', 'otros']
