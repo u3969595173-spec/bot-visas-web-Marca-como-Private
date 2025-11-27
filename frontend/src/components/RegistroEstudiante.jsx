@@ -429,10 +429,10 @@ const RegistroEstudiante = () => {
                   required
                   min="0"
                   step="0.01"
-                  placeholder="10000"
+                  placeholder="5000"
                 />
                 <small style={{color: '#718096', fontSize: '12px'}}>
-                  Mínimo recomendado: €10,000 para visa de estudiante
+                  Mínimo recomendado: €3,000-€6,000 para 3-6 meses
                 </small>
               </div>
 
