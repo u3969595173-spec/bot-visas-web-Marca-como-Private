@@ -24,8 +24,7 @@ def setup_logger(name: str = "bot-visas"):
     
     # Formato JSON estructurado
     formatter = jsonlogger.JsonFormatter(
-        '%(timestamp)s %(level)s %(name)s %(message)s',
-        rename_fields={'levelname': 'level', 'name': 'logger'}
+        '%(timestamp)s %(levelname)s %(name)s %(message)s'
     )
     
     logHandler.setFormatter(formatter)

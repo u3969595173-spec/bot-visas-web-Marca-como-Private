@@ -3,7 +3,7 @@ API REST con FastAPI para Dashboard Web
 Endpoints para estudiantes y panel de administración
 """
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Query, Form, Request
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Query, Form, Request, Body
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Optional, Dict
 from datetime import datetime
+from pydantic import BaseModel
 import json
 
 # Rate Limiting
@@ -2305,10 +2306,13 @@ def generar_reporte_pdf(estudiante_id: int, tipo: str = 'completo', db: Session 
 # GENERACIÓN DE DOCUMENTOS OFICIALES (ADMIN)
 # ============================================================================
 
+class GenerarDocumentosRequest(BaseModel):
+    tipos_documentos: List[str]
+
 @app.post("/api/admin/estudiantes/{estudiante_id}/generar-documentos", tags=["Admin - Documentos"])
 def generar_documentos_estudiante(
     estudiante_id: int,
-    tipos_documentos: List[str],
+    request: GenerarDocumentosRequest,
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
@@ -2317,6 +2321,7 @@ def generar_documentos_estudiante(
     tipos_documentos: ['carta_aceptacion', 'carta_motivacion', 'formulario_solicitud', 'certificado_matricula']
     """
     verificar_token(credentials.credentials)
+    tipos_documentos = request.tipos_documentos
     
     from database.models import Estudiante as EstudianteModel
     from api.generador_documentos import GeneradorDocumentosOficiales
