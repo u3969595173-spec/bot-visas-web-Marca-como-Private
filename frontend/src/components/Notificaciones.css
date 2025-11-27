@@ -63,7 +63,7 @@
 .notificaciones-dropdown {
   position: absolute;
   top: calc(100% + 10px);
-  right: 0;
+  right: -150px;
   width: 400px;
   max-height: 600px;
   background: white;
