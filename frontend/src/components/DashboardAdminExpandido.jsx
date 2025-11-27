@@ -32,6 +32,8 @@ function DashboardAdminExpandido({ onLogout }) {
   const [estudianteParaMensaje, setEstudianteParaMensaje] = useState(null)
   const [nuevoMensaje, setNuevoMensaje] = useState({ asunto: '', tipo: 'informacion', mensaje: '', documento_solicitado: '' })
   const [enviandoMensaje, setEnviandoMensaje] = useState(false)
+  const [showModalGenerarDocs, setShowModalGenerarDocs] = useState(false)
+  const [estudiantesAprobados, setEstudiantesAprobados] = useState([])
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -181,7 +183,8 @@ function DashboardAdminExpandido({ onLogout }) {
       await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteId}/generar-documentos`, {
         tipos_documentos: ['carta_aceptacion', 'carta_motivacion', 'formulario_solicitud', 'certificado_matricula']
       })
-      alert('Documentos generados correctamente')
+      alert('✅ Documentos generados correctamente')
+      setShowModalGenerarDocs(false)
       setActiveTab('documentos')
       cargarDatos()
     } catch (err) {
@@ -189,6 +192,17 @@ function DashboardAdminExpandido({ onLogout }) {
     } finally {
       setGenerandoDocs(false)
     }
+  }
+
+  const abrirModalGenerarDocs = () => {
+    // Filtrar solo estudiantes aprobados
+    const aprobados = estudiantes.filter(est => 
+      est.estado === 'aprobado' || 
+      est.estado === 'aprobado_admin' ||
+      est.estado_procesamiento === 'aprobado'
+    )
+    setEstudiantesAprobados(aprobados)
+    setShowModalGenerarDocs(true)
   }
 
   const aprobarDocumento = async (docId) => {
@@ -532,7 +546,27 @@ function DashboardAdminExpandido({ onLogout }) {
 
       {/* Lista de estudiantes */}
       <div className="estudiantes-section">
-        <h2>Gestión de Estudiantes ({estudiantesFiltrados.length})</h2>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+          <h2>Gestión de Estudiantes ({estudiantesFiltrados.length})</h2>
+          <button
+            onClick={abrirModalGenerarDocs}
+            style={{
+              backgroundColor: '#10b981',
+              color: 'white',
+              padding: '12px 24px',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            📄 Generar Documentos
+          </button>
+        </div>
         
         {estudiantesFiltrados.length === 0 ? (
           <p className="no-resultados">No se encontraron estudiantes</p>
@@ -584,14 +618,6 @@ function DashboardAdminExpandido({ onLogout }) {
                           </>
                         )}
                         <button 
-                          onClick={() => generarDocumentos(est.id)}
-                          className="btn-generar-docs"
-                          title="Generar Documentos"
-                          disabled={generandoDocs}
-                        >
-                          📄
-                        </button>
-                        <button 
                           onClick={() => abrirModalMensaje(est)}
                           className="btn-mensaje"
                           title="Enviar Mensaje"
@@ -599,9 +625,6 @@ function DashboardAdminExpandido({ onLogout }) {
                         >
                           ✉️
                         </button>
-                        {est.estado !== 'pendiente' && !generandoDocs && (
-                          <span className="sin-acciones">-</span>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -1141,6 +1164,82 @@ function DashboardAdminExpandido({ onLogout }) {
               </button>
               <button onClick={confirmarRechazo} className="btn-confirmar">
                 Confirmar Rechazo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Generar Documentos - Estudiantes Aprobados */}
+      {showModalGenerarDocs && (
+        <div className="modal-overlay" onClick={() => setShowModalGenerarDocs(false)}>
+          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
+            <h3>📄 Generar Documentos Oficiales</h3>
+            <p style={{color: '#6b7280', marginBottom: '20px'}}>
+              Selecciona un estudiante APROBADO para generar sus documentos oficiales
+            </p>
+
+            {estudiantesAprobados.length === 0 ? (
+              <div style={{padding: '40px', textAlign: 'center', backgroundColor: '#fef3c7', borderRadius: '8px'}}>
+                <p style={{fontSize: '48px', margin: '0 0 10px 0'}}>⚠️</p>
+                <p style={{fontSize: '18px', fontWeight: 'bold', color: '#92400e', margin: '0 0 10px 0'}}>
+                  No hay estudiantes aprobados
+                </p>
+                <p style={{color: '#78350f', margin: 0}}>
+                  Debes aprobar estudiantes primero antes de generar documentos
+                </p>
+              </div>
+            ) : (
+              <div style={{maxHeight: '500px', overflowY: 'auto'}}>
+                <table style={{width: '100%', borderCollapse: 'collapse'}}>
+                  <thead style={{position: 'sticky', top: 0, backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb'}}>
+                    <tr>
+                      <th style={{padding: '12px', textAlign: 'left'}}>ID</th>
+                      <th style={{padding: '12px', textAlign: 'left'}}>Nombre</th>
+                      <th style={{padding: '12px', textAlign: 'left'}}>Email</th>
+                      <th style={{padding: '12px', textAlign: 'left'}}>Especialidad</th>
+                      <th style={{padding: '12px', textAlign: 'center'}}>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {estudiantesAprobados.map(est => (
+                      <tr key={est.id} style={{borderBottom: '1px solid #e5e7eb'}}>
+                        <td style={{padding: '12px'}}>{est.id}</td>
+                        <td style={{padding: '12px', fontWeight: 'bold'}}>{est.nombre || est.nombre_completo}</td>
+                        <td style={{padding: '12px', fontSize: '0.9rem', color: '#6b7280'}}>{est.email}</td>
+                        <td style={{padding: '12px'}}>{est.especialidad || est.especialidad_interes || '-'}</td>
+                        <td style={{padding: '12px', textAlign: 'center'}}>
+                          <button
+                            onClick={() => generarDocumentos(est.id)}
+                            disabled={generandoDocs}
+                            style={{
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              padding: '8px 16px',
+                              border: 'none',
+                              borderRadius: '5px',
+                              cursor: generandoDocs ? 'not-allowed' : 'pointer',
+                              fontSize: '14px',
+                              fontWeight: 'bold',
+                              opacity: generandoDocs ? 0.5 : 1
+                            }}
+                          >
+                            {generandoDocs ? '⏳ Generando...' : '📄 Generar'}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="modal-actions" style={{marginTop: '20px'}}>
+              <button 
+                onClick={() => setShowModalGenerarDocs(false)} 
+                className="btn-cancelar"
+              >
+                Cerrar
               </button>
             </div>
           </div>
