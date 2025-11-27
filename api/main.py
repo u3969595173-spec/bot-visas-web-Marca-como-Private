@@ -2481,49 +2481,58 @@ def listar_documentos_generados(
     import os
     import psycopg2
     
-    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
-    cursor = conn.cursor()
-    
-    query = """
-        SELECT dg.id, dg.estudiante_id, dg.tipo_documento, dg.nombre_archivo,
-               dg.estado, dg.fecha_generacion, dg.enviado_estudiante,
-               e.nombre as estudiante_nombre
-        FROM documentos_generados dg
-        JOIN estudiantes e ON dg.estudiante_id = e.id
-        WHERE 1=1
-    """
-    params = []
-    
-    if estudiante_id:
-        query += " AND dg.estudiante_id = %s"
-        params.append(estudiante_id)
-    
-    if estado:
-        query += " AND dg.estado = %s"
-        params.append(estado)
-    
-    query += " ORDER BY dg.fecha_generacion DESC"
-    
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-    
-    documentos = []
-    for row in rows:
-        documentos.append({
-            'id': row[0],
-            'estudiante_id': row[1],
-            'tipo_documento': row[2],
-            'nombre_archivo': row[3],
-            'estado': row[4],
-            'fecha_generacion': row[5].isoformat() if row[5] else None,
-            'enviado_estudiante': row[6],
-            'estudiante_nombre': row[7]
-        })
-    
-    cursor.close()
-    conn.close()
-    
-    return documentos
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        query = """
+            SELECT dg.id, dg.estudiante_id, dg.tipo_documento, dg.nombre_archivo,
+                   dg.estado, dg.fecha_generacion, dg.enviado_estudiante,
+                   e.nombre as estudiante_nombre
+            FROM documentos_generados dg
+            LEFT JOIN estudiantes e ON dg.estudiante_id = e.id
+            WHERE 1=1
+        """
+        params = []
+        
+        if estudiante_id:
+            query += " AND dg.estudiante_id = %s"
+            params.append(estudiante_id)
+        
+        if estado:
+            query += " AND dg.estado = %s"
+            params.append(estado)
+        
+        query += " ORDER BY dg.fecha_generacion DESC"
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        
+        print(f"[DEBUG] Documentos generados encontrados: {len(rows)}")
+        
+        documentos = []
+        for row in rows:
+            documentos.append({
+                'id': row[0],
+                'estudiante_id': row[1],
+                'tipo_documento': row[2],
+                'nombre_archivo': row[3],
+                'estado': row[4],
+                'fecha_generacion': row[5].isoformat() if row[5] else None,
+                'enviado_estudiante': row[6],
+                'estudiante_nombre': row[7] or f'Estudiante {row[1]}'
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return documentos
+        
+    except Exception as e:
+        print(f"❌ Error listando documentos generados: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
 
 
 @app.get("/api/admin/documentos-generados/{documento_id}/descargar", tags=["Admin - Documentos"])
@@ -4210,19 +4219,24 @@ def aprobar_estudiante(
     )
     db.commit()
     
-    # Registrar auditoría
-    registrar_auditoria(
-        db, usuario['email'], 'APROBAR_ESTUDIANTE',
-        'estudiante', estudiante_id,
-        {'nombre': estudiante.nombre, 'estado_anterior': estado_anterior}
-    )
+    # Registrar auditoría (con try/catch)
+    try:
+        registrar_auditoria(
+            db, usuario['email'], 'APROBAR_ESTUDIANTE',
+            'estudiante', estudiante_id,
+            {'nombre': estudiante.nombre, 'estado_anterior': estado_anterior}
+        )
+    except Exception as e:
+        print(f"⚠️ Error en auditoría (no crítico): {e}")
     
-    # Enviar email de notificación
+    # Enviar email de notificación (con try/catch - no crítico)
     try:
         from api.email_utils import email_aprobacion
         email_aprobacion(estudiante.nombre, estudiante.email)
+        print(f"✅ Email enviado a {estudiante.email}")
     except Exception as e:
-        print(f"⚠️ Error enviando email: {e}")
+        print(f"⚠️ Error enviando email (no crítico): {e}")
+        # No falla la operación si no se pudo enviar email
     
     return {"message": "Estudiante aprobado correctamente", "id": estudiante_id}
 
