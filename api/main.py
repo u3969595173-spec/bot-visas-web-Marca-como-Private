@@ -757,15 +757,21 @@ async def registrar_estudiante(
         # Enviar email de bienvenida con código de acceso
         try:
             from api.email_utils import email_bienvenida_con_codigo
-            email_bienvenida_con_codigo(datos.nombre, datos.email, nuevo_id, codigo_final)
+            resultado = email_bienvenida_con_codigo(datos.nombre, datos.email, nuevo_id, codigo_final)
+            if resultado:
+                print(f"✅ Email de bienvenida enviado a {datos.email} con código {codigo_final}")
+            else:
+                print(f"⚠️ No se pudo enviar email de bienvenida a {datos.email}")
         except Exception as e:
             print(f"[WARN] Error enviando email: {e}")
+            import traceback
+            traceback.print_exc()
         
         return {
             "id": nuevo_id,
             "estudiante_id": nuevo_id,
             "codigo_acceso": codigo_final,
-            "mensaje": "Registro exitoso. Revisa tu email para tu código de acceso.",
+            "mensaje": f"¡Registro exitoso! Tu código de acceso es {codigo_final}. También lo hemos enviado a {datos.email} (revisa spam si no lo ves).",
             "estado": "pendiente"
         }
         
