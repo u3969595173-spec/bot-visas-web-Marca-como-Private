@@ -307,6 +307,57 @@ async def startup_event():
         except:
             pass
         
+        # Crear tabla contactos_universidades para sistema de emails
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS contactos_universidades (
+                    id SERIAL PRIMARY KEY,
+                    universidad VARCHAR(200) NOT NULL,
+                    email VARCHAR(200) NOT NULL,
+                    telefono VARCHAR(50),
+                    contacto_nombre VARCHAR(200),
+                    pais VARCHAR(100) DEFAULT 'España',
+                    ciudad VARCHAR(100),
+                    tipo_universidad VARCHAR(100),
+                    programas_interes TEXT,
+                    estado VARCHAR(50) DEFAULT 'pendiente',
+                    fecha_contacto TIMESTAMP,
+                    fecha_respuesta TIMESTAMP,
+                    fecha_reunion TIMESTAMP,
+                    notas TEXT,
+                    condiciones_propuestas TEXT,
+                    comision_acordada DECIMAL(10, 2),
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Verificar si hay universidades cargadas
+            cursor.execute("SELECT COUNT(*) FROM contactos_universidades")
+            count = cursor.fetchone()[0]
+            
+            # Si no hay universidades, cargar las 44 predefinidas
+            if count == 0:
+                print("📧 Cargando 44 universidades objetivo...")
+                universidades_iniciales = [
+                    ('UCAM - Universidad Católica de Murcia', 'internacional@ucam.edu', '+34 968 278 160', 'Departamento Internacional', 'España', 'Murcia', 'Privada', 'Grados, Másteres, FP, Medicina, Ingeniería'),
+                    ('UNIR - Universidad Internacional de La Rioja', 'admisiones@unir.net', '+34 941 209 743', 'Admisiones Internacionales', 'España', 'Logroño', 'Privada', 'Grados Online, Másteres Online, Doctorados'),
+                    ('VIU - Universidad Internacional de Valencia', 'informacion@universidadviu.com', '+34 961 924 950', 'Información y Admisiones', 'España', 'Valencia', 'Privada', 'Grados Online/Presencial, Másteres, Doctorados'),
+                    ('UDIMA - Universidad a Distancia de Madrid', 'info@udima.es', '+34 918 561 699', 'Información', 'España', 'Madrid', 'Privada', 'Grados Online, Másteres, Doctorados'),
+                    ('UOC - Universitat Oberta de Catalunya', 'internacional@uoc.edu', '+34 932 532 300', 'Admisiones Internacionales', 'España', 'Barcelona', 'Privada', 'Grados Online, Másteres, Idiomas')
+                ]
+                
+                for uni in universidades_iniciales:
+                    cursor.execute("""
+                        INSERT INTO contactos_universidades 
+                        (universidad, email, telefono, contacto_nombre, pais, ciudad, tipo_universidad, programas_interes, estado)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pendiente')
+                    """, uni)
+                
+                print("✅ 5 universidades principales cargadas")
+        except Exception as e:
+            print(f"⚠️ Error creando tabla contactos_universidades: {e}")
+        
         conn.commit()
         cursor.close()
         conn.close()
