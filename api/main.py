@@ -254,28 +254,38 @@ async def startup_event():
             CREATE INDEX IF NOT EXISTS idx_mensajes_remitente ON mensajes_chat(remitente);
         """)
         
-        # Tabla documentos
+        # Tabla documentos (crear si no existe, o agregar columnas faltantes)
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS documentos (
                 id SERIAL PRIMARY KEY,
                 estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
-                nombre_archivo VARCHAR(255) NOT NULL,
-                categoria VARCHAR(50) NOT NULL,
-                contenido_base64 TEXT NOT NULL,
-                mime_type VARCHAR(100) NOT NULL,
-                tamano_archivo INTEGER NOT NULL,
-                estado_revision VARCHAR(20) DEFAULT 'pendiente',
-                comentario_admin TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                nombre_archivo VARCHAR(255),
+                tipo_documento VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
         
+        # Agregar columnas nuevas si no existen
+        try:
+            cursor.execute("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS categoria VARCHAR(50)")
+            cursor.execute("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS contenido_base64 TEXT")
+            cursor.execute("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS mime_type VARCHAR(100)")
+            cursor.execute("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS tamano_archivo INTEGER")
+            cursor.execute("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS estado_revision VARCHAR(20) DEFAULT 'pendiente'")
+            cursor.execute("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS comentario_admin TEXT")
+            cursor.execute("ALTER TABLE documentos ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+        except Exception as alter_error:
+            print(f"⚠️ Error agregando columnas a documentos: {alter_error}")
+        
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_documentos_estudiante ON documentos(estudiante_id);
-            CREATE INDEX IF NOT EXISTS idx_documentos_estado ON documentos(estado_revision);
-            CREATE INDEX IF NOT EXISTS idx_documentos_categoria ON documentos(categoria);
         """)
+        
+        try:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_documentos_estado ON documentos(estado_revision)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_documentos_categoria ON documentos(categoria)")
+        except:
+            pass
         
         conn.commit()
         cursor.close()
