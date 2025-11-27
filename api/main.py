@@ -741,7 +741,6 @@ app.include_router(documentos_router, prefix="/api")
 def login(request: Request, datos: LoginRequest, db: Session = Depends(get_db)):
     """
     Login para admins
-    Email: leandroeloytamayoreyes@gmail.com / Contraseña: Eloy1940
     Rate limit: 5 intentos por minuto por IP
     """
     import bcrypt

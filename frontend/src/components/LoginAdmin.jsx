@@ -94,16 +94,6 @@ function LoginAdmin({ onLogin }) {
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
-
-        <div style={{ marginTop: '20px', padding: '15px', background: '#f7fafc', borderRadius: '5px' }}>
-          <p style={{ fontSize: '14px', color: '#718096', marginBottom: '5px' }}>
-            <strong>Credenciales de Acceso:</strong>
-          </p>
-          <p style={{ fontSize: '14px', color: '#718096' }}>
-            Usuario: <code>leandroeloytamayoreyes@gmail.com</code><br />
-            Contraseña: <code>Eloy1940</code>
-          </p>
-        </div>
       </div>
     </div>
   )

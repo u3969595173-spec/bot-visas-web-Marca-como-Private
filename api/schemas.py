@@ -86,8 +86,8 @@ class LoginRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "usuario": "leandroeloytamayoreyes@gmail.com",
-                "password": "Eloy1940"
+                "usuario": "usuario@ejemplo.com",
+                "password": "tu_contraseña_segura"
             }
         }
 
