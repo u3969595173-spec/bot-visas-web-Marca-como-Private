@@ -56,24 +56,6 @@ function App() {
             <div style={styles.navLinks}>
               {estudianteId && <Notificaciones estudianteId={estudianteId} />}
               
-              {/* Solo mostrar cuando NO hay estudiante logueado */}
-              {!estudianteId && (
-                <>
-                  <Link to="/estudiante/login" style={styles.navLink}>
-                    🎓 Acceso Estudiantes
-                  </Link>
-                  <Link to="/registro" style={styles.navLink}>
-                    Registrarse
-                  </Link>
-                  <Link to="/portal" style={styles.navLink}>
-                    Consultar Estado
-                  </Link>
-                  <Link to="/admin/login" style={styles.navLink}>
-                    🔐 Admin
-                  </Link>
-                </>
-              )}
-              
               {/* Menú cuando hay estudiante logueado */}
               {estudianteId && (
                 <>
@@ -98,7 +80,25 @@ function App() {
                 </>
               )}
               
-              {/* Enlaces comunes para todos */}
+              {/* Enlaces cuando NO hay estudiante logueado */}
+              {!estudianteId && (
+                <>
+                  <Link to="/estudiante/login" style={styles.navLink}>
+                    🎓 Acceso Estudiantes
+                  </Link>
+                  <Link to="/registro" style={styles.navLink}>
+                    Registrarse
+                  </Link>
+                  <Link to="/portal" style={styles.navLink}>
+                    Consultar Estado
+                  </Link>
+                  <Link to="/admin/login" style={styles.navLink}>
+                    🔐 Admin
+                  </Link>
+                </>
+              )}
+              
+              {/* Enlaces comunes siempre visibles */}
               <Link to="/blog" style={styles.navLink}>
                 📝 Blog
               </Link>
