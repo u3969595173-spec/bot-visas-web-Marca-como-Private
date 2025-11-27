@@ -48,6 +48,9 @@ class ValidadorOCR:
         # API Key de OCR.space (gratis: 25,000 requests/mes)
         # Registrarse en: https://ocr.space/ocrapi
         self.ocr_api_key = os.getenv('OCR_SPACE_API_KEY', 'K81993791988957')  # Free tier key
+        self.contador_usos = 0  # Contador de requests este mes
+        self.limite_mensual = 25000  # Límite gratuito OCR.space
+        self._cargar_contador_uso()
     
     def procesar_documento(self, ruta_archivo: str, tipo_documento: str) -> Dict:
         """
@@ -121,6 +124,13 @@ class ValidadorOCR:
         API gratuita: 25,000 requests/mes
         """
         try:
+            # Verificar límite de uso
+            verificacion = self.verificar_limite_uso()
+            if verificacion['alerta'] and 'CRÍTICO' in verificacion['alerta']:
+                print(f"🚨 {verificacion['alerta']} ({verificacion['restante']} requests restantes)")
+            elif verificacion['alerta']:
+                print(f"⚠️ {verificacion['alerta']} ({verificacion['restante']} requests restantes)")
+            
             # Preparar request a OCR.space
             with open(ruta_archivo, 'rb') as f:
                 response = requests.post(
@@ -145,6 +155,11 @@ class ValidadorOCR:
             # Extraer texto parseado
             if result.get('ParsedResults'):
                 texto = result['ParsedResults'][0].get('ParsedText', '')
+                
+                # Incrementar contador y guardar
+                self.contador_usos += 1
+                self._guardar_contador_uso()
+                
                 return texto.strip()
             else:
                 raise Exception("No se pudo extraer texto del documento")
@@ -581,3 +596,56 @@ class ValidadorOCR:
         """Calcula letra de DNI español"""
         letras = 'TRWAGMYFPDXBNJZSQVHLCKE'
         return letras[int(numero) % 23]
+    
+    def _cargar_contador_uso(self):
+        """Carga contador de uso desde archivo temporal"""
+        try:
+            import tempfile
+            contador_file = os.path.join(tempfile.gettempdir(), 'ocr_contador.json')
+            if os.path.exists(contador_file):
+                with open(contador_file, 'r') as f:
+                    data = json.load(f)
+                    mes_actual = datetime.now().strftime('%Y-%m')
+                    if data.get('mes') == mes_actual:
+                        self.contador_usos = data.get('usos', 0)
+                    else:
+                        # Nuevo mes, resetear contador
+                        self.contador_usos = 0
+                        self._guardar_contador_uso()
+        except Exception as e:
+            print(f"⚠️ No se pudo cargar contador OCR: {e}")
+    
+    def _guardar_contador_uso(self):
+        """Guarda contador de uso en archivo temporal"""
+        try:
+            import tempfile
+            contador_file = os.path.join(tempfile.gettempdir(), 'ocr_contador.json')
+            with open(contador_file, 'w') as f:
+                json.dump({
+                    'mes': datetime.now().strftime('%Y-%m'),
+                    'usos': self.contador_usos
+                }, f)
+        except Exception as e:
+            print(f"⚠️ No se pudo guardar contador OCR: {e}")
+    
+    def verificar_limite_uso(self) -> dict:
+        """Verifica si estamos cerca del límite de OCR"""
+        porcentaje_usado = (self.contador_usos / self.limite_mensual) * 100
+        restante = self.limite_mensual - self.contador_usos
+        
+        alerta = None
+        if porcentaje_usado >= 90:
+            alerta = "CRÍTICO: 90% del límite OCR alcanzado"
+        elif porcentaje_usado >= 75:
+            alerta = "ADVERTENCIA: 75% del límite OCR alcanzado"
+        elif porcentaje_usado >= 50:
+            alerta = "AVISO: 50% del límite OCR alcanzado"
+        
+        return {
+            'usos': self.contador_usos,
+            'limite': self.limite_mensual,
+            'restante': restante,
+            'porcentaje': round(porcentaje_usado, 2),
+            'alerta': alerta
+        }
+

@@ -1,8 +1,11 @@
 from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, JSON, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 from datetime import datetime
+from fastapi import HTTPException
 import os
+import time
 
 Base = declarative_base()
 
@@ -281,7 +284,20 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("❌ DATABASE_URL no encontrada en .env")
 
-engine = create_engine(DATABASE_URL)
+# Configurar pool de conexiones con retry logic
+engine = create_engine(
+    DATABASE_URL,
+    pool_size=10,  # Máximo 10 conexiones simultáneas
+    max_overflow=20,  # 20 conexiones adicionales en picos
+    pool_timeout=30,  # Timeout de 30 segundos para obtener conexión
+    pool_recycle=3600,  # Reciclar conexiones cada hora
+    pool_pre_ping=True,  # Verificar conexión antes de usar (auto-reconnect)
+    connect_args={
+        "connect_timeout": 10,  # Timeout de conexión inicial
+        "options": "-c statement_timeout=30000"  # 30s timeout para queries
+    }
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def init_db():
@@ -290,9 +306,29 @@ def init_db():
     print("✅ Database tables created successfully")
 
 def get_db():
-    """Get database session"""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    """Get database session with retry logic"""
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        db = SessionLocal()
+        try:
+            # Test connection
+            db.execute(text("SELECT 1"))
+            yield db
+            break
+        except Exception as e:
+            db.close()
+            retry_count += 1
+            if retry_count >= max_retries:
+                print(f"❌ Error conectando a DB después de {max_retries} intentos: {e}")
+                raise HTTPException(
+                    status_code=503, 
+                    detail="Servicio de base de datos temporalmente no disponible"
+                )
+            print(f"⚠️ Reintentando conexión DB ({retry_count}/{max_retries})...")
+            import time
+            time.sleep(1)  # Esperar 1 segundo antes de reintentar
+        finally:
+            if retry_count >= max_retries or db:
+                db.close()

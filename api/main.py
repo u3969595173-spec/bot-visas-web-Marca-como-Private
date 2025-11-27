@@ -3492,42 +3492,104 @@ def listar_estudiantes(
     } for row in result]
 
 
-@app.get("/api/admin/estudiantes/{estudiante_id}", response_model=EstudianteResponse, tags=["Admin"])
+@app.get("/api/admin/estudiantes/{estudiante_id}", tags=["Admin"])
 def obtener_estudiante(
     estudiante_id: int,
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
-    """Detalle completo de un estudiante"""
-    estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+    """Detalle completo de un estudiante usando SQL directo"""
+    query = text("""
+        SELECT 
+            id, nombre, email, telefono, pasaporte, fecha_nacimiento, edad, 
+            nacionalidad, pais_origen, ciudad_origen, carrera_deseada, especialidad, 
+            nivel_espanol, tipo_visa, fondos_disponibles, fecha_inicio_estimada,
+            archivo_titulo, archivo_pasaporte, archivo_extractos,
+            consentimiento_gdpr, fecha_consentimiento,
+            estado, documentos_estado, notas, 
+            created_at, updated_at
+        FROM estudiantes 
+        WHERE id = :estudiante_id
+    """)
     
-    if not estudiante:
+    result = db.execute(query, {"estudiante_id": estudiante_id}).fetchone()
+    
+    if not result:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
-    return EstudianteResponse.from_orm(estudiante)
+    return {
+        "id": result[0],
+        "nombre": result[1],
+        "email": result[2],
+        "telefono": result[3],
+        "pasaporte": result[4],
+        "fecha_nacimiento": result[5].isoformat() if result[5] else None,
+        "edad": result[6],
+        "nacionalidad": result[7],
+        "pais_origen": result[8],
+        "ciudad_origen": result[9],
+        "carrera_deseada": result[10],
+        "especialidad": result[11],
+        "nivel_espanol": result[12],
+        "tipo_visa": result[13],
+        "fondos_disponibles": float(result[14]) if result[14] else 0,
+        "fecha_inicio_estimada": result[15].isoformat() if result[15] else None,
+        "archivo_titulo": result[16],
+        "archivo_pasaporte": result[17],
+        "archivo_extractos": result[18],
+        "consentimiento_gdpr": result[19],
+        "fecha_consentimiento": result[20].isoformat() if result[20] else None,
+        "estado": result[21],
+        "documentos_estado": result[22],
+        "notas": result[23],
+        "created_at": result[24].isoformat() if result[24] else None,
+        "updated_at": result[25].isoformat() if result[25] else None
+    }
 
 
 @app.put("/api/admin/estudiantes/{estudiante_id}", tags=["Admin"])
 def actualizar_estudiante(
     estudiante_id: int,
-    datos: EstudianteUpdate,
+    datos: dict,
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
-    """Actualiza información de estudiante"""
-    estudiante = db.query(Estudiante).filter(Estudiante.id == estudiante_id).first()
+    """Actualiza información de estudiante usando SQL directo"""
+    from datetime import datetime
     
-    if not estudiante:
+    # Verificar que el estudiante existe
+    check = db.execute(text("SELECT id FROM estudiantes WHERE id = :id"), 
+                       {"id": estudiante_id}).fetchone()
+    
+    if not check:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
-    # Actualizar campos
-    for campo, valor in datos.dict(exclude_unset=True).items():
-        setattr(estudiante, campo, valor)
+    # Construir query de actualización dinámicamente
+    campos_permitidos = ['nombre', 'email', 'telefono', 'pasaporte', 'edad', 
+                         'nacionalidad', 'pais_origen', 'ciudad_origen', 
+                         'carrera_deseada', 'especialidad', 'nivel_espanol', 
+                         'tipo_visa', 'fondos_disponibles', 'notas']
     
+    updates = []
+    params = {"id": estudiante_id}
+    
+    for campo in campos_permitidos:
+        if campo in datos:
+            updates.append(f"{campo} = :{campo}")
+            params[campo] = datos[campo]
+    
+    if not updates:
+        return {"message": "No hay campos para actualizar"}
+    
+    updates.append("updated_at = :updated_at")
+    params["updated_at"] = datetime.utcnow()
+    
+    query = f"UPDATE estudiantes SET {', '.join(updates)} WHERE id = :id"
+    
+    db.execute(text(query), params)
     db.commit()
-    db.refresh(estudiante)
     
-    return {"message": "Estudiante actualizado correctamente"}
+    return {"message": "Estudiante actualizado correctamente", "id": estudiante_id}
 
 
 @app.post("/api/admin/estudiantes/{estudiante_id}/aprobar", tags=["Admin"])
@@ -3604,13 +3666,50 @@ def obtener_estadisticas(
     aprobados = db.query(EstudianteModel).filter(EstudianteModel.estado == 'aprobado').count()
     rechazados = db.query(EstudianteModel).filter(EstudianteModel.estado == 'rechazado').count()
     
+    # Calcular estadísticas por especialidad
+    especialidades_query = db.execute(text("""
+        SELECT 
+            COALESCE(especialidad, 'Sin especialidad') as especialidad,
+            COUNT(*) as total
+        FROM estudiantes 
+        WHERE especialidad IS NOT NULL AND especialidad != ''
+        GROUP BY especialidad
+        ORDER BY total DESC
+    """))
+    
+    por_especialidad = {
+        row[0]: row[1] for row in especialidades_query.fetchall()
+    }
+    
     return EstadisticasResponse(
         total_estudiantes=total,
         pendientes_revision=pendientes,
         aprobados=aprobados,
         enviados=aprobados,  # Por ahora enviados = aprobados
-        por_especialidad={}  # TODO: implementar después
+        por_especialidad=por_especialidad
     )
+
+
+# ============================================================================
+# MONITOREO OCR - Endpoint para ver uso de API
+# ============================================================================
+
+@app.get("/api/admin/ocr/uso", tags=["Admin"])
+def obtener_uso_ocr(usuario=Depends(obtener_usuario_actual)):
+    """Obtiene estadísticas de uso de OCR.space API"""
+    from api.validador_ocr import ValidadorOCR
+    
+    validador = ValidadorOCR()
+    uso = validador.verificar_limite_uso()
+    
+    return {
+        "usos_este_mes": uso['usos'],
+        "limite_mensual": uso['limite'],
+        "restantes": uso['restante'],
+        "porcentaje_usado": uso['porcentaje'],
+        "alerta": uso['alerta'],
+        "mes": datetime.now().strftime('%Y-%m')
+    }
 
 
 # ============================================================================

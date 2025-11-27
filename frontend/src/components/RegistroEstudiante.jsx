@@ -45,9 +45,28 @@ const RegistroEstudiante = () => {
   const handleFileChange = (e) => {
     const { name, files } = e.target;
     if (files && files[0]) {
+      const file = files[0];
+      const maxSize = 10 * 1024 * 1024; // 10MB en bytes
+      
+      // Validar tamaño
+      if (file.size > maxSize) {
+        setError(`El archivo "${file.name}" excede el tamaño máximo de 10MB (tamaño: ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+        e.target.value = ''; // Reset input
+        return;
+      }
+      
+      // Validar tipo de archivo
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        setError(`Tipo de archivo no permitido. Solo se aceptan PDF, JPG y PNG`);
+        e.target.value = ''; // Reset input
+        return;
+      }
+      
+      setError(''); // Limpiar error si todo está bien
       setArchivos(prev => ({
         ...prev,
-        [name]: files[0]
+        [name]: file
       }));
     }
   };
@@ -453,7 +472,7 @@ const RegistroEstudiante = () => {
           <div className="form-section">
             <h3>Documentos</h3>
             <p style={{color: '#718096', fontSize: '14px', marginBottom: '15px'}}>
-              Sube los siguientes documentos en formato PDF o JPG (máx. 5MB cada uno)
+              Sube los siguientes documentos en formato PDF o JPG (máx. 10MB cada uno)
             </p>
 
             <div className="form-group">
