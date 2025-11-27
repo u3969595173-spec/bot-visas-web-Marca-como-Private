@@ -5515,41 +5515,6 @@ def listar_documentos_estudiante(estudiante_id: int):
         conn.close()
         print(f"❌ Error listando documentos: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-        """, (estudiante_id,))
-        
-        documentos = []
-        for row in cursor.fetchall():
-            documentos.append({
-                'id': row[0],
-                'tipo': row[1],
-                'nombre': row[2],
-                'tamano': row[3],
-                'mime_type': row[4],
-                'categoria': row[5],
-                'estado_revision': row[6],
-                'comentario_admin': row[7],
-                'created_at': row[8].isoformat() if row[8] else None
-            })
-        
-        # Calcular progreso
-        total = len(documentos)
-        aprobados = len([d for d in documentos if d['estado_revision'] == 'aprobado'])
-        progreso = int((aprobados / total * 100)) if total > 0 else 0
-        
-        cursor.close()
-        conn.close()
-        
-        return {
-            'success': True,
-            'documentos': documentos,
-            'progreso': progreso
-        }
-        
-    except Exception as e:
-        cursor.close()
-        conn.close()
-        print(f"❌ Error listando documentos: {e}")
-        return {'success': False, 'documentos': [], 'progreso': 0}
 
 
 @app.get("/api/documentos/{documento_id}/descargar", tags=["Documentos"])
