@@ -12,7 +12,7 @@ const ChatMensajes = ({ estudianteId, remitente = 'estudiante' }) => {
 
   useEffect(() => {
     cargarMensajes();
-    const interval = setInterval(cargarMensajes, 5000); // Actualizar cada 5 segundos
+    const interval = setInterval(cargarMensajes, 10000); // Actualizar cada 10 segundos
     return () => clearInterval(interval);
   }, [estudianteId]);
 
@@ -39,17 +39,36 @@ const ChatMensajes = ({ estudianteId, remitente = 'estudiante' }) => {
     e.preventDefault();
     if (!nuevoMensaje.trim()) return;
 
+    const mensajeTexto = nuevoMensaje.trim();
+    
+    // Crear mensaje temporal para mostrar inmediatamente (optimistic UI)
+    const mensajeTemporal = {
+      id: `temp-${Date.now()}`,
+      remitente,
+      mensaje: mensajeTexto,
+      created_at: new Date().toISOString(),
+      temporal: true
+    };
+
+    // Mostrar inmediatamente en la interfaz
+    setMensajes(prev => [...prev, mensajeTemporal]);
+    setNuevoMensaje('');
     setEnviando(true);
+
     try {
+      // Enviar al servidor
       await axios.post(`${apiUrl}/api/estudiantes/${estudianteId}/mensajes`, {
         remitente,
-        mensaje: nuevoMensaje
+        mensaje: mensajeTexto
       });
 
-      setNuevoMensaje('');
+      // Recargar mensajes del servidor para obtener el mensaje real
       await cargarMensajes();
     } catch (err) {
       console.error('Error enviando mensaje:', err);
+      // Si falla, quitar el mensaje temporal
+      setMensajes(prev => prev.filter(m => m.id !== mensajeTemporal.id));
+      alert('Error al enviar el mensaje. Por favor intenta de nuevo.');
     } finally {
       setEnviando(false);
     }
