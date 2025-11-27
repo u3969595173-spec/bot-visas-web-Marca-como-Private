@@ -37,11 +37,28 @@ function App() {
   )
   const [estudianteId, setEstudianteId] = React.useState(null)
 
-  // Verificar localStorage al cargar
+  // Verificar localStorage al cargar y cuando cambie
   React.useEffect(() => {
-    const storedId = localStorage.getItem('estudiante_id')
-    if (storedId) {
-      setEstudianteId(storedId)
+    const checkAuth = () => {
+      const storedId = localStorage.getItem('estudiante_id')
+      if (storedId) {
+        setEstudianteId(storedId)
+      } else {
+        setEstudianteId(null)
+      }
+    }
+    
+    checkAuth()
+    
+    // Escuchar cambios en localStorage (desde otras pestañas)
+    window.addEventListener('storage', checkAuth)
+    
+    // Verificar periódicamente (para cambios en la misma pestaña)
+    const interval = setInterval(checkAuth, 500)
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth)
+      clearInterval(interval)
     }
   }, [])
 
