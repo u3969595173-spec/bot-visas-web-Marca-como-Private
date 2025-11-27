@@ -42,8 +42,8 @@ from api.documentos_routes import router as documentos_router
 limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
-    title="Bot Visas Estudio API",
-    description="API para gestión de estudiantes y agencia educativa",
+    title="Estudia en España API",
+    description="API para gestión de estudiantes y asesoría de visas",
     version="1.0.0"
 )
 

@@ -7,7 +7,7 @@ function Home() {
   return (
     <div className="container">
       <div style={styles.hero}>
-        <h1 style={styles.title}>🎓 Bienvenido a Bot Visas Estudio</h1>
+        <h1 style={styles.title}>🎓 Bienvenido a Estudia en España</h1>
         <p style={styles.subtitle}>
           Tu agencia educativa para estudiar en España
         </p>

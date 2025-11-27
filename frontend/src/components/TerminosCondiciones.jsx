@@ -18,7 +18,7 @@ const TerminosCondiciones = () => {
       <div className="terminos-content">
         <section className="introduccion">
           <p>
-            Bienvenido a <strong>Bot Visas Estudio</strong>. Estos Términos y Condiciones de Uso (en adelante, "Términos") 
+            Bienvenido a <strong>Estudia en España</strong>. Estos Términos y Condiciones de Uso (en adelante, "Términos") 
             regulan el acceso y uso de nuestra plataforma de asesoramiento para solicitudes de visa de estudiante para España. 
             Al registrarte y utilizar nuestros servicios, aceptas estos Términos en su totalidad.
           </p>
@@ -30,7 +30,7 @@ const TerminosCondiciones = () => {
         <section>
           <h2>1. DEFINICIONES</h2>
           <ul>
-            <li><strong>Plataforma:</strong> Bot Visas Estudio, sitio web y servicios asociados</li>
+            <li><strong>Plataforma:</strong> Estudia en España, sitio web y servicios asociados</li>
             <li><strong>Usuario:</strong> Persona que se registra y utiliza la plataforma</li>
             <li><strong>Servicios:</strong> Asesoramiento, gestión de documentos, recomendaciones y seguimiento de solicitud de visa</li>
             <li><strong>Contenido:</strong> Toda información, documentos, textos, imágenes y datos en la plataforma</li>
@@ -54,7 +54,7 @@ const TerminosCondiciones = () => {
 
         <section>
           <h2>3. DESCRIPCIÓN DE LOS SERVICIOS</h2>
-          <p>Bot Visas Estudio ofrece los siguientes servicios:</p>
+          <p>Estudia en España ofrece los siguientes servicios:</p>
           
           <div className="servicios-grid">
             <div className="servicio-item">
@@ -144,7 +144,7 @@ const TerminosCondiciones = () => {
           
           <h3>6.1 Servicio de Asesoramiento</h3>
           <p className="destacado-importante">
-            Bot Visas Estudio es una plataforma de <strong>ASESORAMIENTO Y GESTIÓN</strong>. 
+            Estudia en España es una plataforma de <strong>ASESORAMIENTO Y GESTIÓN</strong>. 
             NO somos una agencia gubernamental ni tomamos decisiones sobre visas.
           </p>
 
@@ -191,7 +191,7 @@ const TerminosCondiciones = () => {
           <h2>8. PROPIEDAD INTELECTUAL</h2>
           <p>
             Todo el contenido de la plataforma (diseño, textos, gráficos, logos, código, algoritmos) 
-            es propiedad de Bot Visas Estudio y está protegido por leyes de propiedad intelectual.
+            es propiedad de Estudia en España y está protegido por leyes de propiedad intelectual.
           </p>
           <p>Queda expresamente prohibido:</p>
           <ul>
@@ -259,7 +259,7 @@ const TerminosCondiciones = () => {
           <h2>12. LIMITACIÓN DE RESPONSABILIDAD</h2>
           <div className="limitacion-responsabilidad">
             <h3>⚖️ EXENCIÓN DE RESPONSABILIDAD</h3>
-            <p>Bot Visas Estudio NO se hace responsable de:</p>
+            <p>Estudia en España NO se hace responsable de:</p>
             <ul>
               <li>❌ Rechazos de solicitud de visa por parte de las autoridades</li>
               <li>❌ Errores u omisiones en los documentos si no verificas el contenido</li>
@@ -333,7 +333,7 @@ const TerminosCondiciones = () => {
           <h3>17.1 Integridad del Acuerdo</h3>
           <p>
             Estos Términos, junto con la Política de Privacidad, constituyen el acuerdo completo 
-            entre tú y Bot Visas Estudio.
+            entre tú y Estudia en España.
           </p>
 
           <h3>17.2 Divisibilidad</h3>
@@ -355,7 +355,7 @@ const TerminosCondiciones = () => {
         <div className="aceptacion-final">
           <h3>✅ ACEPTACIÓN</h3>
           <p>
-            Al utilizar Bot Visas Estudio, confirmas que has leído, entendido y aceptado estos 
+            Al utilizar Estudia en España, confirmas que has leído, entendido y aceptado estos 
             Términos y Condiciones en su totalidad.
           </p>
           <p>

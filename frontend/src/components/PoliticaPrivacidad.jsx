@@ -19,7 +19,7 @@ const PoliticaPrivacidad = () => {
         <section>
           <h2>1. INFORMACIÓN GENERAL</h2>
           <p>
-            En <strong>Bot Visas Estudio</strong> (en adelante, "la Plataforma"), respetamos tu privacidad y 
+            En <strong>Estudia en España</strong> (en adelante, "la Plataforma"), respetamos tu privacidad y 
             estamos comprometidos con la protección de tus datos personales. Esta Política de Privacidad describe 
             cómo recopilamos, usamos, almacenamos y protegemos tu información personal de acuerdo con el 
             Reglamento General de Protección de Datos (RGPD) de la Unión Europea.
@@ -28,7 +28,7 @@ const PoliticaPrivacidad = () => {
 
         <section>
           <h2>2. RESPONSABLE DEL TRATAMIENTO</h2>
-          <p><strong>Identidad:</strong> Bot Visas Estudio</p>
+          <p><strong>Identidad:</strong> Estudia en España</p>
           <p><strong>Email de contacto:</strong> privacidad@botvisasestudio.com</p>
           <p><strong>Finalidad:</strong> Asesoramiento y gestión de solicitudes de visa de estudiante para España</p>
         </section>
