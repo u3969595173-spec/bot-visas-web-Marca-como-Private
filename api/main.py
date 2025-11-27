@@ -4181,6 +4181,66 @@ def actualizar_estudiante(
     return {"message": "Estudiante actualizado correctamente", "id": estudiante_id}
 
 
+@app.get("/api/test-email-config", tags=["Testing"])
+def test_email_config():
+    """Verifica la configuración de email sin enviar"""
+    import os
+    
+    config = {
+        "EMAIL_SENDER": os.getenv('EMAIL_SENDER'),
+        "SMTP_USER": os.getenv('SMTP_USER'),
+        "EMAIL_PASSWORD_SET": "✅ Sí" if os.getenv('EMAIL_PASSWORD') else "❌ No",
+        "SMTP_PASSWORD_SET": "✅ Sí" if os.getenv('SMTP_PASSWORD') else "❌ No",
+        "SMTP_SERVER": os.getenv('SMTP_SERVER', 'smtp.gmail.com'),
+        "SMTP_PORT": os.getenv('SMTP_PORT', '587')
+    }
+    
+    # Determinar qué configuración usar
+    email_sender = os.getenv('EMAIL_SENDER') or os.getenv('SMTP_USER')
+    email_password = os.getenv('EMAIL_PASSWORD') or os.getenv('SMTP_PASSWORD')
+    
+    status = {
+        "configurado": bool(email_sender and email_password),
+        "email_remitente": email_sender or "❌ NO CONFIGURADO",
+        "password_configurado": "✅ Sí" if email_password else "❌ No"
+    }
+    
+    return {
+        "config": config,
+        "status": status,
+        "mensaje": "✅ Email configurado correctamente" if status["configurado"] else "❌ Configurar EMAIL_SENDER y EMAIL_PASSWORD en .env"
+    }
+
+
+@app.post("/api/test-email-send", tags=["Testing"])
+def test_email_send(datos: dict):
+    """Envía un email de prueba"""
+    destinatario = datos.get('email')
+    if not destinatario:
+        raise HTTPException(status_code=400, detail="Email requerido")
+    
+    from api.email_utils import enviar_email
+    
+    resultado = enviar_email(
+        destinatario=destinatario,
+        asunto="🧪 Email de Prueba - Estudio Visa España",
+        cuerpo_html="""
+        <html>
+        <body style="font-family: Arial, sans-serif;">
+            <h2 style="color: #667eea;">✅ Email de Prueba</h2>
+            <p>Si recibes este email, la configuración SMTP está funcionando correctamente.</p>
+            <p><strong>Fecha:</strong> """ + str(datetime.now()) + """</p>
+        </body>
+        </html>
+        """
+    )
+    
+    return {
+        "enviado": resultado,
+        "mensaje": "✅ Email enviado" if resultado else "❌ Error enviando email (revisa logs del servidor)"
+    }
+
+
 @app.post("/api/admin/estudiantes/{estudiante_id}/aprobar", tags=["Admin"])
 def aprobar_estudiante(
     estudiante_id: int,
@@ -4229,16 +4289,30 @@ def aprobar_estudiante(
     except Exception as e:
         print(f"⚠️ Error en auditoría (no crítico): {e}")
     
-    # Enviar email de notificación (con try/catch - no crítico)
+    # Enviar email de notificación
+    email_enviado = False
+    error_email = None
     try:
         from api.email_utils import email_aprobacion
-        email_aprobacion(estudiante.nombre, estudiante.email)
-        print(f"✅ Email enviado a {estudiante.email}")
+        resultado = email_aprobacion(estudiante.nombre, estudiante.email)
+        if resultado:
+            email_enviado = True
+            print(f"✅ Email enviado correctamente a {estudiante.email}")
+        else:
+            error_email = "La función email_aprobacion retornó False"
+            print(f"⚠️ Email NO enviado a {estudiante.email}: {error_email}")
     except Exception as e:
-        print(f"⚠️ Error enviando email (no crítico): {e}")
-        # No falla la operación si no se pudo enviar email
+        error_email = str(e)
+        print(f"❌ Error enviando email a {estudiante.email}: {e}")
+        import traceback
+        traceback.print_exc()
     
-    return {"message": "Estudiante aprobado correctamente", "id": estudiante_id}
+    return {
+        "message": "Estudiante aprobado correctamente", 
+        "id": estudiante_id,
+        "email_enviado": email_enviado,
+        "error_email": error_email
+    }
 
 
 @app.post("/api/admin/estudiantes/{estudiante_id}/rechazar", tags=["Admin"])

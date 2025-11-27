@@ -37,6 +37,16 @@ def enviar_email(
         smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
         smtp_port = int(os.getenv('SMTP_PORT', 587))
         
+        # Validar configuración
+        if not email_sender:
+            raise ValueError("❌ EMAIL_SENDER o SMTP_USER no configurado en .env")
+        if not email_password:
+            raise ValueError("❌ EMAIL_PASSWORD o SMTP_PASSWORD no configurado en .env")
+        
+        print(f"📧 Enviando email a {destinatario}")
+        print(f"   Servidor: {smtp_server}:{smtp_port}")
+        print(f"   Remitente: {email_sender}")
+        
         msg['From'] = email_sender
         msg['To'] = destinatario
         msg['Subject'] = asunto
@@ -53,15 +63,21 @@ def enviar_email(
                 msg.attach(attachment)
         
         # Conectar y enviar
+        print(f"   Conectando a {smtp_server}...")
         smtp = smtplib.SMTP(smtp_server, smtp_port)
         smtp.starttls()
+        print(f"   Autenticando...")
         smtp.login(email_sender, email_password)
+        print(f"   Enviando mensaje...")
         smtp.send_message(msg)
         smtp.quit()
         
+        print(f"✅ Email enviado exitosamente a {destinatario}")
         return True
     except Exception as e:
-        print(f"Error enviando email a {destinatario}: {str(e)}")
+        print(f"❌ Error enviando email a {destinatario}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
