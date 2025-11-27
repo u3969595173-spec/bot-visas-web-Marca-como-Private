@@ -109,20 +109,46 @@ function AdminChats() {
   }
 
   const enviarMensaje = () => {
-    if (!mensaje.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+    if (!mensaje.trim()) {
       return
     }
 
-    const mensajeData = {
+    const mensajeTexto = mensaje.trim();
+    
+    // Crear mensaje temporal para mostrar inmediatamente
+    const mensajeTemporal = {
+      id: `temp-${Date.now()}`,
       estudiante_id: conversacionActiva.estudiante_id,
-      mensaje: mensaje,
+      mensaje: mensajeTexto,
       remitente: 'admin',
-      admin_id: 1, // TODO: obtener ID real del admin
-      tipo: 'texto'
+      tipo: 'texto',
+      created_at: new Date().toISOString()
     }
 
-    wsRef.current.send(JSON.stringify(mensajeData))
+    // Mostrar inmediatamente en la UI
+    setMensajes(prev => [...prev, mensajeTemporal])
     setMensaje('')
+
+    // Enviar al servidor
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const mensajeData = {
+        estudiante_id: conversacionActiva.estudiante_id,
+        mensaje: mensajeTexto,
+        remitente: 'admin',
+        admin_id: 1,
+        tipo: 'texto'
+      }
+      wsRef.current.send(JSON.stringify(mensajeData))
+    } else {
+      // Fallback HTTP si WebSocket no funciona
+      const token = localStorage.getItem('token')
+      axios.post(`${API_URL}/api/estudiantes/${conversacionActiva.estudiante_id}/mensajes`, {
+        remitente: 'admin',
+        mensaje: mensajeTexto
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      }).catch(err => console.error('Error enviando mensaje:', err))
+    }
   }
 
   const handleKeyPress = (e) => {
@@ -243,12 +269,11 @@ function AdminChats() {
                   onKeyPress={handleKeyPress}
                   placeholder="Escribe tu respuesta..."
                   rows="3"
-                  disabled={!conectado}
                 />
                 <button
                   className="btn-enviar-mensaje"
                   onClick={enviarMensaje}
-                  disabled={!conectado || !mensaje.trim()}
+                  disabled={!mensaje.trim()}
                 >
                   ➤ Enviar
                 </button>
