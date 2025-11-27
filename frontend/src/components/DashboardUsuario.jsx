@@ -5,6 +5,7 @@ import PerfilEstudiante from './PerfilEstudiante';
 import CalculadoraVisa from './CalculadoraVisa';
 import GestorDocumentos from './GestorDocumentos';
 import ChatMensajes from './ChatMensajes';
+import ChecklistDocumentos from './ChecklistDocumentos';
 
 function DashboardUsuario({ estudianteId: propEstudianteId }) {
   const { id: paramId } = useParams();
@@ -128,7 +129,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         gap: '10px',
         flexWrap: 'wrap'
       }}>
-        {['perfil', 'probabilidad', 'estado', 'documentos', 'mensajes'].map(tab => (
+        {['perfil', 'probabilidad', 'estado', 'checklist', 'documentos', 'mensajes'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -139,7 +140,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               border: activeTab === tab ? 'none' : '2px solid #e2e8f0'
             }}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'checklist' ? '📋 Checklist' : tab.charAt(0).toUpperCase() + tab.slice(1)}
           </button>
         ))}
       </div>
@@ -152,6 +153,11 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       {/* TAB: Probabilidad */}
       {activeTab === 'probabilidad' && (
         <CalculadoraVisa estudianteId={estudianteId} />
+      )}
+      
+      {/* TAB: Checklist Documentos */}
+      {activeTab === 'checklist' && (
+        <ChecklistDocumentos estudianteId={estudianteId} />
       )}
 
       {/* TAB: Estado */}
