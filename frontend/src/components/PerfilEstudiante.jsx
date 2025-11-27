@@ -527,6 +527,33 @@ const PerfilEstudiante = ({ estudianteId }) => {
             </div>
           )}
 
+          {/* NUEVA CARD: Simulador de Entrevistas */}
+          <div className="info-card">
+            <h2>🎭 Simulador de Entrevista Consular</h2>
+            <div style={{padding: '15px'}}>
+              <p style={{marginBottom: '15px', color: '#6c757d'}}>
+                Practica con preguntas reales adaptadas a tu perfil. Recibe feedback instantáneo.
+              </p>
+              <a 
+                href="/estudiante/simulador"
+                style={{
+                  display: 'inline-block',
+                  backgroundColor: '#667eea',
+                  color: 'white',
+                  padding: '12px 24px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  textDecoration: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                🚀 Iniciar Simulador
+              </a>
+            </div>
+          </div>
+
           {/* NUEVA CARD: Generador de Documentos */}
           <div className="info-card">
             <h2>📄 Generar Documentos Borrador</h2>
