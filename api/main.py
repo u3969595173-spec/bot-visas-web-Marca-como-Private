@@ -3561,12 +3561,14 @@ def aprobar_estudiante(
 @app.post("/api/admin/estudiantes/{estudiante_id}/rechazar", tags=["Admin"])
 def rechazar_estudiante(
     estudiante_id: int,
-    motivo: str,
+    datos: dict,
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
     """Rechazar estudiante y solicitar correcciones"""
     from database.models import Estudiante as EstudianteModel
+    
+    motivo = datos.get('motivo', 'Sin motivo especificado')
     
     estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
     
