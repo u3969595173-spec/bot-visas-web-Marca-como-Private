@@ -10,6 +10,8 @@ const PerfilEstudiante = ({ estudianteId }) => {
   const [formData, setFormData] = useState({});
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [documentosGenerados, setDocumentosGenerados] = useState(null);
+  const [generandoDocs, setGenerandoDocs] = useState(false);
 
   useEffect(() => {
     cargarDatos();
@@ -28,6 +30,32 @@ const PerfilEstudiante = ({ estudianteId }) => {
       setError('Error al cargar datos del estudiante');
       setLoading(false);
     }
+  };
+
+  const generarDocumentos = async () => {
+    setGenerandoDocs(true);
+    setError('');
+    try {
+      const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/generar-documentos`);
+      setDocumentosGenerados(response.data.documentos);
+      setSuccess('✅ Documentos generados exitosamente');
+    } catch (err) {
+      setError('Error al generar documentos');
+    } finally {
+      setGenerandoDocs(false);
+    }
+  };
+
+  const descargarDocumento = (contenido, nombreArchivo) => {
+    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombreArchivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
   const handleChange = (e) => {
@@ -415,6 +443,174 @@ const PerfilEstudiante = ({ estudianteId }) => {
                 <label>📋 Consentimiento GDPR</label>
                 <p>{estudiante.consentimiento_gdpr ? `✅ Aceptado el ${estudiante.fecha_consentimiento ? new Date(estudiante.fecha_consentimiento).toLocaleDateString() : ''}` : '❌ No aceptado'}</p>
               </div>
+            </div>
+          </div>
+
+          {/* NUEVA CARD: Probabilidad de Éxito */}
+          {estudiante.probabilidad_exito && (
+            <div className="info-card">
+              <h2>📊 Probabilidad de Éxito</h2>
+              <div style={{padding: '15px'}}>
+                <div style={{marginBottom: '20px'}}>
+                  <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px'}}>
+                    <span style={{fontWeight: 'bold', fontSize: '1.2rem'}}>{estudiante.probabilidad_exito.probabilidad}%</span>
+                    <span style={{fontWeight: 'bold', color: estudiante.probabilidad_exito.color === 'success' ? '#28a745' : estudiante.probabilidad_exito.color === 'info' ? '#17a2b8' : estudiante.probabilidad_exito.color === 'warning' ? '#ffc107' : '#dc3545'}}>
+                      {estudiante.probabilidad_exito.categoria}
+                    </span>
+                  </div>
+                  <div style={{width: '100%', backgroundColor: '#e9ecef', borderRadius: '10px', height: '25px', overflow: 'hidden'}}>
+                    <div style={{
+                      width: `${estudiante.probabilidad_exito.probabilidad}%`,
+                      backgroundColor: estudiante.probabilidad_exito.color === 'success' ? '#28a745' : estudiante.probabilidad_exito.color === 'info' ? '#17a2b8' : estudiante.probabilidad_exito.color === 'warning' ? '#ffc107' : '#dc3545',
+                      height: '100%',
+                      transition: 'width 0.5s ease',
+                      borderRadius: '10px'
+                    }}></div>
+                  </div>
+                  <p style={{marginTop: '10px', fontSize: '0.95rem', color: '#6c757d'}}>{estudiante.probabilidad_exito.mensaje}</p>
+                </div>
+                <div>
+                  <h4 style={{marginBottom: '10px', fontSize: '1rem'}}>Factores Evaluados:</h4>
+                  {estudiante.probabilidad_exito.factores.map((factor, index) => (
+                    <div key={index} style={{display: 'flex', justifyContent: 'space-between', padding: '8px', borderBottom: '1px solid #e9ecef'}}>
+                      <span style={{fontSize: '0.9rem'}}>
+                        {factor.cumple ? '✅' : '❌'} {factor.factor}
+                      </span>
+                      <span style={{fontWeight: 'bold', fontSize: '0.9rem'}}>{factor.puntos} pts</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* NUEVA CARD: Cursos Sugeridos */}
+          {estudiante.cursos_sugeridos && estudiante.cursos_sugeridos.length > 0 && (
+            <div className="info-card">
+              <h2>🎓 Cursos Sugeridos para Ti</h2>
+              <div style={{padding: '10px'}}>
+                {estudiante.cursos_sugeridos.map((curso, index) => (
+                  <div key={index} style={{
+                    border: '1px solid #e9ecef',
+                    borderRadius: '8px',
+                    padding: '15px',
+                    marginBottom: '15px',
+                    backgroundColor: curso.asequible ? '#f8f9fa' : '#fff3cd'
+                  }}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px'}}>
+                      <h3 style={{margin: 0, fontSize: '1.1rem', color: '#212529'}}>{curso.nombre}</h3>
+                      <span style={{
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        padding: '4px 10px',
+                        borderRadius: '12px',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold'
+                      }}>
+                        {curso.match}% match
+                      </span>
+                    </div>
+                    <p style={{margin: '5px 0', fontSize: '0.95rem', color: '#6c757d'}}>
+                      <strong>Universidad:</strong> {curso.universidad}
+                    </p>
+                    <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.9rem'}}>
+                      <p style={{margin: '5px 0'}}>⏱️ <strong>Duración:</strong> {curso.duracion}</p>
+                      <p style={{margin: '5px 0'}}>💶 <strong>Costo:</strong> €{curso.costo_anual.toLocaleString()}/año</p>
+                      <p style={{margin: '5px 0'}}>🗣️ <strong>Español:</strong> {curso.nivel_espanol_requerido}</p>
+                      <p style={{margin: '5px 0'}}>
+                        {curso.asequible ? '✅ Asequible' : '⚠️ Revisar fondos'}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* NUEVA CARD: Generador de Documentos */}
+          <div className="info-card">
+            <h2>📄 Generar Documentos Borrador</h2>
+            <div style={{padding: '15px'}}>
+              <p style={{marginBottom: '15px', color: '#6c757d'}}>
+                Genera automáticamente documentos borrador para tu solicitud de visa
+              </p>
+              <button 
+                onClick={generarDocumentos}
+                disabled={generandoDocs}
+                style={{
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  padding: '12px 24px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  cursor: generandoDocs ? 'not-allowed' : 'pointer',
+                  opacity: generandoDocs ? 0.6 : 1
+                }}
+              >
+                {generandoDocs ? '⏳ Generando...' : '🚀 Generar Documentos'}
+              </button>
+
+              {documentosGenerados && (
+                <div style={{marginTop: '20px', borderTop: '2px solid #e9ecef', paddingTop: '20px'}}>
+                  <h3 style={{marginBottom: '15px', fontSize: '1.1rem'}}>📥 Documentos Listos para Descargar:</h3>
+                  
+                  <div style={{display: 'grid', gap: '10px'}}>
+                    <button
+                      onClick={() => descargarDocumento(documentosGenerados.carta_aceptacion, `Carta_Aceptacion_${estudiante.nombre}.txt`)}
+                      style={{
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        padding: '10px 15px',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      📜 Descargar Carta de Aceptación (Borrador)
+                    </button>
+
+                    <button
+                      onClick={() => descargarDocumento(documentosGenerados.carta_patrocinio, `Carta_Patrocinio_${estudiante.nombre}.txt`)}
+                      style={{
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        padding: '10px 15px',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      💰 Descargar Carta de Patrocinio (Borrador)
+                    </button>
+
+                    <button
+                      onClick={() => descargarDocumento(documentosGenerados.checklist_personalizado, `Checklist_${estudiante.nombre}.txt`)}
+                      style={{
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        padding: '10px 15px',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      ✅ Descargar Checklist Personalizado
+                    </button>
+                  </div>
+
+                  <p style={{marginTop: '15px', fontSize: '0.85rem', color: '#dc3545', fontWeight: 'bold'}}>
+                    ⚠️ IMPORTANTE: Estos son BORRADORES. Deben ser completados con datos reales y firmados oficialmente.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 

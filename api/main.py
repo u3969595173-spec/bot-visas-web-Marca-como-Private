@@ -476,6 +476,39 @@ async def registrar_estudiante(
         nuevo_id = row[0]
         codigo_final = row[1]
         
+        # Preparar datos para alertas
+        estudiante_registrado = {
+            "id": nuevo_id,
+            "nombre": nombre,
+            "email": email,
+            "telefono": telefono,
+            "pasaporte": pasaporte,
+            "fecha_nacimiento": fecha_nacimiento,
+            "edad": edad,
+            "nacionalidad": nacionalidad,
+            "pais_origen": pais_origen,
+            "ciudad_origen": ciudad_origen,
+            "carrera_deseada": carrera_deseada,
+            "especialidad": especialidad,
+            "nivel_espanol": nivel_espanol,
+            "tipo_visa": tipo_visa,
+            "fondos_disponibles": fondos_disponibles,
+            "fecha_inicio_estimada": fecha_inicio_estimada,
+            "archivo_titulo": ruta_titulo,
+            "archivo_pasaporte": ruta_pasaporte,
+            "archivo_extractos": ruta_extractos,
+            "consentimiento_gdpr": consentimiento_gdpr == 'true',
+            "codigo_acceso": codigo_final
+        }
+        
+        # Verificar y enviar alertas al admin si hay problemas
+        try:
+            from api.alertas_admin import verificar_y_alertar
+            problemas = verificar_y_alertar(estudiante_registrado)
+            print(f"[INFO] Verificación completada. Problemas: {problemas}")
+        except Exception as e:
+            print(f"[WARN] Error verificando alertas: {e}")
+        
         # Enviar email de bienvenida con código de acceso
         try:
             from api.email_utils import email_bienvenida_con_codigo
@@ -528,7 +561,11 @@ def verificar_codigo_acceso(codigo_acceso: str, db: Session = Depends(get_db)):
 def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)):
     """
     Obtiene datos de un estudiante (sin auth para estudiante)
+    Incluye: datos básicos, cursos sugeridos, probabilidad de éxito
     """
+    from api.sugerencias_cursos import sugerir_cursos
+    from api.calculador_probabilidad import calcular_probabilidad_exito
+    
     # Usar SQL directo para evitar problemas con columnas del ORM
     query = text("""
         SELECT 
@@ -548,7 +585,7 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
     if not result:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
-    return {
+    estudiante_data = {
         "id": result[0],
         "nombre": result[1],
         "email": result[2],
@@ -576,6 +613,18 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
         "created_at": result[24].isoformat() if result[24] else None,
         "updated_at": result[25].isoformat() if result[25] else None
     }
+    
+    # Generar sugerencias de cursos
+    cursos_sugeridos = sugerir_cursos(estudiante_data)
+    
+    # Calcular probabilidad de éxito
+    probabilidad = calcular_probabilidad_exito(estudiante_data)
+    
+    # Añadir automáticamente al response
+    estudiante_data['cursos_sugeridos'] = cursos_sugeridos
+    estudiante_data['probabilidad_exito'] = probabilidad
+    
+    return estudiante_data
 
 
 @app.put("/api/estudiantes/{estudiante_id}", tags=["Estudiantes"])
@@ -649,6 +698,62 @@ def calcular_probabilidad_visa(estudiante_id: int, db: Session = Depends(get_db)
         'estudiante_id': estudiante_id,
         'estudiante_nombre': estudiante.nombre,
         'analisis': analisis
+    }
+
+
+@app.get("/api/estudiantes/{estudiante_id}/generar-documentos", tags=["Estudiantes"])
+def generar_documentos_estudiante(estudiante_id: int, db: Session = Depends(get_db)):
+    """
+    Genera documentos borrador: carta aceptación, carta patrocinio, checklist
+    """
+    from api.generador_documentos_borrador import generar_todos_documentos
+    
+    # Obtener datos del estudiante
+    query = text("""
+        SELECT 
+            id, nombre, email, telefono, pasaporte, fecha_nacimiento, edad, 
+            nacionalidad, pais_origen, ciudad_origen, carrera_deseada, especialidad, 
+            nivel_espanol, tipo_visa, fondos_disponibles, fecha_inicio_estimada,
+            archivo_titulo, archivo_pasaporte, archivo_extractos
+        FROM estudiantes 
+        WHERE id = :estudiante_id
+    """)
+    
+    result = db.execute(query, {"estudiante_id": estudiante_id}).fetchone()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    estudiante_data = {
+        "id": result[0],
+        "nombre": result[1],
+        "email": result[2],
+        "telefono": result[3],
+        "pasaporte": result[4],
+        "fecha_nacimiento": result[5].isoformat() if result[5] else None,
+        "edad": result[6],
+        "nacionalidad": result[7],
+        "pais_origen": result[8],
+        "ciudad_origen": result[9],
+        "carrera_deseada": result[10],
+        "especialidad": result[11],
+        "nivel_espanol": result[12],
+        "tipo_visa": result[13],
+        "fondos_disponibles": float(result[14]) if result[14] else 0,
+        "fecha_inicio_estimada": result[15].isoformat() if result[15] else "próximo semestre",
+        "archivo_titulo": result[16],
+        "archivo_pasaporte": result[17],
+        "archivo_extractos": result[18]
+    }
+    
+    # Generar documentos
+    documentos = generar_todos_documentos(estudiante_data)
+    
+    return {
+        "estudiante_id": estudiante_id,
+        "estudiante_nombre": estudiante_data["nombre"],
+        "documentos": documentos,
+        "nota": "Estos son BORRADORES. Deben ser completados con datos reales y firmados oficialmente."
     }
 
 
