@@ -48,6 +48,10 @@ const RegistroEstudiante = () => {
       console.log('ID extraído:', id);
       console.log('Código de acceso:', codigo);
       
+      // Guardar en localStorage para uso posterior
+      localStorage.setItem('codigo_acceso', codigo);
+      localStorage.setItem('estudianteId', id);
+      
       setEstudianteId(id);
       setCodigoAcceso(codigo);
       setSuccess(true);
