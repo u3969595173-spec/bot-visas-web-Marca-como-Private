@@ -45,7 +45,7 @@ function App() {
     <BrowserRouter>
       <div className="app">
         <nav style={styles.nav}>
-          <div className="container" style={styles.navContainer}>
+          <div style={styles.navContainer}>
             <Link to="/" style={styles.logo}>
               🎓 Agencia Educativa España
             </Link>
@@ -307,27 +307,40 @@ const styles = {
     boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
     padding: '15px 0',
     marginBottom: '30px',
+    width: '100%',
   },
   navContainer: {
+    maxWidth: '1200px',
+    margin: '0 auto',
+    padding: '0 20px',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '15px',
   },
   logo: {
     fontSize: '24px',
     fontWeight: 'bold',
     color: '#667eea',
     textDecoration: 'none',
+    whiteSpace: 'nowrap',
   },
   navLinks: {
     display: 'flex',
-    gap: '20px',
+    gap: '15px',
+    flexWrap: 'wrap',
+    alignItems: 'center',
   },
   navLink: {
     color: '#2d3748',
     textDecoration: 'none',
     fontWeight: '500',
-    transition: 'color 0.3s',
+    fontSize: '14px',
+    padding: '8px 12px',
+    borderRadius: '5px',
+    transition: 'all 0.3s',
+    whiteSpace: 'nowrap',
   },
 }
 
