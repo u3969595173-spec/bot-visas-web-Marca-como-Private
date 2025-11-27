@@ -8024,14 +8024,17 @@ async def obtener_proceso_visa(estudiante_id: int):
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
+class ActualizarProcesoRequest(BaseModel):
+    paso: str
+    completado: bool
+    notas: Optional[str] = None
+    fecha_cita: Optional[str] = None
+    resultado: Optional[str] = None
+
 @app.put("/api/admin/estudiantes/{estudiante_id}/proceso-visa")
 async def actualizar_paso_proceso(
     estudiante_id: int,
-    paso: str,
-    completado: bool,
-    notas: str = None,
-    fecha_cita: str = None,
-    resultado: str = None,
+    request: ActualizarProcesoRequest,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Actualizar un paso específico del proceso (SOLO ADMIN)"""
@@ -8049,6 +8052,13 @@ async def actualizar_paso_proceso(
     
     conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
     cursor = conn.cursor()
+    
+    # Extraer valores del request
+    paso = request.paso
+    completado = request.completado
+    notas = request.notas
+    fecha_cita = request.fecha_cita
+    resultado = request.resultado
     
     # Verificar que el paso existe
     pasos_validos = [
