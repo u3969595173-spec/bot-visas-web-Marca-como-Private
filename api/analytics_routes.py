@@ -15,7 +15,9 @@ def obtener_analytics_general(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
     """Obtener métricas generales del dashboard"""
-    verificar_token(credentials.credentials)
+    usuario = verificar_token(credentials.credentials)
+    if not usuario or usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
@@ -103,7 +105,9 @@ def obtener_estudiantes_por_pais(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
     """Estudiantes agrupados por país de origen"""
-    verificar_token(credentials.credentials)
+    usuario = verificar_token(credentials.credentials)
+    if not usuario or usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
@@ -137,7 +141,9 @@ def obtener_estudiantes_por_especialidad(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
     """Estudiantes agrupados por especialidad"""
-    verificar_token(credentials.credentials)
+    usuario = verificar_token(credentials.credentials)
+    if not usuario or usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
@@ -172,7 +178,9 @@ def obtener_crecimiento_mensual(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
     """Crecimiento de estudiantes por mes"""
-    verificar_token(credentials.credentials)
+    usuario = verificar_token(credentials.credentials)
+    if not usuario or usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
@@ -207,7 +215,9 @@ def obtener_distribucion_estados(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
     """Distribución de estudiantes por estado de visa"""
-    verificar_token(credentials.credentials)
+    usuario = verificar_token(credentials.credentials)
+    if not usuario or usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
@@ -241,7 +251,9 @@ def obtener_universidades_populares(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
     """Top universidades más buscadas"""
-    verificar_token(credentials.credentials)
+    usuario = verificar_token(credentials.credentials)
+    if not usuario or usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
@@ -290,7 +302,9 @@ def obtener_metricas_engagement(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
     """Métricas de engagement de estudiantes"""
-    verificar_token(credentials.credentials)
+    usuario = verificar_token(credentials.credentials)
+    if not usuario or usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
@@ -357,7 +371,9 @@ def exportar_estudiantes_csv(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
     """Exportar todos los estudiantes a CSV"""
-    verificar_token(credentials.credentials)
+    usuario = verificar_token(credentials.credentials)
+    if not usuario or usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
         import io
