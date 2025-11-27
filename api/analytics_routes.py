@@ -247,12 +247,27 @@ def obtener_universidades_populares(
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
         cursor = conn.cursor()
         
+        # Verificar si la columna visitas existe
         cursor.execute("""
-            SELECT nombre, COALESCE(visitas, 0) as visitas
-            FROM universidades_espana
-            ORDER BY visitas DESC
-            LIMIT 10
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'universidades_espana' AND column_name = 'visitas'
         """)
+        
+        if cursor.fetchone():
+            cursor.execute("""
+                SELECT nombre, COALESCE(visitas, 0) as visitas
+                FROM universidades_espana
+                ORDER BY visitas DESC
+                LIMIT 10
+            """)
+        else:
+            # Si no existe la columna, devolver lista vacía
+            cursor.execute("""
+                SELECT nombre, 0 as visitas
+                FROM universidades_espana
+                LIMIT 10
+            """)
         
         universidades = [{"nombre": row[0], "visitas": row[1]} for row in cursor.fetchall()]
         
@@ -265,6 +280,8 @@ def obtener_universidades_populares(
         }
     except Exception as e:
         print(f"❌ Error obteniendo universidades: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/admin/analytics/engagement")
