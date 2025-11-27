@@ -59,12 +59,22 @@ def obtener_analytics_general(
         """)
         mensajes_mes = cursor.fetchone()[0]
         
-        # Simulador completados
+        # Simulador completados (verificar si tabla existe)
         cursor.execute("""
-            SELECT COUNT(DISTINCT estudiante_id) 
-            FROM resultados_simulador
+            SELECT COUNT(*) 
+            FROM information_schema.tables 
+            WHERE table_name = 'resultados_simulador'
         """)
-        simulador_completados = cursor.fetchone()[0]
+        tabla_existe = cursor.fetchone()[0] > 0
+        
+        if tabla_existe:
+            cursor.execute("""
+                SELECT COUNT(DISTINCT estudiante_id) 
+                FROM resultados_simulador
+            """)
+            simulador_completados = cursor.fetchone()[0]
+        else:
+            simulador_completados = 0
         
         cursor.close()
         conn.close()
@@ -273,21 +283,33 @@ def obtener_metricas_engagement(
         cursor.execute("SELECT COUNT(*) FROM estudiantes")
         total = cursor.fetchone()[0]
         
-        # Simulador completados
-        cursor.execute("SELECT COUNT(DISTINCT estudiante_id) FROM resultados_simulador")
-        simulador = cursor.fetchone()[0]
+        # Simulador completados (verificar si tabla existe)
+        try:
+            cursor.execute("SELECT COUNT(DISTINCT estudiante_id) FROM resultados_simulador")
+            simulador = cursor.fetchone()[0]
+        except:
+            simulador = 0
         
-        # Alertas creadas
-        cursor.execute("SELECT COUNT(DISTINCT estudiante_id) FROM alertas_fechas")
-        alertas = cursor.fetchone()[0]
+        # Alertas creadas (verificar si tabla existe)
+        try:
+            cursor.execute("SELECT COUNT(DISTINCT estudiante_id) FROM alertas_fechas")
+            alertas = cursor.fetchone()[0]
+        except:
+            alertas = 0
         
         # Chat activo
-        cursor.execute("SELECT COUNT(DISTINCT estudiante_id) FROM mensajes_chat")
-        chat = cursor.fetchone()[0]
+        try:
+            cursor.execute("SELECT COUNT(DISTINCT estudiante_id) FROM mensajes_chat")
+            chat = cursor.fetchone()[0]
+        except:
+            chat = 0
         
         # Documentos subidos
-        cursor.execute("SELECT COUNT(DISTINCT estudiante_id) FROM documentos WHERE tipo_documento IS NOT NULL")
-        documentos = cursor.fetchone()[0] if cursor.rowcount > 0 else 0
+        try:
+            cursor.execute("SELECT COUNT(DISTINCT estudiante_id) FROM documentos WHERE tipo_documento IS NOT NULL")
+            documentos = cursor.fetchone()[0]
+        except:
+            documentos = 0
         
         cursor.close()
         conn.close()
