@@ -831,7 +831,7 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
             archivo_titulo, archivo_pasaporte, archivo_extractos,
             consentimiento_gdpr, fecha_consentimiento,
             estado, documentos_estado, notas, 
-            created_at, updated_at
+            created_at, updated_at, perfil_completo
         FROM estudiantes 
         WHERE id = :estudiante_id
     """)
@@ -854,9 +854,9 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
         "ciudad_origen": result[9],
         "carrera_deseada": result[10],
         "especialidad": result[11],
-        "nivel_espanol": result[12],
-        "tipo_visa": result[13],
-        "fondos_disponibles": float(result[14]) if result[14] else None,
+        "nivel_espanol": result[12] or "basico",  # Default si es None
+        "tipo_visa": result[13] or "estudiante",  # Default si es None
+        "fondos_disponibles": float(result[14]) if result[14] else 0.0,
         "fecha_inicio_estimada": result[15].isoformat() if result[15] else None,
         "archivo_titulo": result[16],
         "archivo_pasaporte": result[17],
@@ -867,7 +867,8 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
         "documentos_estado": result[22],
         "notas": result[23],
         "created_at": result[24].isoformat() if result[24] else None,
-        "updated_at": result[25].isoformat() if result[25] else None
+        "updated_at": result[25].isoformat() if result[25] else None,
+        "perfil_completo": result[26] if result[26] is not None else False
     }
     
     # Generar sugerencias de cursos
