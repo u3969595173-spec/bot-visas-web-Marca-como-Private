@@ -22,6 +22,7 @@ from api.schemas import (
 from api.auth import crear_token, verificar_token
 from api.blog_routes import router as blog_router
 from api.testimonios_routes import router as testimonios_router
+from api.notificaciones_routes import router as notificaciones_router
 
 app = FastAPI(
     title="Bot Visas Estudio API",
@@ -207,6 +208,27 @@ async def startup_event():
             CREATE INDEX IF NOT EXISTS idx_blog_slug ON blog_posts(slug);
             CREATE INDEX IF NOT EXISTS idx_testimonios_aprobado ON testimonios(aprobado);
             CREATE INDEX IF NOT EXISTS idx_testimonios_destacado ON testimonios(destacado);
+        """)
+        
+        # Tabla notificaciones
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS notificaciones (
+                id SERIAL PRIMARY KEY,
+                estudiante_id INTEGER NOT NULL,
+                tipo VARCHAR(50) NOT NULL,
+                titulo VARCHAR(200) NOT NULL,
+                mensaje TEXT NOT NULL,
+                leida BOOLEAN DEFAULT FALSE,
+                url_accion VARCHAR(500),
+                icono VARCHAR(20) DEFAULT '🔔',
+                prioridad VARCHAR(20) DEFAULT 'normal',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notificaciones_estudiante ON notificaciones(estudiante_id);
+            CREATE INDEX IF NOT EXISTS idx_notificaciones_leida ON notificaciones(leida);
         """)
         
         conn.commit()
@@ -420,6 +442,7 @@ security = HTTPBearer()
 # Incluir routers de blog y testimonios
 app.include_router(blog_router, prefix="/api")
 app.include_router(testimonios_router, prefix="/api")
+app.include_router(notificaciones_router, prefix="/api")
 
 @app.post("/api/login", response_model=LoginResponse, tags=["Auth"])
 def login(datos: LoginRequest, db: Session = Depends(get_db)):
@@ -2219,6 +2242,20 @@ def generar_documentos_estudiante(
             print(f"Error generando documento {tipo}: {e}")
             continue
     
+    # Crear notificación si se generaron documentos
+    if documentos_generados:
+        from api.notificaciones_routes import crear_notificacion
+        crear_notificacion(
+            db=db,
+            estudiante_id=estudiante_id,
+            tipo='documento',
+            titulo='📄 Nuevos documentos generados',
+            mensaje=f'Se han generado {len(documentos_generados)} documento(s) para ti. Revísalos en tu dashboard.',
+            url_accion='/estudiante/dashboard',
+            icono='📄',
+            prioridad='alta'
+        )
+    
     return {
         'estudiante_id': estudiante_id,
         'documentos_generados': documentos_generados,
@@ -2983,6 +3020,62 @@ def actualizar_estado_estudiante(
     estudiante.updated_at = datetime.utcnow()
     
     db.commit()
+    
+    # Crear notificación para el estudiante
+    from api.notificaciones_routes import crear_notificacion
+    
+    # Mapear estados a mensajes amigables
+    mensajes_estados = {
+        'aprobado': {
+            'titulo': '✅ Solicitud Aprobada',
+            'mensaje': '¡Felicitaciones! Tu solicitud ha sido aprobada.',
+            'icono': '✅',
+            'prioridad': 'alta'
+        },
+        'rechazado': {
+            'titulo': '❌ Solicitud Rechazada',
+            'mensaje': 'Lamentablemente tu solicitud no fue aprobada. Contacta con nosotros para más información.',
+            'icono': '❌',
+            'prioridad': 'alta'
+        },
+        'cita_consular': {
+            'titulo': '📅 Cita Consular Programada',
+            'mensaje': 'Se ha programado tu cita consular. Revisa los detalles en tu dashboard.',
+            'icono': '📅',
+            'prioridad': 'urgente'
+        },
+        'visa_aprobada': {
+            'titulo': '🎉 ¡Visa Aprobada!',
+            'mensaje': '¡Excelentes noticias! Tu visa ha sido aprobada. Felicitaciones.',
+            'icono': '🎉',
+            'prioridad': 'urgente'
+        },
+        'visa_rechazada': {
+            'titulo': '😔 Visa Rechazada',
+            'mensaje': 'Tu visa no fue aprobada. Contacta con nosotros para explorar opciones.',
+            'icono': '😔',
+            'prioridad': 'urgente'
+        },
+        'llegada_espana': {
+            'titulo': '✈️ Bienvenido a España',
+            'mensaje': '¡Has llegado a España! Te deseamos mucho éxito en tu aventura.',
+            'icono': '✈️',
+            'prioridad': 'alta'
+        }
+    }
+    
+    if nuevo_estado in mensajes_estados:
+        info = mensajes_estados[nuevo_estado]
+        crear_notificacion(
+            db=db,
+            estudiante_id=estudiante_id,
+            tipo='estado',
+            titulo=info['titulo'],
+            mensaje=info['mensaje'] + (f' Notas: {notas}' if notas else ''),
+            url_accion='/estudiante/dashboard',
+            icono=info['icono'],
+            prioridad=info['prioridad']
+        )
     
     return {"mensaje": "Estado actualizado correctamente", "nuevo_estado": nuevo_estado}
 

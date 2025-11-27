@@ -19,6 +19,7 @@ import BlogPost from './components/BlogPost'
 import AdminBlog from './components/AdminBlog'
 import TestimoniosLista from './components/TestimoniosLista'
 import AdminTestimonios from './components/AdminTestimonios'
+import Notificaciones from './components/Notificaciones'
 import Home from './components/Home'
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
               🎓 Agencia Educativa España
             </Link>
             <div style={styles.navLinks}>
+              {estudianteId && <Notificaciones estudianteId={estudianteId} />}
               <Link to="/estudiante/login" style={styles.navLink}>
                 🎓 Acceso Estudiantes
               </Link>

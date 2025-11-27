@@ -247,6 +247,20 @@ class Testimonio(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class Notificacion(Base):
+    __tablename__ = 'notificaciones'
+    
+    id = Column(Integer, primary_key=True)
+    estudiante_id = Column(Integer, nullable=False)  # Relación con Student
+    tipo = Column(String(50), nullable=False)  # 'mensaje', 'estado', 'documento', 'alerta', 'sistema'
+    titulo = Column(String(200), nullable=False)
+    mensaje = Column(Text, nullable=False)
+    leida = Column(Boolean, default=False)
+    url_accion = Column(String(500))  # URL donde redirigir al hacer clic
+    icono = Column(String(20), default='🔔')  # Emoji del icono
+    prioridad = Column(String(20), default='normal')  # 'baja', 'normal', 'alta', 'urgente'
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Database initialization
 from dotenv import load_dotenv
 load_dotenv()  # Cargar .env ANTES de crear engine

@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def job_verificar_alertas():
     """
-    Job que verifica alertas pendientes y envía emails
+    Job que verifica alertas pendientes y envía emails + notificaciones
     Se ejecuta diariamente a las 9:00 AM
     """
     logger.info(f"🔔 Iniciando verificación de alertas - {datetime.now()}")
@@ -27,8 +27,34 @@ def job_verificar_alertas():
         
         if alertas_enviadas:
             logger.info(f"✅ Se enviaron {len(alertas_enviadas)} alertas:")
+            
+            # Crear notificaciones para cada alerta enviada
+            from api.notificaciones_routes import crear_notificacion
+            
             for alerta in alertas_enviadas:
                 logger.info(f"   - Estudiante {alerta['estudiante_id']}: alerta de {alerta['tipo']}")
+                
+                # Crear notificación en la app
+                tipos_iconos = {
+                    'cita_consular': ('📅', 'Recordatorio: Cita Consular'),
+                    'vencimiento_visa': ('⚠️', 'Alerta: Vencimiento de Visa'),
+                    'renovacion_nie': ('🆔', 'Recordatorio: Renovación NIE'),
+                    'inicio_clases': ('🎓', 'Recordatorio: Inicio de Clases'),
+                    'entrega_documentos': ('📄', 'Recordatorio: Entrega de Documentos')
+                }
+                
+                icono, titulo_base = tipos_iconos.get(alerta['tipo'], ('🔔', 'Recordatorio'))
+                
+                crear_notificacion(
+                    db=db,
+                    estudiante_id=alerta['estudiante_id'],
+                    tipo='alerta',
+                    titulo=titulo_base,
+                    mensaje=alerta.get('mensaje', 'Tienes una fecha importante próxima. Revisa tu timeline de alertas.'),
+                    url_accion='/estudiante/alertas',
+                    icono=icono,
+                    prioridad='urgente' if 'vencimiento' in alerta['tipo'] else 'alta'
+                )
         else:
             logger.info("ℹ️ No hay alertas pendientes para enviar")
             
