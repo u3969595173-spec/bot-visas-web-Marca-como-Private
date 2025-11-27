@@ -8034,7 +8034,7 @@ class ActualizarProcesoRequest(BaseModel):
 @app.put("/api/admin/estudiantes/{estudiante_id}/proceso-visa")
 async def actualizar_paso_proceso(
     estudiante_id: int,
-    request: ActualizarProcesoRequest,
+    request: ActualizarProcesoRequest = Body(...),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Actualizar un paso específico del proceso (SOLO ADMIN)"""
