@@ -2518,6 +2518,147 @@ def descargar_documento_generado(
     )
 
 
+@app.get("/api/admin/estudiantes/{estudiante_id}/descargar-expediente", tags=["Admin - Documentos"])
+def descargar_expediente_completo(
+    estudiante_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Descarga expediente completo del estudiante en formato ZIP"""
+    import zipfile
+    import base64
+    from io import BytesIO
+    
+    # Obtener datos del estudiante
+    estudiante_data = db.execute(
+        text("SELECT nombre, email, pasaporte FROM estudiantes WHERE id = :id"),
+        {"id": estudiante_id}
+    ).fetchone()
+    
+    if not estudiante_data:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    nombre_estudiante = estudiante_data[0]
+    
+    # Crear ZIP en memoria
+    zip_buffer = BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        
+        # 1. Documentos generados (PDFs)
+        docs_generados = db.execute(
+            text("""
+                SELECT nombre_archivo, contenido_pdf, tipo_documento
+                FROM documentos_generados
+                WHERE estudiante_id = :id
+            """),
+            {"id": estudiante_id}
+        ).fetchall()
+        
+        for doc in docs_generados:
+            nombre, contenido_b64, tipo = doc
+            if contenido_b64:
+                pdf_bytes = base64.b64decode(contenido_b64)
+                zip_file.writestr(f"documentos_generados/{nombre}", pdf_bytes)
+        
+        # 2. Documentos subidos por el estudiante
+        docs_subidos = db.execute(
+            text("""
+                SELECT nombre_archivo, contenido_base64, tipo_documento
+                FROM documentos
+                WHERE estudiante_id = :id
+            """),
+            {"id": estudiante_id}
+        ).fetchall()
+        
+        for doc in docs_subidos:
+            nombre, contenido_b64, tipo = doc
+            if contenido_b64:
+                try:
+                    file_bytes = base64.b64decode(contenido_b64)
+                    zip_file.writestr(f"documentos_subidos/{nombre}", file_bytes)
+                except Exception as e:
+                    print(f"Error procesando documento {nombre}: {e}")
+        
+        # 3. Información del estudiante en JSON
+        import json
+        info_estudiante = db.execute(
+            text("""
+                SELECT nombre, email, telefono, pasaporte, edad, nacionalidad,
+                       pais_origen, ciudad_origen, carrera_deseada, especialidad,
+                       nivel_espanol, tipo_visa, fondos_disponibles, estado,
+                       fecha_inicio_estimada, created_at
+                FROM estudiantes WHERE id = :id
+            """),
+            {"id": estudiante_id}
+        ).fetchone()
+        
+        if info_estudiante:
+            estudiante_json = {
+                "nombre": info_estudiante[0],
+                "email": info_estudiante[1],
+                "telefono": info_estudiante[2],
+                "pasaporte": info_estudiante[3],
+                "edad": info_estudiante[4],
+                "nacionalidad": info_estudiante[5],
+                "pais_origen": info_estudiante[6],
+                "ciudad_origen": info_estudiante[7],
+                "carrera_deseada": info_estudiante[8],
+                "especialidad": info_estudiante[9],
+                "nivel_espanol": info_estudiante[10],
+                "tipo_visa": info_estudiante[11],
+                "fondos_disponibles": float(info_estudiante[12]) if info_estudiante[12] else 0,
+                "estado": info_estudiante[13],
+                "fecha_inicio_estimada": info_estudiante[14].isoformat() if info_estudiante[14] else None,
+                "fecha_registro": info_estudiante[15].isoformat() if info_estudiante[15] else None
+            }
+            
+            zip_file.writestr(
+                "info_estudiante.json",
+                json.dumps(estudiante_json, indent=2, ensure_ascii=False)
+            )
+        
+        # 4. README con información del expediente
+        readme_content = f"""EXPEDIENTE COMPLETO - {nombre_estudiante}
+{'='*60}
+
+Este archivo ZIP contiene:
+
+📁 documentos_generados/
+   - Documentos oficiales generados por el sistema
+   - Cartas de aceptación, motivación, formularios, etc.
+
+📁 documentos_subidos/
+   - Documentos proporcionados por el estudiante
+   - Pasaporte, certificados académicos, extractos bancarios, etc.
+
+📄 info_estudiante.json
+   - Información completa del perfil del estudiante
+   - Datos personales, académicos y financieros
+
+Generado: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
+Por: {usuario['email']}
+"""
+        zip_file.writestr("README.txt", readme_content)
+    
+    # Registrar auditoría
+    registrar_auditoria(
+        db, usuario['email'], 'DESCARGAR_EXPEDIENTE',
+        'estudiante', estudiante_id,
+        {'nombre': nombre_estudiante}
+    )
+    
+    # Preparar respuesta
+    zip_buffer.seek(0)
+    filename = f"expediente_{nombre_estudiante.replace(' ', '_')}_{estudiante_id}.zip"
+    
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
 @app.put("/api/admin/documentos-generados/{documento_id}/aprobar", tags=["Admin - Documentos"])
 def aprobar_documento_generado(
     documento_id: int,
@@ -3543,13 +3684,21 @@ def marcar_mensaje_leido(mensaje_id: int, db: Session = Depends(get_db)):
 @app.get("/api/admin/estudiantes", response_model=List[Dict], tags=["Admin"])
 def listar_estudiantes(
     estado: Optional[str] = None,
+    busqueda: Optional[str] = None,
+    nacionalidad: Optional[str] = None,
+    especialidad: Optional[str] = None,
+    fondos_min: Optional[float] = None,
+    fondos_max: Optional[float] = None,
+    fecha_desde: Optional[str] = None,
+    fecha_hasta: Optional[str] = None,
+    ordenar_por: Optional[str] = "created_at",
+    orden: Optional[str] = "DESC",
     skip: int = 0,
     limit: int = 100,
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
-    """Lista todos los estudiantes con filtros opcionales"""
-    # Usar SQL directo para evitar problemas con el ORM
+    """Lista estudiantes con filtros avanzados"""
     query_text = """
         SELECT 
             id, 
@@ -3557,17 +3706,66 @@ def listar_estudiantes(
             COALESCE(email, 'estudiante' || id::text || '@example.com') as email,
             COALESCE(especialidad, especialidad_interes, tipo_visa, 'No especificado') as especialidad,
             COALESCE(estado, estado_procesamiento, 'pendiente') as estado,
+            nacionalidad,
+            fondos_disponibles,
             created_at
         FROM estudiantes
+        WHERE 1=1
     """
     
     params = {"skip": skip, "limit": limit}
     
+    # Filtro de estado
     if estado:
-        query_text += " WHERE COALESCE(estado, estado_procesamiento, 'pendiente') = :estado"
+        query_text += " AND COALESCE(estado, estado_procesamiento, 'pendiente') = :estado"
         params["estado"] = estado
     
-    query_text += " ORDER BY created_at DESC OFFSET :skip LIMIT :limit"
+    # Búsqueda por nombre, email o pasaporte
+    if busqueda:
+        query_text += """ AND (
+            LOWER(COALESCE(nombre, nombre_completo, '')) LIKE LOWER(:busqueda)
+            OR LOWER(email) LIKE LOWER(:busqueda)
+            OR LOWER(pasaporte) LIKE LOWER(:busqueda)
+        )"""
+        params["busqueda"] = f"%{busqueda}%"
+    
+    # Filtro por nacionalidad
+    if nacionalidad:
+        query_text += " AND LOWER(nacionalidad) = LOWER(:nacionalidad)"
+        params["nacionalidad"] = nacionalidad
+    
+    # Filtro por especialidad
+    if especialidad:
+        query_text += " AND LOWER(COALESCE(especialidad, especialidad_interes, '')) LIKE LOWER(:especialidad)"
+        params["especialidad"] = f"%{especialidad}%"
+    
+    # Filtro por rango de fondos
+    if fondos_min is not None:
+        query_text += " AND fondos_disponibles >= :fondos_min"
+        params["fondos_min"] = fondos_min
+    
+    if fondos_max is not None:
+        query_text += " AND fondos_disponibles <= :fondos_max"
+        params["fondos_max"] = fondos_max
+    
+    # Filtro por rango de fechas
+    if fecha_desde:
+        query_text += " AND created_at >= :fecha_desde"
+        params["fecha_desde"] = fecha_desde
+    
+    if fecha_hasta:
+        query_text += " AND created_at <= :fecha_hasta"
+        params["fecha_hasta"] = fecha_hasta
+    
+    # Ordenamiento dinámico
+    campos_orden_validos = ["created_at", "nombre", "email", "fondos_disponibles", "estado"]
+    if ordenar_por in campos_orden_validos:
+        orden_seguro = "DESC" if orden.upper() == "DESC" else "ASC"
+        query_text += f" ORDER BY {ordenar_por} {orden_seguro}"
+    else:
+        query_text += " ORDER BY created_at DESC"
+    
+    query_text += " OFFSET :skip LIMIT :limit"
     
     result = db.execute(text(query_text), params).fetchall()
     
@@ -3580,12 +3778,180 @@ def listar_estudiantes(
         'especialidad_interes': row[3],
         'estado': row[4],
         'estado_procesamiento': row[4],
+        'nacionalidad': row[5],
+        'fondos_disponibles': float(row[6]) if row[6] else 0,
         'prioridad': 'BAJA',
         'documentos_subidos': 0,
         'documentos_generados': 0,
-        'dias_desde_registro': (datetime.now() - row[5]).days if row[5] else 0,
-        'created_at': row[5].isoformat() if row[5] else None
+        'dias_desde_registro': (datetime.now() - row[7]).days if row[7] else 0,
+        'created_at': row[7].isoformat() if row[7] else None
     } for row in result]
+
+
+@app.get("/api/admin/estudiantes/exportar/{formato}", tags=["Admin"])
+def exportar_estudiantes(
+    formato: str,
+    estado: Optional[str] = None,
+    nacionalidad: Optional[str] = None,
+    especialidad: Optional[str] = None,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Exporta lista de estudiantes a Excel o CSV"""
+    if formato not in ["excel", "csv"]:
+        raise HTTPException(status_code=400, detail="Formato debe ser 'excel' o 'csv'")
+    
+    # Obtener datos
+    query_text = """
+        SELECT 
+            id, 
+            COALESCE(nombre, nombre_completo, 'Estudiante ' || id::text) as nombre,
+            email,
+            telefono,
+            pasaporte,
+            edad,
+            nacionalidad,
+            pais_origen,
+            ciudad_origen,
+            carrera_deseada,
+            COALESCE(especialidad, especialidad_interes, 'No especificado') as especialidad,
+            nivel_espanol,
+            tipo_visa,
+            fondos_disponibles,
+            COALESCE(estado, estado_procesamiento, 'pendiente') as estado,
+            fecha_inicio_estimada,
+            created_at
+        FROM estudiantes
+        WHERE 1=1
+    """
+    
+    params = {}
+    
+    if estado:
+        query_text += " AND COALESCE(estado, estado_procesamiento, 'pendiente') = :estado"
+        params["estado"] = estado
+    
+    if nacionalidad:
+        query_text += " AND LOWER(nacionalidad) = LOWER(:nacionalidad)"
+        params["nacionalidad"] = nacionalidad
+    
+    if especialidad:
+        query_text += " AND LOWER(COALESCE(especialidad, especialidad_interes, '')) LIKE LOWER(:especialidad)"
+        params["especialidad"] = f"%{especialidad}%"
+    
+    query_text += " ORDER BY created_at DESC"
+    
+    result = db.execute(text(query_text), params).fetchall()
+    
+    # Registrar auditoría
+    registrar_auditoria(
+        db, usuario['email'], 'EXPORTAR_ESTUDIANTES',
+        'reporte', None,
+        {'formato': formato, 'total_registros': len(result)}
+    )
+    
+    if formato == "csv":
+        # Generar CSV
+        import csv
+        from io import StringIO
+        
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # Encabezados
+        writer.writerow([
+            'ID', 'Nombre', 'Email', 'Teléfono', 'Pasaporte', 'Edad',
+            'Nacionalidad', 'País Origen', 'Ciudad', 'Carrera Deseada',
+            'Especialidad', 'Nivel Español', 'Tipo Visa', 'Fondos (EUR)',
+            'Estado', 'Fecha Inicio', 'Fecha Registro'
+        ])
+        
+        # Datos
+        for row in result:
+            writer.writerow([
+                row[0], row[1], row[2], row[3], row[4], row[5],
+                row[6], row[7], row[8], row[9], row[10], row[11],
+                row[12], row[13], row[14],
+                row[15].strftime('%Y-%m-%d') if row[15] else '',
+                row[16].strftime('%Y-%m-%d %H:%M') if row[16] else ''
+            ])
+        
+        output.seek(0)
+        
+        from fastapi.responses import Response
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=estudiantes_{datetime.now().strftime('%Y%m%d')}.csv"
+            }
+        )
+    
+    else:  # Excel
+        import openpyxl
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from io import BytesIO
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Estudiantes"
+        
+        # Encabezados con estilo
+        headers = [
+            'ID', 'Nombre', 'Email', 'Teléfono', 'Pasaporte', 'Edad',
+            'Nacionalidad', 'País Origen', 'Ciudad', 'Carrera Deseada',
+            'Especialidad', 'Nivel Español', 'Tipo Visa', 'Fondos (EUR)',
+            'Estado', 'Fecha Inicio', 'Fecha Registro'
+        ]
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Datos
+        for row_idx, row in enumerate(result, 2):
+            ws.cell(row=row_idx, column=1, value=row[0])
+            ws.cell(row=row_idx, column=2, value=row[1])
+            ws.cell(row=row_idx, column=3, value=row[2])
+            ws.cell(row=row_idx, column=4, value=row[3])
+            ws.cell(row=row_idx, column=5, value=row[4])
+            ws.cell(row=row_idx, column=6, value=row[5])
+            ws.cell(row=row_idx, column=7, value=row[6])
+            ws.cell(row=row_idx, column=8, value=row[7])
+            ws.cell(row=row_idx, column=9, value=row[8])
+            ws.cell(row=row_idx, column=10, value=row[9])
+            ws.cell(row=row_idx, column=11, value=row[10])
+            ws.cell(row=row_idx, column=12, value=row[11])
+            ws.cell(row=row_idx, column=13, value=row[12])
+            ws.cell(row=row_idx, column=14, value=row[13])
+            ws.cell(row=row_idx, column=15, value=row[14])
+            ws.cell(row=row_idx, column=16, value=row[15].strftime('%Y-%m-%d') if row[15] else '')
+            ws.cell(row=row_idx, column=17, value=row[16].strftime('%Y-%m-%d %H:%M') if row[16] else '')
+        
+        # Ajustar anchos de columna
+        for col in ws.columns:
+            max_length = 0
+            column = col[0].column_letter
+            for cell in col:
+                if cell.value:
+                    max_length = max(max_length, len(str(cell.value)))
+            ws.column_dimensions[column].width = min(max_length + 2, 50)
+        
+        # Guardar en memoria
+        excel_buffer = BytesIO()
+        wb.save(excel_buffer)
+        excel_buffer.seek(0)
+        
+        return StreamingResponse(
+            excel_buffer,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename=estudiantes_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            }
+        )
+
 
 
 @app.get("/api/admin/estudiantes/{estudiante_id}", tags=["Admin"])
