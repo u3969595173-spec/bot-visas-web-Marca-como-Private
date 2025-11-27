@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database.models import Notificacion, Student, get_db
+from database.models import Notificacion, Estudiante, get_db
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
@@ -197,7 +197,7 @@ def enviar_notificacion_admin(
     """Admin envía notificación manual a un estudiante"""
     try:
         # Verificar que el estudiante existe
-        estudiante = db.query(Student).filter(Student.id == data.estudiante_id).first()
+        estudiante = db.query(Estudiante).filter(Estudiante.id == data.estudiante_id).first()
         if not estudiante:
             raise HTTPException(status_code=404, detail="Estudiante no encontrado")
         
