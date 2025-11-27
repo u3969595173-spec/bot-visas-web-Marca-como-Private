@@ -7625,60 +7625,66 @@ async def obtener_universidades(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """Obtener lista de universidades para contactar"""
-    usuario = verificar_token(credentials.credentials)
-    
-    if not usuario.get('es_admin'):
-        raise HTTPException(status_code=403, detail="Acceso denegado")
-    
-    import os
-    import psycopg2
-    
-    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, universidad, email, telefono, contacto_nombre, 
-               pais, ciudad, tipo_universidad, programas_interes, 
-               estado, fecha_contacto, fecha_respuesta, fecha_reunion, 
-               notas, condiciones_propuestas, comision_acordada, created_at
-        FROM contactos_universidades
-        ORDER BY 
-            CASE estado
-                WHEN 'acuerdo_firmado' THEN 1
-                WHEN 'reunion_agendada' THEN 2
-                WHEN 'respondido' THEN 3
-                WHEN 'contactado' THEN 4
-                WHEN 'pendiente' THEN 5
-            END,
-            created_at DESC
-    """)
-    
-    universidades = []
-    for row in cursor.fetchall():
-        universidades.append({
-            'id': row[0],
-            'universidad': row[1],
-            'email': row[2],
-            'telefono': row[3],
-            'contacto_nombre': row[4],
-            'pais': row[5],
-            'ciudad': row[6],
-            'tipo_universidad': row[7],
-            'programas_interes': row[8],
-            'estado': row[9],
-            'fecha_contacto': row[10].isoformat() if row[10] else None,
-            'fecha_respuesta': row[11].isoformat() if row[11] else None,
-            'fecha_reunion': row[12].isoformat() if row[12] else None,
-            'notas': row[13],
-            'condiciones_propuestas': row[14],
-            'comision_acordada': float(row[15]) if row[15] else None,
-            'created_at': row[16].isoformat() if row[16] else None
-        })
-    
-    cursor.close()
-    conn.close()
-    
-    return universidades
+    try:
+        usuario = verificar_token(credentials.credentials)
+        
+        if not usuario.get('es_admin'):
+            raise HTTPException(status_code=403, detail="Acceso denegado")
+        
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, universidad, email, telefono, contacto_nombre, 
+                   pais, ciudad, tipo_universidad, programas_interes, 
+                   estado, fecha_contacto, fecha_respuesta, fecha_reunion, 
+                   notas, condiciones_propuestas, comision_acordada, created_at
+            FROM contactos_universidades
+            ORDER BY 
+                CASE estado
+                    WHEN 'acuerdo_firmado' THEN 1
+                    WHEN 'reunion_agendada' THEN 2
+                    WHEN 'respondido' THEN 3
+                    WHEN 'contactado' THEN 4
+                    WHEN 'pendiente' THEN 5
+                END,
+                created_at DESC
+        """)
+        
+        universidades = []
+        for row in cursor.fetchall():
+            universidades.append({
+                'id': row[0],
+                'universidad': row[1],
+                'email': row[2],
+                'telefono': row[3],
+                'contacto_nombre': row[4],
+                'pais': row[5],
+                'ciudad': row[6],
+                'tipo_universidad': row[7],
+                'programas_interes': row[8],
+                'estado': row[9],
+                'fecha_contacto': row[10].isoformat() if row[10] else None,
+                'fecha_respuesta': row[11].isoformat() if row[11] else None,
+                'fecha_reunion': row[12].isoformat() if row[12] else None,
+                'notas': row[13],
+                'condiciones_propuestas': row[14],
+                'comision_acordada': float(row[15]) if row[15] else None,
+                'created_at': row[16].isoformat() if row[16] else None
+            })
+        
+        cursor.close()
+        conn.close()
+        
+        return universidades
+    except Exception as e:
+        print(f"❌ Error en obtener_universidades: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/admin/contactar-universidad/{universidad_id}")
