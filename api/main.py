@@ -6270,7 +6270,7 @@ def sincronizar_cursos_desde_escuelas(
             # Verificar si el curso ya existe (por nombre y ciudad)
             cursor.execute(
                 """
-                SELECT id, precio, cupos_disponibles 
+                SELECT id, precio_eur, cupos_disponibles 
                 FROM cursos 
                 WHERE nombre = %s AND ciudad = %s
                 """,
@@ -6283,7 +6283,7 @@ def sincronizar_cursos_desde_escuelas(
                 cursor.execute(
                     """
                     UPDATE cursos 
-                    SET precio = %s, 
+                    SET precio_eur = %s, 
                         cupos_disponibles = %s,
                         descripcion = %s,
                         activo = TRUE,
@@ -6298,7 +6298,7 @@ def sincronizar_cursos_desde_escuelas(
                 # Insertar nuevo curso
                 cursor.execute(
                     """
-                    INSERT INTO cursos (nombre, descripcion, duracion_meses, precio, 
+                    INSERT INTO cursos (nombre, descripcion, duracion_meses, precio_eur, 
                                        ciudad, nivel_espanol_requerido, cupos_disponibles, activo, created_at, updated_at)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE, NOW(), NOW())
                     """,
