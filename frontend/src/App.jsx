@@ -6,6 +6,8 @@ import LoginAdmin from './components/LoginAdmin'
 import DashboardAdminExpandido from './components/DashboardAdminExpandido'
 import DashboardUsuario from './components/DashboardUsuario'
 import PortalEstudiante from './components/PortalEstudiante'
+import PoliticaPrivacidad from './components/PoliticaPrivacidad'
+import TerminosCondiciones from './components/TerminosCondiciones'
 import Home from './components/Home'
 
 function App() {
@@ -65,6 +67,8 @@ function App() {
             }} />} 
           />
           <Route path="/portal" element={<PortalEstudiante />} />
+          <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
+          <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />
           <Route
             path="/estudiante/dashboard"
             element={
