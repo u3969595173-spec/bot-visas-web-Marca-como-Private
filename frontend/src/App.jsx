@@ -26,6 +26,7 @@ import DashboardAnalytics from './components/DashboardAnalytics'
 import GestorDocumentos from './components/GestorDocumentos'
 import AdminDocumentos from './components/AdminDocumentos'
 import AdminServicios from './components/AdminServicios'
+import ContactarUniversidades from './components/ContactarUniversidades'
 import Home from './components/Home'
 
 function App() {
@@ -298,6 +299,16 @@ function App() {
             element={
               isAuthenticated ? (
                 <AdminServicios />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/contactar-universidades"
+            element={
+              isAuthenticated ? (
+                <ContactarUniversidades />
               ) : (
                 <Navigate to="/admin/login" />
               )

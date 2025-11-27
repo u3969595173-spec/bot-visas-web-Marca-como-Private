@@ -472,6 +472,13 @@ function DashboardAdminExpandido({ onLogout }) {
           💼 Servicios Solicitados
         </button>
         <button 
+          className="tab"
+          onClick={() => navigate('/admin/contactar-universidades')}
+          style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          🏛️ Contactar Universidades
+        </button>
+        <button 
           className={`tab ${activeTab === 'alertas' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('alertas')}
         >

@@ -7416,6 +7416,329 @@ def admin_obtener_conversacion(
     }
 
 
+# ==================== CONTACTO UNIVERSIDADES ====================
+
+@app.get("/api/admin/universidades")
+async def obtener_universidades(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Obtener lista de universidades para contactar"""
+    usuario = verificar_token(credentials.credentials)
+    
+    if not usuario.get('es_admin'):
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT id, universidad, email, telefono, contacto_nombre, 
+               pais, ciudad, tipo_universidad, programas_interes, 
+               estado, fecha_contacto, fecha_respuesta, fecha_reunion, 
+               notas, condiciones_propuestas, comision_acordada, created_at
+        FROM contactos_universidades
+        ORDER BY 
+            CASE estado
+                WHEN 'acuerdo_firmado' THEN 1
+                WHEN 'reunion_agendada' THEN 2
+                WHEN 'respondido' THEN 3
+                WHEN 'contactado' THEN 4
+                WHEN 'pendiente' THEN 5
+            END,
+            created_at DESC
+    """)
+    
+    universidades = []
+    for row in cursor.fetchall():
+        universidades.append({
+            'id': row[0],
+            'universidad': row[1],
+            'email': row[2],
+            'telefono': row[3],
+            'contacto_nombre': row[4],
+            'pais': row[5],
+            'ciudad': row[6],
+            'tipo_universidad': row[7],
+            'programas_interes': row[8],
+            'estado': row[9],
+            'fecha_contacto': row[10].isoformat() if row[10] else None,
+            'fecha_respuesta': row[11].isoformat() if row[11] else None,
+            'fecha_reunion': row[12].isoformat() if row[12] else None,
+            'notas': row[13],
+            'condiciones_propuestas': row[14],
+            'comision_acordada': float(row[15]) if row[15] else None,
+            'created_at': row[16].isoformat() if row[16] else None
+        })
+    
+    cursor.close()
+    conn.close()
+    
+    return universidades
+
+
+@app.post("/api/admin/contactar-universidad/{universidad_id}")
+async def contactar_universidad(
+    universidad_id: int,
+    numero_estudiantes: int = 15,
+    observaciones: str = "",
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Enviar email automático a universidad"""
+    usuario = verificar_token(credentials.credentials)
+    
+    if not usuario.get('es_admin'):
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    import os
+    import psycopg2
+    from api.email_utils import enviar_email
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    # Obtener datos universidad
+    cursor.execute("""
+        SELECT universidad, email, contacto_nombre
+        FROM contactos_universidades
+        WHERE id = %s
+    """, (universidad_id,))
+    
+    uni = cursor.fetchone()
+    if not uni:
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Universidad no encontrada")
+    
+    universidad_nombre, email_destino, contacto = uni
+    
+    # Obtener datos del admin
+    nombre_agencia = os.getenv('NOMBRE_AGENCIA', 'Estudia en España')
+    email_contacto = os.getenv('EMAIL_SENDER', 'contacto@estudiaenespana.com')
+    telefono_contacto = os.getenv('TELEFONO_CONTACTO', '+53 XXXXXXXX')
+    web_agencia = os.getenv('WEB_AGENCIA', 'https://fortunariocash.com')
+    
+    # Crear email personalizado
+    saludo = f"Estimado/a {contacto}" if contacto else "Estimado equipo de admisiones"
+    
+    cuerpo_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+            .destacado {{ background: white; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; }}
+            .numeros {{ background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0; }}
+            .numeros h2 {{ margin: 0; font-size: 36px; }}
+            .cta {{ background: #4caf50; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 20px 0; font-weight: bold; }}
+            .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎓 {nombre_agencia}</h1>
+                <p>Agencia Especializada en Estudiantes Cubanos</p>
+            </div>
+            <div class="content">
+                <p>{saludo},</p>
+                
+                <p>Mi nombre es <strong>{usuario.get('nombre', 'Director')}</strong>, y soy {usuario.get('rol', 'director')} de <strong>{nombre_agencia}</strong>, 
+                una agencia educativa especializada en asesorar a estudiantes cubanos que desean cursar estudios superiores en España.</p>
+                
+                <div class="numeros">
+                    <h2>{numero_estudiantes}+ Estudiantes</h2>
+                    <p>Listos para inscribirse en 2026</p>
+                </div>
+                
+                <div class="destacado">
+                    <h3>🎯 Propuesta de Colaboración</h3>
+                    <p>Nos gustaría explorar una <strong>alianza estratégica</strong> con {universidad_nombre} para canalizar estudiantes cubanos interesados en sus programas académicos.</p>
+                    
+                    <p><strong>Perfil de nuestros estudiantes:</strong></p>
+                    <ul>
+                        <li>✅ Edad: 18-35 años</li>
+                        <li>✅ Nivel educativo: Bachillerato completado / Título universitario</li>
+                        <li>✅ Motivación alta para estudiar en España</li>
+                        <li>✅ Documentación en proceso / lista para apostillar</li>
+                        <li>✅ Acompañamiento completo desde Cuba hasta España</li>
+                    </ul>
+                    
+                    {f"<p><strong>Observaciones adicionales:</strong> {observaciones}</p>" if observaciones else ""}
+                </div>
+                
+                <div class="destacado">
+                    <h3>💼 Temas a Discutir</h3>
+                    <ul>
+                        <li>📋 <strong>Admisiones:</strong> Requisitos y proceso simplificado para volumen</li>
+                        <li>💰 <strong>Estructura de pagos:</strong> Flexibilidad para estudiantes internacionales</li>
+                        <li>🎓 <strong>Becas/Descuentos:</strong> Incentivos por grupo o convenio</li>
+                        <li>🤝 <strong>Comisiones:</strong> Modelo de compensación por referidos</li>
+                        <li>📧 <strong>Cartas de aceptación:</strong> Tiempo de emisión y condiciones</li>
+                    </ul>
+                </div>
+                
+                <p><strong>¿Podríamos agendar una videollamada esta semana?</strong></p>
+                <p>Estoy disponible:</p>
+                <ul>
+                    <li>🗓️ Jueves 28 Nov: 10:00 - 12:00 / 14:00 - 17:00 (hora España)</li>
+                    <li>🗓️ Viernes 29 Nov: 10:00 - 12:00 / 14:00 - 17:00 (hora España)</li>
+                </ul>
+                
+                <p style="text-align: center;">
+                    <a href="mailto:{email_contacto}" class="cta">📧 Responder Email</a>
+                </p>
+                
+                <p>Quedo atento a su respuesta y esperamos poder construir una relación beneficiosa para ambas partes.</p>
+                
+                <p>Cordialmente,<br>
+                <strong>{usuario.get('nombre', 'Director')}</strong><br>
+                {usuario.get('rol', 'Director').title()}<br>
+                {nombre_agencia}</p>
+                
+                <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+                
+                <p style="font-size: 12px; color: #666;">
+                📧 {email_contacto}<br>
+                📱 WhatsApp: {telefono_contacto}<br>
+                🌐 <a href="{web_agencia}">{web_agencia}</a>
+                </p>
+            </div>
+            <div class="footer">
+                <p>Este email fue enviado automáticamente desde nuestro sistema de gestión.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    # Enviar email
+    asunto = f"Propuesta de Colaboración - {nombre_agencia} ({numero_estudiantes}+ estudiantes)"
+    
+    try:
+        exito = enviar_email(
+            destinatario=email_destino,
+            asunto=asunto,
+            cuerpo_html=cuerpo_html
+        )
+        
+        if exito:
+            # Actualizar estado en base de datos
+            cursor.execute("""
+                UPDATE contactos_universidades
+                SET estado = 'contactado',
+                    fecha_contacto = CURRENT_TIMESTAMP,
+                    notas = COALESCE(notas || E'\n\n', '') || %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+            """, (
+                f"Email enviado automáticamente el {datetime.now().strftime('%d/%m/%Y %H:%M')}. Estudiantes: {numero_estudiantes}. {observaciones}",
+                universidad_id
+            ))
+            conn.commit()
+            
+            log_event("email_universidad_enviado", {
+                "universidad_id": universidad_id,
+                "universidad": universidad_nombre,
+                "email": email_destino,
+                "estudiantes": numero_estudiantes,
+                "admin": usuario.get('nombre')
+            })
+            
+            cursor.close()
+            conn.close()
+            
+            return {
+                'success': True,
+                'mensaje': f'Email enviado exitosamente a {universidad_nombre}',
+                'email': email_destino
+            }
+        else:
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=500, detail="Error al enviar email. Verifica configuración SMTP.")
+            
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        log_error("error_envio_email_universidad", str(e))
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/admin/universidades/{universidad_id}")
+async def actualizar_universidad(
+    universidad_id: int,
+    estado: str = None,
+    notas: str = None,
+    fecha_reunion: str = None,
+    condiciones_propuestas: str = None,
+    comision_acordada: float = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Actualizar información de contacto con universidad"""
+    usuario = verificar_token(credentials.credentials)
+    
+    if not usuario.get('es_admin'):
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    import os
+    import psycopg2
+    from datetime import datetime
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    # Construir query dinámico
+    updates = []
+    params = []
+    
+    if estado:
+        updates.append("estado = %s")
+        params.append(estado)
+        
+        if estado == 'respondido':
+            updates.append("fecha_respuesta = CURRENT_TIMESTAMP")
+    
+    if notas:
+        updates.append("notas = COALESCE(notas || E'\\n\\n', '') || %s")
+        params.append(f"[{datetime.now().strftime('%d/%m/%Y %H:%M')}] {notas}")
+    
+    if fecha_reunion:
+        updates.append("fecha_reunion = %s")
+        params.append(fecha_reunion)
+    
+    if condiciones_propuestas:
+        updates.append("condiciones_propuestas = %s")
+        params.append(condiciones_propuestas)
+    
+    if comision_acordada is not None:
+        updates.append("comision_acordada = %s")
+        params.append(comision_acordada)
+    
+    if updates:
+        updates.append("updated_at = CURRENT_TIMESTAMP")
+        params.append(universidad_id)
+        
+        query = f"""
+            UPDATE contactos_universidades
+            SET {', '.join(updates)}
+            WHERE id = %s
+        """
+        
+        cursor.execute(query, params)
+        conn.commit()
+    
+    cursor.close()
+    conn.close()
+    
+    return {'success': True, 'mensaje': 'Universidad actualizada correctamente'}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
