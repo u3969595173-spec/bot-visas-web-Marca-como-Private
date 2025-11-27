@@ -14,10 +14,16 @@ const PerfilEstudiante = ({ estudianteId }) => {
   const [generandoDocs, setGenerandoDocs] = useState(false);
   const [documentosOficiales, setDocumentosOficiales] = useState([]);
   const [cargandoDocumentosOficiales, setCargandoDocumentosOficiales] = useState(false);
+  const [mensajes, setMensajes] = useState([]);
+  const [cargandoMensajes, setCargandoMensajes] = useState(false);
+  const [mostrarMensajes, setMostrarMensajes] = useState(false);
+  const [mensajeRespuesta, setMensajeRespuesta] = useState('');
+  const [enviandoRespuesta, setEnviandoRespuesta] = useState(false);
 
   useEffect(() => {
     cargarDatos();
     cargarDocumentosOficiales();
+    cargarMensajes();
   }, [estudianteId]);
 
   const cargarDatos = async () => {
@@ -144,6 +150,51 @@ const PerfilEstudiante = ({ estudianteId }) => {
     } catch (err) {
       setError('Error al abrir el documento');
       console.error('Error:', err);
+    }
+  };
+
+  const cargarMensajes = async () => {
+    setCargandoMensajes(true);
+    try {
+      const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/mensajes`);
+      setMensajes(response.data.mensajes || []);
+    } catch (err) {
+      console.error('Error cargando mensajes:', err);
+    } finally {
+      setCargandoMensajes(false);
+    }
+  };
+
+  const enviarRespuesta = async () => {
+    if (!mensajeRespuesta.trim()) {
+      setError('El mensaje no puede estar vacío');
+      return;
+    }
+
+    setEnviandoRespuesta(true);
+    try {
+      await axios.post(`${apiUrl}/api/estudiantes/${estudianteId}/mensajes`, {
+        remitente: 'estudiante',
+        mensaje: mensajeRespuesta
+      });
+      
+      setSuccess('✅ Respuesta enviada correctamente');
+      setMensajeRespuesta('');
+      cargarMensajes();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Error al enviar respuesta: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setEnviandoRespuesta(false);
+    }
+  };
+
+  const marcarComoLeido = async (mensajeId) => {
+    try {
+      await axios.put(`${apiUrl}/api/mensajes/${mensajeId}/marcar-leido`);
+      cargarMensajes();
+    } catch (err) {
+      console.error('Error marcando mensaje como leído:', err);
     }
   };
 
@@ -695,6 +746,181 @@ const PerfilEstudiante = ({ estudianteId }) => {
                 🔔 Ver Mis Alertas
               </a>
             </div>
+          </div>
+
+          {/* NUEVA CARD: Mensajes del Administrador */}
+          <div className="info-card" style={{position: 'relative'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <h2>💬 Mensajes del Administrador</h2>
+              {mensajes.filter(m => m.remitente === 'admin' && !m.leido).length > 0 && (
+                <span style={{
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  padding: '4px 12px',
+                  borderRadius: '12px',
+                  fontSize: '0.85rem',
+                  fontWeight: 'bold'
+                }}>
+                  {mensajes.filter(m => m.remitente === 'admin' && !m.leido).length} nuevo(s)
+                </span>
+              )}
+            </div>
+            
+            {cargandoMensajes ? (
+              <div style={{padding: '20px', textAlign: 'center'}}>
+                <div className="spinner" style={{margin: '0 auto 10px'}}></div>
+                <p style={{color: '#6b7280'}}>Cargando mensajes...</p>
+              </div>
+            ) : mensajes.length === 0 ? (
+              <div style={{padding: '20px', textAlign: 'center', color: '#9ca3af'}}>
+                <p>📭 No tienes mensajes del administrador</p>
+              </div>
+            ) : (
+              <div>
+                <button
+                  onClick={() => setMostrarMensajes(!mostrarMensajes)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    marginBottom: '15px'
+                  }}
+                >
+                  {mostrarMensajes ? '▼ Ocultar Mensajes' : '▶ Ver Mensajes'} ({mensajes.length})
+                </button>
+
+                {mostrarMensajes && (
+                  <div style={{maxHeight: '600px', overflowY: 'auto'}}>
+                    {mensajes.map((mensaje, index) => {
+                      const esAdmin = mensaje.remitente === 'admin';
+                      const tipoEmoji = {
+                        'solicitud_documento': '📄',
+                        'recordatorio': '⏰',
+                        'informacion': 'ℹ️',
+                        'urgente': '🚨'
+                      };
+
+                      return (
+                        <div
+                          key={index}
+                          style={{
+                            backgroundColor: esAdmin ? '#f0f9ff' : '#f9fafb',
+                            border: esAdmin ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                            borderRadius: '8px',
+                            padding: '15px',
+                            marginBottom: '15px',
+                            position: 'relative'
+                          }}
+                          onClick={() => esAdmin && !mensaje.leido && marcarComoLeido(mensaje.id)}
+                        >
+                          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px'}}>
+                            <div>
+                              <span style={{
+                                fontSize: '1.2rem',
+                                marginRight: '8px'
+                              }}>
+                                {tipoEmoji[mensaje.tipo] || (esAdmin ? '👤' : '💭')}
+                              </span>
+                              <strong style={{color: esAdmin ? '#1e40af' : '#374151'}}>
+                                {esAdmin ? 'Administrador' : 'Tú'}
+                              </strong>
+                            </div>
+                            <div style={{textAlign: 'right'}}>
+                              <span style={{fontSize: '0.85rem', color: '#6b7280'}}>
+                                {new Date(mensaje.created_at).toLocaleDateString('es-ES')}
+                              </span>
+                              {esAdmin && !mensaje.leido && (
+                                <span style={{
+                                  display: 'block',
+                                  fontSize: '0.75rem',
+                                  color: '#ef4444',
+                                  fontWeight: 'bold',
+                                  marginTop: '4px'
+                                }}>
+                                  • NUEVO
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <p style={{
+                            margin: '10px 0',
+                            color: '#1f2937',
+                            whiteSpace: 'pre-line',
+                            lineHeight: '1.6'
+                          }}>
+                            {mensaje.mensaje}
+                          </p>
+
+                          {mensaje.tipo === 'solicitud_documento' && (
+                            <div style={{
+                              backgroundColor: '#fef3c7',
+                              padding: '10px',
+                              borderRadius: '5px',
+                              marginTop: '10px',
+                              borderLeft: '4px solid #f59e0b'
+                            }}>
+                              <p style={{margin: 0, fontSize: '0.9rem', color: '#92400e'}}>
+                                <strong>📋 Acción requerida:</strong> Por favor sube el documento solicitado
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Responder */}
+                    <div style={{
+                      backgroundColor: '#f9fafb',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      padding: '15px',
+                      marginTop: '20px'
+                    }}>
+                      <h4 style={{margin: '0 0 10px 0', color: '#374151'}}>✍️ Enviar Respuesta</h4>
+                      <textarea
+                        value={mensajeRespuesta}
+                        onChange={(e) => setMensajeRespuesta(e.target.value)}
+                        placeholder="Escribe tu respuesta al administrador..."
+                        rows="4"
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '5px',
+                          fontSize: '0.95rem',
+                          fontFamily: 'inherit',
+                          marginBottom: '10px'
+                        }}
+                      />
+                      <button
+                        onClick={enviarRespuesta}
+                        disabled={enviandoRespuesta || !mensajeRespuesta.trim()}
+                        style={{
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          padding: '10px 20px',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: enviandoRespuesta ? 'not-allowed' : 'pointer',
+                          fontSize: '0.95rem',
+                          fontWeight: 'bold',
+                          opacity: enviandoRespuesta || !mensajeRespuesta.trim() ? 0.5 : 1
+                        }}
+                      >
+                        {enviandoRespuesta ? '⏳ Enviando...' : '📤 Enviar Respuesta'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* NUEVA CARD: Documentos Oficiales Aprobados */}

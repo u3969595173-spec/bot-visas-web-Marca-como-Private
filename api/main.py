@@ -6890,6 +6890,253 @@ def health():
     }
 
 
+# ============================================================================
+# MENSAJERÍA ADMIN - ESTUDIANTE MEJORADA
+# ============================================================================
+
+@app.post("/api/admin/estudiantes/{estudiante_id}/enviar-mensaje", tags=["Admin - Mensajería"])
+def admin_enviar_mensaje_estudiante(
+    estudiante_id: int,
+    datos: dict,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """
+    Admin envía mensaje a estudiante con notificación por email
+    tipos: 'solicitud_documento', 'recordatorio', 'informacion', 'urgente'
+    """
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    from datetime import datetime
+    
+    # Validar datos
+    mensaje = datos.get('mensaje', '').strip()
+    tipo = datos.get('tipo', 'informacion')
+    asunto = datos.get('asunto', 'Mensaje del Administrador')
+    documento_solicitado = datos.get('documento_solicitado', '')  # Opcional
+    
+    if not mensaje:
+        raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
+    
+    tipos_validos = ['solicitud_documento', 'recordatorio', 'informacion', 'urgente']
+    if tipo not in tipos_validos:
+        tipo = 'informacion'
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    # Verificar que el estudiante existe y obtener su email
+    cursor.execute("""
+        SELECT id, nombre, email FROM estudiantes WHERE id = %s
+    """, (estudiante_id,))
+    
+    estudiante = cursor.fetchone()
+    if not estudiante:
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    estudiante_nombre = estudiante[1]
+    estudiante_email = estudiante[2]
+    
+    # Insertar mensaje en la base de datos
+    cursor.execute("""
+        INSERT INTO mensajes_chat (
+            estudiante_id, remitente, mensaje, tipo, leido, created_at
+        ) VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING id
+    """, (estudiante_id, 'admin', mensaje, tipo, False, datetime.utcnow()))
+    
+    mensaje_id = cursor.fetchone()[0]
+    conn.commit()
+    
+    # Enviar notificación por email
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = os.getenv('SMTP_USER')
+        msg['To'] = estudiante_email
+        msg['Subject'] = asunto
+        
+        # Emojis según tipo
+        emoji_tipo = {
+            'solicitud_documento': '📄',
+            'recordatorio': '⏰',
+            'informacion': 'ℹ️',
+            'urgente': '🚨'
+        }
+        
+        emoji = emoji_tipo.get(tipo, 'ℹ️')
+        
+        # Cuerpo del email
+        body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+            <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #667eea; margin: 0; font-size: 28px;">{emoji} {asunto}</h1>
+                </div>
+                
+                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h2 style="margin-top: 0; color: #374151;">Hola {estudiante_nombre},</h2>
+                    <p style="font-size: 16px; line-height: 1.6; color: #1f2937; white-space: pre-line;">{mensaje}</p>
+                </div>
+                
+                {f'''
+                <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #f59e0b;">
+                    <p style="margin: 0; color: #92400e;"><strong>📋 Documento Solicitado:</strong> {documento_solicitado}</p>
+                </div>
+                ''' if documento_solicitado else ''}
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/estudiante/perfil" 
+                       style="display: inline-block; background-color: #667eea; color: white; padding: 14px 28px; 
+                              text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">
+                        Ver en Mi Portal
+                    </a>
+                </div>
+                
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center;">
+                    <p style="color: #9ca3af; font-size: 14px; margin: 0;">
+                        Este mensaje fue enviado por el equipo de <strong>Estudio Visa España</strong>
+                    </p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        
+        msg.attach(MIMEText(body, 'html'))
+        
+        # Enviar email
+        smtp = smtplib.SMTP(os.getenv('SMTP_SERVER'), int(os.getenv('SMTP_PORT')))
+        smtp.starttls()
+        smtp.login(os.getenv('SMTP_USER'), os.getenv('SMTP_PASSWORD'))
+        smtp.send_message(msg)
+        smtp.quit()
+        
+        email_enviado = True
+    except Exception as e:
+        print(f"Error enviando email: {str(e)}")
+        email_enviado = False
+    
+    cursor.close()
+    conn.close()
+    
+    return {
+        'success': True,
+        'mensaje_id': mensaje_id,
+        'mensaje': 'Mensaje enviado correctamente',
+        'email_enviado': email_enviado,
+        'destinatario': estudiante_email
+    }
+
+
+@app.get("/api/admin/mensajes/no-leidos", tags=["Admin - Mensajería"])
+def admin_obtener_mensajes_no_leidos(
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Obtiene mensajes de estudiantes que el admin no ha leído"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT m.id, m.estudiante_id, m.mensaje, m.tipo, m.created_at,
+               e.nombre, e.email
+        FROM mensajes_chat m
+        JOIN estudiantes e ON m.estudiante_id = e.id
+        WHERE m.remitente = 'estudiante' AND m.leido = FALSE
+        ORDER BY m.created_at DESC
+    """)
+    
+    mensajes = []
+    for row in cursor.fetchall():
+        mensajes.append({
+            'id': row[0],
+            'estudiante_id': row[1],
+            'mensaje': row[2],
+            'tipo': row[3],
+            'fecha': row[4].isoformat() if row[4] else None,
+            'estudiante_nombre': row[5],
+            'estudiante_email': row[6]
+        })
+    
+    cursor.close()
+    conn.close()
+    
+    return {
+        'mensajes': mensajes,
+        'total': len(mensajes)
+    }
+
+
+@app.get("/api/admin/estudiantes/{estudiante_id}/conversacion", tags=["Admin - Mensajería"])
+def admin_obtener_conversacion(
+    estudiante_id: int,
+    db: Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Obtiene toda la conversación con un estudiante"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    # Verificar estudiante
+    cursor.execute("SELECT nombre, email FROM estudiantes WHERE id = %s", (estudiante_id,))
+    estudiante = cursor.fetchone()
+    
+    if not estudiante:
+        cursor.close()
+        conn.close()
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Obtener mensajes
+    cursor.execute("""
+        SELECT id, remitente, mensaje, tipo, leido, created_at
+        FROM mensajes_chat
+        WHERE estudiante_id = %s
+        ORDER BY created_at ASC
+    """, (estudiante_id,))
+    
+    mensajes = []
+    for row in cursor.fetchall():
+        mensajes.append({
+            'id': row[0],
+            'remitente': row[1],
+            'mensaje': row[2],
+            'tipo': row[3],
+            'leido': row[4],
+            'fecha': row[5].isoformat() if row[5] else None
+        })
+    
+    cursor.close()
+    conn.close()
+    
+    return {
+        'estudiante': {
+            'id': estudiante_id,
+            'nombre': estudiante[0],
+            'email': estudiante[1]
+        },
+        'mensajes': mensajes,
+        'total': len(mensajes)
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

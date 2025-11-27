@@ -28,6 +28,10 @@ function DashboardAdminExpandido({ onLogout }) {
   const [estudianteParaCurso, setEstudianteParaCurso] = useState(null)
   const [nuevoCurso, setNuevoCurso] = useState({ nombre: '', descripcion: '', duracion_meses: 6, precio_eur: 0, ciudad: '', nivel_espanol_requerido: '', cupos_disponibles: 0 })
   const [nuevoAlojamiento, setNuevoAlojamiento] = useState({ tipo: '', direccion: '', ciudad: '', precio_mensual_eur: 0, capacidad: 1, disponible: true, descripcion: '', servicios: '' })
+  const [showMensajeModal, setShowMensajeModal] = useState(false)
+  const [estudianteParaMensaje, setEstudianteParaMensaje] = useState(null)
+  const [nuevoMensaje, setNuevoMensaje] = useState({ asunto: '', tipo: 'informacion', mensaje: '', documento_solicitado: '' })
+  const [enviandoMensaje, setEnviandoMensaje] = useState(false)
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -203,6 +207,41 @@ function DashboardAdminExpandido({ onLogout }) {
 
   const descargarDocumento = (docId) => {
     window.open(`${apiUrl}/api/admin/documentos-generados/${docId}/descargar`, '_blank')
+  }
+
+  const abrirModalMensaje = (estudiante) => {
+    setEstudianteParaMensaje(estudiante)
+    setNuevoMensaje({ 
+      asunto: `Mensaje para ${estudiante.nombre || estudiante.nombre_completo}`, 
+      tipo: 'informacion', 
+      mensaje: '', 
+      documento_solicitado: '' 
+    })
+    setShowMensajeModal(true)
+  }
+
+  const enviarMensaje = async () => {
+    if (!nuevoMensaje.mensaje.trim()) {
+      alert('El mensaje no puede estar vacío')
+      return
+    }
+
+    setEnviandoMensaje(true)
+    try {
+      const response = await axios.post(
+        `${apiUrl}/api/admin/estudiantes/${estudianteParaMensaje.id}/enviar-mensaje`,
+        nuevoMensaje
+      )
+      
+      alert(`✅ Mensaje enviado correctamente${response.data.email_enviado ? ' y notificación por email enviada' : ''}`)
+      setShowMensajeModal(false)
+      setEstudianteParaMensaje(null)
+      setNuevoMensaje({ asunto: '', tipo: 'informacion', mensaje: '', documento_solicitado: '' })
+    } catch (err) {
+      alert('Error al enviar mensaje: ' + (err.response?.data?.detail || err.message))
+    } finally {
+      setEnviandoMensaje(false)
+    }
   }
 
   const crearCurso = async () => {
@@ -551,6 +590,14 @@ function DashboardAdminExpandido({ onLogout }) {
                           disabled={generandoDocs}
                         >
                           📄
+                        </button>
+                        <button 
+                          onClick={() => abrirModalMensaje(est)}
+                          className="btn-mensaje"
+                          title="Enviar Mensaje"
+                          style={{backgroundColor: '#3b82f6', color: 'white', padding: '6px 10px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px'}}
+                        >
+                          ✉️
                         </button>
                         {est.estado !== 'pendiente' && !generandoDocs && (
                           <span className="sin-acciones">-</span>
@@ -1094,6 +1141,94 @@ function DashboardAdminExpandido({ onLogout }) {
               </button>
               <button onClick={confirmarRechazo} className="btn-confirmar">
                 Confirmar Rechazo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Enviar Mensaje */}
+      {showMensajeModal && estudianteParaMensaje && (
+        <div className="modal-overlay" onClick={() => setShowMensajeModal(false)}>
+          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()}>
+            <h3>✉️ Enviar Mensaje a {estudianteParaMensaje.nombre || estudianteParaMensaje.nombre_completo}</h3>
+            <p style={{color: '#6b7280', marginBottom: '20px'}}>
+              📧 {estudianteParaMensaje.email}
+            </p>
+            
+            <div className="form-group">
+              <label>Asunto del Email:</label>
+              <input
+                type="text"
+                value={nuevoMensaje.asunto}
+                onChange={(e) => setNuevoMensaje({...nuevoMensaje, asunto: e.target.value})}
+                placeholder="Ej: Solicitud de Documento Adicional"
+                style={{width: '100%', padding: '10px', border: '1px solid #e5e7eb', borderRadius: '5px'}}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Tipo de Mensaje:</label>
+              <select
+                value={nuevoMensaje.tipo}
+                onChange={(e) => setNuevoMensaje({...nuevoMensaje, tipo: e.target.value})}
+                style={{width: '100%', padding: '10px', border: '1px solid #e5e7eb', borderRadius: '5px'}}
+              >
+                <option value="informacion">ℹ️ Información General</option>
+                <option value="solicitud_documento">📄 Solicitud de Documento</option>
+                <option value="recordatorio">⏰ Recordatorio</option>
+                <option value="urgente">🚨 Urgente</option>
+              </select>
+            </div>
+
+            {nuevoMensaje.tipo === 'solicitud_documento' && (
+              <div className="form-group">
+                <label>Documento Solicitado:</label>
+                <input
+                  type="text"
+                  value={nuevoMensaje.documento_solicitado}
+                  onChange={(e) => setNuevoMensaje({...nuevoMensaje, documento_solicitado: e.target.value})}
+                  placeholder="Ej: Certificado de antecedentes penales"
+                  style={{width: '100%', padding: '10px', border: '1px solid #e5e7eb', borderRadius: '5px'}}
+                />
+              </div>
+            )}
+
+            <div className="form-group">
+              <label>Mensaje:</label>
+              <textarea
+                value={nuevoMensaje.mensaje}
+                onChange={(e) => setNuevoMensaje({...nuevoMensaje, mensaje: e.target.value})}
+                placeholder="Escribe tu mensaje aquí..."
+                rows="8"
+                style={{width: '100%', padding: '10px', border: '1px solid #e5e7eb', borderRadius: '5px', fontFamily: 'inherit'}}
+              />
+            </div>
+
+            <div style={{backgroundColor: '#dbeafe', padding: '15px', borderRadius: '5px', marginBottom: '20px'}}>
+              <p style={{margin: 0, fontSize: '14px', color: '#1e40af'}}>
+                ℹ️ <strong>Nota:</strong> El estudiante recibirá este mensaje en su portal y también por email a {estudianteParaMensaje.email}
+              </p>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                onClick={() => {
+                  setShowMensajeModal(false)
+                  setEstudianteParaMensaje(null)
+                }} 
+                className="btn-cancelar"
+                disabled={enviandoMensaje}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={enviarMensaje} 
+                className="btn-confirmar"
+                disabled={enviandoMensaje || !nuevoMensaje.mensaje.trim()}
+                style={{backgroundColor: '#3b82f6', opacity: enviandoMensaje ? 0.6 : 1}}
+              >
+                {enviandoMensaje ? '⏳ Enviando...' : '📤 Enviar Mensaje'}
               </button>
             </div>
           </div>
