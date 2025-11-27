@@ -34,7 +34,8 @@ def sugerir_cursos(estudiante_data: dict) -> list:
             }
         ])
     
-    elif 'medicina' in especialidad or 'salud' in especialidad or 'enfermer' in especialidad:
+    elif ('medicina' in especialidad or 'medic' in especialidad or 'salud' in especialidad or 
+          'enfermer' in especialidad or 'doctor' in especialidad or 'graduado' in especialidad):
         cursos.extend([
             {
                 'nombre': 'Grado en Medicina',
