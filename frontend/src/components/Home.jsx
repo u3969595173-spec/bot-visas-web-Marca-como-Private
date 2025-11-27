@@ -31,16 +31,6 @@ function Home() {
             <p>Te guiamos paso a paso en todo el trámite de visa</p>
           </div>
           <div style={styles.feature}>
-            <div style={styles.featureIcon}>📋</div>
-            <h3>Antecedentes Penales</h3>
-            <p>Listos y legalizados en 30 días hábiles</p>
-          </div>
-          <div style={styles.feature}>
-            <div style={styles.featureIcon}>🏛️</div>
-            <h3>Cita en Embajada</h3>
-            <p>Gestionamos tu cita consular sin complicaciones</p>
-          </div>
-          <div style={styles.feature}>
             <div style={styles.featureIcon}>🏠</div>
             <h3>Alojamiento</h3>
             <p>Te ayudamos a encontrar alojamiento en España</p>

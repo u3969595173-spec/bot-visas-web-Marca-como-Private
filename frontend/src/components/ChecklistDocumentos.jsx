@@ -13,6 +13,8 @@ function ChecklistDocumentos({ estudianteId }) {
     { id: 'titulo', nombre: 'Título Universitario', descripcion: 'Copia certificada de tu título', requerido: true },
     { id: 'pasaporte', nombre: 'Pasaporte', descripcion: 'Copia de tu pasaporte vigente', requerido: true },
     { id: 'extracto', nombre: 'Extracto Bancario', descripcion: 'Comprobante de fondos suficientes', requerido: true },
+    { id: 'antecedentes', nombre: '📋 Antecedentes Penales', descripcion: 'Solicita este servicio - Listos y legalizados en 30 días hábiles', requerido: false, servicio: true },
+    { id: 'cita_embajada', nombre: '🏛️ Cita en Embajada', descripcion: 'Solicita este servicio - Gestionamos tu cita consular', requerido: false, servicio: true },
     { id: 'foto', nombre: 'Fotografía', descripcion: 'Foto tamaño pasaporte', requerido: false },
     { id: 'seguro', nombre: 'Seguro Médico', descripcion: 'Seguro de salud internacional', requerido: false }
   ]
@@ -111,8 +113,9 @@ function ChecklistDocumentos({ estudianteId }) {
         <div className="checklist-lista">
           {documentosRequeridos.map(doc => {
             const subido = tieneDocumento(doc.id)
+            const esServicio = doc.servicio === true
             return (
-              <div key={doc.id} className={`checklist-item ${subido ? 'completado' : ''}`}>
+              <div key={doc.id} className={`checklist-item ${subido ? 'completado' : ''} ${esServicio ? 'item-servicio' : ''}`}>
                 <div className="checklist-icon">
                   {subido ? '✓' : doc.requerido ? '!' : '○'}
                 </div>
@@ -120,12 +123,15 @@ function ChecklistDocumentos({ estudianteId }) {
                   <div className="checklist-nombre">
                     {doc.nombre}
                     {doc.requerido && <span className="badge-requerido">Requerido</span>}
+                    {esServicio && <span className="badge-servicio">Servicio</span>}
                   </div>
                   <div className="checklist-descripcion">{doc.descripcion}</div>
                 </div>
                 <div className="checklist-estado">
                   {subido ? (
                     <span className="estado-badge estado-ok">✓ Subido</span>
+                  ) : esServicio ? (
+                    <span className="estado-badge estado-servicio">💼 Disponible</span>
                   ) : (
                     <span className="estado-badge estado-pendiente">Pendiente</span>
                   )}
