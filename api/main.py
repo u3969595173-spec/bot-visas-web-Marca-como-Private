@@ -2877,10 +2877,10 @@ def aprobar_documento_generado(
             from email.mime.application import MIMEApplication
             import base64
             
-            # Obtener email del estudiante
+            # Obtener email del estudiante y contenido del PDF
             cursor2 = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require').cursor()
             cursor2.execute("""
-                SELECT e.email, e.nombre, dg.nombre_archivo, dg.tipo_documento
+                SELECT e.email, e.nombre, dg.nombre_archivo, dg.tipo_documento, dg.contenido_pdf
                 FROM documentos_generados dg
                 JOIN estudiantes e ON dg.estudiante_id = e.id
                 WHERE dg.id = %s
@@ -2888,7 +2888,7 @@ def aprobar_documento_generado(
             
             row = cursor2.fetchone()
             if row:
-                estudiante_email, estudiante_nombre, nombre_archivo, tipo_doc = row
+                estudiante_email, estudiante_nombre, nombre_archivo, tipo_doc, pdf_content = row
                 cursor2.close()
                 
                 # Configurar email

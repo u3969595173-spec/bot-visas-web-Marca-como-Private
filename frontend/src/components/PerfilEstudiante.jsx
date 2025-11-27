@@ -12,9 +12,12 @@ const PerfilEstudiante = ({ estudianteId }) => {
   const [success, setSuccess] = useState('');
   const [documentosGenerados, setDocumentosGenerados] = useState(null);
   const [generandoDocs, setGenerandoDocs] = useState(false);
+  const [documentosOficiales, setDocumentosOficiales] = useState([]);
+  const [cargandoDocumentosOficiales, setCargandoDocumentosOficiales] = useState(false);
 
   useEffect(() => {
     cargarDatos();
+    cargarDocumentosOficiales();
   }, [estudianteId]);
 
   const cargarDatos = async () => {
@@ -29,6 +32,42 @@ const PerfilEstudiante = ({ estudianteId }) => {
     } catch (err) {
       setError('Error al cargar datos del estudiante');
       setLoading(false);
+    }
+  };
+
+  const cargarDocumentosOficiales = async () => {
+    setCargandoDocumentosOficiales(true);
+    try {
+      // Obtener código de acceso del localStorage o solicitar al usuario
+      const codigoAcceso = localStorage.getItem(`codigo_acceso_${estudianteId}`) || prompt('Ingresa tu código de acceso:');
+      
+      if (!codigoAcceso) {
+        setCargandoDocumentosOficiales(false);
+        return;
+      }
+
+      // Guardar código para futuras consultas
+      localStorage.setItem(`codigo_acceso_${estudianteId}`, codigoAcceso);
+
+      const response = await axios.get(
+        `${apiUrl}/api/estudiantes/${estudianteId}/documentos-generados?codigo_acceso=${codigoAcceso}`
+      );
+      
+      // Filtrar solo documentos aprobados y enviados
+      const docsAprobados = response.data.documentos.filter(
+        doc => doc.estado === 'aprobado' && doc.enviado_estudiante
+      );
+      
+      setDocumentosOficiales(docsAprobados);
+    } catch (err) {
+      if (err.response?.status === 403) {
+        localStorage.removeItem(`codigo_acceso_${estudianteId}`);
+        setError('Código de acceso inválido');
+      } else if (err.response?.status !== 404) {
+        console.error('Error al cargar documentos oficiales:', err);
+      }
+    } finally {
+      setCargandoDocumentosOficiales(false);
     }
   };
 
@@ -56,6 +95,56 @@ const PerfilEstudiante = ({ estudianteId }) => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
+  };
+
+  const descargarPDFOficial = (contenidoBase64, nombreArchivo) => {
+    try {
+      // Decodificar base64 y crear blob PDF
+      const byteCharacters = atob(contenidoBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nombreArchivo;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      setSuccess('✅ Documento descargado correctamente');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Error al descargar el documento');
+      console.error('Error:', err);
+    }
+  };
+
+  const abrirPDFOficial = (contenidoBase64, nombreArchivo) => {
+    try {
+      // Decodificar base64 y abrir en nueva ventana
+      const byteCharacters = atob(contenidoBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      
+      // Limpiar URL después de un tiempo
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      setError('Error al abrir el documento');
+      console.error('Error:', err);
+    }
   };
 
   const handleChange = (e) => {
@@ -607,6 +696,133 @@ const PerfilEstudiante = ({ estudianteId }) => {
               </a>
             </div>
           </div>
+
+          {/* NUEVA CARD: Documentos Oficiales Aprobados */}
+          {documentosOficiales.length > 0 && (
+            <div className="info-card" style={{backgroundColor: '#f0fdf4', border: '2px solid #86efac'}}>
+              <h2 style={{color: '#16a34a'}}>📋 Documentos Oficiales Aprobados</h2>
+              <div style={{padding: '15px'}}>
+                <p style={{marginBottom: '20px', color: '#15803d', fontWeight: 'bold'}}>
+                  ✅ Tus documentos han sido revisados y aprobados por nuestro equipo. Puedes descargarlos aquí:
+                </p>
+                
+                <div style={{display: 'grid', gap: '15px'}}>
+                  {documentosOficiales.map((doc, index) => (
+                    <div key={index} style={{
+                      backgroundColor: 'white',
+                      border: '1px solid #86efac',
+                      borderRadius: '8px',
+                      padding: '15px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    }}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px'}}>
+                        <div>
+                          <h3 style={{margin: '0 0 5px 0', fontSize: '1rem', color: '#111827'}}>
+                            📄 {doc.tipo_documento.replace(/_/g, ' ').toUpperCase()}
+                          </h3>
+                          <p style={{margin: '0', fontSize: '0.85rem', color: '#6b7280'}}>
+                            {doc.nombre_archivo}
+                          </p>
+                        </div>
+                        <span style={{
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold'
+                        }}>
+                          APROBADO
+                        </span>
+                      </div>
+                      
+                      <div style={{fontSize: '0.85rem', color: '#6b7280', marginBottom: '12px'}}>
+                        <p style={{margin: '3px 0'}}>
+                          🗓️ Generado: {new Date(doc.fecha_generacion).toLocaleDateString('es-ES')}
+                        </p>
+                        {doc.fecha_aprobacion && (
+                          <p style={{margin: '3px 0'}}>
+                            ✅ Aprobado: {new Date(doc.fecha_aprobacion).toLocaleDateString('es-ES')}
+                          </p>
+                        )}
+                        {doc.notas && (
+                          <p style={{margin: '8px 0 0 0', padding: '8px', backgroundColor: '#fef3c7', borderRadius: '5px', fontSize: '0.85rem'}}>
+                            💬 <strong>Nota:</strong> {doc.notas}
+                          </p>
+                        )}
+                      </div>
+                      
+                      <div style={{display: 'flex', gap: '10px'}}>
+                        <button
+                          onClick={() => abrirPDFOficial(doc.contenido_pdf, doc.nombre_archivo)}
+                          style={{
+                            flex: 1,
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            padding: '10px 15px',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          👁️ Ver PDF
+                        </button>
+                        <button
+                          onClick={() => descargarPDFOficial(doc.contenido_pdf, doc.nombre_archivo)}
+                          style={{
+                            flex: 1,
+                            backgroundColor: '#10b981',
+                            color: 'white',
+                            padding: '10px 15px',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          ⬇️ Descargar PDF
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div style={{marginTop: '15px', padding: '12px', backgroundColor: '#dbeafe', borderRadius: '5px', fontSize: '0.85rem'}}>
+                  <p style={{margin: 0, color: '#1e40af'}}>
+                    ℹ️ <strong>Importante:</strong> Estos documentos han sido generados y aprobados oficialmente. 
+                    Úsalos para tu proceso de visa. Si necesitas modificaciones, contacta al administrador.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {cargandoDocumentosOficiales && (
+            <div className="info-card">
+              <h2>📋 Documentos Oficiales</h2>
+              <div style={{padding: '15px', textAlign: 'center'}}>
+                <div className="spinner" style={{margin: '0 auto 10px'}}></div>
+                <p style={{color: '#6b7280'}}>Cargando documentos oficiales...</p>
+              </div>
+            </div>
+          )}
+
+          {!cargandoDocumentosOficiales && documentosOficiales.length === 0 && (
+            <div className="info-card">
+              <h2>📋 Documentos Oficiales</h2>
+              <div style={{padding: '15px'}}>
+                <p style={{color: '#6b7280', marginBottom: '15px'}}>
+                  ℹ️ Aún no tienes documentos oficiales aprobados. El administrador generará y revisará tus documentos pronto.
+                </p>
+                <p style={{fontSize: '0.85rem', color: '#9ca3af'}}>
+                  Recibirás un email cuando tus documentos estén listos para descargar.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* NUEVA CARD: Generador de Documentos */}
           <div className="info-card">
