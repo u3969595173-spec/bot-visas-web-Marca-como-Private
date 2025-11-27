@@ -5272,6 +5272,279 @@ async def subir_documento(
     }
 
 
+# ============================================================================
+# ENDPOINTS PARA GESTOR DE DOCUMENTOS (Frontend)
+# ============================================================================
+
+@app.post("/api/documentos/{estudiante_id}/subir", tags=["Documentos"])
+async def subir_documentos_multi(
+    estudiante_id: int,
+    archivos: list[UploadFile] = File(...),
+    categorias: list[str] = None
+):
+    """Subir múltiples documentos del estudiante (usado por GestorDocumentos.jsx)"""
+    import os
+    import psycopg2
+    from pathlib import Path
+    from datetime import datetime
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    try:
+        # Verificar estudiante
+        cursor.execute("SELECT id FROM estudiantes WHERE id = %s", (estudiante_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return {'success': False, 'error': 'Estudiante no encontrado'}
+        
+        # Crear directorio
+        upload_dir = Path(f"uploads/estudiantes/{estudiante_id}")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        documentos_creados = []
+        
+        for i, archivo in enumerate(archivos):
+            categoria = categorias[i] if categorias and i < len(categorias) else 'otros'
+            
+            # Leer contenido
+            contenido = await archivo.read()
+            tamano = len(contenido)
+            
+            # Guardar archivo físico
+            file_path = upload_dir / archivo.filename
+            with file_path.open("wb") as f:
+                f.write(contenido)
+            
+            # Insertar en BD
+            cursor.execute("""
+                INSERT INTO documentos 
+                (estudiante_id, tipo, nombre_archivo, ruta_archivo, tamano, mime_type, categoria, estado_revision, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'pendiente', %s)
+                RETURNING id
+            """, (
+                estudiante_id,
+                categoria,
+                archivo.filename,
+                str(file_path),
+                tamano,
+                archivo.content_type or 'application/octet-stream',
+                categoria,
+                datetime.utcnow()
+            ))
+            
+            doc_id = cursor.fetchone()[0]
+            documentos_creados.append({
+                'id': doc_id,
+                'nombre': archivo.filename,
+                'categoria': categoria
+            })
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        return {
+            'success': True,
+            'documentos': documentos_creados
+        }
+        
+    except Exception as e:
+        conn.rollback()
+        cursor.close()
+        conn.close()
+        print(f"❌ Error subiendo documentos: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+@app.get("/api/documentos/{estudiante_id}/listar", tags=["Documentos"])
+def listar_documentos_estudiante(estudiante_id: int):
+    """Listar documentos del estudiante (usado por GestorDocumentos.jsx)"""
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT id, tipo, nombre_archivo, tamano, mime_type, categoria, 
+                   estado_revision, comentario_admin, created_at
+            FROM documentos
+            WHERE estudiante_id = %s
+            ORDER BY created_at DESC
+        """, (estudiante_id,))
+        
+        documentos = []
+        for row in cursor.fetchall():
+            documentos.append({
+                'id': row[0],
+                'tipo': row[1],
+                'nombre': row[2],
+                'tamano': row[3],
+                'mime_type': row[4],
+                'categoria': row[5],
+                'estado_revision': row[6],
+                'comentario_admin': row[7],
+                'created_at': row[8].isoformat() if row[8] else None
+            })
+        
+        # Calcular progreso
+        total = len(documentos)
+        aprobados = len([d for d in documentos if d['estado_revision'] == 'aprobado'])
+        progreso = int((aprobados / total * 100)) if total > 0 else 0
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            'success': True,
+            'documentos': documentos,
+            'progreso': progreso
+        }
+        
+    except Exception as e:
+        cursor.close()
+        conn.close()
+        print(f"❌ Error listando documentos: {e}")
+        return {'success': False, 'documentos': [], 'progreso': 0}
+
+
+@app.get("/api/documentos/{documento_id}/descargar", tags=["Documentos"])
+def descargar_documento(documento_id: int):
+    """Descargar documento por ID (usado por GestorDocumentos.jsx)"""
+    import os
+    import psycopg2
+    from fastapi.responses import FileResponse
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT nombre_archivo, ruta_archivo, mime_type
+            FROM documentos
+            WHERE id = %s
+        """, (documento_id,))
+        
+        row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Documento no encontrado")
+        
+        nombre, ruta, mime_type = row
+        
+        if not os.path.exists(ruta):
+            raise HTTPException(status_code=404, detail="Archivo no encontrado en servidor")
+        
+        return FileResponse(
+            path=ruta,
+            filename=nombre,
+            media_type=mime_type
+        )
+        
+    except Exception as e:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/documentos/{documento_id}/eliminar", tags=["Documentos"])
+def eliminar_documento(documento_id: int):
+    """Eliminar documento (usado por GestorDocumentos.jsx)"""
+    import os
+    import psycopg2
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    try:
+        # Obtener ruta antes de eliminar
+        cursor.execute("SELECT ruta_archivo FROM documentos WHERE id = %s", (documento_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.close()
+            conn.close()
+            return {'success': False, 'error': 'Documento no encontrado'}
+        
+        ruta = row[0]
+        
+        # Eliminar de BD
+        cursor.execute("DELETE FROM documentos WHERE id = %s", (documento_id,))
+        conn.commit()
+        
+        # Eliminar archivo físico
+        if os.path.exists(ruta):
+            os.remove(ruta)
+        
+        cursor.close()
+        conn.close()
+        
+        return {'success': True}
+        
+    except Exception as e:
+        conn.rollback()
+        cursor.close()
+        conn.close()
+        print(f"❌ Error eliminando documento: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+@app.get("/api/documentos/{estudiante_id}/descargar-zip", tags=["Documentos"])
+def descargar_documentos_zip(estudiante_id: int):
+    """Descargar todos los documentos en ZIP (usado por GestorDocumentos.jsx)"""
+    import os
+    import psycopg2
+    import zipfile
+    from io import BytesIO
+    from fastapi.responses import StreamingResponse
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT nombre_archivo, ruta_archivo
+            FROM documentos
+            WHERE estudiante_id = %s
+        """, (estudiante_id,))
+        
+        documentos = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        
+        if not documentos:
+            raise HTTPException(status_code=404, detail="No hay documentos para descargar")
+        
+        # Crear ZIP en memoria
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for nombre, ruta in documentos:
+                if os.path.exists(ruta):
+                    zip_file.write(ruta, arcname=nombre)
+        
+        zip_buffer.seek(0)
+        
+        return StreamingResponse(
+            zip_buffer,
+            media_type="application/zip",
+            headers={"Content-Disposition": f"attachment; filename=documentos_estudiante_{estudiante_id}.zip"}
+        )
+        
+    except Exception as e:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/documentos/{documento_id}/validar-ocr", tags=["Documentos"])
 async def validar_documento_ocr(
     documento_id: int,
