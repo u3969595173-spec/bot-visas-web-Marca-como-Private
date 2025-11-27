@@ -67,9 +67,29 @@ const DashboardAnalytics = () => {
   const exportarCSV = async () => {
     try {
       const token = localStorage.getItem('token');
-      window.open(`${API_BASE_URL}/api/admin/analytics/exportar-csv?token=${token}`, '_blank');
+      const response = await fetch(`${API_BASE_URL}/api/admin/analytics/exportar-csv`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error exportando CSV');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `estudiantes_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
       console.error('❌ Error exportando CSV:', error);
+      alert('Error al exportar CSV. Verifica tu sesión.');
     }
   };
 
