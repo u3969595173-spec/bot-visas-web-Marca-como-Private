@@ -24,7 +24,7 @@ class CalculadoraProbabilidadVisa:
         factores_detalle = []
         
         # Factor 1: Edad (20 puntos)
-        edad = estudiante_data.get('edad', 0)
+        edad = estudiante_data.get('edad') or 0
         if 18 <= edad <= 25:
             puntos_edad = 20
             factores_detalle.append({
@@ -60,7 +60,7 @@ class CalculadoraProbabilidadVisa:
         puntos_total += puntos_edad
         
         # Factor 2: Nivel de español (25 puntos)
-        nivel_espanol = estudiante_data.get('nivel_espanol', '').lower()
+        nivel_espanol = (estudiante_data.get('nivel_espanol') or '').lower()
         if nivel_espanol == 'nativo':
             puntos_espanol = 25
             comentario_espanol = 'Nivel nativo - excelente'
@@ -83,7 +83,7 @@ class CalculadoraProbabilidadVisa:
         puntos_total += puntos_espanol
         
         # Factor 3: Tipo de visa (15 puntos)
-        tipo_visa = estudiante_data.get('tipo_visa', '').lower()
+        tipo_visa = (estudiante_data.get('tipo_visa') or '').lower()
         if tipo_visa == 'estudiante':
             puntos_visa = 15
             comentario_visa = 'Visa de estudiante - alta probabilidad'
@@ -122,7 +122,7 @@ class CalculadoraProbabilidadVisa:
         
         # Factor 5: Nacionalidad (20 puntos)
         # Países con bajo riesgo migratorio reciben más puntos
-        nacionalidad = estudiante_data.get('nacionalidad', '').lower()
+        nacionalidad = (estudiante_data.get('nacionalidad') or '').lower()
         paises_alto_riesgo = ['venezuela', 'colombia', 'ecuador', 'perú', 'bolivia']
         paises_medio_riesgo = ['méxico', 'argentina', 'chile', 'brasil']
         
