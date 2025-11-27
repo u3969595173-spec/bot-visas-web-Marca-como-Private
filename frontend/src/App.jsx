@@ -37,9 +37,14 @@ function App() {
                 </Link>
               )}
               {estudianteId && (
-                <Link to="/estudiante/dashboard" style={styles.navLink}>
-                  Mi Portal
-                </Link>
+                <>
+                  <Link to="/estudiante/dashboard" style={styles.navLink}>
+                    Mi Portal
+                  </Link>
+                  <Link to="/estudiante/simulador" style={styles.navLink}>
+                    🎭 Simulador
+                  </Link>
+                </>
               )}
               <Link to="/portal" style={styles.navLink}>
                 Consultar Estado
