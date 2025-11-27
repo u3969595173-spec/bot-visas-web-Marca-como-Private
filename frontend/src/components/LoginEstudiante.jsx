@@ -21,6 +21,9 @@ const LoginEstudiante = () => {
       const response = await axios.get(`${apiUrl}/api/estudiantes/codigo/${codigoAcceso}`);
       
       if (response.data && response.data.id) {
+        // Guardar ID en localStorage para persistencia
+        localStorage.setItem('estudiante_id', response.data.id);
+        
         // Código válido, redirigir al dashboard
         navigate(`/dashboard-usuario/${response.data.id}`);
       }

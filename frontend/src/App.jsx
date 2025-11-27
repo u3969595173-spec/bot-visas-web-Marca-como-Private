@@ -15,9 +15,15 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = React.useState(
     !!localStorage.getItem('token')
   )
-  const [estudianteId, setEstudianteId] = React.useState(
-    localStorage.getItem('estudiante_id')
-  )
+  const [estudianteId, setEstudianteId] = React.useState(null)
+
+  // Verificar localStorage al cargar
+  React.useEffect(() => {
+    const storedId = localStorage.getItem('estudiante_id')
+    if (storedId) {
+      setEstudianteId(storedId)
+    }
+  }, [])
 
   return (
     <BrowserRouter>

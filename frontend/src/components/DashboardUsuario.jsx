@@ -17,6 +17,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
 
   useEffect(() => {
     console.log('[DEBUG] DashboardUsuario montado con ID:', estudianteId);
+    if (estudianteId) {
+      // Guardar ID en localStorage para persistencia entre navegaciones
+      localStorage.setItem('estudiante_id', estudianteId);
+    }
     cargarDatos();
   }, [estudianteId]);
 
