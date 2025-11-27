@@ -50,8 +50,13 @@ const GestorDocumentos = ({ estudianteId }) => {
     try {
       const formData = new FormData();
       
+      // Agregar cada archivo
       acceptedFiles.forEach(file => {
         formData.append('archivos', file);
+      });
+      
+      // Agregar una categoría por cada archivo
+      acceptedFiles.forEach(() => {
         formData.append('categorias', categoriaSeleccionada);
       });
       
@@ -60,17 +65,23 @@ const GestorDocumentos = ({ estudianteId }) => {
         body: formData
       });
       
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
       const data = await response.json();
       
       if (data.success) {
         alert(`✅ ${data.documentos.length} documento(s) subido(s) correctamente`);
         cargarDocumentos();
       } else {
-        alert('❌ Error subiendo documentos');
+        alert('❌ Error subiendo documentos: ' + (data.detail || 'Error desconocido'));
       }
     } catch (error) {
-      console.error('❌ Error:', error);
-      alert('❌ Error subiendo documentos');
+      console.error('❌ Error completo:', error);
+      alert('❌ Error subiendo documentos: ' + error.message);
     } finally {
       setCargando(false);
     }
