@@ -62,23 +62,21 @@ const styles = {
   },
   title: {
     fontSize: '48px',
-    color: 'white',
+    color: '#1a202c',
     marginBottom: '20px',
-    textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+    textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
   },
   subtitle: {
     fontSize: '24px',
-    color: 'white',
+    color: '#2d3748',
     marginBottom: '15px',
-    opacity: 0.95,
   },
   description: {
     fontSize: '18px',
-    color: 'white',
+    color: '#4a5568',
     marginBottom: '50px',
     maxWidth: '700px',
     margin: '0 auto 50px',
-    opacity: 0.9,
   },
   features: {
     display: 'grid',
