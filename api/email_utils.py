@@ -47,9 +47,15 @@ def enviar_email(
         print(f"   Servidor: {smtp_server}:{smtp_port}")
         print(f"   Remitente: {email_sender}")
         
-        msg['From'] = email_sender
+        msg['From'] = f"Estudio Visa España <{email_sender}>"
         msg['To'] = destinatario
         msg['Subject'] = asunto
+        msg['Reply-To'] = email_sender
+        
+        # Headers para evitar spam
+        msg['X-Priority'] = '1'
+        msg['X-MSMail-Priority'] = 'High'
+        msg['Importance'] = 'High'
         
         # Adjuntar cuerpo HTML
         msg.attach(MIMEText(cuerpo_html, 'html'))
