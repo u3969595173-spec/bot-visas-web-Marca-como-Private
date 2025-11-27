@@ -21,12 +21,15 @@ MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 async def subir_documentos(
     estudiante_id: int,
     archivos: list[UploadFile] = File(...),
-    categorias: list[str] = Form(...),
+    categorias: str = Form(...),
     db: Session = Depends(get_db)
 ):
     """Subir múltiples documentos de un estudiante"""
     try:
-        if len(archivos) != len(categorias):
+        # Parsear categorías (vienen como string separado por comas)
+        categorias_list = [c.strip() for c in categorias.split(',')]
+        
+        if len(archivos) != len(categorias_list):
             raise HTTPException(status_code=400, detail="Número de archivos y categorías no coincide")
         
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
@@ -34,7 +37,9 @@ async def subir_documentos(
         
         documentos_subidos = []
         
-        for archivo, categoria in zip(archivos, categorias):
+        for i, archivo in enumerate(archivos):
+            categoria = categorias_list[i]
+            
             # Validar categoría
             if categoria not in CATEGORIAS_PERMITIDAS:
                 continue
@@ -56,14 +61,16 @@ async def subir_documentos(
             # Insertar en BD
             cursor.execute("""
                 INSERT INTO documentos (
-                    estudiante_id, nombre_archivo, categoria, 
-                    contenido_base64, mime_type, tamano_archivo,
+                    estudiante_id, tipo_documento, nombre_archivo, url_archivo,
+                    categoria, contenido_base64, mime_type, tamano_archivo,
                     estado_revision, created_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (
-                estudiante_id, 
+                estudiante_id,
+                categoria,  # tipo_documento = categoria
                 archivo.filename,
+                f'base64://{archivo.filename}',  # url_archivo placeholder para base64
                 categoria,
                 contenido_base64,
                 archivo.content_type,

@@ -5422,13 +5422,16 @@ async def subir_documentos_multi(
             # Insertar en BD
             cursor.execute("""
                 INSERT INTO documentos 
-                (estudiante_id, nombre_archivo, categoria, contenido_base64, 
-                 tamano_archivo, mime_type, estado_revision, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s, 'pendiente', %s)
+                (estudiante_id, tipo_documento, nombre_archivo, url_archivo,
+                 categoria, contenido_base64, tamano_archivo, mime_type, 
+                 estado_revision, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'pendiente', %s)
                 RETURNING id
             """, (
                 estudiante_id,
+                categoria,  # tipo_documento = categoria
                 archivo.filename,
+                f'base64://{archivo.filename}',  # url_archivo placeholder
                 categoria,
                 contenido_base64,
                 tamano,
