@@ -814,6 +814,41 @@ def evaluar_respuesta_simulador(data: dict):
     return evaluacion
 
 
+# ==================== CALCULADORA DE FONDOS ====================
+
+@app.post("/api/calculadora-fondos", tags=["Estudiantes - Calculadora"])
+def calcular_fondos_estudiante(datos: dict):
+    """
+    Calcula fondos estimados necesarios para estudiar en España
+    IMPORTANTE: Son estimaciones generales, te ayudamos con presupuesto detallado
+    """
+    from api.calculadora_fondos import CalculadoraFondos
+    
+    resultado = CalculadoraFondos.calcular_fondos(datos)
+    
+    return resultado
+
+
+@app.get("/api/calculadora-fondos/ciudades", tags=["Estudiantes - Calculadora"])
+def obtener_ciudades_calculadora():
+    """
+    Obtiene lista de ciudades disponibles para cálculo
+    """
+    from api.calculadora_fondos import CalculadoraFondos
+    
+    return CalculadoraFondos.obtener_ciudades_disponibles()
+
+
+@app.get("/api/calculadora-fondos/programas", tags=["Estudiantes - Calculadora"])
+def obtener_programas_calculadora():
+    """
+    Obtiene lista de tipos de programa disponibles
+    """
+    from api.calculadora_fondos import CalculadoraFondos
+    
+    return CalculadoraFondos.obtener_tipos_programa()
+
+
 @app.post("/api/documentos/{documento_id}/validar-ocr", tags=["Documentos - OCR"])
 async def validar_documento_ocr(
     documento_id: int,

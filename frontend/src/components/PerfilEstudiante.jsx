@@ -554,6 +554,33 @@ const PerfilEstudiante = ({ estudianteId }) => {
             </div>
           </div>
 
+          {/* NUEVA CARD: Calculadora de Fondos */}
+          <div className="info-card">
+            <h2>💰 Calculadora de Fondos</h2>
+            <div style={{padding: '15px'}}>
+              <p style={{marginBottom: '15px', color: '#6c757d'}}>
+                Calcula cuánto dinero necesitas según tu ciudad, programa y situación familiar.
+              </p>
+              <a 
+                href="/estudiante/calculadora-fondos"
+                style={{
+                  display: 'inline-block',
+                  backgroundColor: '#764ba2',
+                  color: 'white',
+                  padding: '12px 24px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  textDecoration: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                🧮 Calcular Fondos
+              </a>
+            </div>
+          </div>
+
           {/* NUEVA CARD: Generador de Documentos */}
           <div className="info-card">
             <h2>📄 Generar Documentos Borrador</h2>

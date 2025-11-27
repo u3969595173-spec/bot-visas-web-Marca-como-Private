@@ -9,6 +9,7 @@ import PortalEstudiante from './components/PortalEstudiante'
 import PoliticaPrivacidad from './components/PoliticaPrivacidad'
 import TerminosCondiciones from './components/TerminosCondiciones'
 import SimuladorEntrevista from './components/SimuladorEntrevista'
+import CalculadoraFondos from './components/CalculadoraFondos'
 import Home from './components/Home'
 
 function App() {
@@ -50,6 +51,9 @@ function App() {
                   <Link to="/estudiante/simulador" style={styles.navLink}>
                     🎭 Simulador
                   </Link>
+                  <Link to="/estudiante/calculadora-fondos" style={styles.navLink}>
+                    💰 Calculadora
+                  </Link>
                 </>
               )}
               <Link to="/portal" style={styles.navLink}>
@@ -86,6 +90,16 @@ function App() {
             element={
               estudianteId ? (
                 <SimuladorEntrevista estudianteId={estudianteId} />
+              ) : (
+                <Navigate to="/portal" />
+              )
+            }
+          />
+          <Route
+            path="/estudiante/calculadora-fondos"
+            element={
+              estudianteId ? (
+                <CalculadoraFondos estudianteId={estudianteId} />
               ) : (
                 <Navigate to="/portal" />
               )
