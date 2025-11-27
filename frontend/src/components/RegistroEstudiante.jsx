@@ -9,24 +9,7 @@ const RegistroEstudiante = () => {
     nombre: '',
     email: '',
     telefono: '',
-    pasaporte: '',
-    fecha_nacimiento: '',
-    edad: '',
-    nacionalidad: '',
-    pais_origen: '',
-    ciudad_origen: '',
-    carrera_deseada: '',
-    especialidad: '',
-    nivel_espanol: 'basico',
-    tipo_visa: 'estudiante',
-    fondos_disponibles: '',
-    fecha_inicio_estimada: '',
     consentimiento_gdpr: false
-  });
-  const [archivos, setArchivos] = useState({
-    titulo: null,
-    pasaporte_archivo: null,
-    extractos: null
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,35 +23,6 @@ const RegistroEstudiante = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-  };
-
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    if (files && files[0]) {
-      const file = files[0];
-      const maxSize = 10 * 1024 * 1024; // 10MB en bytes
-      
-      // Validar tamaño
-      if (file.size > maxSize) {
-        setError(`El archivo "${file.name}" excede el tamaño máximo de 10MB (tamaño: ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-        e.target.value = ''; // Reset input
-        return;
-      }
-      
-      // Validar tipo de archivo
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-      if (!allowedTypes.includes(file.type)) {
-        setError(`Tipo de archivo no permitido. Solo se aceptan PDF, JPG y PNG`);
-        e.target.value = ''; // Reset input
-        return;
-      }
-      
-      setError(''); // Limpiar error si todo está bien
-      setArchivos(prev => ({
-        ...prev,
-        [name]: file
-      }));
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -86,33 +40,7 @@ const RegistroEstudiante = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       
-      // Crear FormData para enviar archivos
-      const formDataToSend = new FormData();
-      
-      // Agregar todos los campos del formulario
-      Object.keys(formData).forEach(key => {
-        if (key !== 'consentimiento_gdpr') {
-          formDataToSend.append(key, formData[key]);
-        }
-      });
-      formDataToSend.append('consentimiento_gdpr', formData.consentimiento_gdpr ? 'true' : 'false');
-      
-      // Agregar archivos si existen
-      if (archivos.titulo) {
-        formDataToSend.append('archivo_titulo', archivos.titulo);
-      }
-      if (archivos.pasaporte_archivo) {
-        formDataToSend.append('archivo_pasaporte', archivos.pasaporte_archivo);
-      }
-      if (archivos.extractos) {
-        formDataToSend.append('archivo_extractos', archivos.extractos);
-      }
-
-      const response = await axios.post(`${apiUrl}/api/estudiantes`, formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const response = await axios.post(`${apiUrl}/api/estudiantes`, formData);
       
       console.log('Respuesta del servidor:', response.data);
       const id = response.data.estudiante_id || response.data.id;
@@ -235,13 +163,16 @@ const RegistroEstudiante = () => {
     <div className="registro-container">
       <div className="registro-card">
         <div className="registro-header">
-          <h1>Solicitud de Visa de Estudio</h1>
-          <p>Completa el formulario para comenzar tu proceso</p>
+          <h1>Registro Rápido</h1>
+          <p>Completa estos 3 campos básicos para comenzar</p>
+          <p style={{fontSize: '13px', color: '#718096', marginTop: '10px'}}>
+            ℹ️ Podrás completar tu perfil después con más detalles
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="registro-form">
           <div className="form-section">
-            <h3>Datos Personales</h3>
+            <h3>Datos Básicos</h3>
             
             <div className="form-group">
               <label htmlFor="nombre">Nombre Completo *</label>
@@ -256,271 +187,30 @@ const RegistroEstudiante = () => {
               />
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="email">Email *</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  placeholder="tu@email.com"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="telefono">Teléfono *</label>
-                <input
-                  type="tel"
-                  id="telefono"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={handleChange}
-                  required
-                  placeholder="+34 600 000 000"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="pasaporte">Número de Pasaporte *</label>
-                <input
-                  type="text"
-                  id="pasaporte"
-                  name="pasaporte"
-                  value={formData.pasaporte}
-                  onChange={handleChange}
-                  required
-                  placeholder="ABC123456"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="fecha_nacimiento">Fecha de Nacimiento *</label>
-                <input
-                  type="date"
-                  id="fecha_nacimiento"
-                  name="fecha_nacimiento"
-                  value={formData.fecha_nacimiento}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="edad">Edad *</label>
-                <input
-                  type="number"
-                  id="edad"
-                  name="edad"
-                  value={formData.edad}
-                  onChange={handleChange}
-                  required
-                  min="18"
-                  max="99"
-                  placeholder="25"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="pais_origen">País de Origen *</label>
-                <input
-                  type="text"
-                  id="pais_origen"
-                  name="pais_origen"
-                  value={formData.pais_origen}
-                  onChange={handleChange}
-                  required
-                  placeholder="Ej: México"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="nacionalidad">Nacionalidad *</label>
-                <input
-                  type="text"
-                  id="nacionalidad"
-                  name="nacionalidad"
-                  value={formData.nacionalidad}
-                  onChange={handleChange}
-                  required
-                  placeholder="Ej: Mexicana"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="ciudad_origen">Ciudad de Origen *</label>
-                <input
-                  type="text"
-                  id="ciudad_origen"
-                  name="ciudad_origen"
-                  value={formData.ciudad_origen}
-                  onChange={handleChange}
-                  required
-                  placeholder="Ej: Ciudad de México"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h3>Información Académica</h3>
-
             <div className="form-group">
-              <label htmlFor="carrera_deseada">Carrera Deseada *</label>
-                <input
-                type="text"
-                id="carrera_deseada"
-                name="carrera_deseada"
-                value={formData.carrera_deseada}
+              <label htmlFor="email">Email *</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
                 onChange={handleChange}
                 required
-                placeholder="Ej: Licenciatura en Ingeniería, Máster en Derecho..."
+                placeholder="tu@email.com"
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="especialidad">Especialidad de Interés *</label>
+              <label htmlFor="telefono">Teléfono *</label>
               <input
-                type="text"
-                id="especialidad"
-                name="especialidad"
-                value={formData.especialidad}
+                type="tel"
+                id="telefono"
+                name="telefono"
+                value={formData.telefono}
                 onChange={handleChange}
                 required
-                placeholder="Ej: Ingeniería Informática, Medicina, Derecho..."
+                placeholder="+34 600 000 000"
               />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="nivel_espanol">Nivel de Español *</label>
-                <select
-                  id="nivel_espanol"
-                  name="nivel_espanol"
-                  value={formData.nivel_espanol}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="basico">Básico (A1-A2)</option>
-                  <option value="intermedio">Intermedio (B1-B2)</option>
-                  <option value="avanzado">Avanzado (C1-C2)</option>
-                  <option value="nativo">Nativo</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="tipo_visa">Tipo de Visa *</label>
-                <select
-                  id="tipo_visa"
-                  name="tipo_visa"
-                  value={formData.tipo_visa}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="estudiante">Estudiante (Grado/Máster)</option>
-                  <option value="idiomas">Curso de Idiomas</option>
-                  <option value="doctorado">Doctorado/Investigación</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h3>Información Financiera</h3>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="fondos_disponibles">Fondos Disponibles (€) *</label>
-                <input
-                  type="number"
-                  id="fondos_disponibles"
-                  name="fondos_disponibles"
-                  value={formData.fondos_disponibles}
-                  onChange={handleChange}
-                  required
-                  min="0"
-                  step="0.01"
-                  placeholder="5000"
-                />
-                <small style={{color: '#718096', fontSize: '12px'}}>
-                  Mínimo recomendado: €3,000-€6,000 para 3-6 meses
-                </small>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="fecha_inicio_estimada">Fecha Estimada de Inicio *</label>
-                <input
-                  type="date"
-                  id="fecha_inicio_estimada"
-                  name="fecha_inicio_estimada"
-                  value={formData.fecha_inicio_estimada}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="form-section">
-            <h3>Documentos</h3>
-            <p style={{color: '#718096', fontSize: '14px', marginBottom: '15px'}}>
-              Sube los siguientes documentos en formato PDF o JPG (máx. 10MB cada uno)
-            </p>
-
-            <div className="form-group">
-              <label htmlFor="titulo">Título Académico *</label>
-              <input
-                type="file"
-                id="titulo"
-                name="titulo"
-                onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png"
-                required
-              />
-              {archivos.titulo && (
-                <small style={{color: '#38b2ac'}}>✓ {archivos.titulo.name}</small>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="pasaporte_archivo">Copia del Pasaporte *</label>
-              <input
-                type="file"
-                id="pasaporte_archivo"
-                name="pasaporte_archivo"
-                onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png"
-                required
-              />
-              {archivos.pasaporte_archivo && (
-                <small style={{color: '#38b2ac'}}>✓ {archivos.pasaporte_archivo.name}</small>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="extractos">Extractos Bancarios *</label>
-              <input
-                type="file"
-                id="extractos"
-                name="extractos"
-                onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png"
-                required
-              />
-              {archivos.extractos && (
-                <small style={{color: '#38b2ac'}}>✓ {archivos.extractos.name}</small>
-              )}
-              <small style={{color: '#718096', fontSize: '12px', display: 'block', marginTop: '5px'}}>
-                Últimos 3 meses mostrando saldo suficiente
-              </small>
             </div>
           </div>
 
@@ -558,11 +248,11 @@ const RegistroEstudiante = () => {
             className="submit-button"
             disabled={loading}
           >
-            {loading ? 'Enviando...' : 'Enviar Solicitud'}
+            {loading ? 'Creando cuenta...' : '🚀 Crear Cuenta'}
           </button>
 
           <p className="form-footer">
-            ¿Ya tienes cuenta? <a href="/login-estudiante">Inicia sesión aquí</a>
+            ¿Ya tienes cuenta? <a href="/portal">Consulta tu estado aquí</a>
           </p>
         </form>
       </div>

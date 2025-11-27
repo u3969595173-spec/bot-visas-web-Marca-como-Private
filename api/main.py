@@ -643,26 +643,29 @@ async def registrar_estudiante(
     nombre: str = Form(...),
     email: str = Form(...),
     telefono: str = Form(...),
-    pasaporte: str = Form(...),
-    fecha_nacimiento: str = Form(...),
-    edad: int = Form(...),
-    nacionalidad: str = Form(...),
-    pais_origen: str = Form(...),
-    ciudad_origen: str = Form(...),
-    carrera_deseada: str = Form(...),
-    especialidad: str = Form(...),
-    nivel_espanol: str = Form(...),
-    tipo_visa: str = Form(...),
-    fondos_disponibles: float = Form(...),
-    fecha_inicio_estimada: str = Form(...),
     consentimiento_gdpr: str = Form(...),
-    archivo_titulo: UploadFile = File(...),
-    archivo_pasaporte: UploadFile = File(...),
-    archivo_extractos: UploadFile = File(...),
+    # Campos opcionales para completar después
+    pasaporte: str = Form(None),
+    fecha_nacimiento: str = Form(None),
+    edad: int = Form(None),
+    nacionalidad: str = Form(None),
+    pais_origen: str = Form(None),
+    ciudad_origen: str = Form(None),
+    carrera_deseada: str = Form(None),
+    especialidad: str = Form(None),
+    nivel_espanol: str = Form(None),
+    tipo_visa: str = Form(None),
+    fondos_disponibles: float = Form(None),
+    fecha_inicio_estimada: str = Form(None),
+    archivo_titulo: UploadFile = File(None),
+    archivo_pasaporte: UploadFile = File(None),
+    archivo_extractos: UploadFile = File(None),
     db: Session = Depends(get_db)
 ):
     """
-    Registro público de estudiantes con archivos
+    Registro público de estudiantes - SIMPLIFICADO
+    Solo requiere: nombre, email, teléfono
+    El resto se completa después en "Completar Perfil"
     No requiere autenticación
     Rate limit: 3 registros por hora por IP
     """
@@ -714,9 +717,9 @@ async def registrar_estudiante(
                 break
             codigo_acceso = generar_codigo_acceso()
         
-        # Guardar archivos
+        # Guardar archivos (solo si se proporcionan)
         def guardar_archivo(archivo: UploadFile, prefijo: str) -> str:
-            if not archivo:
+            if not archivo or not archivo.filename:
                 return None
             
             # Generar nombre único
@@ -731,31 +734,35 @@ async def registrar_estudiante(
             
             return str(ruta_archivo)
         
-        ruta_titulo = guardar_archivo(archivo_titulo, "titulo")
-        ruta_pasaporte = guardar_archivo(archivo_pasaporte, "pasaporte")
-        ruta_extractos = guardar_archivo(archivo_extractos, "extractos")
+        ruta_titulo = guardar_archivo(archivo_titulo, "titulo") if archivo_titulo else None
+        ruta_pasaporte = guardar_archivo(archivo_pasaporte, "pasaporte") if archivo_pasaporte else None
+        ruta_extractos = guardar_archivo(archivo_extractos, "extractos") if archivo_extractos else None
         
-        # Insertar nuevo estudiante con SQL directo
+        # Insertar nuevo estudiante con SQL directo - CAMPOS OPCIONALES
         result = db.execute(text("""
             INSERT INTO estudiantes (
-                nombre, email, telefono, pasaporte, fecha_nacimiento, edad, 
+                nombre, email, telefono,
+                consentimiento_gdpr, fecha_consentimiento,
+                estado, documentos_estado, codigo_acceso, created_at,
+                pasaporte, fecha_nacimiento, edad, 
                 nacionalidad, pais_origen, ciudad_origen, carrera_deseada, especialidad, 
                 nivel_espanol, tipo_visa, fondos_disponibles, fecha_inicio_estimada,
-                archivo_titulo, archivo_pasaporte, archivo_extractos,
-                consentimiento_gdpr, fecha_consentimiento,
-                estado, documentos_estado, codigo_acceso, created_at
+                archivo_titulo, archivo_pasaporte, archivo_extractos
             ) VALUES (
-                :nombre, :email, :telefono, :pasaporte, :fecha_nacimiento, :edad,
+                :nombre, :email, :telefono,
+                :consentimiento_gdpr, NOW(),
+                'pendiente', 'pendiente', :codigo_acceso, NOW(),
+                :pasaporte, :fecha_nacimiento, :edad,
                 :nacionalidad, :pais_origen, :ciudad_origen, :carrera_deseada, :especialidad,
                 :nivel_espanol, :tipo_visa, :fondos_disponibles, :fecha_inicio_estimada,
-                :archivo_titulo, :archivo_pasaporte, :archivo_extractos,
-                :consentimiento_gdpr, NOW(),
-                'pendiente', 'pendiente', :codigo_acceso, NOW()
+                :archivo_titulo, :archivo_pasaporte, :archivo_extractos
             ) RETURNING id, codigo_acceso
         """), {
             "nombre": nombre,
             "email": email,
             "telefono": telefono,
+            "consentimiento_gdpr": consentimiento_gdpr == 'true',
+            "codigo_acceso": codigo_acceso,
             "pasaporte": pasaporte,
             "fecha_nacimiento": fecha_nacimiento,
             "edad": edad,
