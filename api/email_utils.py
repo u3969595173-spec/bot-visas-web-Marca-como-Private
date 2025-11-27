@@ -30,7 +30,14 @@ def enviar_email(
     """
     try:
         msg = MIMEMultipart()
-        msg['From'] = os.getenv('SMTP_USER')
+        
+        # Soportar ambos formatos de configuración
+        email_sender = os.getenv('EMAIL_SENDER') or os.getenv('SMTP_USER')
+        email_password = os.getenv('EMAIL_PASSWORD') or os.getenv('SMTP_PASSWORD')
+        smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
+        smtp_port = int(os.getenv('SMTP_PORT', 587))
+        
+        msg['From'] = email_sender
         msg['To'] = destinatario
         msg['Subject'] = asunto
         
@@ -46,9 +53,9 @@ def enviar_email(
                 msg.attach(attachment)
         
         # Conectar y enviar
-        smtp = smtplib.SMTP(os.getenv('SMTP_SERVER', 'smtp.gmail.com'), int(os.getenv('SMTP_PORT', 587)))
+        smtp = smtplib.SMTP(smtp_server, smtp_port)
         smtp.starttls()
-        smtp.login(os.getenv('SMTP_USER'), os.getenv('SMTP_PASSWORD'))
+        smtp.login(email_sender, email_password)
         smtp.send_message(msg)
         smtp.quit()
         
