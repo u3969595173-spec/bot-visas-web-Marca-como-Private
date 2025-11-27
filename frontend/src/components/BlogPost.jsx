@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import axios from 'axios'
 import { useParams, Link } from 'react-router-dom'
+import axios from 'axios'
 import './Blog.css'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://bot-visas-api.onrender.com'
@@ -15,6 +15,7 @@ function BlogPost() {
   }, [slug])
 
   const cargarPost = async () => {
+    setLoading(true)
     try {
       const response = await axios.get(`${API_URL}/api/blog/${slug}`)
       if (response.data.success) {
@@ -27,74 +28,59 @@ function BlogPost() {
     }
   }
 
-  if (loading) return <div className="loading">Cargando...</div>
+  const formatearFecha = (fecha) => {
+    if (!fecha) return ''
+    return new Date(fecha).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
 
-  if (!post) return (
-    <div className="sin-resultados">
-      <p>❌ Post no encontrado</p>
-      <Link to="/blog" className="btn-volver">← Volver al blog</Link>
-    </div>
-  )
+  if (loading) {
+    return <div className="loading-blog">Cargando post...</div>
+  }
+
+  if (!post) {
+    return (
+      <div className="blog-container">
+        <div className="post-no-encontrado">
+          <h2>❌ Post no encontrado</h2>
+          <Link to="/blog" className="btn-volver">← Volver al blog</Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="blog-post-container">
-      <Link to="/blog" className="btn-volver-post">← Volver al blog</Link>
-      
-      <article className="post-individual">
-        {post.imagen_portada && (
-          <img src={post.imagen_portada} alt={post.titulo} className="post-portada" />
-        )}
+    <div className="blog-container">
+      <article className="post-completo">
+        <Link to="/blog" className="btn-volver-top">← Volver al blog</Link>
         
-        <div className="post-header">
-          {post.categoria && (
-            <span className="post-categoria">{post.categoria}</span>
-          )}
+        {post.imagen_portada && (
+          <div className="post-portada">
+            <img src={post.imagen_portada} alt={post.titulo} />
+          </div>
+        )}
+
+        <header className="post-header">
+          <span className="post-categoria-badge">{post.categoria}</span>
           <h1>{post.titulo}</h1>
-          <div className="post-meta">
+          <div className="post-meta-completo">
             <span>✍️ {post.autor_nombre}</span>
-            <span>📅 {new Date(post.fecha_publicacion).toLocaleDateString('es-ES', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}</span>
+            <span>📅 {formatearFecha(post.fecha_publicacion)}</span>
             <span>👁️ {post.visitas} visitas</span>
           </div>
-        </div>
+        </header>
 
         <div 
-          className="post-body"
+          className="post-contenido-html"
           dangerouslySetInnerHTML={{ __html: post.contenido }}
         />
 
-        <div className="post-compartir">
-          <h3>Compartir este artículo</h3>
-          <div className="compartir-botones">
-            <a 
-              href={`https://www.facebook.com/sharer/sharer.php?u=${window.location.href}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-compartir facebook"
-            >
-              Facebook
-            </a>
-            <a 
-              href={`https://twitter.com/intent/tweet?url=${window.location.href}&text=${post.titulo}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-compartir twitter"
-            >
-              Twitter
-            </a>
-            <a 
-              href={`https://www.linkedin.com/shareArticle?mini=true&url=${window.location.href}&title=${post.titulo}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-compartir linkedin"
-            >
-              LinkedIn
-            </a>
-          </div>
-        </div>
+        <footer className="post-footer">
+          <Link to="/blog" className="btn-volver">← Volver al blog</Link>
+        </footer>
       </article>
     </div>
   )

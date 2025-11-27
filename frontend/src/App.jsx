@@ -14,6 +14,11 @@ import AlertasFechas from './components/AlertasFechas'
 import BuscadorUniversidades from './components/BuscadorUniversidades'
 import AdminUniversidades from './components/AdminUniversidades'
 import AdminProgramas from './components/AdminProgramas'
+import BlogLista from './components/BlogLista'
+import BlogPost from './components/BlogPost'
+import AdminBlog from './components/AdminBlog'
+import TestimoniosLista from './components/TestimoniosLista'
+import AdminTestimonios from './components/AdminTestimonios'
 import Home from './components/Home'
 
 function App() {
@@ -66,6 +71,12 @@ function App() {
                   </Link>
                 </>
               )}
+              <Link to="/blog" style={styles.navLink}>
+                📝 Blog
+              </Link>
+              <Link to="/testimonios" style={styles.navLink}>
+                ⭐ Testimonios
+              </Link>
               <Link to="/portal" style={styles.navLink}>
                 Consultar Estado
               </Link>
@@ -85,6 +96,12 @@ function App() {
                   </Link>
                   <Link to="/admin/programas" style={styles.navLink}>
                     📚 Programas
+                  </Link>
+                  <Link to="/admin/blog" style={styles.navLink}>
+                    📝 Blog
+                  </Link>
+                  <Link to="/admin/testimonios" style={styles.navLink}>
+                    ⭐ Testimonios
                   </Link>
                 </>
               )}
@@ -188,6 +205,29 @@ function App() {
             element={
               isAuthenticated ? (
                 <AdminProgramas />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route path="/blog" element={<BlogLista />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/testimonios" element={<TestimoniosLista />} />
+          <Route
+            path="/admin/blog"
+            element={
+              isAuthenticated ? (
+                <AdminBlog />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/testimonios"
+            element={
+              isAuthenticated ? (
+                <AdminTestimonios />
               ) : (
                 <Navigate to="/admin/login" />
               )

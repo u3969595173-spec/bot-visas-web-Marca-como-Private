@@ -9,7 +9,7 @@ function AdminBlog() {
   const [loading, setLoading] = useState(false)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
   const [editando, setEditando] = useState(null)
-  
+
   const [formulario, setFormulario] = useState({
     titulo: '',
     contenido: '',
@@ -22,8 +22,6 @@ function AdminBlog() {
     publicado: false,
     destacado: false
   })
-
-  const categorias = ['visas', 'estudios', 'vida_espana', 'noticias', 'consejos', 'general']
 
   useEffect(() => {
     cargarPosts()
@@ -57,22 +55,29 @@ function AdminBlog() {
 
     try {
       if (editando) {
-        const response = await axios.put(`${API_URL}/api/admin/blog/${editando}`, formulario)
+        const response = await axios.put(
+          `${API_URL}/api/admin/blog/${editando}`,
+          formulario
+        )
         if (response.data.success) {
-          alert('Post actualizado')
+          alert('Post actualizado exitosamente')
           resetFormulario()
           cargarPosts()
         }
       } else {
-        const response = await axios.post(`${API_URL}/api/admin/blog`, formulario)
+        const response = await axios.post(
+          `${API_URL}/api/admin/blog`,
+          formulario
+        )
         if (response.data.success) {
-          alert(`Post creado: ${response.data.slug}`)
+          alert(`Post "${formulario.titulo}" creado exitosamente`)
           resetFormulario()
           cargarPosts()
         }
       }
     } catch (error) {
-      alert('Error: ' + (error.response?.data?.detail || error.message))
+      console.error('Error guardando post:', error)
+      alert('Error al guardar post')
     } finally {
       setLoading(false)
     }
@@ -81,13 +86,13 @@ function AdminBlog() {
   const editarPost = (post) => {
     setFormulario({
       titulo: post.titulo,
-      contenido: post.contenido || '',
-      extracto: post.extracto || '',
+      contenido: '',
+      extracto: '',
       categoria: post.categoria || 'general',
-      autor_nombre: post.autor_nombre || 'Equipo Editorial',
-      imagen_portada: post.imagen_portada || '',
-      meta_description: post.meta_description || '',
-      meta_keywords: post.meta_keywords || '',
+      autor_nombre: 'Equipo Editorial',
+      imagen_portada: '',
+      meta_description: '',
+      meta_keywords: '',
       publicado: post.publicado,
       destacado: post.destacado
     })
@@ -96,7 +101,7 @@ function AdminBlog() {
   }
 
   const eliminarPost = async (id, titulo) => {
-    if (!confirm(`¿Eliminar "${titulo}"?`)) return
+    if (!confirm(`¿Eliminar post "${titulo}"?`)) return
 
     try {
       const response = await axios.delete(`${API_URL}/api/admin/blog/${id}`)
@@ -105,7 +110,8 @@ function AdminBlog() {
         cargarPosts()
       }
     } catch (error) {
-      alert('Error al eliminar')
+      console.error('Error eliminando post:', error)
+      alert('Error al eliminar post')
     }
   }
 
@@ -154,43 +160,23 @@ function AdminBlog() {
                   value={formulario.titulo}
                   onChange={handleInputChange}
                   required
-                  placeholder="Ej: Guía completa para obtener visa de estudiante"
-                />
-              </div>
-
-              <div className="form-group full-width">
-                <label>Contenido * (HTML permitido)</label>
-                <textarea
-                  name="contenido"
-                  value={formulario.contenido}
-                  onChange={handleInputChange}
-                  required
-                  rows="12"
-                  placeholder="<p>Contenido del post...</p>"
-                />
-              </div>
-
-              <div className="form-group full-width">
-                <label>Extracto</label>
-                <textarea
-                  name="extracto"
-                  value={formulario.extracto}
-                  onChange={handleInputChange}
-                  rows="3"
-                  placeholder="Breve resumen del post (aparece en tarjetas)"
+                  placeholder="Título del post..."
                 />
               </div>
 
               <div className="form-group">
-                <label>Categoría</label>
+                <label>Categoría *</label>
                 <select
                   name="categoria"
                   value={formulario.categoria}
                   onChange={handleInputChange}
+                  required
                 >
-                  {categorias.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
+                  <option value="general">General</option>
+                  <option value="visas">Visas</option>
+                  <option value="estudios">Estudios</option>
+                  <option value="vida_espana">Vida en España</option>
+                  <option value="noticias">Noticias</option>
                 </select>
               </div>
 
@@ -205,6 +191,29 @@ function AdminBlog() {
               </div>
 
               <div className="form-group full-width">
+                <label>Extracto/Resumen</label>
+                <textarea
+                  name="extracto"
+                  value={formulario.extracto}
+                  onChange={handleInputChange}
+                  rows="2"
+                  placeholder="Resumen corto que aparece en el listado..."
+                />
+              </div>
+
+              <div className="form-group full-width">
+                <label>Contenido *</label>
+                <textarea
+                  name="contenido"
+                  value={formulario.contenido}
+                  onChange={handleInputChange}
+                  required
+                  rows="10"
+                  placeholder="Contenido completo del post (HTML permitido)..."
+                />
+              </div>
+
+              <div className="form-group">
                 <label>URL Imagen Portada</label>
                 <input
                   type="url"
@@ -215,26 +224,15 @@ function AdminBlog() {
                 />
               </div>
 
-              <div className="form-group full-width">
+              <div className="form-group">
                 <label>Meta Description (SEO)</label>
                 <input
                   type="text"
                   name="meta_description"
                   value={formulario.meta_description}
                   onChange={handleInputChange}
-                  placeholder="Descripción para buscadores (max 160 caracteres)"
-                  maxLength="160"
-                />
-              </div>
-
-              <div className="form-group full-width">
-                <label>Keywords (SEO, separadas por comas)</label>
-                <input
-                  type="text"
-                  name="meta_keywords"
-                  value={formulario.meta_keywords}
-                  onChange={handleInputChange}
-                  placeholder="visa estudiante, españa, universidad"
+                  maxLength="300"
+                  placeholder="Descripción para buscadores..."
                 />
               </div>
 
@@ -258,7 +256,7 @@ function AdminBlog() {
                     checked={formulario.destacado}
                     onChange={handleInputChange}
                   />
-                  {' '}Destacado
+                  {' '}Destacado (aparece primero)
                 </label>
               </div>
             </div>
@@ -285,8 +283,8 @@ function AdminBlog() {
                 <th>ID</th>
                 <th>Título</th>
                 <th>Categoría</th>
-                <th>Autor</th>
-                <th>Estado</th>
+                <th>Publicado</th>
+                <th>Destacado</th>
                 <th>Visitas</th>
                 <th>Fecha</th>
                 <th>Acciones</th>
@@ -296,17 +294,12 @@ function AdminBlog() {
               {posts.map(post => (
                 <tr key={post.id}>
                   <td>{post.id}</td>
+                  <td><strong>{post.titulo}</strong></td>
                   <td>
-                    <strong>{post.titulo}</strong>
-                    {post.destacado && <span style={{color: '#ffc107'}}> ⭐</span>}
+                    <span className="badge-tipo">{post.categoria}</span>
                   </td>
-                  <td><span className="badge-tipo">{post.categoria}</span></td>
-                  <td>{post.autor_nombre}</td>
-                  <td>
-                    <span className={`badge-tipo ${post.publicado ? 'publica' : 'privada'}`}>
-                      {post.publicado ? '✅ Publicado' : '📝 Borrador'}
-                    </span>
-                  </td>
+                  <td>{post.publicado ? '✅' : '❌'}</td>
+                  <td>{post.destacado ? '⭐' : ''}</td>
                   <td>{post.visitas}</td>
                   <td>{new Date(post.created_at).toLocaleDateString('es-ES')}</td>
                   <td className="acciones">
@@ -343,7 +336,7 @@ function AdminBlog() {
 
           {posts.length === 0 && (
             <div className="sin-resultados">
-              <p>No hay posts creados. Haz clic en "Nuevo Post" para empezar.</p>
+              <p>No hay posts creados</p>
             </div>
           )}
         </div>
