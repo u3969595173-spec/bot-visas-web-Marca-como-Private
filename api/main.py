@@ -7628,7 +7628,11 @@ async def obtener_universidades(
     try:
         usuario = verificar_token(credentials.credentials)
         
-        if not usuario.get('es_admin'):
+        if not usuario:
+            raise HTTPException(status_code=401, detail="Token inválido")
+        
+        # Verificar que el usuario sea admin
+        if usuario.get('rol') != 'admin':
             raise HTTPException(status_code=403, detail="Acceso denegado")
         
         import os
@@ -7697,7 +7701,10 @@ async def contactar_universidad(
     """Enviar email automático a universidad"""
     usuario = verificar_token(credentials.credentials)
     
-    if not usuario.get('es_admin'):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    
+    if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
     import os
@@ -7891,7 +7898,10 @@ async def actualizar_universidad(
     """Actualizar información de contacto con universidad"""
     usuario = verificar_token(credentials.credentials)
     
-    if not usuario.get('es_admin'):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    
+    if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
     import os
@@ -8027,7 +8037,10 @@ async def actualizar_paso_proceso(
     """Actualizar un paso específico del proceso (SOLO ADMIN)"""
     usuario = verificar_token(credentials.credentials)
     
-    if not usuario.get('es_admin'):
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Token inválido")
+    
+    if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Solo administradores")
     
     import os
