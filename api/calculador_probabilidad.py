@@ -12,8 +12,8 @@ def calcular_probabilidad_exito(estudiante_data: dict) -> dict:
     max_puntos = 100
     
     # FACTOR 1: Fondos disponibles (30 puntos)
-    fondos = float(estudiante_data.get('fondos_disponibles', 0))
-    tipo_visa = estudiante_data.get('tipo_visa', 'estudiante')
+    fondos = float(estudiante_data.get('fondos_disponibles') or 0)
+    tipo_visa = estudiante_data.get('tipo_visa') or 'estudiante'
     
     if tipo_visa == 'idiomas':
         fondos_requeridos = 4000  # 6 meses
@@ -33,7 +33,7 @@ def calcular_probabilidad_exito(estudiante_data: dict) -> dict:
         factores.append({'factor': 'Fondos muy bajos', 'puntos': 0, 'cumple': False})
     
     # FACTOR 2: Nivel de español (30 puntos)
-    nivel_espanol = estudiante_data.get('nivel_espanol', 'basico')
+    nivel_espanol = estudiante_data.get('nivel_espanol') or 'basico'
     nivel_puntos = {
         'nativo': 30,
         'avanzado': 25,
@@ -77,7 +77,7 @@ def calcular_probabilidad_exito(estudiante_data: dict) -> dict:
         })
     
     # FACTOR 4: Edad (15 puntos)
-    edad = int(estudiante_data.get('edad', 0))
+    edad = int(estudiante_data.get('edad') or 0)
     if 18 <= edad <= 35:
         puntos += 15
         factores.append({'factor': 'Edad ideal (18-35)', 'puntos': 15, 'cumple': True})
