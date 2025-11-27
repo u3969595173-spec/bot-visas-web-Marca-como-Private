@@ -4059,6 +4059,74 @@ def obtener_estudiante(
     }
 
 
+@app.patch("/api/admin/estudiantes/{estudiante_id}/campo", tags=["Admin"])
+def actualizar_campo_rapido(
+    estudiante_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Actualización rápida de un solo campo (edición inline)"""
+    campo = datos.get('campo')
+    valor = datos.get('valor')
+    
+    if not campo:
+        raise HTTPException(status_code=400, detail="Campo requerido")
+    
+    # Campos permitidos para edición inline
+    campos_permitidos = [
+        'nombre', 'email', 'telefono', 'pasaporte', 'edad', 
+        'nacionalidad', 'pais_origen', 'ciudad_origen', 
+        'carrera_deseada', 'especialidad', 'nivel_espanol', 
+        'tipo_visa', 'fondos_disponibles', 'notas', 'estado'
+    ]
+    
+    if campo not in campos_permitidos:
+        raise HTTPException(status_code=400, detail=f"Campo '{campo}' no permitido")
+    
+    # Obtener valor anterior
+    valor_anterior = db.execute(
+        text(f"SELECT {campo} FROM estudiantes WHERE id = :id"),
+        {"id": estudiante_id}
+    ).fetchone()
+    
+    if not valor_anterior:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Actualizar campo
+    db.execute(
+        text(f"UPDATE estudiantes SET {campo} = :valor, updated_at = NOW() WHERE id = :id"),
+        {"id": estudiante_id, "valor": valor}
+    )
+    db.commit()
+    
+    # Registrar en historial
+    db.execute(
+        text("""
+            INSERT INTO historial_cambios
+            (estudiante_id, campo_modificado, valor_anterior, valor_nuevo, usuario_email, usuario_nombre, razon, timestamp)
+            VALUES (:est_id, :campo, :anterior, :nuevo, :email, :nombre, :razon, NOW())
+        """),
+        {
+            "est_id": estudiante_id,
+            "campo": campo,
+            "anterior": str(valor_anterior[0]) if valor_anterior[0] else None,
+            "nuevo": str(valor),
+            "email": usuario['email'],
+            "nombre": usuario.get('nombre', usuario['email']),
+            "razon": "Edición inline desde panel admin"
+        }
+    )
+    db.commit()
+    
+    return {
+        "message": "Campo actualizado",
+        "campo": campo,
+        "valor_anterior": valor_anterior[0],
+        "valor_nuevo": valor
+    }
+
+
 @app.put("/api/admin/estudiantes/{estudiante_id}", tags=["Admin"])
 def actualizar_estudiante(
     estudiante_id: int,
@@ -4379,6 +4447,110 @@ def obtener_historial_cambios(
         })
     
     return {"historial": historial, "total": len(historial)}
+
+
+@app.get("/api/admin/calendario/eventos", tags=["Admin - Calendario"])
+def obtener_eventos_calendario(
+    fecha_inicio: Optional[str] = None,
+    fecha_fin: Optional[str] = None,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Obtiene todos los eventos para el calendario integrado"""
+    from datetime import datetime, timedelta
+    
+    # Si no se especifican fechas, usar mes actual
+    if not fecha_inicio:
+        fecha_inicio = datetime.now().replace(day=1).isoformat()
+    if not fecha_fin:
+        # Último día del mes
+        fecha_fin = (datetime.now().replace(day=28) + timedelta(days=4)).replace(day=1).isoformat()
+    
+    eventos = []
+    
+    # 1. Fechas importantes de estudiantes
+    fechas_importantes = db.execute(
+        text("""
+            SELECT fi.id, fi.estudiante_id, fi.tipo_fecha, fi.fecha, fi.descripcion,
+                   fi.completada, e.nombre as estudiante_nombre
+            FROM fechas_importantes fi
+            JOIN estudiantes e ON fi.estudiante_id = e.id
+            WHERE fi.fecha >= :inicio AND fi.fecha <= :fin
+            ORDER BY fi.fecha
+        """),
+        {"inicio": fecha_inicio, "fin": fecha_fin}
+    ).fetchall()
+    
+    for row in fechas_importantes:
+        eventos.append({
+            'id': f"fecha_{row[0]}",
+            'tipo': 'fecha_importante',
+            'estudiante_id': row[1],
+            'estudiante_nombre': row[6],
+            'titulo': f"{row[2]} - {row[6]}",
+            'fecha': row[3].isoformat() if row[3] else None,
+            'descripcion': row[4],
+            'completada': row[5],
+            'color': '#4CAF50' if row[5] else '#FF9800'
+        })
+    
+    # 2. Estudiantes con inicio estimado
+    inicios_estimados = db.execute(
+        text("""
+            SELECT id, nombre, fecha_inicio_estimada, carrera_deseada
+            FROM estudiantes
+            WHERE fecha_inicio_estimada IS NOT NULL
+            AND fecha_inicio_estimada >= :inicio
+            AND fecha_inicio_estimada <= :fin
+            ORDER BY fecha_inicio_estimada
+        """),
+        {"inicio": fecha_inicio, "fin": fecha_fin}
+    ).fetchall()
+    
+    for row in inicios_estimados:
+        eventos.append({
+            'id': f"inicio_{row[0]}",
+            'tipo': 'inicio_estudios',
+            'estudiante_id': row[0],
+            'estudiante_nombre': row[1],
+            'titulo': f"Inicio: {row[1]} - {row[3]}",
+            'fecha': row[2].isoformat() if row[2] else None,
+            'descripcion': f"Inicio estimado de estudios: {row[3]}",
+            'completada': False,
+            'color': '#2196F3'
+        })
+    
+    # 3. Registros recientes (últimos 7 días como eventos)
+    if not fecha_inicio or (datetime.fromisoformat(fecha_inicio) - datetime.now()).days <= 7:
+        registros_recientes = db.execute(
+            text("""
+                SELECT id, nombre, created_at, email
+                FROM estudiantes
+                WHERE created_at >= :inicio AND created_at <= :fin
+                ORDER BY created_at DESC
+            """),
+            {"inicio": fecha_inicio or (datetime.now() - timedelta(days=7)).isoformat(), "fin": fecha_fin}
+        ).fetchall()
+        
+        for row in registros_recientes:
+            eventos.append({
+                'id': f"registro_{row[0]}",
+                'tipo': 'registro_nuevo',
+                'estudiante_id': row[0],
+                'estudiante_nombre': row[1],
+                'titulo': f"Nuevo registro: {row[1]}",
+                'fecha': row[2].isoformat() if row[2] else None,
+                'descripcion': f"Email: {row[3]}",
+                'completada': False,
+                'color': '#9C27B0'
+            })
+    
+    return {
+        "eventos": eventos,
+        "total": len(eventos),
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin
+    }
 
 
 @app.get("/api/admin/estadisticas", response_model=EstadisticasResponse, tags=["Admin"])
