@@ -401,6 +401,128 @@ async def startup_event():
             ON historial_cambios(timestamp);
         """)
         
+        # Crear tabla templates de email
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS email_templates (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(100) UNIQUE NOT NULL,
+                asunto VARCHAR(255) NOT NULL,
+                contenido_html TEXT NOT NULL,
+                contenido_texto TEXT,
+                variables_disponibles TEXT[],
+                activo BOOLEAN DEFAULT TRUE,
+                ultima_modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                modificado_por VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        # Crear tabla de roles y permisos
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS roles (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(50) UNIQUE NOT NULL,
+                descripcion TEXT,
+                permisos JSONB NOT NULL,
+                activo BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios_admin (
+                id SERIAL PRIMARY KEY,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                nombre VARCHAR(255),
+                password_hash VARCHAR(255) NOT NULL,
+                rol_id INTEGER REFERENCES roles(id),
+                activo BOOLEAN DEFAULT TRUE,
+                ultimo_acceso TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_usuarios_admin_email ON usuarios_admin(email);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_usuarios_admin_rol ON usuarios_admin(rol_id);
+        """)
+        
+        # Insertar roles por defecto
+        cursor.execute("""
+            INSERT INTO roles (nombre, descripcion, permisos)
+            VALUES 
+                ('super_admin', 
+                 'Administrador con acceso total',
+                 '{"estudiantes": ["crear", "leer", "actualizar", "eliminar", "aprobar", "rechazar"], 
+                   "documentos": ["leer", "generar", "aprobar", "eliminar"],
+                   "usuarios": ["crear", "leer", "actualizar", "eliminar"],
+                   "configuracion": ["leer", "actualizar"],
+                   "reportes": ["leer", "exportar"],
+                   "templates": ["leer", "actualizar"]}'),
+                   
+                ('admin', 
+                 'Administrador estándar',
+                 '{"estudiantes": ["crear", "leer", "actualizar", "aprobar", "rechazar"], 
+                   "documentos": ["leer", "generar", "aprobar"],
+                   "reportes": ["leer", "exportar"]}'),
+                   
+                ('revisor',
+                 'Revisor de solicitudes',
+                 '{"estudiantes": ["leer"], 
+                   "documentos": ["leer"],
+                   "reportes": ["leer"]}'),
+                   
+                ('asistente',
+                 'Asistente administrativo',
+                 '{"estudiantes": ["leer", "actualizar"], 
+                   "documentos": ["leer", "generar"]}')
+            ON CONFLICT (nombre) DO NOTHING
+        """)
+        
+        # Insertar templates por defecto
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS email_templates (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(100) UNIQUE NOT NULL,
+                asunto VARCHAR(255) NOT NULL,
+                contenido_html TEXT NOT NULL,
+                contenido_texto TEXT,
+                variables_disponibles TEXT[],
+                activo BOOLEAN DEFAULT TRUE,
+                ultima_modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                modificado_por VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        # Insertar templates por defecto
+        cursor.execute("""
+            INSERT INTO email_templates (nombre, asunto, contenido_html, contenido_texto, variables_disponibles)
+            VALUES 
+                ('bienvenida', 
+                 'Bienvenido a Bot Visas Estudio - {{nombre}}',
+                 '<h2>¡Bienvenido {{nombre}}!</h2><p>Gracias por registrarte. Tu código de acceso es: <strong>{{codigo_acceso}}</strong></p>',
+                 'Bienvenido {{nombre}}! Tu código: {{codigo_acceso}}',
+                 ARRAY['nombre', 'email', 'codigo_acceso']),
+                 
+                ('aprobacion',
+                 'Solicitud Aprobada - {{nombre}}',
+                 '<h2>¡Felicitaciones {{nombre}}!</h2><p>Tu solicitud ha sido aprobada. Próximos pasos: {{instrucciones}}</p>',
+                 'Felicitaciones {{nombre}}! Solicitud aprobada.',
+                 ARRAY['nombre', 'email', 'instrucciones']),
+                 
+                ('rechazo',
+                 'Solicitud Requiere Correcciones - {{nombre}}',
+                 '<h2>Hola {{nombre}}</h2><p>Tu solicitud requiere correcciones: {{motivo}}</p><p>Sugerencias: {{sugerencias}}</p>',
+                 'Hola {{nombre}}, correcciones necesarias: {{motivo}}',
+                 ARRAY['nombre', 'email', 'motivo', 'sugerencias'])
+            ON CONFLICT (nombre) DO NOTHING
+        """)
+        
         # Crear tabla cursos
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS cursos (
@@ -4589,6 +4711,412 @@ def obtener_estadisticas(
         enviados=aprobados,  # Por ahora enviados = aprobados
         por_especialidad=por_especialidad
     )
+
+
+@app.get("/api/admin/dashboard/metricas-tiempo-real", tags=["Admin - Dashboard"])
+def obtener_metricas_tiempo_real(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Métricas en tiempo real para dashboard actualizado automáticamente"""
+    from datetime import datetime, timedelta
+    
+    # Resumen general
+    total_estudiantes = db.execute(text("SELECT COUNT(*) FROM estudiantes")).fetchone()[0]
+    
+    # Por estado
+    estados = db.execute(text("""
+        SELECT 
+            COALESCE(estado, estado_procesamiento, 'pendiente') as estado,
+            COUNT(*) as total
+        FROM estudiantes
+        GROUP BY estado
+    """)).fetchall()
+    
+    por_estado = {row[0]: row[1] for row in estados}
+    
+    # Últimos 7 días - Tendencia
+    hace_7_dias = (datetime.now() - timedelta(days=7)).isoformat()
+    registros_7d = db.execute(
+        text("SELECT COUNT(*) FROM estudiantes WHERE created_at >= :fecha"),
+        {"fecha": hace_7_dias}
+    ).fetchone()[0]
+    
+    # Últimas 24 horas
+    hace_24h = (datetime.now() - timedelta(hours=24)).isoformat()
+    registros_24h = db.execute(
+        text("SELECT COUNT(*) FROM estudiantes WHERE created_at >= :fecha"),
+        {"fecha": hace_24h}
+    ).fetchone()[0]
+    
+    # Documentos generados hoy
+    hoy = datetime.now().replace(hour=0, minute=0, second=0).isoformat()
+    docs_hoy = db.execute(
+        text("SELECT COUNT(*) FROM documentos_generados WHERE fecha_generacion >= :fecha"),
+        {"fecha": hoy}
+    ).fetchone()[0]
+    
+    # Notas agregadas hoy
+    notas_hoy = db.execute(
+        text("SELECT COUNT(*) FROM notas_internas WHERE created_at >= :fecha"),
+        {"fecha": hoy}
+    ).fetchone()[0]
+    
+    # Tasa de conversión (aprobados/total)
+    aprobados = por_estado.get('aprobado', 0)
+    tasa_aprobacion = round((aprobados / total_estudiantes * 100), 2) if total_estudiantes > 0 else 0
+    
+    # Fondos promedio
+    fondos_promedio = db.execute(
+        text("SELECT AVG(fondos_disponibles) FROM estudiantes WHERE fondos_disponibles > 0")
+    ).fetchone()[0]
+    
+    # Top 5 países
+    top_paises = db.execute(text("""
+        SELECT nacionalidad, COUNT(*) as total
+        FROM estudiantes
+        WHERE nacionalidad IS NOT NULL
+        GROUP BY nacionalidad
+        ORDER BY total DESC
+        LIMIT 5
+    """)).fetchall()
+    
+    # Top 5 especialidades
+    top_especialidades = db.execute(text("""
+        SELECT 
+            COALESCE(especialidad, 'Sin especificar') as especialidad,
+            COUNT(*) as total
+        FROM estudiantes
+        WHERE especialidad IS NOT NULL AND especialidad != ''
+        GROUP BY especialidad
+        ORDER BY total DESC
+        LIMIT 5
+    """)).fetchall()
+    
+    # Actividad reciente (últimas 10 acciones)
+    actividad_reciente = db.execute(text("""
+        SELECT accion, usuario_email, entidad, timestamp
+        FROM logs_auditoria
+        ORDER BY timestamp DESC
+        LIMIT 10
+    """)).fetchall()
+    
+    # Alertas pendientes (fechas próximas)
+    proximo_7d = (datetime.now() + timedelta(days=7)).isoformat()
+    alertas_pendientes = db.execute(text("""
+        SELECT COUNT(*)
+        FROM fechas_importantes
+        WHERE fecha <= :fecha AND completada = FALSE
+    """), {"fecha": proximo_7d}).fetchone()[0]
+    
+    return {
+        "timestamp": datetime.now().isoformat(),
+        "resumen": {
+            "total_estudiantes": total_estudiantes,
+            "registros_24h": registros_24h,
+            "registros_7d": registros_7d,
+            "documentos_generados_hoy": docs_hoy,
+            "notas_agregadas_hoy": notas_hoy,
+            "alertas_pendientes": alertas_pendientes
+        },
+        "por_estado": por_estado,
+        "metricas": {
+            "tasa_aprobacion": tasa_aprobacion,
+            "fondos_promedio": float(fondos_promedio) if fondos_promedio else 0,
+            "aprobados": aprobados,
+            "pendientes": por_estado.get('pendiente', 0) + por_estado.get('en_revision', 0),
+            "rechazados": por_estado.get('rechazado', 0)
+        },
+        "top_paises": [{"pais": row[0], "total": row[1]} for row in top_paises],
+        "top_especialidades": [{"especialidad": row[0], "total": row[1]} for row in top_especialidades],
+        "actividad_reciente": [
+            {
+                "accion": row[0],
+                "usuario": row[1],
+                "entidad": row[2],
+                "timestamp": row[3].isoformat() if row[3] else None
+            } for row in actividad_reciente
+        ]
+    }
+
+
+# ============================================================================
+# TEMPLATES DE EMAIL - Sistema personalizable
+# ============================================================================
+
+@app.get("/api/admin/email-templates", tags=["Admin - Email Templates"])
+def listar_templates_email(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Lista todos los templates de email disponibles"""
+    result = db.execute(text("""
+        SELECT id, nombre, asunto, contenido_html, contenido_texto, 
+               variables_disponibles, activo, ultima_modificacion, modificado_por
+        FROM email_templates
+        ORDER BY nombre
+    """)).fetchall()
+    
+    templates = []
+    for row in result:
+        templates.append({
+            'id': row[0],
+            'nombre': row[1],
+            'asunto': row[2],
+            'contenido_html': row[3],
+            'contenido_texto': row[4],
+            'variables_disponibles': row[5],
+            'activo': row[6],
+            'ultima_modificacion': row[7].isoformat() if row[7] else None,
+            'modificado_por': row[8]
+        })
+    
+    return {"templates": templates, "total": len(templates)}
+
+
+@app.get("/api/admin/email-templates/{template_id}", tags=["Admin - Email Templates"])
+def obtener_template_email(
+    template_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Obtiene un template específico"""
+    result = db.execute(
+        text("""
+            SELECT id, nombre, asunto, contenido_html, contenido_texto,
+                   variables_disponibles, activo
+            FROM email_templates WHERE id = :id
+        """),
+        {"id": template_id}
+    ).fetchone()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Template no encontrado")
+    
+    return {
+        'id': result[0],
+        'nombre': result[1],
+        'asunto': result[2],
+        'contenido_html': result[3],
+        'contenido_texto': result[4],
+        'variables_disponibles': result[5],
+        'activo': result[6]
+    }
+
+
+@app.put("/api/admin/email-templates/{template_id}", tags=["Admin - Email Templates"])
+def actualizar_template_email(
+    template_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Actualiza un template de email"""
+    asunto = datos.get('asunto')
+    contenido_html = datos.get('contenido_html')
+    contenido_texto = datos.get('contenido_texto')
+    activo = datos.get('activo', True)
+    
+    if not asunto or not contenido_html:
+        raise HTTPException(status_code=400, detail="Asunto y contenido HTML requeridos")
+    
+    db.execute(
+        text("""
+            UPDATE email_templates
+            SET asunto = :asunto,
+                contenido_html = :html,
+                contenido_texto = :texto,
+                activo = :activo,
+                ultima_modificacion = NOW(),
+                modificado_por = :usuario
+            WHERE id = :id
+        """),
+        {
+            "id": template_id,
+            "asunto": asunto,
+            "html": contenido_html,
+            "texto": contenido_texto,
+            "activo": activo,
+            "usuario": usuario['email']
+        }
+    )
+    db.commit()
+    
+    # Registrar auditoría
+    registrar_auditoria(
+        db, usuario['email'], 'ACTUALIZAR_TEMPLATE_EMAIL',
+        'email_template', template_id,
+        {'asunto': asunto}
+    )
+    
+    return {"message": "Template actualizado correctamente"}
+
+
+@app.post("/api/admin/email-templates/preview", tags=["Admin - Email Templates"])
+def preview_template_email(
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Preview de template con variables de ejemplo"""
+    contenido_html = datos.get('contenido_html', '')
+    variables = datos.get('variables', {})
+    
+    # Reemplazar variables
+    preview = contenido_html
+    for key, value in variables.items():
+        preview = preview.replace(f"{{{{{key}}}}}", str(value))
+    
+    return {
+        "preview_html": preview,
+        "variables_usadas": list(variables.keys())
+    }
+
+
+# ============================================================================
+# SISTEMA DE ROLES Y PERMISOS
+# ============================================================================
+
+@app.get("/api/admin/roles", tags=["Admin - Roles"])
+def listar_roles(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Lista todos los roles disponibles"""
+    result = db.execute(text("""
+        SELECT id, nombre, descripcion, permisos, activo, created_at
+        FROM roles
+        ORDER BY nombre
+    """)).fetchall()
+    
+    roles = []
+    for row in result:
+        roles.append({
+            'id': row[0],
+            'nombre': row[1],
+            'descripcion': row[2],
+            'permisos': row[3],
+            'activo': row[4],
+            'created_at': row[5].isoformat() if row[5] else None
+        })
+    
+    return {"roles": roles, "total": len(roles)}
+
+
+@app.post("/api/admin/usuarios", tags=["Admin - Usuarios"])
+def crear_usuario_admin(
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Crea nuevo usuario administrador con rol"""
+    email = datos.get('email')
+    nombre = datos.get('nombre')
+    password = datos.get('password')
+    rol_id = datos.get('rol_id', 2)
+    
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Email y contraseña requeridos")
+    
+    # Verificar si ya existe
+    existe = db.execute(
+        text("SELECT id FROM usuarios_admin WHERE email = :email"),
+        {"email": email}
+    ).fetchone()
+    
+    if existe:
+        raise HTTPException(status_code=400, detail="Usuario ya existe")
+    
+    # Hash de contraseña
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    password_hash = pwd_context.hash(password)
+    
+    # Crear usuario
+    db.execute(
+        text("""
+            INSERT INTO usuarios_admin (email, nombre, password_hash, rol_id, activo, created_at)
+            VALUES (:email, :nombre, :password, :rol_id, TRUE, NOW())
+        """),
+        {
+            "email": email,
+            "nombre": nombre,
+            "password": password_hash,
+            "rol_id": rol_id
+        }
+    )
+    db.commit()
+    
+    registrar_auditoria(
+        db, usuario['email'], 'CREAR_USUARIO_ADMIN',
+        'usuario_admin', None,
+        {'email': email, 'rol_id': rol_id}
+    )
+    
+    return {"message": "Usuario creado correctamente", "email": email}
+
+
+@app.get("/api/admin/usuarios", tags=["Admin - Usuarios"])
+def listar_usuarios_admin(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Lista todos los usuarios administradores"""
+    result = db.execute(text("""
+        SELECT u.id, u.email, u.nombre, u.activo, u.ultimo_acceso, u.created_at,
+               r.nombre as rol_nombre, r.descripcion as rol_descripcion
+        FROM usuarios_admin u
+        LEFT JOIN roles r ON u.rol_id = r.id
+        ORDER BY u.created_at DESC
+    """)).fetchall()
+    
+    usuarios = []
+    for row in result:
+        usuarios.append({
+            'id': row[0],
+            'email': row[1],
+            'nombre': row[2],
+            'activo': row[3],
+            'ultimo_acceso': row[4].isoformat() if row[4] else None,
+            'created_at': row[5].isoformat() if row[5] else None,
+            'rol_nombre': row[6],
+            'rol_descripcion': row[7]
+        })
+    
+    return {"usuarios": usuarios, "total": len(usuarios)}
+
+
+@app.put("/api/admin/usuarios/{usuario_id}/rol", tags=["Admin - Usuarios"])
+def cambiar_rol_usuario(
+    usuario_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Cambia el rol de un usuario"""
+    nuevo_rol_id = datos.get('rol_id')
+    
+    if not nuevo_rol_id:
+        raise HTTPException(status_code=400, detail="rol_id requerido")
+    
+    db.execute(
+        text("""
+            UPDATE usuarios_admin
+            SET rol_id = :rol_id, updated_at = NOW()
+            WHERE id = :usuario_id
+        """),
+        {"usuario_id": usuario_id, "rol_id": nuevo_rol_id}
+    )
+    db.commit()
+    
+    registrar_auditoria(
+        db, usuario['email'], 'CAMBIAR_ROL_USUARIO',
+        'usuario_admin', usuario_id,
+        {'nuevo_rol_id': nuevo_rol_id}
+    )
+    
+    return {"message": "Rol actualizado correctamente"}
+
 
 
 # ============================================================================
