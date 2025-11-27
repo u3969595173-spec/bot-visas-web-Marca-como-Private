@@ -351,6 +351,56 @@ async def startup_event():
             ON logs_auditoria(timestamp);
         """)
         
+        # Crear tabla notas internas
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS notas_internas (
+                id SERIAL PRIMARY KEY,
+                estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
+                autor_email VARCHAR(255) NOT NULL,
+                autor_nombre VARCHAR(255),
+                contenido TEXT NOT NULL,
+                privada BOOLEAN DEFAULT FALSE,
+                importante BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notas_internas_estudiante 
+            ON notas_internas(estudiante_id);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_notas_internas_autor 
+            ON notas_internas(autor_email);
+        """)
+        
+        # Crear tabla historial de cambios
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS historial_cambios (
+                id SERIAL PRIMARY KEY,
+                estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
+                campo_modificado VARCHAR(100) NOT NULL,
+                valor_anterior TEXT,
+                valor_nuevo TEXT,
+                usuario_email VARCHAR(255),
+                usuario_nombre VARCHAR(255),
+                razon TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_historial_cambios_estudiante 
+            ON historial_cambios(estudiante_id);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_historial_cambios_timestamp 
+            ON historial_cambios(timestamp);
+        """)
+        
         # Crear tabla cursos
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS cursos (
@@ -4068,15 +4118,35 @@ def aprobar_estudiante(
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
+    estado_anterior = estudiante.estado
     estudiante.estado = 'aprobado'
     estudiante.updated_at = datetime.utcnow()
+    db.commit()
+    
+    # Registrar cambio en historial
+    db.execute(
+        text("""
+            INSERT INTO historial_cambios
+            (estudiante_id, campo_modificado, valor_anterior, valor_nuevo, usuario_email, usuario_nombre, razon, timestamp)
+            VALUES (:est_id, :campo, :anterior, :nuevo, :email, :nombre, :razon, NOW())
+        """),
+        {
+            "est_id": estudiante_id,
+            "campo": "estado",
+            "anterior": estado_anterior,
+            "nuevo": "aprobado",
+            "email": usuario['email'],
+            "nombre": usuario.get('nombre', usuario['email']),
+            "razon": "Estudiante aprobado por administrador"
+        }
+    )
     db.commit()
     
     # Registrar auditoría
     registrar_auditoria(
         db, usuario['email'], 'APROBAR_ESTUDIANTE',
         'estudiante', estudiante_id,
-        {'nombre': estudiante.nombre, 'estado_anterior': 'pendiente'}
+        {'nombre': estudiante.nombre, 'estado_anterior': estado_anterior}
     )
     
     # Enviar email de notificación
@@ -4107,9 +4177,29 @@ def rechazar_estudiante(
     if not estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
+    estado_anterior = estudiante.estado
     estudiante.estado = 'rechazado'
     estudiante.notas = motivo
     estudiante.updated_at = datetime.utcnow()
+    db.commit()
+    
+    # Registrar cambio en historial
+    db.execute(
+        text("""
+            INSERT INTO historial_cambios
+            (estudiante_id, campo_modificado, valor_anterior, valor_nuevo, usuario_email, usuario_nombre, razon, timestamp)
+            VALUES (:est_id, :campo, :anterior, :nuevo, :email, :nombre, :razon, NOW())
+        """),
+        {
+            "est_id": estudiante_id,
+            "campo": "estado",
+            "anterior": estado_anterior,
+            "nuevo": "rechazado",
+            "email": usuario['email'],
+            "nombre": usuario.get('nombre', usuario['email']),
+            "razon": f"Rechazado: {motivo}"
+        }
+    )
     db.commit()
     
     # Registrar auditoría
@@ -4134,6 +4224,161 @@ def rechazar_estudiante(
         print(f"⚠️ Error enviando email: {e}")
     
     return {"message": "Estudiante rechazado", "id": estudiante_id, "motivo": motivo}
+
+
+# ============================================================================
+# NOTAS INTERNAS - Sistema de comunicación entre admins
+# ============================================================================
+
+@app.post("/api/admin/estudiantes/{estudiante_id}/notas", tags=["Admin - Notas"])
+def crear_nota_interna(
+    estudiante_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Crea nota interna para un estudiante"""
+    contenido = datos.get('contenido')
+    importante = datos.get('importante', False)
+    privada = datos.get('privada', False)
+    
+    if not contenido:
+        raise HTTPException(status_code=400, detail="Contenido requerido")
+    
+    db.execute(
+        text("""
+            INSERT INTO notas_internas 
+            (estudiante_id, autor_email, autor_nombre, contenido, importante, privada, created_at)
+            VALUES (:est_id, :email, :nombre, :contenido, :importante, :privada, NOW())
+        """),
+        {
+            "est_id": estudiante_id,
+            "email": usuario['email'],
+            "nombre": usuario.get('nombre', usuario['email']),
+            "contenido": contenido,
+            "importante": importante,
+            "privada": privada
+        }
+    )
+    db.commit()
+    
+    # Registrar auditoría
+    registrar_auditoria(
+        db, usuario['email'], 'CREAR_NOTA_INTERNA',
+        'estudiante', estudiante_id,
+        {'contenido_preview': contenido[:50], 'importante': importante}
+    )
+    
+    return {"message": "Nota creada correctamente"}
+
+
+@app.get("/api/admin/estudiantes/{estudiante_id}/notas", tags=["Admin - Notas"])
+def listar_notas_internas(
+    estudiante_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Lista notas internas de un estudiante"""
+    result = db.execute(
+        text("""
+            SELECT id, autor_email, autor_nombre, contenido, importante, privada, created_at, updated_at
+            FROM notas_internas
+            WHERE estudiante_id = :est_id
+            ORDER BY importante DESC, created_at DESC
+        """),
+        {"est_id": estudiante_id}
+    ).fetchall()
+    
+    notas = []
+    for row in result:
+        notas.append({
+            'id': row[0],
+            'autor_email': row[1],
+            'autor_nombre': row[2],
+            'contenido': row[3],
+            'importante': row[4],
+            'privada': row[5],
+            'created_at': row[6].isoformat() if row[6] else None,
+            'updated_at': row[7].isoformat() if row[7] else None
+        })
+    
+    return {"notas": notas, "total": len(notas)}
+
+
+@app.put("/api/admin/notas/{nota_id}", tags=["Admin - Notas"])
+def actualizar_nota_interna(
+    nota_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Actualiza una nota interna"""
+    contenido = datos.get('contenido')
+    importante = datos.get('importante')
+    
+    if not contenido:
+        raise HTTPException(status_code=400, detail="Contenido requerido")
+    
+    db.execute(
+        text("""
+            UPDATE notas_internas
+            SET contenido = :contenido,
+                importante = COALESCE(:importante, importante),
+                updated_at = NOW()
+            WHERE id = :nota_id
+        """),
+        {"nota_id": nota_id, "contenido": contenido, "importante": importante}
+    )
+    db.commit()
+    
+    return {"message": "Nota actualizada"}
+
+
+@app.delete("/api/admin/notas/{nota_id}", tags=["Admin - Notas"])
+def eliminar_nota_interna(
+    nota_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Elimina una nota interna"""
+    db.execute(text("DELETE FROM notas_internas WHERE id = :nota_id"), {"nota_id": nota_id})
+    db.commit()
+    
+    return {"message": "Nota eliminada"}
+
+
+@app.get("/api/admin/estudiantes/{estudiante_id}/historial", tags=["Admin - Historial"])
+def obtener_historial_cambios(
+    estudiante_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Obtiene historial completo de cambios de un estudiante"""
+    result = db.execute(
+        text("""
+            SELECT id, campo_modificado, valor_anterior, valor_nuevo,
+                   usuario_email, usuario_nombre, razon, timestamp
+            FROM historial_cambios
+            WHERE estudiante_id = :est_id
+            ORDER BY timestamp DESC
+        """),
+        {"est_id": estudiante_id}
+    ).fetchall()
+    
+    historial = []
+    for row in result:
+        historial.append({
+            'id': row[0],
+            'campo': row[1],
+            'valor_anterior': row[2],
+            'valor_nuevo': row[3],
+            'usuario_email': row[4],
+            'usuario_nombre': row[5],
+            'razon': row[6],
+            'timestamp': row[7].isoformat() if row[7] else None
+        })
+    
+    return {"historial": historial, "total": len(historial)}
 
 
 @app.get("/api/admin/estadisticas", response_model=EstadisticasResponse, tags=["Admin"])
