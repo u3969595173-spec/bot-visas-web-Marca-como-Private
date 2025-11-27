@@ -25,6 +25,7 @@ from api.testimonios_routes import router as testimonios_router
 from api.notificaciones_routes import router as notificaciones_router
 from api.chat_routes import router as chat_router
 from api.analytics_routes import router as analytics_router
+from api.documentos_routes import router as documentos_router
 
 app = FastAPI(
     title="Bot Visas Estudio API",
@@ -253,6 +254,29 @@ async def startup_event():
             CREATE INDEX IF NOT EXISTS idx_mensajes_remitente ON mensajes_chat(remitente);
         """)
         
+        # Tabla documentos
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS documentos (
+                id SERIAL PRIMARY KEY,
+                estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
+                nombre_archivo VARCHAR(255) NOT NULL,
+                categoria VARCHAR(50) NOT NULL,
+                contenido_base64 TEXT NOT NULL,
+                mime_type VARCHAR(100) NOT NULL,
+                tamano_archivo INTEGER NOT NULL,
+                estado_revision VARCHAR(20) DEFAULT 'pendiente',
+                comentario_admin TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_documentos_estudiante ON documentos(estudiante_id);
+            CREATE INDEX IF NOT EXISTS idx_documentos_estado ON documentos(estado_revision);
+            CREATE INDEX IF NOT EXISTS idx_documentos_categoria ON documentos(categoria);
+        """)
+        
         conn.commit()
         cursor.close()
         conn.close()
@@ -467,6 +491,7 @@ app.include_router(testimonios_router, prefix="/api")
 app.include_router(notificaciones_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
+app.include_router(documentos_router, prefix="/api")
 
 @app.post("/api/login", response_model=LoginResponse, tags=["Auth"])
 def login(datos: LoginRequest, db: Session = Depends(get_db)):

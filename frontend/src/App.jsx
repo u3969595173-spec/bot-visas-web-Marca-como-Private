@@ -23,6 +23,8 @@ import Notificaciones from './components/Notificaciones'
 import ChatWidget from './components/ChatWidget'
 import AdminChats from './components/AdminChats'
 import DashboardAnalytics from './components/DashboardAnalytics'
+import GestorDocumentos from './components/GestorDocumentos'
+import AdminDocumentos from './components/AdminDocumentos'
 import Home from './components/Home'
 
 function App() {
@@ -71,6 +73,9 @@ function App() {
                   <Link to="/estudiante/alertas" style={styles.navLink}>
                     📅 Alertas
                   </Link>
+                  <Link to="/estudiante/documentos" style={styles.navLink}>
+                    📂 Documentos
+                  </Link>
                   <Link to="/estudiante/universidades" style={styles.navLink}>
                     🎓 Universidades
                   </Link>
@@ -113,6 +118,9 @@ function App() {
                   </Link>
                   <Link to="/admin/analytics" style={styles.navLink}>
                     📊 Analytics
+                  </Link>
+                  <Link to="/admin/documentos" style={styles.navLink}>
+                    📂 Documentos
                   </Link>
                 </>
               )}
@@ -168,6 +176,16 @@ function App() {
             element={
               estudianteId ? (
                 <BuscadorUniversidades estudianteId={estudianteId} />
+              ) : (
+                <Navigate to="/portal" />
+              )
+            }
+          />
+          <Route
+            path="/estudiante/documentos"
+            element={
+              estudianteId ? (
+                <GestorDocumentos estudianteId={estudianteId} />
               ) : (
                 <Navigate to="/portal" />
               )
@@ -259,6 +277,16 @@ function App() {
             element={
               isAuthenticated ? (
                 <DashboardAnalytics />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/documentos"
+            element={
+              isAuthenticated ? (
+                <AdminDocumentos />
               ) : (
                 <Navigate to="/admin/login" />
               )

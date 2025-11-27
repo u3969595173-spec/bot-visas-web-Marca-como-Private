@@ -1,310 +1,334 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Document, Page, pdfjs } from 'react-pdf';
+import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
+import 'react-pdf/dist/esm/Page/TextLayer.css';
 import './GestorDocumentos.css';
 
-const GestorDocumentos = ({ estudianteId }) => {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-  const [documentos, setDocumentos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
-  const [tipoDocumento, setTipoDocumento] = useState('pasaporte');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [ocrStatus, setOcrStatus] = useState({});
-  const [processingOcr, setProcessingOcr] = useState({});
+// Configurar worker de PDF.js
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
-  const tiposDocumento = [
-    { value: 'pasaporte', label: 'Pasaporte' },
-    { value: 'foto', label: 'Fotografía' },
-    { value: 'certificado_estudios', label: 'Certificado de Estudios' },
-    { value: 'carta_aceptacion', label: 'Carta de Aceptación' },
-    { value: 'comprobante_fondos', label: 'Comprobante de Fondos' },
-    { value: 'seguro_medico', label: 'Seguro Médico' },
-    { value: 'antecedentes_penales', label: 'Antecedentes Penales' },
-    { value: 'otro', label: 'Otro Documento' }
-  ];
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://botvisa-production.up.railway.app';
+
+const CATEGORIAS = [
+  { id: 'pasaporte', nombre: 'Pasaporte', icono: '📘', descripcion: 'Copia del pasaporte vigente' },
+  { id: 'visa', nombre: 'Visa', icono: '🛂', descripcion: 'Solicitud de visa y documentos relacionados' },
+  { id: 'academicos', nombre: 'Académicos', icono: '🎓', descripcion: 'Títulos, certificados, transcripciones' },
+  { id: 'financieros', nombre: 'Financieros', icono: '💰', descripcion: 'Extractos bancarios, cartas de solvencia' },
+  { id: 'otros', nombre: 'Otros', icono: '📄', descripcion: 'Otros documentos relevantes' }
+];
+
+const GestorDocumentos = ({ estudianteId }) => {
+  const [documentos, setDocumentos] = useState([]);
+  const [progreso, setProgreso] = useState(0);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('pasaporte');
+  const [cargando, setCargando] = useState(false);
+  const [previsualizando, setPrevisualizando] = useState(null);
+  const [numPages, setNumPages] = useState(null);
 
   useEffect(() => {
     cargarDocumentos();
-    cargarOcrStatus();
   }, [estudianteId]);
 
   const cargarDocumentos = async () => {
     try {
-      const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/documentos`);
-      setDocumentos(response.data.documentos);
-      setLoading(false);
-    } catch (err) {
-      setError('Error al cargar documentos');
-      setLoading(false);
+      const response = await fetch(`${API_BASE_URL}/api/documentos/${estudianteId}/listar`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setDocumentos(data.documentos);
+        setProgreso(data.progreso);
+      }
+    } catch (error) {
+      console.error('❌ Error cargando documentos:', error);
     }
   };
 
-  const cargarOcrStatus = async () => {
-    try {
-      const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/documentos/ocr-status`);
-      const statusMap = {};
-      response.data.documentos.forEach(doc => {
-        statusMap[doc.id] = {
-          procesado: doc.ocr_procesado,
-          confianza: doc.nivel_confianza,
-          alertas: doc.alertas
-        };
-      });
-      setOcrStatus(statusMap);
-    } catch (err) {
-      console.error('Error al cargar status OCR:', err);
-    }
-  };
-
-  const validarConOcr = async (documentoId, tipoDoc) => {
-    setProcessingOcr({ ...processingOcr, [documentoId]: true });
+  const onDrop = useCallback(async (acceptedFiles) => {
+    if (!acceptedFiles.length) return;
+    
+    setCargando(true);
     
     try {
-      const response = await axios.post(
-        `${apiUrl}/api/documentos/${documentoId}/validar-ocr?tipo_documento=${tipoDoc}`
-      );
-      
-      if (response.data.exito) {
-        setSuccess(`✅ Documento validado con ${response.data.nivel_confianza}% confianza`);
-        cargarOcrStatus();
-        setTimeout(() => setSuccess(''), 5000);
-      } else {
-        setError('Error en validación OCR: ' + response.data.error);
-      }
-    } catch (err) {
-      setError('Error al validar documento: ' + (err.response?.data?.detail || err.message));
-    } finally {
-      setProcessingOcr({ ...processingOcr, [documentoId]: false });
-    }
-  };
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Validar tamaño
-    if (file.size > 5 * 1024 * 1024) {
-      setError('El archivo es muy grande. Máximo 5MB');
-      return;
-    }
-
-    // Validar tipo
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      setError('Tipo de archivo no permitido. Use PDF, JPG o PNG');
-      return;
-    }
-
-    setUploading(true);
-    setError('');
-    setSuccess('');
-
-    try {
       const formData = new FormData();
-      formData.append('archivo', file);
-
-      await axios.post(
-        `${apiUrl}/api/estudiantes/${estudianteId}/documentos?tipo_documento=${tipoDocumento}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
-      );
-
-      setSuccess('Documento subido correctamente');
-      cargarDocumentos();
-      e.target.value = ''; // Reset input
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Error al subir documento');
+      
+      acceptedFiles.forEach(file => {
+        formData.append('archivos', file);
+        formData.append('categorias', categoriaSeleccionada);
+      });
+      
+      const response = await fetch(`${API_BASE_URL}/api/documentos/${estudianteId}/subir`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`✅ ${data.documentos.length} documento(s) subido(s) correctamente`);
+        cargarDocumentos();
+      } else {
+        alert('❌ Error subiendo documentos');
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      alert('❌ Error subiendo documentos');
     } finally {
-      setUploading(false);
+      setCargando(false);
+    }
+  }, [estudianteId, categoriaSeleccionada]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+    },
+    maxSize: 10485760, // 10MB
+    multiple: true
+  });
+
+  const descargarDocumento = async (docId, nombre) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/documentos/${docId}/descargar`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nombre;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('❌ Error descargando:', error);
     }
   };
 
-  const getEstadoBadge = (estado) => {
-    const badges = {
-      'pendiente': { class: 'badge-pendiente', text: 'Pendiente' },
-      'en_revision': { class: 'badge-revision', text: 'En Revisión' },
-      'aprobado': { class: 'badge-aprobado', text: 'Aprobado' },
-      'rechazado': { class: 'badge-rechazado', text: 'Rechazado' }
-    };
-    return badges[estado] || badges['pendiente'];
+  const descargarTodoZIP = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/documentos/${estudianteId}/descargar-zip`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mis_documentos_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('❌ Error descargando ZIP:', error);
+      alert('❌ Error descargando archivos');
+    }
   };
 
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  const eliminarDocumento = async (docId) => {
+    if (!confirm('¿Seguro que deseas eliminar este documento?')) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/documentos/${docId}/eliminar`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Documento eliminado');
+        cargarDocumentos();
+      }
+    } catch (error) {
+      console.error('❌ Error eliminando:', error);
+    }
   };
 
-  const getTipoLabel = (tipo) => {
-    const tipoObj = tiposDocumento.find(t => t.value === tipo);
-    return tipoObj ? tipoObj.label : tipo;
+  const abrirPreview = (doc) => {
+    setPrevisualizando(doc);
   };
 
-  if (loading) {
-    return (
-      <div className="documentos-loading">
-        <div className="spinner"></div>
-        <p>Cargando documentos...</p>
-      </div>
-    );
-  }
+  const cerrarPreview = () => {
+    setPrevisualizando(null);
+    setNumPages(null);
+  };
+
+  const obtenerEstadoClase = (estado) => {
+    switch (estado) {
+      case 'aprobado': return 'estado-aprobado';
+      case 'rechazado': return 'estado-rechazado';
+      default: return 'estado-pendiente';
+    }
+  };
+
+  const obtenerEstadoTexto = (estado) => {
+    switch (estado) {
+      case 'aprobado': return '✅ Aprobado';
+      case 'rechazado': return '❌ Rechazado';
+      default: return '⏳ Pendiente';
+    }
+  };
+
+  const documentosPorCategoria = (categoria) => {
+    return documentos.filter(doc => doc.categoria === categoria);
+  };
 
   return (
-    <div className="documentos-container">
-      <div className="documentos-header">
-        <h2>📄 Gestión de Documentos</h2>
-        <p>Sube los documentos requeridos para tu solicitud de visa</p>
+    <div className="gestor-documentos">
+      <div className="header-documentos">
+        <h1>📂 Mis Documentos</h1>
+        <div className="acciones-header">
+          <button className="btn-descargar-zip" onClick={descargarTodoZIP} disabled={documentos.length === 0}>
+            📦 Descargar Todo (ZIP)
+          </button>
+        </div>
       </div>
 
-      {success && (
-        <div className="alert alert-success">
-          ✓ {success}
+      {/* Barra de progreso */}
+      <div className="progreso-container">
+        <div className="progreso-info">
+          <span>Progreso de Documentos</span>
+          <span className="progreso-porcentaje">{progreso}%</span>
         </div>
-      )}
-
-      {error && (
-        <div className="alert alert-error">
-          ⚠ {error}
+        <div className="progreso-barra">
+          <div className="progreso-fill" style={{ width: `${progreso}%` }}></div>
         </div>
-      )}
+        <p className="progreso-texto">
+          {documentos.length} documento(s) subido(s) • {documentos.filter(d => d.estado_revision === 'aprobado').length} aprobado(s)
+        </p>
+      </div>
 
-      <div className="upload-section">
-        <div className="upload-form">
-          <div className="form-group">
-            <label>Tipo de Documento</label>
-            <select
-              value={tipoDocumento}
-              onChange={(e) => setTipoDocumento(e.target.value)}
-              disabled={uploading}
+      {/* Selector de categoría */}
+      <div className="categoria-selector">
+        <h3>Selecciona la categoría del documento:</h3>
+        <div className="categorias-grid">
+          {CATEGORIAS.map(cat => (
+            <div
+              key={cat.id}
+              className={`categoria-card ${categoriaSeleccionada === cat.id ? 'activa' : ''}`}
+              onClick={() => setCategoriaSeleccionada(cat.id)}
             >
-              {tiposDocumento.map(tipo => (
-                <option key={tipo.value} value={tipo.value}>
-                  {tipo.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="upload-label">
-              {uploading ? (
-                <span className="uploading">
-                  <div className="upload-spinner"></div>
-                  Subiendo...
+              <div className="categoria-icono">{cat.icono}</div>
+              <div className="categoria-info">
+                <h4>{cat.nombre}</h4>
+                <p>{cat.descripcion}</p>
+                <span className="categoria-count">
+                  {documentosPorCategoria(cat.id).length} archivo(s)
                 </span>
-              ) : (
-                <>
-                  <span className="upload-icon">📤</span>
-                  Seleccionar Archivo
-                </>
-              )}
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                onChange={handleFileUpload}
-                disabled={uploading}
-                style={{ display: 'none' }}
-              />
-            </label>
-            <p className="upload-hint">
-              Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
-            </p>
-          </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="documentos-lista">
-        <h3>Documentos Subidos ({documentos.length})</h3>
-
-        {documentos.length === 0 ? (
-          <div className="documentos-empty">
-            <p style={{ fontSize: '48px', marginBottom: '15px' }}>📭</p>
-            <p>Aún no has subido ningún documento</p>
-            <p style={{ color: '#999', fontSize: '14px' }}>
-              Comienza subiendo tu pasaporte y fotografía
-            </p>
+      {/* Zona de subida */}
+      <div {...getRootProps()} className={`dropzone ${isDragActive ? 'activa' : ''} ${cargando ? 'cargando' : ''}`}>
+        <input {...getInputProps()} />
+        {cargando ? (
+          <div className="dropzone-content">
+            <div className="spinner"></div>
+            <p>Subiendo archivos...</p>
+          </div>
+        ) : isDragActive ? (
+          <div className="dropzone-content">
+            <div className="dropzone-icono">📥</div>
+            <p>Suelta los archivos aquí</p>
           </div>
         ) : (
-          <div className="documentos-grid">
-            {documentos.map((doc) => {
-              const badge = getEstadoBadge(doc.estado);
-              const ocr = ocrStatus[doc.id] || {};
-              const isProcessing = processingOcr[doc.id];
-              
-              return (
-                <div key={doc.id} className="documento-card">
-                  <div className="documento-icon">
-                    {doc.nombre_archivo.endsWith('.pdf') ? '📄' : '🖼️'}
-                  </div>
-                  <div className="documento-info">
-                    <h4>{getTipoLabel(doc.tipo_documento)}</h4>
-                    <p className="documento-nombre">{doc.nombre_archivo}</p>
-                    <p className="documento-tamano">{formatFileSize(doc.tamano_bytes)}</p>
-                    <span className={`documento-badge ${badge.class}`}>
-                      {badge.text}
-                    </span>
-                    
-                    {/* Estado OCR */}
-                    {ocr.procesado && (
-                      <div className="ocr-status">
-                        <div className="ocr-confianza">
-                          <strong>Confianza OCR:</strong>
-                          <span className={`confianza-${ocr.confianza >= 80 ? 'alta' : ocr.confianza >= 60 ? 'media' : 'baja'}`}>
-                            {ocr.confianza}%
-                          </span>
-                        </div>
-                        {ocr.alertas && ocr.alertas.length > 0 && (
-                          <div className="ocr-alertas">
-                            {ocr.alertas.map((alerta, idx) => (
-                              <div key={idx} className="alerta-item">⚠️ {alerta}</div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Botón Validar OCR */}
-                    {!ocr.procesado && (
-                      <button
-                        className="btn-validar-ocr"
-                        onClick={() => validarConOcr(doc.id, doc.tipo_documento)}
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? '🔄 Validando...' : '🔍 Validar con OCR'}
-                      </button>
-                    )}
-                    
-                    {doc.notas && (
-                      <div className="documento-notas">
-                        <strong>Notas:</strong> {doc.notas}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="dropzone-content">
+            <div className="dropzone-icono">☁️</div>
+            <p><strong>Arrastra archivos aquí</strong> o haz clic para seleccionar</p>
+            <span className="dropzone-info">
+              Categoría: <strong>{CATEGORIAS.find(c => c.id === categoriaSeleccionada)?.nombre}</strong>
+            </span>
+            <span className="dropzone-tipos">PDF, JPG, PNG, DOC, DOCX (máx. 10MB)</span>
           </div>
         )}
       </div>
 
-      <div className="documentos-info">
-        <h4>📋 Documentos Requeridos</h4>
-        <ul>
-          <li>✓ Pasaporte vigente (copia completa)</li>
-          <li>✓ Fotografía tamaño pasaporte reciente</li>
-          <li>✓ Certificado de estudios previos</li>
-          <li>✓ Carta de aceptación de la universidad</li>
-          <li>✓ Comprobante de solvencia económica</li>
-          <li>✓ Seguro médico internacional</li>
-          <li>✓ Certificado de antecedentes penales</li>
-        </ul>
+      {/* Lista de documentos */}
+      <div className="documentos-lista">
+        <h3>📋 Documentos Subidos ({documentos.length})</h3>
+        
+        {documentos.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icono">📭</div>
+            <p>No has subido documentos aún</p>
+            <span>Usa el área de arriba para subir tus archivos</span>
+          </div>
+        ) : (
+          <div className="documentos-grid">
+            {documentos.map(doc => (
+              <div key={doc.id} className="documento-card">
+                <div className="documento-header">
+                  <div className="documento-icono">
+                    {doc.mime_type.includes('pdf') ? '📄' : '🖼️'}
+                  </div>
+                  <div className="documento-info">
+                    <h4>{doc.nombre}</h4>
+                    <span className="documento-categoria">
+                      {CATEGORIAS.find(c => c.id === doc.categoria)?.icono} {CATEGORIAS.find(c => c.id === doc.categoria)?.nombre}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className={`documento-estado ${obtenerEstadoClase(doc.estado_revision)}`}>
+                  {obtenerEstadoTexto(doc.estado_revision)}
+                </div>
+                
+                {doc.comentario_admin && (
+                  <div className="documento-comentario">
+                    <strong>Comentario Admin:</strong>
+                    <p>{doc.comentario_admin}</p>
+                  </div>
+                )}
+                
+                <div className="documento-meta">
+                  <span>{(doc.tamano / 1024).toFixed(2)} KB</span>
+                  <span>{new Date(doc.created_at).toLocaleDateString()}</span>
+                </div>
+                
+                <div className="documento-acciones">
+                  {doc.mime_type === 'application/pdf' && (
+                    <button onClick={() => abrirPreview(doc)} className="btn-preview">
+                      👁️ Preview
+                    </button>
+                  )}
+                  <button onClick={() => descargarDocumento(doc.id, doc.nombre)} className="btn-descargar">
+                    ⬇️ Descargar
+                  </button>
+                  <button onClick={() => eliminarDocumento(doc.id)} className="btn-eliminar">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Modal Preview PDF */}
+      {previsualizando && previsualizando.mime_type === 'application/pdf' && (
+        <div className="modal-preview" onClick={cerrarPreview}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{previsualizando.nombre}</h3>
+              <button onClick={cerrarPreview} className="btn-cerrar">✖️</button>
+            </div>
+            <div className="modal-body">
+              <Document
+                file={`${API_BASE_URL}/api/documentos/${previsualizando.id}/descargar`}
+                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                loading={<div className="spinner"></div>}
+              >
+                {Array.from(new Array(numPages), (el, index) => (
+                  <Page key={`page_${index + 1}`} pageNumber={index + 1} width={800} />
+                ))}
+              </Document>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
