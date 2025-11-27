@@ -532,9 +532,12 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
     # Usar SQL directo para evitar problemas con columnas del ORM
     query = text("""
         SELECT 
-            id, nombre, email, telefono, pasaporte, edad, 
-            nacionalidad, ciudad_origen, especialidad, nivel_espanol, 
-            tipo_visa, estado, documentos_estado, notas, 
+            id, nombre, email, telefono, pasaporte, fecha_nacimiento, edad, 
+            nacionalidad, pais_origen, ciudad_origen, carrera_deseada, especialidad, 
+            nivel_espanol, tipo_visa, fondos_disponibles, fecha_inicio_estimada,
+            archivo_titulo, archivo_pasaporte, archivo_extractos,
+            consentimiento_gdpr, fecha_consentimiento,
+            estado, documentos_estado, notas, 
             created_at, updated_at
         FROM estudiantes 
         WHERE id = :estudiante_id
@@ -551,17 +554,27 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
         "email": result[2],
         "telefono": result[3],
         "pasaporte": result[4],
-        "edad": result[5],
-        "nacionalidad": result[6],
-        "ciudad_origen": result[7],
-        "especialidad": result[8],
-        "nivel_espanol": result[9],
-        "tipo_visa": result[10],
-        "estado": result[11],
-        "documentos_estado": result[12],
-        "notas": result[13],
-        "created_at": result[14].isoformat() if result[14] else None,
-        "updated_at": result[15].isoformat() if result[15] else None
+        "fecha_nacimiento": result[5].isoformat() if result[5] else None,
+        "edad": result[6],
+        "nacionalidad": result[7],
+        "pais_origen": result[8],
+        "ciudad_origen": result[9],
+        "carrera_deseada": result[10],
+        "especialidad": result[11],
+        "nivel_espanol": result[12],
+        "tipo_visa": result[13],
+        "fondos_disponibles": float(result[14]) if result[14] else None,
+        "fecha_inicio_estimada": result[15].isoformat() if result[15] else None,
+        "archivo_titulo": result[16],
+        "archivo_pasaporte": result[17],
+        "archivo_extractos": result[18],
+        "consentimiento_gdpr": result[19],
+        "fecha_consentimiento": result[20].isoformat() if result[20] else None,
+        "estado": result[21],
+        "documentos_estado": result[22],
+        "notas": result[23],
+        "created_at": result[24].isoformat() if result[24] else None,
+        "updated_at": result[25].isoformat() if result[25] else None
     }
 
 
@@ -579,9 +592,9 @@ def actualizar_estudiante_publico(estudiante_id: int, datos: dict, db: Session =
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
     # Actualizar campos permitidos
-    campos_permitidos = ['nombre', 'email', 'telefono', 'pasaporte', 'edad', 
-                         'nacionalidad', 'ciudad_origen', 'especialidad', 
-                         'nivel_espanol', 'tipo_visa']
+    campos_permitidos = ['nombre', 'email', 'telefono', 'pasaporte', 'fecha_nacimiento', 'edad', 
+                         'nacionalidad', 'pais_origen', 'ciudad_origen', 'carrera_deseada', 'especialidad', 
+                         'nivel_espanol', 'tipo_visa', 'fondos_disponibles', 'fecha_inicio_estimada']
     
     for campo in campos_permitidos:
         if campo in datos:

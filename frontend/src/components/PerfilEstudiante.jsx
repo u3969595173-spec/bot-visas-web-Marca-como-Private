@@ -177,6 +177,16 @@ const PerfilEstudiante = ({ estudianteId }) => {
               </div>
 
               <div className="form-group">
+                <label>Fecha de Nacimiento</label>
+                <input
+                  type="date"
+                  name="fecha_nacimiento"
+                  value={formData.fecha_nacimiento || ''}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="form-group">
                 <label>Edad</label>
                 <input
                   type="number"
@@ -185,6 +195,16 @@ const PerfilEstudiante = ({ estudianteId }) => {
                   onChange={handleChange}
                   min="18"
                   max="99"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>País de Origen</label>
+                <input
+                  type="text"
+                  name="pais_origen"
+                  value={formData.pais_origen || ''}
+                  onChange={handleChange}
                 />
               </div>
 
@@ -209,11 +229,43 @@ const PerfilEstudiante = ({ estudianteId }) => {
               </div>
 
               <div className="form-group">
+                <label>Carrera Deseada</label>
+                <input
+                  type="text"
+                  name="carrera_deseada"
+                  value={formData.carrera_deseada || ''}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="form-group">
                 <label>Especialidad</label>
                 <input
                   type="text"
                   name="especialidad"
                   value={formData.especialidad || ''}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Fondos Disponibles (€)</label>
+                <input
+                  type="number"
+                  name="fondos_disponibles"
+                  value={formData.fondos_disponibles || ''}
+                  onChange={handleChange}
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Fecha Estimada de Inicio</label>
+                <input
+                  type="date"
+                  name="fecha_inicio_estimada"
+                  value={formData.fecha_inicio_estimada || ''}
                   onChange={handleChange}
                 />
               </div>
@@ -286,8 +338,16 @@ const PerfilEstudiante = ({ estudianteId }) => {
                 <p>{estudiante.pasaporte || 'No especificado'}</p>
               </div>
               <div className="info-item">
+                <label>Fecha de Nacimiento</label>
+                <p>{estudiante.fecha_nacimiento ? new Date(estudiante.fecha_nacimiento).toLocaleDateString() : 'No especificado'}</p>
+              </div>
+              <div className="info-item">
                 <label>Edad</label>
                 <p>{estudiante.edad || 'No especificado'}</p>
+              </div>
+              <div className="info-item">
+                <label>País de Origen</label>
+                <p>{estudiante.pais_origen || 'No especificado'}</p>
               </div>
               <div className="info-item">
                 <label>Nacionalidad</label>
@@ -296,6 +356,16 @@ const PerfilEstudiante = ({ estudianteId }) => {
               <div className="info-item">
                 <label>Ciudad de Origen</label>
                 <p>{estudiante.ciudad_origen || 'No especificado'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="info-card">
+            <h2>Información Académica</h2>
+            <div className="info-grid">
+              <div className="info-item">
+                <label>Carrera Deseada</label>
+                <p>{estudiante.carrera_deseada || 'No especificado'}</p>
               </div>
               <div className="info-item">
                 <label>Especialidad</label>
@@ -308,6 +378,42 @@ const PerfilEstudiante = ({ estudianteId }) => {
               <div className="info-item">
                 <label>Tipo de Visa</label>
                 <p>{estudiante.tipo_visa || 'No especificado'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="info-card">
+            <h2>Información Financiera</h2>
+            <div className="info-grid">
+              <div className="info-item">
+                <label>Fondos Disponibles</label>
+                <p>{estudiante.fondos_disponibles ? `€${Number(estudiante.fondos_disponibles).toLocaleString('es-ES', {minimumFractionDigits: 2})}` : 'No especificado'}</p>
+              </div>
+              <div className="info-item">
+                <label>Fecha Estimada de Inicio</label>
+                <p>{estudiante.fecha_inicio_estimada ? new Date(estudiante.fecha_inicio_estimada).toLocaleDateString() : 'No especificado'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="info-card">
+            <h2>Documentos Subidos</h2>
+            <div className="info-grid">
+              <div className="info-item">
+                <label>📄 Título Académico</label>
+                <p>{estudiante.archivo_titulo ? '✅ Subido' : '❌ Pendiente'}</p>
+              </div>
+              <div className="info-item">
+                <label>🛂 Pasaporte</label>
+                <p>{estudiante.archivo_pasaporte ? '✅ Subido' : '❌ Pendiente'}</p>
+              </div>
+              <div className="info-item">
+                <label>💰 Extractos Bancarios</label>
+                <p>{estudiante.archivo_extractos ? '✅ Subido' : '❌ Pendiente'}</p>
+              </div>
+              <div className="info-item">
+                <label>📋 Consentimiento GDPR</label>
+                <p>{estudiante.consentimiento_gdpr ? `✅ Aceptado el ${estudiante.fecha_consentimiento ? new Date(estudiante.fecha_consentimiento).toLocaleDateString() : ''}` : '❌ No aceptado'}</p>
               </div>
             </div>
           </div>
