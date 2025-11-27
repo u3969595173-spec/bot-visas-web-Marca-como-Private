@@ -3,7 +3,7 @@ API REST con FastAPI para Dashboard Web
 Endpoints para estudiantes y panel de administración
 """
 
-from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Query, Form
+from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Query, Form, Request
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -12,6 +12,16 @@ from sqlalchemy import text
 from typing import List, Optional, Dict
 from datetime import datetime
 import json
+
+# Rate Limiting
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Logging estructurado
+import sys
+sys.path.append('..')
+from utils.logger import logger, log_event, log_error
 
 from database.models import get_db
 from modules.estudiantes import Estudiante
@@ -28,11 +38,18 @@ from api.chat_routes import router as chat_router
 from api.analytics_routes import router as analytics_router
 from api.documentos_routes import router as documentos_router
 
+# Configurar rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(
     title="Bot Visas Estudio API",
     description="API para gestión de estudiantes y agencia educativa",
     version="1.0.0"
 )
+
+# Agregar rate limiter a la app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS - Permitir requests desde frontend
 app.add_middleware(
@@ -720,14 +737,24 @@ app.include_router(analytics_router, prefix="/api")
 app.include_router(documentos_router, prefix="/api")
 
 @app.post("/api/login", response_model=LoginResponse, tags=["Auth"])
-def login(datos: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")  # Máximo 5 intentos de login por minuto
+def login(request: Request, datos: LoginRequest, db: Session = Depends(get_db)):
     """
     Login para admins
     Email: leandroeloytamayoreyes@gmail.com / Contraseña: Eloy1940
+    Rate limit: 5 intentos por minuto por IP
     """
     import bcrypt
     import os
     import psycopg2
+    
+    # Log intento de login
+    log_event(
+        "login_intento",
+        "Intento de login",
+        email=datos.usuario,
+        ip=request.client.host
+    )
     
     try:
         # Conexión directa a la BD
@@ -741,6 +768,15 @@ def login(datos: LoginRequest, db: Session = Depends(get_db)):
         if not result:
             cur.close()
             conn.close()
+            
+            # Log login fallido
+            log_event(
+                "login_fallido",
+                "Login fallido - usuario no existe",
+                email=datos.usuario,
+                ip=request.client.host
+            )
+            
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas"
@@ -752,6 +788,15 @@ def login(datos: LoginRequest, db: Session = Depends(get_db)):
         if not bcrypt.checkpw(datos.password.encode('utf-8'), password_hash.encode('utf-8')):
             cur.close()
             conn.close()
+            
+            # Log login fallido
+            log_event(
+                "login_fallido",
+                "Login fallido - contraseña incorrecta",
+                email=datos.usuario,
+                ip=request.client.host
+            )
+            
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Credenciales incorrectas"
@@ -759,6 +804,16 @@ def login(datos: LoginRequest, db: Session = Depends(get_db)):
         
         cur.close()
         conn.close()
+        
+        # Log login exitoso
+        log_event(
+            "login_exitoso",
+            "Login exitoso",
+            email=email,
+            nombre=nombre,
+            rol=rol,
+            ip=request.client.host
+        )
         
         # Crear token
         token = crear_token({"usuario": email, "rol": rol})
@@ -771,6 +826,15 @@ def login(datos: LoginRequest, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
+        # Log error inesperado
+        log_error(
+            "login_error",
+            "Error inesperado en login",
+            error=e,
+            email=datos.usuario,
+            ip=request.client.host
+        )
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error en login: {str(e)}"
@@ -798,7 +862,9 @@ def obtener_usuario_actual(
 # ============================================================================
 
 @app.post("/api/estudiantes", tags=["Estudiantes"])
+@limiter.limit("3/hour")  # Máximo 3 registros por hora por IP
 async def registrar_estudiante(
+    request: Request,
     nombre: str = Form(...),
     email: str = Form(...),
     telefono: str = Form(...),
@@ -823,7 +889,19 @@ async def registrar_estudiante(
     """
     Registro público de estudiantes con archivos
     No requiere autenticación
+    Rate limit: 3 registros por hora por IP
     """
+    
+    # Log intento de registro
+    log_event(
+        "registro_intento",
+        "Intento de registro de estudiante",
+        email=email,
+        nombre=nombre,
+        pais_origen=pais_origen,
+        ip=request.client.host
+    )
+    
     try:
         import string
         import secrets
@@ -968,6 +1046,19 @@ async def registrar_estudiante(
         except Exception as e:
             print(f"[WARN] Error enviando email: {e}")
         
+        # Log registro exitoso
+        log_event(
+            "registro_exitoso",
+            "Estudiante registrado correctamente",
+            estudiante_id=nuevo_id,
+            codigo_acceso=codigo_final,
+            email=email,
+            nombre=nombre,
+            pais_origen=pais_origen,
+            carrera_deseada=carrera_deseada,
+            ip=request.client.host
+        )
+        
         return {
             "id": nuevo_id,
             "estudiante_id": nuevo_id,
@@ -980,6 +1071,17 @@ async def registrar_estudiante(
         raise
     except Exception as e:
         db.rollback()
+        
+        # Log error de registro
+        log_error(
+            "registro_error",
+            "Error al registrar estudiante",
+            error=e,
+            email=email,
+            nombre=nombre,
+            ip=request.client.host
+        )
+        
         print(f"[ERROR] Error en registro: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
