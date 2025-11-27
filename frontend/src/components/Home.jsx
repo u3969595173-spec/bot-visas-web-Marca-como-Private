@@ -62,21 +62,24 @@ const styles = {
   },
   title: {
     fontSize: '48px',
-    color: '#1a202c',
+    color: '#111827',
     marginBottom: '20px',
-    textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
+    fontWeight: 'bold',
+    textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
   },
   subtitle: {
     fontSize: '24px',
-    color: '#2d3748',
+    color: '#1f2937',
     marginBottom: '15px',
+    fontWeight: '600',
   },
   description: {
     fontSize: '18px',
-    color: '#4a5568',
+    color: '#374151',
     marginBottom: '50px',
     maxWidth: '700px',
     margin: '0 auto 50px',
+    fontWeight: '500',
   },
   features: {
     display: 'grid',
