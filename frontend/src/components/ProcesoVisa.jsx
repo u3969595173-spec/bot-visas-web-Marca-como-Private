@@ -94,14 +94,16 @@ function ProcesoVisa({ estudianteId }) {
 
   const cargarProceso = async () => {
     try {
-      const token = localStorage.getItem('token')
       const res = await axios.get(
-        `${apiUrl}/api/estudiantes/${estudianteId}/proceso-visa`,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `${apiUrl}/api/estudiantes/${estudianteId}/proceso-visa`
       )
-      setProceso(res.data)
+      console.log('Proceso cargado:', res.data)
+      setProceso(res.data || {})
     } catch (err) {
       console.error('Error cargando proceso:', err)
+      console.error('Detalles del error:', err.response?.data)
+      // Establecer proceso vacío para evitar pantalla en blanco
+      setProceso({})
     } finally {
       setLoading(false)
     }
@@ -134,6 +136,16 @@ function ProcesoVisa({ estudianteId }) {
 
   if (loading) {
     return <div className="proceso-loading">⏳ Cargando proceso de visa...</div>
+  }
+
+  if (!proceso) {
+    return (
+      <div className="proceso-error">
+        <h3>⚠️ No se pudo cargar el proceso</h3>
+        <p>Intenta recargar la página</p>
+        <button onClick={cargarProceso}>🔄 Reintentar</button>
+      </div>
+    )
   }
 
   const progreso = calcularProgreso()

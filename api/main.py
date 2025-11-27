@@ -7795,52 +7795,63 @@ async def actualizar_universidad(
 
 
 @app.get("/api/estudiantes/{estudiante_id}/proceso-visa")
-async def obtener_proceso_visa(
-    estudiante_id: int,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Obtener el proceso completo de visa del estudiante"""
-    usuario = verificar_token(credentials.credentials)
-    
-    # Verificar acceso
-    if not usuario.get('es_admin') and usuario.get('id') != estudiante_id:
-        raise HTTPException(status_code=403, detail="Acceso denegado")
+async def obtener_proceso_visa(estudiante_id: int):
+    """Obtener el proceso completo de visa del estudiante (acceso público con ID)"""
     
     import os
     import psycopg2
+    from datetime import datetime
     from psycopg2.extras import RealDictCursor
     
     conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     
-    # Obtener proceso o crear uno nuevo
-    cursor.execute("""
-        SELECT * FROM proceso_visa_pasos
-        WHERE estudiante_id = %s
-    """, (estudiante_id,))
-    
-    proceso = cursor.fetchone()
-    
-    if not proceso:
-        # Crear proceso inicial
+    try:
+        # Verificar que el estudiante existe
+        cursor.execute("SELECT id FROM estudiantes WHERE id = %s", (estudiante_id,))
+        if not cursor.fetchone():
+            cursor.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        
+        # Obtener proceso o crear uno nuevo
         cursor.execute("""
-            INSERT INTO proceso_visa_pasos (estudiante_id)
-            VALUES (%s)
-            RETURNING *
+            SELECT * FROM proceso_visa_pasos
+            WHERE estudiante_id = %s
         """, (estudiante_id,))
+        
         proceso = cursor.fetchone()
-        conn.commit()
-    
-    cursor.close()
-    conn.close()
-    
-    # Convertir a formato serializable
-    proceso_dict = dict(proceso)
-    for key, value in proceso_dict.items():
-        if isinstance(value, datetime):
-            proceso_dict[key] = value.isoformat()
-    
-    return proceso_dict
+        
+        if not proceso:
+            # Crear proceso inicial con todos los campos en False
+            cursor.execute("""
+                INSERT INTO proceso_visa_pasos (estudiante_id)
+                VALUES (%s)
+                RETURNING *
+            """, (estudiante_id,))
+            proceso = cursor.fetchone()
+            conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        # Convertir a formato serializable
+        proceso_dict = dict(proceso)
+        for key, value in proceso_dict.items():
+            if isinstance(value, datetime):
+                proceso_dict[key] = value.isoformat()
+        
+        return proceso_dict
+        
+    except Exception as e:
+        if 'cursor' in locals():
+            cursor.close()
+        if 'conn' in locals():
+            conn.close()
+        print(f"❌ Error obteniendo proceso: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 @app.put("/api/admin/estudiantes/{estudiante_id}/proceso-visa")
