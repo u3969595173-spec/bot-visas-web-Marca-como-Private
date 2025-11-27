@@ -89,6 +89,68 @@ async def startup_event():
             );
         """)
         
+        # Crear tablas de universidades y programas
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS universidades_espana (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(255) NOT NULL,
+                siglas VARCHAR(50),
+                ciudad VARCHAR(100) NOT NULL,
+                comunidad_autonoma VARCHAR(100) NOT NULL,
+                tipo VARCHAR(50) NOT NULL,
+                url_oficial VARCHAR(500),
+                email_contacto VARCHAR(255),
+                telefono VARCHAR(50),
+                tiene_api BOOLEAN DEFAULT FALSE,
+                endpoint_api VARCHAR(500),
+                metodo_scraping VARCHAR(100),
+                ultima_actualizacion TIMESTAMP,
+                logo_url VARCHAR(500),
+                descripcion TEXT,
+                ranking_nacional INTEGER,
+                total_alumnos INTEGER,
+                total_programas INTEGER,
+                acepta_extranjeros BOOLEAN DEFAULT TRUE,
+                requisitos_extranjeros TEXT,
+                activa BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS programas_universitarios (
+                id SERIAL PRIMARY KEY,
+                universidad_id INTEGER NOT NULL,
+                nombre VARCHAR(500) NOT NULL,
+                tipo_programa VARCHAR(100),
+                area_estudio VARCHAR(200),
+                duracion_anos FLOAT,
+                creditos_ects INTEGER,
+                idioma VARCHAR(50),
+                modalidad VARCHAR(50),
+                precio_anual_eur FLOAT,
+                plazas_disponibles INTEGER,
+                nota_corte FLOAT,
+                url_info VARCHAR(500),
+                fecha_inicio_inscripcion TIMESTAMP,
+                fecha_fin_inscripcion TIMESTAMP,
+                requisitos TEXT,
+                descripcion TEXT,
+                activo BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        # Crear índices para optimizar búsquedas
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_universidades_ciudad ON universidades_espana(ciudad);
+            CREATE INDEX IF NOT EXISTS idx_universidades_tipo ON universidades_espana(tipo);
+            CREATE INDEX IF NOT EXISTS idx_programas_universidad ON programas_universitarios(universidad_id);
+            CREATE INDEX IF NOT EXISTS idx_programas_tipo ON programas_universitarios(tipo_programa);
+        """)
+        
         conn.commit()
         cursor.close()
         conn.close()
@@ -1062,6 +1124,287 @@ def descargar_calendario_ics(
         media_type="text/calendar",
         headers={"Content-Disposition": f"attachment; filename=fecha_{fecha_id}.ics"}
     )
+
+
+# =============================================================================
+# ENDPOINTS: UNIVERSIDADES Y PROGRAMAS ESPAÑA
+# =============================================================================
+
+@app.get("/api/universidades", tags=["Universidades España"])
+def listar_universidades(
+    ciudad: Optional[str] = None,
+    comunidad: Optional[str] = None,
+    tipo: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Lista todas las universidades de España con filtros
+    
+    Filtros:
+    - ciudad: Filtrar por ciudad
+    - comunidad: Filtrar por comunidad autónoma
+    - tipo: publica o privada
+    """
+    from database.models import UniversidadEspana
+    
+    query = db.query(UniversidadEspana).filter(UniversidadEspana.activa == True)
+    
+    if ciudad:
+        query = query.filter(UniversidadEspana.ciudad.ilike(f'%{ciudad}%'))
+    if comunidad:
+        query = query.filter(UniversidadEspana.comunidad_autonoma.ilike(f'%{comunidad}%'))
+    if tipo:
+        query = query.filter(UniversidadEspana.tipo == tipo)
+    
+    universidades = query.order_by(UniversidadEspana.ranking_nacional).all()
+    
+    return {
+        "success": True,
+        "total": len(universidades),
+        "universidades": [
+            {
+                "id": u.id,
+                "nombre": u.nombre,
+                "siglas": u.siglas,
+                "ciudad": u.ciudad,
+                "comunidad_autonoma": u.comunidad_autonoma,
+                "tipo": u.tipo,
+                "url_oficial": u.url_oficial,
+                "email_contacto": u.email_contacto,
+                "ranking_nacional": u.ranking_nacional,
+                "total_alumnos": u.total_alumnos,
+                "total_programas": u.total_programas,
+                "acepta_extranjeros": u.acepta_extranjeros,
+                "logo_url": u.logo_url
+            }
+            for u in universidades
+        ]
+    }
+
+
+@app.get("/api/universidades/{universidad_id}", tags=["Universidades España"])
+def obtener_universidad(universidad_id: int, db: Session = Depends(get_db)):
+    """Obtiene información detallada de una universidad"""
+    from database.models import UniversidadEspana
+    
+    universidad = db.query(UniversidadEspana).filter(
+        UniversidadEspana.id == universidad_id
+    ).first()
+    
+    if not universidad:
+        raise HTTPException(status_code=404, detail="Universidad no encontrada")
+    
+    return {
+        "success": True,
+        "universidad": {
+            "id": universidad.id,
+            "nombre": universidad.nombre,
+            "siglas": universidad.siglas,
+            "ciudad": universidad.ciudad,
+            "comunidad_autonoma": universidad.comunidad_autonoma,
+            "tipo": universidad.tipo,
+            "url_oficial": universidad.url_oficial,
+            "email_contacto": universidad.email_contacto,
+            "telefono": universidad.telefono,
+            "descripcion": universidad.descripcion,
+            "ranking_nacional": universidad.ranking_nacional,
+            "total_alumnos": universidad.total_alumnos,
+            "total_programas": universidad.total_programas,
+            "acepta_extranjeros": universidad.acepta_extranjeros,
+            "requisitos_extranjeros": universidad.requisitos_extranjeros,
+            "ultima_actualizacion": universidad.ultima_actualizacion.isoformat() if universidad.ultima_actualizacion else None,
+            "logo_url": universidad.logo_url
+        }
+    }
+
+
+@app.get("/api/universidades/{universidad_id}/programas", tags=["Universidades España"])
+def listar_programas_universidad(
+    universidad_id: int,
+    tipo_programa: Optional[str] = None,
+    area_estudio: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Lista programas académicos de una universidad
+    
+    Filtros:
+    - tipo_programa: grado, master, doctorado, curso
+    - area_estudio: ingenieria, medicina, arte, etc.
+    """
+    from database.models import ProgramaUniversitario
+    
+    query = db.query(ProgramaUniversitario).filter(
+        ProgramaUniversitario.universidad_id == universidad_id,
+        ProgramaUniversitario.activo == True
+    )
+    
+    if tipo_programa:
+        query = query.filter(ProgramaUniversitario.tipo_programa == tipo_programa)
+    if area_estudio:
+        query = query.filter(ProgramaUniversitario.area_estudio.ilike(f'%{area_estudio}%'))
+    
+    programas = query.all()
+    
+    return {
+        "success": True,
+        "universidad_id": universidad_id,
+        "total": len(programas),
+        "programas": [
+            {
+                "id": p.id,
+                "nombre": p.nombre,
+                "tipo_programa": p.tipo_programa,
+                "area_estudio": p.area_estudio,
+                "duracion_anos": p.duracion_anos,
+                "creditos_ects": p.creditos_ects,
+                "idioma": p.idioma,
+                "modalidad": p.modalidad,
+                "precio_anual_eur": p.precio_anual_eur,
+                "plazas_disponibles": p.plazas_disponibles,
+                "nota_corte": p.nota_corte,
+                "url_info": p.url_info,
+                "requisitos": p.requisitos,
+                "descripcion": p.descripcion
+            }
+            for p in programas
+        ]
+    }
+
+
+@app.get("/api/programas/buscar", tags=["Universidades España"])
+def buscar_programas(
+    query: str,
+    ciudad: Optional[str] = None,
+    tipo_programa: Optional[str] = None,
+    precio_max: Optional[float] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Búsqueda global de programas en todas las universidades
+    
+    Parámetros:
+    - query: Texto a buscar en nombre del programa
+    - ciudad: Filtrar por ciudad
+    - tipo_programa: grado, master, doctorado
+    - precio_max: Precio máximo anual
+    """
+    from database.models import ProgramaUniversitario, UniversidadEspana
+    
+    programas_query = db.query(
+        ProgramaUniversitario, UniversidadEspana
+    ).join(
+        UniversidadEspana,
+        ProgramaUniversitario.universidad_id == UniversidadEspana.id
+    ).filter(
+        ProgramaUniversitario.activo == True,
+        ProgramaUniversitario.nombre.ilike(f'%{query}%')
+    )
+    
+    if ciudad:
+        programas_query = programas_query.filter(UniversidadEspana.ciudad.ilike(f'%{ciudad}%'))
+    if tipo_programa:
+        programas_query = programas_query.filter(ProgramaUniversitario.tipo_programa == tipo_programa)
+    if precio_max:
+        programas_query = programas_query.filter(ProgramaUniversitario.precio_anual_eur <= precio_max)
+    
+    resultados = programas_query.limit(50).all()
+    
+    return {
+        "success": True,
+        "query": query,
+        "total": len(resultados),
+        "resultados": [
+            {
+                "programa": {
+                    "id": programa.id,
+                    "nombre": programa.nombre,
+                    "tipo_programa": programa.tipo_programa,
+                    "duracion_anos": programa.duracion_anos,
+                    "precio_anual_eur": programa.precio_anual_eur,
+                    "modalidad": programa.modalidad,
+                    "idioma": programa.idioma
+                },
+                "universidad": {
+                    "id": universidad.id,
+                    "nombre": universidad.nombre,
+                    "ciudad": universidad.ciudad,
+                    "tipo": universidad.tipo,
+                    "url_oficial": universidad.url_oficial
+                }
+            }
+            for programa, universidad in resultados
+        ]
+    }
+
+
+@app.post("/api/admin/universidades/actualizar", tags=["Admin - Universidades"])
+def actualizar_datos_universidades(db: Session = Depends(get_db)):
+    """
+    Ejecuta scraping de todas las universidades para actualizar datos
+    (Endpoint admin - requiere autenticación)
+    """
+    from api.scrapers_universidades import actualizar_todas_universidades
+    
+    try:
+        programas_nuevos = actualizar_todas_universidades(db)
+        return {
+            "success": True,
+            "message": f"Actualización completada",
+            "programas_nuevos": programas_nuevos
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/universidades/seed", tags=["Admin - Universidades"])
+def seed_universidades_iniciales(db: Session = Depends(get_db)):
+    """
+    Carga datos iniciales de universidades españolas
+    (Solo ejecutar una vez en setup inicial)
+    """
+    from api.data_universidades_espana import UNIVERSIDADES_ESPANA
+    from database.models import UniversidadEspana
+    
+    try:
+        universidades_creadas = 0
+        
+        for uni_data in UNIVERSIDADES_ESPANA:
+            # Verificar si ya existe
+            existe = db.query(UniversidadEspana).filter(
+                UniversidadEspana.nombre == uni_data['nombre']
+            ).first()
+            
+            if not existe:
+                nueva_uni = UniversidadEspana(
+                    nombre=uni_data['nombre'],
+                    siglas=uni_data.get('siglas'),
+                    ciudad=uni_data['ciudad'],
+                    comunidad_autonoma=uni_data['comunidad_autonoma'],
+                    tipo=uni_data['tipo'],
+                    url_oficial=uni_data['url_oficial'],
+                    email_contacto=uni_data.get('email_contacto'),
+                    tiene_api=uni_data.get('tiene_api', False),
+                    metodo_scraping=uni_data.get('metodo_scraping', 'beautifulsoup'),
+                    ranking_nacional=uni_data.get('ranking_nacional'),
+                    total_alumnos=uni_data.get('total_alumnos'),
+                    acepta_extranjeros=uni_data.get('acepta_extranjeros', True),
+                    requisitos_extranjeros=uni_data.get('requisitos_extranjeros'),
+                    activa=True
+                )
+                db.add(nueva_uni)
+                universidades_creadas += 1
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"{universidades_creadas} universidades agregadas a la base de datos",
+            "total_universidades": universidades_creadas
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/documentos/{documento_id}/validar-ocr", tags=["Documentos - OCR"])

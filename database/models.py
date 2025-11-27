@@ -153,6 +153,57 @@ class FechaImportante(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class UniversidadEspana(Base):
+    __tablename__ = 'universidades_espana'
+    
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(255), nullable=False)
+    siglas = Column(String(50))
+    ciudad = Column(String(100), nullable=False)
+    comunidad_autonoma = Column(String(100), nullable=False)
+    tipo = Column(String(50), nullable=False)  # publica, privada
+    url_oficial = Column(String(500))
+    email_contacto = Column(String(255))
+    telefono = Column(String(50))
+    tiene_api = Column(Boolean, default=False)
+    endpoint_api = Column(String(500))
+    metodo_scraping = Column(String(100))  # beautifulsoup, selenium, api_rest
+    ultima_actualizacion = Column(DateTime)
+    logo_url = Column(String(500))
+    descripcion = Column(Text)
+    ranking_nacional = Column(Integer)
+    total_alumnos = Column(Integer)
+    total_programas = Column(Integer)
+    acepta_extranjeros = Column(Boolean, default=True)
+    requisitos_extranjeros = Column(Text)
+    activa = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class ProgramaUniversitario(Base):
+    __tablename__ = 'programas_universitarios'
+    
+    id = Column(Integer, primary_key=True)
+    universidad_id = Column(Integer, nullable=False)
+    nombre = Column(String(500), nullable=False)
+    tipo_programa = Column(String(100))  # grado, master, doctorado, curso
+    area_estudio = Column(String(200))  # ingenieria, medicina, arte, etc.
+    duracion_anos = Column(Float)
+    creditos_ects = Column(Integer)
+    idioma = Column(String(50))  # espanol, ingles, bilingue
+    modalidad = Column(String(50))  # presencial, online, hibrido
+    precio_anual_eur = Column(Float)
+    plazas_disponibles = Column(Integer)
+    nota_corte = Column(Float)
+    url_info = Column(String(500))
+    fecha_inicio_inscripcion = Column(DateTime)
+    fecha_fin_inscripcion = Column(DateTime)
+    requisitos = Column(Text)
+    descripcion = Column(Text)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Database initialization
 from dotenv import load_dotenv
 load_dotenv()  # Cargar .env ANTES de crear engine

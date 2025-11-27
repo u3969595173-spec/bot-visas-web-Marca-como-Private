@@ -11,6 +11,7 @@ import TerminosCondiciones from './components/TerminosCondiciones'
 import SimuladorEntrevista from './components/SimuladorEntrevista'
 import CalculadoraFondos from './components/CalculadoraFondos'
 import AlertasFechas from './components/AlertasFechas'
+import BuscadorUniversidades from './components/BuscadorUniversidades'
 import Home from './components/Home'
 
 function App() {
@@ -57,6 +58,9 @@ function App() {
                   </Link>
                   <Link to="/estudiante/alertas" style={styles.navLink}>
                     📅 Alertas
+                  </Link>
+                  <Link to="/estudiante/universidades" style={styles.navLink}>
+                    🎓 Universidades
                   </Link>
                 </>
               )}
@@ -114,6 +118,16 @@ function App() {
             element={
               estudianteId ? (
                 <AlertasFechas estudianteId={estudianteId} />
+              ) : (
+                <Navigate to="/portal" />
+              )
+            }
+          />
+          <Route
+            path="/estudiante/universidades"
+            element={
+              estudianteId ? (
+                <BuscadorUniversidades estudianteId={estudianteId} />
               ) : (
                 <Navigate to="/portal" />
               )
