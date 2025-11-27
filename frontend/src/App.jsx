@@ -8,6 +8,7 @@ import DashboardUsuario from './components/DashboardUsuario'
 import PortalEstudiante from './components/PortalEstudiante'
 import PoliticaPrivacidad from './components/PoliticaPrivacidad'
 import TerminosCondiciones from './components/TerminosCondiciones'
+import SimuladorEntrevista from './components/SimuladorEntrevista'
 import Home from './components/Home'
 
 function App() {
@@ -69,6 +70,16 @@ function App() {
           <Route path="/portal" element={<PortalEstudiante />} />
           <Route path="/politica-privacidad" element={<PoliticaPrivacidad />} />
           <Route path="/terminos-condiciones" element={<TerminosCondiciones />} />
+          <Route
+            path="/estudiante/simulador"
+            element={
+              estudianteId ? (
+                <SimuladorEntrevista estudianteId={estudianteId} />
+              ) : (
+                <Navigate to="/portal" />
+              )
+            }
+          />
           <Route
             path="/estudiante/dashboard"
             element={

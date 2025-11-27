@@ -757,6 +757,62 @@ def generar_documentos_estudiante(estudiante_id: int, db: Session = Depends(get_
     }
 
 
+# ==================== SIMULADOR DE ENTREVISTAS ====================
+
+@app.get("/api/estudiantes/{estudiante_id}/simulador-entrevista", tags=["Estudiantes - Simulador"])
+def obtener_simulador_entrevista(estudiante_id: int, db: Session = Depends(get_db)):
+    """
+    Genera simulador de entrevista personalizado según perfil del estudiante
+    """
+    from api.simulador_entrevista import SimuladorEntrevista
+    
+    # Obtener datos del estudiante
+    query = text("""
+        SELECT 
+            id, nombre, edad, especialidad, nivel_espanol, tipo_visa, fondos_disponibles
+        FROM estudiantes 
+        WHERE id = :estudiante_id
+    """)
+    
+    result = db.execute(query, {"estudiante_id": estudiante_id}).fetchone()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    estudiante_data = {
+        "id": result[0],
+        "nombre": result[1],
+        "edad": result[2],
+        "especialidad": result[3] or "",
+        "nivel_espanol": result[4] or "basico",
+        "tipo_visa": result[5] or "estudiante",
+        "fondos_disponibles": float(result[6]) if result[6] else 0
+    }
+    
+    # Generar entrevista personalizada
+    entrevista = SimuladorEntrevista.generar_entrevista_personalizada(estudiante_data)
+    
+    return entrevista
+
+
+@app.post("/api/simulador-entrevista/evaluar", tags=["Estudiantes - Simulador"])
+def evaluar_respuesta_simulador(data: dict):
+    """
+    Evalúa una respuesta del simulador de entrevista
+    """
+    from api.simulador_entrevista import SimuladorEntrevista
+    
+    pregunta_id = data.get('pregunta_id', 0)
+    respuesta = data.get('respuesta', '')
+    
+    if not respuesta:
+        raise HTTPException(status_code=400, detail="Respuesta vacía")
+    
+    evaluacion = SimuladorEntrevista.evaluar_respuesta(pregunta_id, respuesta)
+    
+    return evaluacion
+
+
 @app.post("/api/documentos/{documento_id}/validar-ocr", tags=["Documentos - OCR"])
 async def validar_documento_ocr(
     documento_id: int,
