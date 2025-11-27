@@ -13,7 +13,10 @@ function Home() {
         </p>
         <p style={styles.description}>
           Tramitamos tu visa de estudiante, te ayudamos a encontrar el curso
-          perfecto y gestionamos todo el proceso de manera profesional.
+          perfecto, te preparamos para todo y gestionamos todo el proceso de manera profesional.
+        </p>
+        <p style={styles.disclaimer}>
+          ⚖️ <strong>Disclaimer:</strong> Aunque no garantizamos la aprobación al 100% (decisión del Consulado), un trámite impecable tiene más de 90% de éxito. Nosotros nos encargamos de que tu expediente esté perfecto.
         </p>
 
         <div style={styles.features}>
@@ -80,6 +83,18 @@ const styles = {
     maxWidth: '700px',
     margin: '0 auto 50px',
     fontWeight: '500',
+  },
+  disclaimer: {
+    fontSize: '14px',
+    color: '#6b7280',
+    marginBottom: '40px',
+    maxWidth: '700px',
+    margin: '0 auto 40px',
+    fontStyle: 'italic',
+    padding: '15px',
+    background: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: '8px',
+    borderLeft: '3px solid #667eea',
   },
   features: {
     display: 'grid',
