@@ -3468,7 +3468,7 @@ def listar_estudiantes(
     params = {"skip": skip, "limit": limit}
     
     if estado:
-        query_text += " WHERE COALESCE(estado, estado_procesamiento) = :estado"
+        query_text += " WHERE COALESCE(estado, estado_procesamiento, 'pendiente') = :estado"
         params["estado"] = estado
     
     query_text += " ORDER BY created_at DESC OFFSET :skip LIMIT :limit"
@@ -3477,9 +3477,12 @@ def listar_estudiantes(
     
     return [{
         'id': row[0],
+        'nombre': row[1],
         'nombre_completo': row[1],
         'email': row[2],
+        'especialidad': row[3],
         'especialidad_interes': row[3],
+        'estado': row[4],
         'estado_procesamiento': row[4],
         'prioridad': 'BAJA',
         'documentos_subidos': 0,

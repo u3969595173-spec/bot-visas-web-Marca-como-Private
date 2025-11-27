@@ -156,11 +156,15 @@ function DashboardAdminExpandido({ onLogout }) {
   }
 
   const estudiantesFiltrados = estudiantes.filter(est => {
-    const cumpleFiltro = filtro === 'todos' || est.estado === filtro
+    // Normalizar estado (puede venir como 'estado' o 'estado_procesamiento')
+    const estadoActual = est.estado || est.estado_procesamiento || 'pendiente'
+    const cumpleFiltro = filtro === 'todos' || estadoActual === filtro
     const cumpleBusqueda = !busqueda || 
       est.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      est.nombre_completo?.toLowerCase().includes(busqueda.toLowerCase()) ||
       est.email?.toLowerCase().includes(busqueda.toLowerCase()) ||
-      est.especialidad?.toLowerCase().includes(busqueda.toLowerCase())
+      est.especialidad?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      est.especialidad_interes?.toLowerCase().includes(busqueda.toLowerCase())
     
     return cumpleFiltro && cumpleBusqueda
   })
@@ -511,18 +515,18 @@ function DashboardAdminExpandido({ onLogout }) {
                 {estudiantesFiltrados.map(est => (
                   <tr key={est.id}>
                     <td>{est.id}</td>
-                    <td>{est.nombre || 'N/A'}</td>
+                    <td>{est.nombre || est.nombre_completo || 'N/A'}</td>
                     <td>{est.email || 'N/A'}</td>
-                    <td>{est.especialidad || 'N/A'}</td>
+                    <td>{est.especialidad || est.especialidad_interes || 'N/A'}</td>
                     <td>{est.tipo_visa || 'N/A'}</td>
                     <td>
-                      <span className={`badge badge-${est.estado}`}>
-                        {est.estado?.toUpperCase()}
+                      <span className={`badge badge-${est.estado || est.estado_procesamiento || 'pendiente'}`}>
+                        {(est.estado || est.estado_procesamiento || 'pendiente').toUpperCase()}
                       </span>
                     </td>
                     <td>
                       <div className="acciones">
-                        {est.estado === 'pendiente' && (
+                        {(est.estado === 'pendiente' || est.estado_procesamiento === 'pendiente' || (!est.estado && !est.estado_procesamiento)) && (
                           <>
                             <button 
                               onClick={() => aprobarEstudiante(est.id)}
