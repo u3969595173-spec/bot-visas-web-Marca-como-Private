@@ -1407,6 +1407,239 @@ def seed_universidades_iniciales(db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ========================================
+# ADMIN CRUD UNIVERSIDADES
+# ========================================
+
+@app.post("/api/admin/universidades", tags=["Admin - Universidades"])
+def crear_universidad_manual(
+    universidad: dict,
+    db: Session = Depends(get_db)
+):
+    """Crear nueva universidad manualmente"""
+    from database.models import UniversidadEspana
+    
+    try:
+        nueva_uni = UniversidadEspana(
+            nombre=universidad.get('nombre'),
+            siglas=universidad.get('siglas', ''),
+            ciudad=universidad.get('ciudad', ''),
+            comunidad_autonoma=universidad.get('comunidad_autonoma', ''),
+            tipo=universidad.get('tipo', 'publica'),
+            url_oficial=universidad.get('url_oficial', ''),
+            email_contacto=universidad.get('email_contacto', ''),
+            telefono=universidad.get('telefono', ''),
+            tiene_api=universidad.get('tiene_api', False),
+            metodo_scraping=universidad.get('metodo_scraping', 'beautifulsoup'),
+            descripcion=universidad.get('descripcion', ''),
+            ranking_nacional=universidad.get('ranking_nacional'),
+            total_alumnos=universidad.get('total_alumnos'),
+            acepta_extranjeros=universidad.get('acepta_extranjeros', True),
+            requisitos_extranjeros=universidad.get('requisitos_extranjeros', ''),
+            activa=True
+        )
+        db.add(nueva_uni)
+        db.commit()
+        db.refresh(nueva_uni)
+        
+        return {
+            "success": True,
+            "message": "Universidad creada exitosamente",
+            "universidad_id": nueva_uni.id,
+            "nombre": nueva_uni.nombre
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/universidades/{universidad_id}", tags=["Admin - Universidades"])
+def actualizar_universidad(
+    universidad_id: int,
+    datos: dict,
+    db: Session = Depends(get_db)
+):
+    """Actualizar información de universidad existente"""
+    from database.models import UniversidadEspana
+    
+    try:
+        universidad = db.query(UniversidadEspana).filter(
+            UniversidadEspana.id == universidad_id
+        ).first()
+        
+        if not universidad:
+            raise HTTPException(status_code=404, detail="Universidad no encontrada")
+        
+        # Actualizar campos
+        for campo, valor in datos.items():
+            if hasattr(universidad, campo):
+                setattr(universidad, campo, valor)
+        
+        db.commit()
+        db.refresh(universidad)
+        
+        return {
+            "success": True,
+            "message": "Universidad actualizada",
+            "universidad": {
+                "id": universidad.id,
+                "nombre": universidad.nombre,
+                "ciudad": universidad.ciudad
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/admin/universidades/{universidad_id}", tags=["Admin - Universidades"])
+def eliminar_universidad(
+    universidad_id: int,
+    db: Session = Depends(get_db)
+):
+    """Desactivar universidad (soft delete)"""
+    from database.models import UniversidadEspana
+    
+    try:
+        universidad = db.query(UniversidadEspana).filter(
+            UniversidadEspana.id == universidad_id
+        ).first()
+        
+        if not universidad:
+            raise HTTPException(status_code=404, detail="Universidad no encontrada")
+        
+        universidad.activa = False
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Universidad {universidad.nombre} desactivada"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ========================================
+# ADMIN CRUD PROGRAMAS
+# ========================================
+
+@app.post("/api/admin/programas", tags=["Admin - Programas"])
+def crear_programa_manual(
+    programa: dict,
+    db: Session = Depends(get_db)
+):
+    """Crear nuevo programa académico manualmente"""
+    from database.models import ProgramaUniversitario
+    
+    try:
+        nuevo_programa = ProgramaUniversitario(
+            universidad_id=programa.get('universidad_id'),
+            nombre=programa.get('nombre'),
+            tipo_programa=programa.get('tipo_programa', 'grado'),
+            area_estudio=programa.get('area_estudio', ''),
+            duracion_anos=programa.get('duracion_anos', 4),
+            creditos_ects=programa.get('creditos_ects', 240),
+            idioma=programa.get('idioma', 'español'),
+            modalidad=programa.get('modalidad', 'presencial'),
+            precio_anual_eur=programa.get('precio_anual_eur'),
+            plazas_disponibles=programa.get('plazas_disponibles'),
+            nota_corte=programa.get('nota_corte'),
+            url_info=programa.get('url_info', ''),
+            requisitos=programa.get('requisitos', ''),
+            descripcion=programa.get('descripcion', ''),
+            activo=True
+        )
+        db.add(nuevo_programa)
+        db.commit()
+        db.refresh(nuevo_programa)
+        
+        return {
+            "success": True,
+            "message": "Programa creado exitosamente",
+            "programa_id": nuevo_programa.id,
+            "nombre": nuevo_programa.nombre
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/programas/{programa_id}", tags=["Admin - Programas"])
+def actualizar_programa(
+    programa_id: int,
+    datos: dict,
+    db: Session = Depends(get_db)
+):
+    """Actualizar información de programa existente"""
+    from database.models import ProgramaUniversitario
+    
+    try:
+        programa = db.query(ProgramaUniversitario).filter(
+            ProgramaUniversitario.id == programa_id
+        ).first()
+        
+        if not programa:
+            raise HTTPException(status_code=404, detail="Programa no encontrado")
+        
+        # Actualizar campos
+        for campo, valor in datos.items():
+            if hasattr(programa, campo):
+                setattr(programa, campo, valor)
+        
+        db.commit()
+        db.refresh(programa)
+        
+        return {
+            "success": True,
+            "message": "Programa actualizado",
+            "programa": {
+                "id": programa.id,
+                "nombre": programa.nombre,
+                "tipo_programa": programa.tipo_programa
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/admin/programas/{programa_id}", tags=["Admin - Programas"])
+def eliminar_programa(
+    programa_id: int,
+    db: Session = Depends(get_db)
+):
+    """Desactivar programa (soft delete)"""
+    from database.models import ProgramaUniversitario
+    
+    try:
+        programa = db.query(ProgramaUniversitario).filter(
+            ProgramaUniversitario.id == programa_id
+        ).first()
+        
+        if not programa:
+            raise HTTPException(status_code=404, detail="Programa no encontrado")
+        
+        programa.activo = False
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Programa {programa.nombre} desactivado"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/documentos/{documento_id}/validar-ocr", tags=["Documentos - OCR"])
 async def validar_documento_ocr(
     documento_id: int,

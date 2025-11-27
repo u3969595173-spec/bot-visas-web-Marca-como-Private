@@ -210,13 +210,284 @@ class ScraperSevilla(ScraperUniversidadEspana):
         
         return programas
 
+class ScraperAutonomaMadrid(ScraperUniversidadEspana):
+    """Scraper para Universidad Autónoma de Madrid"""
+    
+    def __init__(self):
+        super().__init__("Universidad Autónoma de Madrid", "https://www.uam.es")
+    
+    def scrape_programas(self):
+        programas = []
+        try:
+            url_grados = f"{self.url_base}/UAM/Estudios/Grados/Grados.htm"
+            response = self.session.get(url_grados, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=re.compile(r'Grado')):
+                    nombre = link.get_text(strip=True)
+                    if nombre and len(nombre) > 5:
+                        programas.append({
+                            'nombre': nombre,
+                            'tipo_programa': 'grado',
+                            'universidad': self.universidad_nombre,
+                            'duracion_anos': 4,
+                            'idioma': 'español'
+                        })
+                logger.info(f"✅ UAM: {len(programas)} programas encontrados")
+        except Exception as e:
+            logger.error(f"❌ Error scraping UAM: {e}")
+        return programas
+
+class ScraperPolitecnicaMadrid(ScraperUniversidadEspana):
+    """Scraper para Universidad Politécnica de Madrid"""
+    
+    def __init__(self):
+        super().__init__("Universidad Politécnica de Madrid", "https://www.upm.es")
+    
+    def scrape_programas(self):
+        programas = []
+        try:
+            url_grados = f"{self.url_base}/Estudiantes/Estudios_Titulaciones"
+            response = self.session.get(url_grados, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=re.compile(r'grado|master', re.I)):
+                    nombre = link.get_text(strip=True)
+                    if nombre and len(nombre) > 5:
+                        tipo = 'master' if 'master' in link['href'].lower() else 'grado'
+                        programas.append({
+                            'nombre': nombre,
+                            'tipo_programa': tipo,
+                            'universidad': self.universidad_nombre,
+                            'duracion_anos': 1 if tipo == 'master' else 4,
+                            'idioma': 'español'
+                        })
+                logger.info(f"✅ UPM: {len(programas)} programas encontrados")
+        except Exception as e:
+            logger.error(f"❌ Error scraping UPM: {e}")
+        return programas
+
+class ScraperCarlosIII(ScraperUniversidadEspana):
+    """Scraper para Universidad Carlos III de Madrid"""
+    
+    def __init__(self):
+        super().__init__("Universidad Carlos III de Madrid", "https://www.uc3m.es")
+    
+    def scrape_programas(self):
+        programas = []
+        try:
+            url_grados = f"{self.url_base}/ss/Satellite/Grado"
+            response = self.session.get(url_grados, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=re.compile(r'/Grado/')):
+                    nombre = link.get_text(strip=True)
+                    if nombre and len(nombre) > 5:
+                        programas.append({
+                            'nombre': nombre,
+                            'tipo_programa': 'grado',
+                            'universidad': self.universidad_nombre,
+                            'duracion_anos': 4,
+                            'idioma': 'español'
+                        })
+                logger.info(f"✅ UC3M: {len(programas)} programas encontrados")
+        except Exception as e:
+            logger.error(f"❌ Error scraping UC3M: {e}")
+        return programas
+
+class ScraperPompeuFabra(ScraperUniversidadEspana):
+    """Scraper para Universidad Pompeu Fabra"""
+    
+    def __init__(self):
+        super().__init__("Universidad Pompeu Fabra", "https://www.upf.edu")
+    
+    def scrape_programas(self):
+        programas = []
+        try:
+            url_grados = f"{self.url_base}/web/estudis/graus"
+            response = self.session.get(url_grados, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=re.compile(r'/grau-')):
+                    nombre = link.get_text(strip=True)
+                    if nombre and len(nombre) > 5:
+                        programas.append({
+                            'nombre': nombre,
+                            'tipo_programa': 'grado',
+                            'universidad': self.universidad_nombre,
+                            'duracion_anos': 4,
+                            'idioma': 'español/catalán'
+                        })
+                logger.info(f"✅ UPF: {len(programas)} programas encontrados")
+        except Exception as e:
+            logger.error(f"❌ Error scraping UPF: {e}")
+        return programas
+
+class ScraperAutonomaBarcelona(ScraperUniversidadEspana):
+    """Scraper para Universidad Autónoma de Barcelona"""
+    
+    def __init__(self):
+        super().__init__("Universidad Autónoma de Barcelona", "https://www.uab.cat")
+    
+    def scrape_programas(self):
+        programas = []
+        try:
+            url_grados = f"{self.url_base}/web/estudiar/listado-de-grados"
+            response = self.session.get(url_grados, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=re.compile(r'/grau/')):
+                    nombre = link.get_text(strip=True)
+                    if nombre and len(nombre) > 5:
+                        programas.append({
+                            'nombre': nombre,
+                            'tipo_programa': 'grado',
+                            'universidad': self.universidad_nombre,
+                            'duracion_anos': 4,
+                            'idioma': 'español/catalán'
+                        })
+                logger.info(f"✅ UAB: {len(programas)} programas encontrados")
+        except Exception as e:
+            logger.error(f"❌ Error scraping UAB: {e}")
+        return programas
+
+class ScraperPolitecnicaCatalunya(ScraperUniversidadEspana):
+    """Scraper para Universidad Politécnica de Cataluña"""
+    
+    def __init__(self):
+        super().__init__("Universidad Politécnica de Cataluña", "https://www.upc.edu")
+    
+    def scrape_programas(self):
+        programas = []
+        try:
+            url_grados = f"{self.url_base}/ca/graus"
+            response = self.session.get(url_grados, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=re.compile(r'/grau')):
+                    nombre = link.get_text(strip=True)
+                    if nombre and len(nombre) > 5:
+                        programas.append({
+                            'nombre': nombre,
+                            'tipo_programa': 'grado',
+                            'universidad': self.universidad_nombre,
+                            'duracion_anos': 4,
+                            'idioma': 'español/catalán/inglés'
+                        })
+                logger.info(f"✅ UPC: {len(programas)} programas encontrados")
+        except Exception as e:
+            logger.error(f"❌ Error scraping UPC: {e}")
+        return programas
+
+class ScraperPolitecnicaValencia(ScraperUniversidadEspana):
+    """Scraper para Universidad Politécnica de Valencia"""
+    
+    def __init__(self):
+        super().__init__("Universidad Politécnica de Valencia", "https://www.upv.es")
+    
+    def scrape_programas(self):
+        programas = []
+        try:
+            url_grados = f"{self.url_base}/titulaciones"
+            response = self.session.get(url_grados, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=re.compile(r'/GD')):
+                    nombre = link.get_text(strip=True)
+                    if nombre and len(nombre) > 5:
+                        programas.append({
+                            'nombre': nombre,
+                            'tipo_programa': 'grado',
+                            'universidad': self.universidad_nombre,
+                            'duracion_anos': 4,
+                            'idioma': 'español'
+                        })
+                logger.info(f"✅ UPV: {len(programas)} programas encontrados")
+        except Exception as e:
+            logger.error(f"❌ Error scraping UPV: {e}")
+        return programas
+
+class ScraperMalaga(ScraperUniversidadEspana):
+    """Scraper para Universidad de Málaga"""
+    
+    def __init__(self):
+        super().__init__("Universidad de Málaga", "https://www.uma.es")
+    
+    def scrape_programas(self):
+        programas = []
+        try:
+            url_grados = f"{self.url_base}/estudios/grados/"
+            response = self.session.get(url_grados, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=re.compile(r'/grado')):
+                    nombre = link.get_text(strip=True)
+                    if nombre and len(nombre) > 5:
+                        programas.append({
+                            'nombre': nombre,
+                            'tipo_programa': 'grado',
+                            'universidad': self.universidad_nombre,
+                            'duracion_anos': 4,
+                            'idioma': 'español'
+                        })
+                logger.info(f"✅ UMA: {len(programas)} programas encontrados")
+        except Exception as e:
+            logger.error(f"❌ Error scraping UMA: {e}")
+        return programas
+
+class ScraperSalamanca(ScraperUniversidadEspana):
+    """Scraper para Universidad de Salamanca"""
+    
+    def __init__(self):
+        super().__init__("Universidad de Salamanca", "https://www.usal.es")
+    
+    def scrape_programas(self):
+        programas = []
+        try:
+            url_grados = f"{self.url_base}/grados"
+            response = self.session.get(url_grados, timeout=10)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.content, 'html.parser')
+                for link in soup.find_all('a', href=re.compile(r'/grado-')):
+                    nombre = link.get_text(strip=True)
+                    if nombre and len(nombre) > 5:
+                        programas.append({
+                            'nombre': nombre,
+                            'tipo_programa': 'grado',
+                            'universidad': self.universidad_nombre,
+                            'duracion_anos': 4,
+                            'idioma': 'español'
+                        })
+                logger.info(f"✅ USAL: {len(programas)} programas encontrados")
+        except Exception as e:
+            logger.error(f"❌ Error scraping USAL: {e}")
+        return programas
+
 # Mapeo de universidades a sus scrapers
 SCRAPERS_DISPONIBLES = {
     'Universidad Complutense de Madrid': ScraperComplutense,
     'Universidad de Barcelona': ScraperBarcelona,
     'Universidad de Valencia': ScraperValencia,
     'Universidad de Granada': ScraperGranada,
-    'Universidad de Sevilla': ScraperSevilla
+    'Universidad de Sevilla': ScraperSevilla,
+    'Universidad Autónoma de Madrid': ScraperAutonomaMadrid,
+    'Universidad Politécnica de Madrid': ScraperPolitecnicaMadrid,
+    'Universidad Carlos III de Madrid': ScraperCarlosIII,
+    'Universidad Pompeu Fabra': ScraperPompeuFabra,
+    'Universidad Autónoma de Barcelona': ScraperAutonomaBarcelona,
+    'Universidad Politécnica de Cataluña': ScraperPolitecnicaCatalunya,
+    'Universidad Politécnica de Valencia': ScraperPolitecnicaValencia,
+    'Universidad de Málaga': ScraperMalaga,
+    'Universidad de Salamanca': ScraperSalamanca
 }
 
 def obtener_scraper(universidad_nombre):

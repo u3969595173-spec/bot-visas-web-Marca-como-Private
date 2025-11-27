@@ -12,6 +12,8 @@ import SimuladorEntrevista from './components/SimuladorEntrevista'
 import CalculadoraFondos from './components/CalculadoraFondos'
 import AlertasFechas from './components/AlertasFechas'
 import BuscadorUniversidades from './components/BuscadorUniversidades'
+import AdminUniversidades from './components/AdminUniversidades'
+import AdminProgramas from './components/AdminProgramas'
 import Home from './components/Home'
 
 function App() {
@@ -72,9 +74,19 @@ function App() {
                   Admin
                 </Link>
               ) : (
-                <Link to="/admin/dashboard" style={styles.navLink}>
-                  Dashboard Admin
+                <Link to="/admin/login" style={styles.navLink}>
+                  Admin
                 </Link>
+              )}
+              {isAuthenticated && (
+                <>
+                  <Link to="/admin/universidades" style={styles.navLink}>
+                    🎓 Universidades
+                  </Link>
+                  <Link to="/admin/programas" style={styles.navLink}>
+                    📚 Programas
+                  </Link>
+                </>
               )}
             </div>
           </div>
@@ -156,6 +168,26 @@ function App() {
             element={
               isAuthenticated ? (
                 <DashboardAdminExpandido onLogout={() => setIsAuthenticated(false)} />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/universidades"
+            element={
+              isAuthenticated ? (
+                <AdminUniversidades />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/programas"
+            element={
+              isAuthenticated ? (
+                <AdminProgramas />
               ) : (
                 <Navigate to="/admin/login" />
               )
