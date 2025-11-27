@@ -137,15 +137,13 @@ class SimuladorEntrevista:
         
         preguntas_seleccionadas = []
         
-        # SIEMPRE incluir preguntas generales críticas
-        preguntas_seleccionadas.extend([
-            cls.PREGUNTAS_GENERALES[0],  # Por qué España
-            cls.PREGUNTAS_GENERALES[1],  # Financiamiento
-            cls.PREGUNTAS_GENERALES[3],  # Intención de regresar
-        ])
+        # SIEMPRE incluir preguntas generales críticas (aleatorias)
+        criticas_generales = random.sample(cls.PREGUNTAS_GENERALES[:4], 3)
+        preguntas_seleccionadas.extend(criticas_generales)
         
-        # Agregar preguntas académicas
-        preguntas_seleccionadas.extend(random.sample(cls.PREGUNTAS_ACADEMICAS, 2))
+        # Agregar preguntas académicas (aleatorias)
+        num_academicas = min(2, len(cls.PREGUNTAS_ACADEMICAS))
+        preguntas_seleccionadas.extend(random.sample(cls.PREGUNTAS_ACADEMICAS, num_academicas))
         
         # Agregar preguntas financieras (más si fondos son bajos)
         if fondos < 8000:
@@ -273,42 +271,81 @@ class SimuladorEntrevista:
         ]
     
     @classmethod
-    def evaluar_respuesta(cls, pregunta_id: int, respuesta_usuario: str) -> dict:
+    def evaluar_respuesta(cls, pregunta_id: int, respuesta_usuario: str, pregunta_obj: dict = None) -> dict:
         """
-        Evalúa una respuesta del usuario y da feedback
+        Evalúa una respuesta del usuario y da feedback detallado
         """
         # Análisis básico de la respuesta
         longitud = len(respuesta_usuario.split())
+        respuesta_lower = respuesta_usuario.lower()
         
         if longitud < 10:
             calidad = "Muy corta"
-            feedback = "Tu respuesta es demasiado breve. Expándela con más detalles específicos."
+            feedback = "❌ Tu respuesta es demasiado breve. Expándela con más detalles específicos."
             puntuacion = 40
+            recomendaciones = [
+                "Agrega más detalles y contexto",
+                "Menciona ejemplos concretos",
+                "Explica el 'por qué' de tu respuesta"
+            ]
         elif longitud < 30:
             calidad = "Corta"
-            feedback = "Respuesta básica. Agrega ejemplos concretos y más contexto."
+            feedback = "⚠️ Respuesta básica. Agrega ejemplos concretos y más contexto."
             puntuacion = 60
+            recomendaciones = [
+                "Incluye fechas, nombres o cantidades específicas",
+                "Explica más profundamente tus motivaciones",
+                "Da ejemplos reales de tu situación"
+            ]
         elif longitud < 100:
             calidad = "Adecuada"
-            feedback = "Buena respuesta. Asegúrate de ser específico con nombres, fechas y cantidades."
+            feedback = "✅ Buena respuesta. Asegúrate de ser específico con nombres, fechas y cantidades."
             puntuacion = 80
+            recomendaciones = [
+                "Mantén este nivel de detalle",
+                "Practica diciendo esto en voz alta",
+                "Asegúrate de sonar natural y confiado"
+            ]
         else:
             calidad = "Muy larga"
-            feedback = "Respuesta muy extensa. Intenta ser más conciso manteniendo los puntos clave."
+            feedback = "⚠️ Respuesta muy extensa. Intenta ser más conciso manteniendo los puntos clave."
             puntuacion = 70
+            recomendaciones = [
+                "Resume en 3-4 puntos principales",
+                "Elimina información redundante",
+                "Ve directo al punto"
+            ]
         
         # Verificar palabras clave positivas
-        palabras_clave = ['porque', 'específicamente', 'demostrar', 'evidencia', 'plan', 'objetivo', 'regresar']
-        palabras_encontradas = sum(1 for palabra in palabras_clave if palabra.lower() in respuesta_usuario.lower())
+        palabras_clave = ['porque', 'específicamente', 'demostrar', 'evidencia', 'plan', 'objetivo', 'regresar', 'universidad', 'carrera', 'familia']
+        palabras_encontradas = sum(1 for palabra in palabras_clave if palabra.lower() in respuesta_lower)
         
         if palabras_encontradas >= 3:
             puntuacion += 10
-            feedback += " ✅ Usas buenos términos específicos."
+            feedback += " ✨ Usas buenos términos específicos."
+        
+        # Detectar problemas comunes
+        problemas = []
+        if respuesta_usuario.isupper():
+            problemas.append("No escribas en MAYÚSCULAS, parece que estás gritando")
+            puntuacion -= 5
+        
+        errores_ortograficos = ['preparecimn', 'supietso', 'herosos', 'rresignado', 'desaroolo', 'profesioanl']
+        if any(error in respuesta_lower for error in errores_ortograficos):
+            problemas.append("Revisa la ortografía antes de la entrevista real")
+            puntuacion -= 5
+        
+        # Agregar tips de la pregunta si están disponibles
+        tips_pregunta = pregunta_obj.get('tips', '') if pregunta_obj else ''
+        respuesta_modelo = pregunta_obj.get('respuesta_modelo', '') if pregunta_obj else ''
         
         return {
             "calidad": calidad,
-            "puntuacion": min(puntuacion, 100),
+            "puntuacion": max(0, min(puntuacion, 100)),
             "feedback": feedback,
-            "longitud_palabras": longitud,
-            "mejora_sugerida": "Sé más específico con fechas, nombres y cantidades concretas."
+            "recomendaciones": recomendaciones if 'recomendaciones' in locals() else [],
+            "problemas": problemas if 'problemas' in locals() else [],
+            "tips": tips_pregunta,
+            "respuesta_modelo": respuesta_modelo,
+            "longitud_palabras": longitud
         }

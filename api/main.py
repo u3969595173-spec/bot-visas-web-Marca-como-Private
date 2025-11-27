@@ -804,11 +804,12 @@ def evaluar_respuesta_simulador(data: dict):
     
     pregunta_id = data.get('pregunta_id', 0)
     respuesta = data.get('respuesta', '')
+    pregunta_obj = data.get('pregunta', {})  # Recibir objeto pregunta completo
     
     if not respuesta:
         raise HTTPException(status_code=400, detail="Respuesta vacía")
     
-    evaluacion = SimuladorEntrevista.evaluar_respuesta(pregunta_id, respuesta)
+    evaluacion = SimuladorEntrevista.evaluar_respuesta(pregunta_id, respuesta, pregunta_obj)
     
     return evaluacion
 

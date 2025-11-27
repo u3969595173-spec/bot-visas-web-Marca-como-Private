@@ -45,11 +45,12 @@ const SimuladorEntrevista = ({ estudianteId }) => {
     };
     setRespuestas(nuevasRespuestas);
 
-    // Evaluar respuesta
+    // Evaluar respuesta con objeto pregunta completo
     try {
       const response = await axios.post(`${apiUrl}/api/simulador-entrevista/evaluar`, {
         pregunta_id: preguntaActual,
-        respuesta: respuestaActual
+        respuesta: respuestaActual,
+        pregunta: pregunta  // Enviar pregunta completa para tips
       });
       
       setEvaluaciones({
@@ -305,20 +306,64 @@ const SimuladorEntrevista = ({ estudianteId }) => {
 
         <div className="resumen-respuestas">
           <h2>📝 Resumen de tus Respuestas</h2>
-          {entrevista.preguntas.map((pregunta, index) => (
-            <div key={index} className="resumen-item">
-              <h4>#{index + 1}: {pregunta.pregunta}</h4>
-              <div className="resumen-respuesta">
-                <p><strong>Tu respuesta:</strong> {respuestas[index] || '(Sin respuesta)'}</p>
-              </div>
-              {evaluaciones[index] && (
-                <div className="resumen-evaluacion">
-                  <span className="eval-puntos">{evaluaciones[index].puntuacion}/100</span>
-                  <span className="eval-feedback">{evaluaciones[index].feedback}</span>
+          {entrevista.preguntas.map((pregunta, index) => {
+            const evaluacion = evaluaciones[index];
+            return (
+              <div key={index} className="resumen-item">
+                <h4>#{index + 1}: {pregunta.pregunta}</h4>
+                <div className="resumen-respuesta">
+                  <p><strong>Tu respuesta:</strong> {respuestas[index] || '(Sin respuesta)'}</p>
                 </div>
-              )}
-            </div>
-          ))}
+                {evaluacion && (
+                  <div className="resumen-evaluacion">
+                    <div className="eval-header">
+                      <span className={`eval-puntos puntos-${evaluacion.puntuacion >= 80 ? 'alta' : evaluacion.puntuacion >= 60 ? 'media' : 'baja'}`}>
+                        {evaluacion.puntuacion}/100
+                      </span>
+                      <span className="eval-calidad">{evaluacion.calidad}</span>
+                    </div>
+                    <p className="eval-feedback">{evaluacion.feedback}</p>
+                    
+                    {evaluacion.problemas && evaluacion.problemas.length > 0 && (
+                      <div className="eval-problemas">
+                        <strong>⚠️ Problemas detectados:</strong>
+                        <ul>
+                          {evaluacion.problemas.map((problema, i) => (
+                            <li key={i}>{problema}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {evaluacion.recomendaciones && evaluacion.recomendaciones.length > 0 && (
+                      <div className="eval-recomendaciones">
+                        <strong>💡 Recomendaciones:</strong>
+                        <ul>
+                          {evaluacion.recomendaciones.map((rec, i) => (
+                            <li key={i}>{rec}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {evaluacion.tips && (
+                      <div className="eval-tips">
+                        <strong>📌 Tip:</strong>
+                        <p>{evaluacion.tips}</p>
+                      </div>
+                    )}
+                    
+                    {evaluacion.respuesta_modelo && (
+                      <div className="eval-modelo">
+                        <strong>✨ Ejemplo de respuesta ideal:</strong>
+                        <p className="respuesta-modelo-texto">{evaluacion.respuesta_modelo}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <div className="completado-actions">
