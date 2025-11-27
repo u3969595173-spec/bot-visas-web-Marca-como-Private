@@ -6,6 +6,7 @@ import CalculadoraVisa from './CalculadoraVisa';
 import GestorDocumentos from './GestorDocumentos';
 import ChatMensajes from './ChatMensajes';
 import ChecklistDocumentos from './ChecklistDocumentos';
+import ProcesoVisa from './ProcesoVisa';
 
 function DashboardUsuario({ estudianteId: propEstudianteId }) {
   const { id: paramId } = useParams();
@@ -129,7 +130,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         gap: '10px',
         flexWrap: 'wrap'
       }}>
-        {['perfil', 'probabilidad', 'estado', 'checklist', 'documentos', 'mensajes'].map(tab => (
+        {['perfil', 'proceso', 'probabilidad', 'estado', 'checklist', 'documentos', 'mensajes'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -140,7 +141,13 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               border: activeTab === tab ? 'none' : '2px solid #e2e8f0'
             }}
           >
-            {tab === 'checklist' ? '📋 Checklist' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            {tab === 'proceso' && '📊 Mi Proceso'}
+            {tab === 'checklist' && '📋 Checklist'}
+            {tab === 'perfil' && '👤 Perfil'}
+            {tab === 'probabilidad' && '🎯 Probabilidad'}
+            {tab === 'estado' && '📈 Estado'}
+            {tab === 'documentos' && '📄 Documentos'}
+            {tab === 'mensajes' && '💬 Mensajes'}
           </button>
         ))}
       </div>
@@ -148,6 +155,11 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       {/* TAB: Perfil */}
       {activeTab === 'perfil' && (
         <PerfilEstudiante estudianteId={estudianteId} />
+      )}
+
+      {/* TAB: Proceso de Visa Completo */}
+      {activeTab === 'proceso' && (
+        <ProcesoVisa estudianteId={estudianteId} />
       )}
 
       {/* TAB: Probabilidad */}

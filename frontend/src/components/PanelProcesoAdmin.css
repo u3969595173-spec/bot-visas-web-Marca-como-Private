@@ -1,0 +1,407 @@
+.panel-proceso-admin {
+  padding: 20px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.admin-loading {
+  text-align: center;
+  padding: 60px;
+  font-size: 20px;
+  color: #666;
+}
+
+.admin-header {
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.admin-header h1 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 28px;
+}
+
+.admin-header p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Layout principal */
+.admin-layout {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 20px;
+  min-height: 600px;
+}
+
+/* Sidebar de estudiantes */
+.estudiantes-sidebar {
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.estudiantes-sidebar h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #333;
+  position: sticky;
+  top: 0;
+  background: white;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.estudiantes-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.estudiante-card {
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.estudiante-card:hover {
+  border-color: #667eea;
+  background: #f8f9ff;
+  transform: translateX(5px);
+}
+
+.estudiante-card.activo {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.estudiante-nombre {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+.estudiante-email {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 5px;
+}
+
+.estudiante-estado {
+  font-size: 12px;
+  padding: 3px 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  display: inline-block;
+  margin-top: 5px;
+}
+
+.estudiante-card.activo .estudiante-estado {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Panel de proceso */
+.proceso-panel {
+  background: white;
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.no-seleccionado,
+.cargando-proceso {
+  text-align: center;
+  padding: 100px 20px;
+  color: #999;
+}
+
+.proceso-estudiante-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+  border-radius: 10px;
+  color: white;
+  margin-bottom: 25px;
+}
+
+.proceso-estudiante-header h2 {
+  margin: 0 0 5px 0;
+  font-size: 24px;
+}
+
+.proceso-estudiante-header p {
+  margin: 0 0 10px 0;
+  opacity: 0.9;
+  font-size: 14px;
+}
+
+.progreso-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Sección de notas */
+.notas-section {
+  margin-bottom: 25px;
+  padding: 15px;
+  background: #fffbea;
+  border-radius: 8px;
+  border-left: 4px solid #ffc107;
+}
+
+.notas-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.notas-section textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+/* Fases en admin */
+.fase-admin {
+  margin-bottom: 25px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.fase-admin-header {
+  display: flex;
+  align-items: center;
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.fase-admin-header .fase-icon {
+  font-size: 24px;
+  margin-right: 10px;
+}
+
+.fase-admin-header h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.fase-progreso {
+  background: #667eea;
+  color: white;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Pasos en admin */
+.pasos-admin {
+  padding: 15px;
+}
+
+.paso-admin {
+  padding: 15px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background 0.2s;
+}
+
+.paso-admin:last-child {
+  border-bottom: none;
+}
+
+.paso-admin:hover {
+  background: #f8f9ff;
+}
+
+.paso-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.paso-checkbox-label input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-custom {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  margin-right: 12px;
+  position: relative;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.paso-checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
+  background: #28a745;
+  border-color: #28a745;
+}
+
+.paso-checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.paso-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.paso-nombre {
+  font-size: 15px;
+  color: #333;
+  font-weight: 500;
+}
+
+.paso-fecha-admin {
+  font-size: 12px;
+  color: #28a745;
+  background: #d4edda;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+/* Campos extra (cita, resultado) */
+.campo-extra {
+  margin-top: 12px;
+  margin-left: 36px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.campo-extra label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.campo-extra input,
+.campo-extra select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.campo-extra input:focus,
+.campo-extra select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+/* Historial de notas */
+.historial-notas {
+  margin-top: 30px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border-left: 4px solid #6c757d;
+}
+
+.historial-notas h3 {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.notas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nota-item {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
+  border-left: 3px solid #667eea;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .admin-layout {
+    grid-template-columns: 280px 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .estudiantes-sidebar {
+    max-height: 300px;
+  }
+
+  .proceso-panel {
+    max-height: none;
+  }
+}
+
+/* Scrollbar personalizado */
+.estudiantes-sidebar::-webkit-scrollbar,
+.proceso-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.estudiantes-sidebar::-webkit-scrollbar-track,
+.proceso-panel::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.estudiantes-sidebar::-webkit-scrollbar-thumb,
+.proceso-panel::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.estudiantes-sidebar::-webkit-scrollbar-thumb:hover,
+.proceso-panel::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

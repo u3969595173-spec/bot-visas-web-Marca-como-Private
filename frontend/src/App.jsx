@@ -27,6 +27,7 @@ import GestorDocumentos from './components/GestorDocumentos'
 import AdminDocumentos from './components/AdminDocumentos'
 import AdminServicios from './components/AdminServicios'
 import ContactarUniversidades from './components/ContactarUniversidades'
+import PanelProcesoAdmin from './components/PanelProcesoAdmin'
 import Home from './components/Home'
 
 function App() {
@@ -309,6 +310,16 @@ function App() {
             element={
               isAuthenticated ? (
                 <ContactarUniversidades />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/proceso-visa"
+            element={
+              isAuthenticated ? (
+                <PanelProcesoAdmin />
               ) : (
                 <Navigate to="/admin/login" />
               )

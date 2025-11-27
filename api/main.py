@@ -7790,6 +7790,248 @@ async def actualizar_universidad(
     return {'success': True, 'mensaje': 'Universidad actualizada correctamente'}
 
 
+# ========================================
+# ENDPOINTS: PROCESO COMPLETO DE VISA
+# ========================================
+
+@app.on_event("startup")
+async def create_proceso_visa_table():
+    """Crear tabla de proceso de visa en startup"""
+    import os
+    import psycopg2
+    
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS proceso_visa_pasos (
+                id SERIAL PRIMARY KEY,
+                estudiante_id INTEGER REFERENCES estudiantes(id) ON DELETE CASCADE,
+                
+                -- FASE 1: INSCRIPCIÓN Y DOCUMENTACIÓN INICIAL
+                paso_inscripcion BOOLEAN DEFAULT FALSE,
+                fecha_inscripcion TIMESTAMP,
+                paso_pago_inicial BOOLEAN DEFAULT FALSE,
+                fecha_pago_inicial TIMESTAMP,
+                paso_documentos_personales BOOLEAN DEFAULT FALSE,
+                fecha_documentos_personales TIMESTAMP,
+                
+                -- FASE 2: UNIVERSIDAD Y CARTA ACEPTACIÓN
+                paso_seleccion_universidad BOOLEAN DEFAULT FALSE,
+                fecha_seleccion_universidad TIMESTAMP,
+                paso_solicitud_universidad BOOLEAN DEFAULT FALSE,
+                fecha_solicitud_universidad TIMESTAMP,
+                paso_carta_aceptacion BOOLEAN DEFAULT FALSE,
+                fecha_carta_aceptacion TIMESTAMP,
+                
+                -- FASE 3: DOCUMENTOS LEGALES
+                paso_antecedentes_solicitados BOOLEAN DEFAULT FALSE,
+                fecha_antecedentes_solicitados TIMESTAMP,
+                paso_antecedentes_recibidos BOOLEAN DEFAULT FALSE,
+                fecha_antecedentes_recibidos TIMESTAMP,
+                paso_apostilla_haya BOOLEAN DEFAULT FALSE,
+                fecha_apostilla_haya TIMESTAMP,
+                paso_traduccion_documentos BOOLEAN DEFAULT FALSE,
+                fecha_traduccion_documentos TIMESTAMP,
+                
+                -- FASE 4: SEGURO Y FONDOS
+                paso_seguro_medico BOOLEAN DEFAULT FALSE,
+                fecha_seguro_medico TIMESTAMP,
+                paso_comprobante_fondos BOOLEAN DEFAULT FALSE,
+                fecha_comprobante_fondos TIMESTAMP,
+                paso_carta_banco BOOLEAN DEFAULT FALSE,
+                fecha_carta_banco TIMESTAMP,
+                
+                -- FASE 5: FORMULARIOS Y PREPARACIÓN
+                paso_formulario_visa BOOLEAN DEFAULT FALSE,
+                fecha_formulario_visa TIMESTAMP,
+                paso_fotos_biometricas BOOLEAN DEFAULT FALSE,
+                fecha_fotos_biometricas TIMESTAMP,
+                paso_pago_tasa_visa BOOLEAN DEFAULT FALSE,
+                fecha_pago_tasa_visa TIMESTAMP,
+                
+                -- FASE 6: CITA EMBAJADA
+                paso_cita_agendada BOOLEAN DEFAULT FALSE,
+                fecha_cita_agendada TIMESTAMP,
+                fecha_cita_embajada TIMESTAMP,
+                paso_documentos_revisados BOOLEAN DEFAULT FALSE,
+                fecha_documentos_revisados TIMESTAMP,
+                paso_simulacro_entrevista BOOLEAN DEFAULT FALSE,
+                fecha_simulacro_entrevista TIMESTAMP,
+                
+                -- FASE 7: DÍA DE LA ENTREVISTA
+                paso_entrevista_completada BOOLEAN DEFAULT FALSE,
+                fecha_entrevista_completada TIMESTAMP,
+                resultado_entrevista VARCHAR(50),
+                
+                -- FASE 8: POST-ENTREVISTA
+                paso_pasaporte_recogido BOOLEAN DEFAULT FALSE,
+                fecha_pasaporte_recogido TIMESTAMP,
+                paso_visa_otorgada BOOLEAN DEFAULT FALSE,
+                fecha_visa_otorgada TIMESTAMP,
+                
+                -- NOTAS Y OBSERVACIONES
+                notas_admin TEXT,
+                ultima_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                
+                UNIQUE(estudiante_id)
+            );
+        """)
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        logger.info("✅ Tabla proceso_visa_pasos verificada/creada")
+    except Exception as e:
+        logger.error(f"Error creando tabla proceso_visa_pasos: {e}")
+
+
+@app.get("/api/estudiantes/{estudiante_id}/proceso-visa")
+async def obtener_proceso_visa(
+    estudiante_id: int,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Obtener el proceso completo de visa del estudiante"""
+    usuario = verificar_token(credentials.credentials)
+    
+    # Verificar acceso
+    if not usuario.get('es_admin') and usuario.get('id') != estudiante_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    import os
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Obtener proceso o crear uno nuevo
+    cursor.execute("""
+        SELECT * FROM proceso_visa_pasos
+        WHERE estudiante_id = %s
+    """, (estudiante_id,))
+    
+    proceso = cursor.fetchone()
+    
+    if not proceso:
+        # Crear proceso inicial
+        cursor.execute("""
+            INSERT INTO proceso_visa_pasos (estudiante_id)
+            VALUES (%s)
+            RETURNING *
+        """, (estudiante_id,))
+        proceso = cursor.fetchone()
+        conn.commit()
+    
+    cursor.close()
+    conn.close()
+    
+    # Convertir a formato serializable
+    proceso_dict = dict(proceso)
+    for key, value in proceso_dict.items():
+        if isinstance(value, datetime):
+            proceso_dict[key] = value.isoformat()
+    
+    return proceso_dict
+
+
+@app.put("/api/admin/estudiantes/{estudiante_id}/proceso-visa")
+async def actualizar_paso_proceso(
+    estudiante_id: int,
+    paso: str,
+    completado: bool,
+    notas: str = None,
+    fecha_cita: str = None,
+    resultado: str = None,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Actualizar un paso específico del proceso (SOLO ADMIN)"""
+    usuario = verificar_token(credentials.credentials)
+    
+    if not usuario.get('es_admin'):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    
+    import os
+    import psycopg2
+    from datetime import datetime
+    
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    # Verificar que el paso existe
+    pasos_validos = [
+        'paso_inscripcion', 'paso_pago_inicial', 'paso_documentos_personales',
+        'paso_seleccion_universidad', 'paso_solicitud_universidad', 'paso_carta_aceptacion',
+        'paso_antecedentes_solicitados', 'paso_antecedentes_recibidos', 'paso_apostilla_haya',
+        'paso_traduccion_documentos', 'paso_seguro_medico', 'paso_comprobante_fondos',
+        'paso_carta_banco', 'paso_formulario_visa', 'paso_fotos_biometricas',
+        'paso_pago_tasa_visa', 'paso_cita_agendada', 'paso_documentos_revisados',
+        'paso_simulacro_entrevista', 'paso_entrevista_completada', 'paso_pasaporte_recogido',
+        'paso_visa_otorgada'
+    ]
+    
+    if paso not in pasos_validos:
+        raise HTTPException(status_code=400, detail="Paso no válido")
+    
+    # Construir query
+    updates = [f"{paso} = %s"]
+    params = [completado]
+    
+    # Actualizar fecha del paso
+    fecha_campo = paso.replace('paso_', 'fecha_')
+    if completado:
+        updates.append(f"{fecha_campo} = CURRENT_TIMESTAMP")
+    else:
+        updates.append(f"{fecha_campo} = NULL")
+    
+    # Fecha de cita (solo para paso_cita_agendada)
+    if fecha_cita and paso == 'paso_cita_agendada':
+        updates.append("fecha_cita_embajada = %s")
+        params.append(fecha_cita)
+    
+    # Resultado de entrevista
+    if resultado and paso == 'paso_entrevista_completada':
+        updates.append("resultado_entrevista = %s")
+        params.append(resultado)
+    
+    # Notas
+    if notas:
+        updates.append("notas_admin = COALESCE(notas_admin || E'\\n\\n', '') || %s")
+        params.append(f"[{datetime.now().strftime('%d/%m/%Y %H:%M')}] {paso}: {notas}")
+    
+    updates.append("ultima_actualizacion = CURRENT_TIMESTAMP")
+    params.append(estudiante_id)
+    
+    query = f"""
+        UPDATE proceso_visa_pasos
+        SET {', '.join(updates)}
+        WHERE estudiante_id = %s
+    """
+    
+    cursor.execute(query, params)
+    
+    if cursor.rowcount == 0:
+        # Crear registro si no existe
+        cursor.execute("""
+            INSERT INTO proceso_visa_pasos (estudiante_id, {}, {})
+            VALUES (%s, %s, CURRENT_TIMESTAMP)
+        """.format(paso, fecha_campo), (estudiante_id, completado))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    log_event("proceso_visa_actualizado", {
+        'estudiante_id': estudiante_id,
+        'paso': paso,
+        'completado': completado,
+        'admin_id': usuario.get('id')
+    })
+    
+    return {'success': True, 'mensaje': f'Paso {paso} actualizado'}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

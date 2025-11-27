@@ -479,6 +479,13 @@ function DashboardAdminExpandido({ onLogout }) {
           🏛️ Contactar Universidades
         </button>
         <button 
+          className="tab"
+          onClick={() => navigate('/admin/proceso-visa')}
+          style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          📊 Proceso de Visa (Tracking)
+        </button>
+        <button 
           className={`tab ${activeTab === 'alertas' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('alertas')}
         >
