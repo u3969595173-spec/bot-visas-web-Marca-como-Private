@@ -103,19 +103,46 @@ function ChatWidget({ estudianteId }) {
   }
 
   const enviarMensaje = () => {
-    if (!mensaje.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+    if (!mensaje.trim()) {
       return
     }
 
-    const mensajeData = {
+    const mensajeTexto = mensaje.trim();
+    
+    // Crear mensaje temporal para mostrar inmediatamente
+    const mensajeTemporal = {
+      id: `temp-${Date.now()}`,
       estudiante_id: estudianteId,
-      mensaje: mensaje,
+      mensaje: mensajeTexto,
       remitente: 'estudiante',
-      tipo: 'texto'
+      tipo: 'texto',
+      created_at: new Date().toISOString()
     }
 
-    wsRef.current.send(JSON.stringify(mensajeData))
+    // Mostrar inmediatamente en la UI
+    setMensajes(prev => [...prev, mensajeTemporal])
     setMensaje('')
+
+    // Si hay WebSocket conectado, enviar por ahí
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const mensajeData = {
+        estudiante_id: estudianteId,
+        mensaje: mensajeTexto,
+        remitente: 'estudiante',
+        tipo: 'texto'
+      }
+      wsRef.current.send(JSON.stringify(mensajeData))
+    } else {
+      // Fallback: enviar por HTTP si WebSocket no está disponible
+      fetch(`${API_URL}/api/estudiantes/${estudianteId}/mensajes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          remitente: 'estudiante',
+          mensaje: mensajeTexto
+        })
+      }).catch(err => console.error('Error enviando mensaje:', err))
+    }
   }
 
   const handleKeyPress = (e) => {
@@ -201,12 +228,11 @@ function ChatWidget({ estudianteId }) {
               onKeyPress={handleKeyPress}
               placeholder="Escribe tu mensaje..."
               rows="2"
-              disabled={!conectado}
             />
             <button
               className="chat-send-button"
               onClick={enviarMensaje}
-              disabled={!conectado || !mensaje.trim()}
+              disabled={!mensaje.trim()}
             >
               ➤
             </button>
