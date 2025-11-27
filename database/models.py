@@ -137,6 +137,22 @@ class Estudiante(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class FechaImportante(Base):
+    __tablename__ = 'fechas_importantes'
+    
+    id = Column(Integer, primary_key=True)
+    estudiante_id = Column(Integer, nullable=False)
+    tipo_fecha = Column(String(100), nullable=False)  # entrevista, vencimiento_documento, deadline_aplicacion, cita_visa, etc.
+    fecha = Column(DateTime, nullable=False)
+    descripcion = Column(Text)
+    alertado_30d = Column(Boolean, default=False)
+    alertado_15d = Column(Boolean, default=False)
+    alertado_7d = Column(Boolean, default=False)
+    alertado_1d = Column(Boolean, default=False)
+    completada = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Database initialization
 from dotenv import load_dotenv
 load_dotenv()  # Cargar .env ANTES de crear engine

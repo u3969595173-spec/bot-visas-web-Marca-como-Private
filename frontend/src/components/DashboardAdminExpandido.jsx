@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import './DashboardAdminExpandido.css'
 import PartnersAdmin from './PartnersAdmin'
+import AlertasAdmin from './AlertasAdmin'
 
 function DashboardAdminExpandido({ onLogout }) {
   const [activeTab, setActiveTab] = useState('estudiantes')
@@ -408,6 +409,12 @@ function DashboardAdminExpandido({ onLogout }) {
           📄 Documentos Generados
         </button>
         <button 
+          className={`tab ${activeTab === 'alertas' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('alertas')}
+        >
+          📅 Alertas de Fechas
+        </button>
+        <button 
           className={`tab ${activeTab === 'cursos' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('cursos')}
         >
@@ -435,6 +442,9 @@ function DashboardAdminExpandido({ onLogout }) {
 
       {/* SECCIÓN: PARTNERSHIPS */}
       {activeTab === 'partners' && <PartnersAdmin />}
+
+      {/* SECCIÓN: ALERTAS DE FECHAS */}
+      {activeTab === 'alertas' && <AlertasAdmin apiUrl={apiUrl} />}
 
       {/* SECCIÓN: ESTUDIANTES */}
       {activeTab === 'estudiantes' && (

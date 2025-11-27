@@ -581,6 +581,33 @@ const PerfilEstudiante = ({ estudianteId }) => {
             </div>
           </div>
 
+          {/* NUEVA CARD: Alertas de Fechas */}
+          <div className="info-card">
+            <h2>📅 Fechas Importantes</h2>
+            <div style={{padding: '15px'}}>
+              <p style={{marginBottom: '15px', color: '#6c757d'}}>
+                Gestiona tus fechas críticas y recibe alertas automáticas por email.
+              </p>
+              <a 
+                href="/estudiante/alertas"
+                style={{
+                  display: 'inline-block',
+                  backgroundColor: '#17a2b8',
+                  color: 'white',
+                  padding: '12px 24px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  textDecoration: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                🔔 Ver Mis Alertas
+              </a>
+            </div>
+          </div>
+
           {/* NUEVA CARD: Generador de Documentos */}
           <div className="info-card">
             <h2>📄 Generar Documentos Borrador</h2>

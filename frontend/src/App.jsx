@@ -10,6 +10,7 @@ import PoliticaPrivacidad from './components/PoliticaPrivacidad'
 import TerminosCondiciones from './components/TerminosCondiciones'
 import SimuladorEntrevista from './components/SimuladorEntrevista'
 import CalculadoraFondos from './components/CalculadoraFondos'
+import AlertasFechas from './components/AlertasFechas'
 import Home from './components/Home'
 
 function App() {
@@ -53,6 +54,9 @@ function App() {
                   </Link>
                   <Link to="/estudiante/calculadora-fondos" style={styles.navLink}>
                     💰 Calculadora
+                  </Link>
+                  <Link to="/estudiante/alertas" style={styles.navLink}>
+                    📅 Alertas
                   </Link>
                 </>
               )}
@@ -100,6 +104,16 @@ function App() {
             element={
               estudianteId ? (
                 <CalculadoraFondos estudianteId={estudianteId} />
+              ) : (
+                <Navigate to="/portal" />
+              )
+            }
+          />
+          <Route
+            path="/estudiante/alertas"
+            element={
+              estudianteId ? (
+                <AlertasFechas estudianteId={estudianteId} />
               ) : (
                 <Navigate to="/portal" />
               )

@@ -71,6 +71,36 @@ async def startup_event():
             );
         """)
         
+        # Crear tabla fechas_importantes si no existe
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS fechas_importantes (
+                id SERIAL PRIMARY KEY,
+                estudiante_id INTEGER NOT NULL REFERENCES estudiantes(id) ON DELETE CASCADE,
+                tipo_fecha VARCHAR(100) NOT NULL,
+                fecha TIMESTAMP NOT NULL,
+                descripcion TEXT,
+                alertado_30d BOOLEAN DEFAULT FALSE,
+                alertado_15d BOOLEAN DEFAULT FALSE,
+                alertado_7d BOOLEAN DEFAULT FALSE,
+                alertado_1d BOOLEAN DEFAULT FALSE,
+                completada BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("✅ Migraciones ejecutadas correctamente")
+        
+        # Iniciar scheduler de alertas
+        from api.scheduler_alertas import iniciar_scheduler
+        iniciar_scheduler()
+        
+    except Exception as e:
+        print(f"⚠️ Error en migraciones: {e}")
+        
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_documentos_generados_estudiante 
             ON documentos_generados(estudiante_id);
@@ -847,6 +877,191 @@ def obtener_programas_calculadora():
     from api.calculadora_fondos import CalculadoraFondos
     
     return CalculadoraFondos.obtener_tipos_programa()
+
+
+# =============================================================================
+# ENDPOINTS: ALERTAS Y FECHAS IMPORTANTES
+# =============================================================================
+
+@app.post("/api/alertas/fecha", tags=["Alertas - Fechas Importantes"])
+def agregar_fecha_importante(
+    datos: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Agrega una nueva fecha importante para un estudiante
+    
+    Body:
+    - estudiante_id: ID del estudiante
+    - tipo_fecha: Tipo de fecha (entrevista_consular, vencimiento_pasaporte, deadline_aplicacion, etc.)
+    - fecha: Fecha en formato ISO (YYYY-MM-DDTHH:MM:SS)
+    - descripcion: Descripción opcional
+    """
+    from api.alertas_fechas import GestorAlertasFechas
+    
+    try:
+        # Convertir fecha string a datetime
+        fecha_dt = datetime.fromisoformat(datos['fecha'].replace('Z', ''))
+        
+        nueva_fecha = GestorAlertasFechas.agregar_fecha(
+            db=db,
+            estudiante_id=datos['estudiante_id'],
+            tipo_fecha=datos['tipo_fecha'],
+            fecha=fecha_dt,
+            descripcion=datos.get('descripcion')
+        )
+        
+        return {
+            "success": True,
+            "message": "Fecha importante agregada exitosamente",
+            "fecha": {
+                "id": nueva_fecha.id,
+                "tipo_fecha": nueva_fecha.tipo_fecha,
+                "fecha": nueva_fecha.fecha.isoformat(),
+                "descripcion": nueva_fecha.descripcion
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/alertas/estudiante/{estudiante_id}", tags=["Alertas - Fechas Importantes"])
+def obtener_fechas_estudiante(
+    estudiante_id: int,
+    incluir_completadas: bool = False,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene todas las fechas importantes de un estudiante
+    """
+    from api.alertas_fechas import GestorAlertasFechas
+    
+    fechas = GestorAlertasFechas.obtener_fechas_estudiante(
+        db=db,
+        estudiante_id=estudiante_id,
+        incluir_completadas=incluir_completadas
+    )
+    
+    return {
+        "success": True,
+        "fechas": [
+            {
+                "id": f.id,
+                "tipo_fecha": f.tipo_fecha,
+                "tipo_nombre": GestorAlertasFechas.TIPOS_FECHA.get(f.tipo_fecha, f.tipo_fecha),
+                "fecha": f.fecha.isoformat(),
+                "descripcion": f.descripcion,
+                "completada": f.completada,
+                "alertado_30d": f.alertado_30d,
+                "alertado_15d": f.alertado_15d,
+                "alertado_7d": f.alertado_7d,
+                "alertado_1d": f.alertado_1d,
+                "dias_restantes": (f.fecha - datetime.utcnow()).days if f.fecha > datetime.utcnow() else 0
+            }
+            for f in fechas
+        ]
+    }
+
+
+@app.put("/api/alertas/{fecha_id}/completar", tags=["Alertas - Fechas Importantes"])
+def marcar_fecha_completada(
+    fecha_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Marca una fecha como completada
+    """
+    from api.alertas_fechas import GestorAlertasFechas
+    
+    success = GestorAlertasFechas.marcar_completada(db=db, fecha_id=fecha_id)
+    
+    if success:
+        return {"success": True, "message": "Fecha marcada como completada"}
+    else:
+        raise HTTPException(status_code=404, detail="Fecha no encontrada")
+
+
+@app.delete("/api/alertas/{fecha_id}", tags=["Alertas - Fechas Importantes"])
+def eliminar_fecha_importante(
+    fecha_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Elimina una fecha importante
+    """
+    from api.alertas_fechas import GestorAlertasFechas
+    
+    success = GestorAlertasFechas.eliminar_fecha(db=db, fecha_id=fecha_id)
+    
+    if success:
+        return {"success": True, "message": "Fecha eliminada exitosamente"}
+    else:
+        raise HTTPException(status_code=404, detail="Fecha no encontrada")
+
+
+@app.get("/api/alertas/proximas", tags=["Admin - Alertas"])
+def obtener_fechas_proximas_admin(
+    dias: int = 30,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene todas las fechas próximas de todos los estudiantes (para admin)
+    """
+    from api.alertas_fechas import GestorAlertasFechas
+    from database.models import Estudiante
+    
+    fechas = GestorAlertasFechas.obtener_fechas_proximas(db=db, dias=dias)
+    
+    # Enriquecer con datos del estudiante
+    resultado = []
+    for f in fechas:
+        estudiante = db.query(Estudiante).filter(Estudiante.id == f.estudiante_id).first()
+        resultado.append({
+            "id": f.id,
+            "estudiante": {
+                "id": estudiante.id,
+                "nombre": estudiante.nombre,
+                "email": estudiante.email
+            } if estudiante else None,
+            "tipo_fecha": f.tipo_fecha,
+            "tipo_nombre": GestorAlertasFechas.TIPOS_FECHA.get(f.tipo_fecha, f.tipo_fecha),
+            "fecha": f.fecha.isoformat(),
+            "descripcion": f.descripcion,
+            "dias_restantes": (f.fecha - datetime.utcnow()).days
+        })
+    
+    return {
+        "success": True,
+        "fechas_proximas": resultado,
+        "total": len(resultado)
+    }
+
+
+@app.get("/api/alertas/{fecha_id}/descargar-ics", tags=["Alertas - Fechas Importantes"])
+def descargar_calendario_ics(
+    fecha_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Descarga archivo .ics para agregar fecha a calendario
+    """
+    from api.alertas_fechas import GestorAlertasFechas
+    from database.models import FechaImportante, Estudiante
+    from fastapi.responses import Response
+    
+    fecha = db.query(FechaImportante).filter(FechaImportante.id == fecha_id).first()
+    if not fecha:
+        raise HTTPException(status_code=404, detail="Fecha no encontrada")
+    
+    estudiante = db.query(Estudiante).filter(Estudiante.id == fecha.estudiante_id).first()
+    
+    ics_content = GestorAlertasFechas.generar_ics(fecha, estudiante)
+    
+    return Response(
+        content=ics_content,
+        media_type="text/calendar",
+        headers={"Content-Disposition": f"attachment; filename=fecha_{fecha_id}.ics"}
+    )
 
 
 @app.post("/api/documentos/{documento_id}/validar-ocr", tags=["Documentos - OCR"])
