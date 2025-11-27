@@ -6,10 +6,10 @@ def sugerir_cursos(estudiante_data: dict) -> list:
     """
     Sugiere cursos basados en especialidad, nivel de español y fondos
     """
-    especialidad = estudiante_data.get('especialidad', '').lower()
-    nivel_espanol = estudiante_data.get('nivel_espanol', 'basico')
-    fondos = float(estudiante_data.get('fondos_disponibles', 0))
-    tipo_visa = estudiante_data.get('tipo_visa', 'estudiante')
+    especialidad = (estudiante_data.get('especialidad') or '').lower()
+    nivel_espanol = estudiante_data.get('nivel_espanol') or 'basico'
+    fondos = float(estudiante_data.get('fondos_disponibles') or 0)
+    tipo_visa = estudiante_data.get('tipo_visa') or 'estudiante'
     
     cursos = []
     
