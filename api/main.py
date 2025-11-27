@@ -358,6 +358,67 @@ async def startup_event():
         except Exception as e:
             print(f"⚠️ Error creando tabla contactos_universidades: {e}")
         
+        # Crear tabla proceso_visa_pasos para tracking completo
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS proceso_visa_pasos (
+                    id SERIAL PRIMARY KEY,
+                    estudiante_id INTEGER REFERENCES estudiantes(id) ON DELETE CASCADE,
+                    paso_inscripcion BOOLEAN DEFAULT FALSE,
+                    fecha_inscripcion TIMESTAMP,
+                    paso_pago_inicial BOOLEAN DEFAULT FALSE,
+                    fecha_pago_inicial TIMESTAMP,
+                    paso_documentos_personales BOOLEAN DEFAULT FALSE,
+                    fecha_documentos_personales TIMESTAMP,
+                    paso_seleccion_universidad BOOLEAN DEFAULT FALSE,
+                    fecha_seleccion_universidad TIMESTAMP,
+                    paso_solicitud_universidad BOOLEAN DEFAULT FALSE,
+                    fecha_solicitud_universidad TIMESTAMP,
+                    paso_carta_aceptacion BOOLEAN DEFAULT FALSE,
+                    fecha_carta_aceptacion TIMESTAMP,
+                    paso_antecedentes_solicitados BOOLEAN DEFAULT FALSE,
+                    fecha_antecedentes_solicitados TIMESTAMP,
+                    paso_antecedentes_recibidos BOOLEAN DEFAULT FALSE,
+                    fecha_antecedentes_recibidos TIMESTAMP,
+                    paso_apostilla_haya BOOLEAN DEFAULT FALSE,
+                    fecha_apostilla_haya TIMESTAMP,
+                    paso_traduccion_documentos BOOLEAN DEFAULT FALSE,
+                    fecha_traduccion_documentos TIMESTAMP,
+                    paso_seguro_medico BOOLEAN DEFAULT FALSE,
+                    fecha_seguro_medico TIMESTAMP,
+                    paso_comprobante_fondos BOOLEAN DEFAULT FALSE,
+                    fecha_comprobante_fondos TIMESTAMP,
+                    paso_carta_banco BOOLEAN DEFAULT FALSE,
+                    fecha_carta_banco TIMESTAMP,
+                    paso_formulario_visa BOOLEAN DEFAULT FALSE,
+                    fecha_formulario_visa TIMESTAMP,
+                    paso_fotos_biometricas BOOLEAN DEFAULT FALSE,
+                    fecha_fotos_biometricas TIMESTAMP,
+                    paso_pago_tasa_visa BOOLEAN DEFAULT FALSE,
+                    fecha_pago_tasa_visa TIMESTAMP,
+                    paso_cita_agendada BOOLEAN DEFAULT FALSE,
+                    fecha_cita_agendada TIMESTAMP,
+                    fecha_cita_embajada TIMESTAMP,
+                    paso_documentos_revisados BOOLEAN DEFAULT FALSE,
+                    fecha_documentos_revisados TIMESTAMP,
+                    paso_simulacro_entrevista BOOLEAN DEFAULT FALSE,
+                    fecha_simulacro_entrevista TIMESTAMP,
+                    paso_entrevista_completada BOOLEAN DEFAULT FALSE,
+                    fecha_entrevista_completada TIMESTAMP,
+                    resultado_entrevista VARCHAR(50),
+                    paso_pasaporte_recogido BOOLEAN DEFAULT FALSE,
+                    fecha_pasaporte_recogido TIMESTAMP,
+                    paso_visa_otorgada BOOLEAN DEFAULT FALSE,
+                    fecha_visa_otorgada TIMESTAMP,
+                    notas_admin TEXT,
+                    ultima_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(estudiante_id)
+                );
+            """)
+            print("✅ Tabla proceso_visa_pasos verificada")
+        except Exception as e:
+            print(f"⚠️ Error creando tabla proceso_visa_pasos: {e}")
+        
         conn.commit()
         cursor.close()
         conn.close()
@@ -7794,97 +7855,7 @@ async def actualizar_universidad(
 # ENDPOINTS: PROCESO COMPLETO DE VISA
 # ========================================
 
-@app.on_event("startup")
-async def create_proceso_visa_table():
-    """Crear tabla de proceso de visa en startup"""
-    import os
-    import psycopg2
-    
-    try:
-        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS proceso_visa_pasos (
-                id SERIAL PRIMARY KEY,
-                estudiante_id INTEGER REFERENCES estudiantes(id) ON DELETE CASCADE,
-                
-                -- FASE 1: INSCRIPCIÓN Y DOCUMENTACIÓN INICIAL
-                paso_inscripcion BOOLEAN DEFAULT FALSE,
-                fecha_inscripcion TIMESTAMP,
-                paso_pago_inicial BOOLEAN DEFAULT FALSE,
-                fecha_pago_inicial TIMESTAMP,
-                paso_documentos_personales BOOLEAN DEFAULT FALSE,
-                fecha_documentos_personales TIMESTAMP,
-                
-                -- FASE 2: UNIVERSIDAD Y CARTA ACEPTACIÓN
-                paso_seleccion_universidad BOOLEAN DEFAULT FALSE,
-                fecha_seleccion_universidad TIMESTAMP,
-                paso_solicitud_universidad BOOLEAN DEFAULT FALSE,
-                fecha_solicitud_universidad TIMESTAMP,
-                paso_carta_aceptacion BOOLEAN DEFAULT FALSE,
-                fecha_carta_aceptacion TIMESTAMP,
-                
-                -- FASE 3: DOCUMENTOS LEGALES
-                paso_antecedentes_solicitados BOOLEAN DEFAULT FALSE,
-                fecha_antecedentes_solicitados TIMESTAMP,
-                paso_antecedentes_recibidos BOOLEAN DEFAULT FALSE,
-                fecha_antecedentes_recibidos TIMESTAMP,
-                paso_apostilla_haya BOOLEAN DEFAULT FALSE,
-                fecha_apostilla_haya TIMESTAMP,
-                paso_traduccion_documentos BOOLEAN DEFAULT FALSE,
-                fecha_traduccion_documentos TIMESTAMP,
-                
-                -- FASE 4: SEGURO Y FONDOS
-                paso_seguro_medico BOOLEAN DEFAULT FALSE,
-                fecha_seguro_medico TIMESTAMP,
-                paso_comprobante_fondos BOOLEAN DEFAULT FALSE,
-                fecha_comprobante_fondos TIMESTAMP,
-                paso_carta_banco BOOLEAN DEFAULT FALSE,
-                fecha_carta_banco TIMESTAMP,
-                
-                -- FASE 5: FORMULARIOS Y PREPARACIÓN
-                paso_formulario_visa BOOLEAN DEFAULT FALSE,
-                fecha_formulario_visa TIMESTAMP,
-                paso_fotos_biometricas BOOLEAN DEFAULT FALSE,
-                fecha_fotos_biometricas TIMESTAMP,
-                paso_pago_tasa_visa BOOLEAN DEFAULT FALSE,
-                fecha_pago_tasa_visa TIMESTAMP,
-                
-                -- FASE 6: CITA EMBAJADA
-                paso_cita_agendada BOOLEAN DEFAULT FALSE,
-                fecha_cita_agendada TIMESTAMP,
-                fecha_cita_embajada TIMESTAMP,
-                paso_documentos_revisados BOOLEAN DEFAULT FALSE,
-                fecha_documentos_revisados TIMESTAMP,
-                paso_simulacro_entrevista BOOLEAN DEFAULT FALSE,
-                fecha_simulacro_entrevista TIMESTAMP,
-                
-                -- FASE 7: DÍA DE LA ENTREVISTA
-                paso_entrevista_completada BOOLEAN DEFAULT FALSE,
-                fecha_entrevista_completada TIMESTAMP,
-                resultado_entrevista VARCHAR(50),
-                
-                -- FASE 8: POST-ENTREVISTA
-                paso_pasaporte_recogido BOOLEAN DEFAULT FALSE,
-                fecha_pasaporte_recogido TIMESTAMP,
-                paso_visa_otorgada BOOLEAN DEFAULT FALSE,
-                fecha_visa_otorgada TIMESTAMP,
-                
-                -- NOTAS Y OBSERVACIONES
-                notas_admin TEXT,
-                ultima_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                
-                UNIQUE(estudiante_id)
-            );
-        """)
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        logger.info("✅ Tabla proceso_visa_pasos verificada/creada")
-    except Exception as e:
-        logger.error(f"Error creando tabla proceso_visa_pasos: {e}")
+# Tabla proceso_visa_pasos movida al startup principal
 
 
 @app.get("/api/estudiantes/{estudiante_id}/proceso-visa")
