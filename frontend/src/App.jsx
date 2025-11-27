@@ -77,6 +77,26 @@ function App() {
                   <Link to="/estudiante/universidades" style={styles.navLink}>
                     🎓 Universidades
                   </Link>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('estudiante_id');
+                      localStorage.removeItem('codigo_acceso');
+                      setEstudianteId(null);
+                      window.location.href = '/';
+                    }}
+                    style={{
+                      ...styles.navLink,
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '8px 16px',
+                      borderRadius: '5px',
+                      fontWeight: '500'
+                    }}
+                  >
+                    🚪 Cerrar Sesión
+                  </button>
                 </>
               )}
               
