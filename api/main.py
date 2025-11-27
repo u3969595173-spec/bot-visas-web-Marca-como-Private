@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Optional, Dict
 from datetime import datetime
+import json
 
 from database.models import get_db
 from modules.estudiantes import Estudiante
@@ -307,6 +308,47 @@ async def startup_event():
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_documentos_generados_estado 
             ON documentos_generados(estado);
+        """)
+        
+        # Crear índices para fechas_importantes
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_fechas_importantes_estudiante 
+            ON fechas_importantes(estudiante_id);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_fechas_importantes_fecha 
+            ON fechas_importantes(fecha);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_fechas_importantes_completada 
+            ON fechas_importantes(completada);
+        """)
+        
+        # Crear tabla de logs de auditoría
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS logs_auditoria (
+                id SERIAL PRIMARY KEY,
+                usuario_email VARCHAR(255),
+                accion VARCHAR(100) NOT NULL,
+                entidad VARCHAR(100),
+                entidad_id INTEGER,
+                detalles JSONB,
+                ip_address VARCHAR(50),
+                user_agent TEXT,
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_logs_auditoria_usuario 
+            ON logs_auditoria(usuario_email);
+        """)
+        
+        cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_logs_auditoria_timestamp 
+            ON logs_auditoria(timestamp);
         """)
         
         # Crear tabla cursos
@@ -2322,6 +2364,60 @@ def generar_documentos_estudiante(
     }
 
 
+@app.get("/api/estudiantes/{estudiante_id}/documentos-generados", tags=["Estudiantes"])
+def obtener_documentos_generados_estudiante(
+    estudiante_id: int,
+    codigo_acceso: str,
+    db: Session = Depends(get_db)
+):
+    """Obtiene documentos generados de un estudiante (requiere código de acceso)"""
+    
+    # Verificar estudiante y código de acceso
+    result = db.execute(
+        text("SELECT id, codigo_acceso FROM estudiantes WHERE id = :id"),
+        {"id": estudiante_id}
+    ).fetchone()
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    if result[1] != codigo_acceso:
+        raise HTTPException(status_code=403, detail="Código de acceso inválido")
+    
+    # Obtener documentos generados
+    docs_result = db.execute(
+        text("""
+            SELECT id, tipo_documento, nombre_archivo, estado, 
+                   fecha_generacion, fecha_aprobacion, enviado_estudiante,
+                   notas, contenido_pdf
+            FROM documentos_generados
+            WHERE estudiante_id = :estudiante_id
+            ORDER BY fecha_generacion DESC
+        """),
+        {"estudiante_id": estudiante_id}
+    ).fetchall()
+    
+    documentos = []
+    for row in docs_result:
+        documentos.append({
+            'id': row[0],
+            'tipo_documento': row[1],
+            'nombre_archivo': row[2],
+            'estado': row[3],
+            'fecha_generacion': row[4].isoformat() if row[4] else None,
+            'fecha_aprobacion': row[5].isoformat() if row[5] else None,
+            'enviado_estudiante': row[6],
+            'notas': row[7],
+            'contenido_pdf': row[8]  # Base64 del PDF
+        })
+    
+    return {
+        'estudiante_id': estudiante_id,
+        'documentos': documentos,
+        'total': len(documentos)
+    }
+
+
 @app.get("/api/admin/documentos-generados", tags=["Admin - Documentos"])
 def listar_documentos_generados(
     estudiante_id: Optional[int] = None,
@@ -3610,6 +3706,13 @@ def aprobar_estudiante(
     estudiante.updated_at = datetime.utcnow()
     db.commit()
     
+    # Registrar auditoría
+    registrar_auditoria(
+        db, usuario['email'], 'APROBAR_ESTUDIANTE',
+        'estudiante', estudiante_id,
+        {'nombre': estudiante.nombre, 'estado_anterior': 'pendiente'}
+    )
+    
     # Enviar email de notificación
     try:
         from api.email_utils import email_aprobacion
@@ -3631,6 +3734,7 @@ def rechazar_estudiante(
     from database.models import Estudiante as EstudianteModel
     
     motivo = datos.get('motivo', 'Sin motivo especificado')
+    sugerencias = datos.get('sugerencias', [])
     
     estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
     
@@ -3642,10 +3746,24 @@ def rechazar_estudiante(
     estudiante.updated_at = datetime.utcnow()
     db.commit()
     
-    # Enviar email de notificación
+    # Registrar auditoría
+    registrar_auditoria(
+        db, usuario['email'], 'RECHAZAR_ESTUDIANTE',
+        'estudiante', estudiante_id,
+        {'nombre': estudiante.nombre, 'motivo': motivo, 'sugerencias': sugerencias}
+    )
+    
+    # Enviar email de notificación con sugerencias
     try:
         from api.email_utils import email_rechazo
-        email_rechazo(estudiante.nombre, estudiante.email, motivo)
+        # Si hay sugerencias, añadirlas al motivo
+        motivo_completo = motivo
+        if sugerencias:
+            motivo_completo += "\n\n📋 Sugerencias para corregir:\n"
+            for i, sug in enumerate(sugerencias, 1):
+                motivo_completo += f"{i}. {sug}\n"
+        
+        email_rechazo(estudiante.nombre, estudiante.email, motivo_completo)
     except Exception as e:
         print(f"⚠️ Error enviando email: {e}")
     
@@ -3688,6 +3806,74 @@ def obtener_estadisticas(
         enviados=aprobados,  # Por ahora enviados = aprobados
         por_especialidad=por_especialidad
     )
+
+
+# ============================================================================
+# AUDITORÍA - Sistema de logs
+# ============================================================================
+
+def registrar_auditoria(db: Session, usuario_email: str, accion: str, 
+                       entidad: str = None, entidad_id: int = None, 
+                       detalles: dict = None):
+    """Registra acción de auditoría en la base de datos"""
+    try:
+        db.execute(
+            text("""
+                INSERT INTO logs_auditoria 
+                (usuario_email, accion, entidad, entidad_id, detalles, timestamp)
+                VALUES (:usuario, :accion, :entidad, :entidad_id, :detalles, NOW())
+            """),
+            {
+                "usuario": usuario_email,
+                "accion": accion,
+                "entidad": entidad,
+                "entidad_id": entidad_id,
+                "detalles": json.dumps(detalles) if detalles else None
+            }
+        )
+        db.commit()
+    except Exception as e:
+        print(f"⚠️ Error registrando auditoría: {e}")
+
+
+@app.get("/api/admin/logs-auditoria", tags=["Admin"])
+def obtener_logs_auditoria(
+    usuario_email: Optional[str] = None,
+    accion: Optional[str] = None,
+    limit: int = 100,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Obtiene logs de auditoría con filtros"""
+    query = "SELECT * FROM logs_auditoria WHERE 1=1"
+    params = {}
+    
+    if usuario_email:
+        query += " AND usuario_email = :usuario"
+        params["usuario"] = usuario_email
+    
+    if accion:
+        query += " AND accion = :accion"
+        params["accion"] = accion
+    
+    query += " ORDER BY timestamp DESC LIMIT :limit"
+    params["limit"] = limit
+    
+    result = db.execute(text(query), params).fetchall()
+    
+    logs = []
+    for row in result:
+        logs.append({
+            "id": row[0],
+            "usuario_email": row[1],
+            "accion": row[2],
+            "entidad": row[3],
+            "entidad_id": row[4],
+            "detalles": row[5],
+            "timestamp": row[8].isoformat() if row[8] else None
+        })
+    
+    return {"logs": logs, "total": len(logs)}
 
 
 # ============================================================================
