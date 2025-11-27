@@ -16,6 +16,7 @@ function ChecklistDocumentos({ estudianteId }) {
     { id: 'extracto', nombre: 'Extracto Bancario', descripcion: 'Comprobante de fondos suficientes', requerido: true },
     { id: 'antecedentes', nombre: '📋 Antecedentes Penales', descripcion: 'Solicita este servicio - Listos y legalizados en 30 días hábiles', requerido: false, servicio: true },
     { id: 'cita_embajada', nombre: '🏛️ Cita en Embajada', descripcion: 'Solicita este servicio - Gestionamos tu cita consular', requerido: false, servicio: true },
+    { id: 'seguro_medico', nombre: '🏥 Seguro Médico Internacional', descripcion: 'Solicita este servicio - Seguro válido para visa Schengen desde €45/mes', requerido: true, servicio: true },
     { id: 'foto', nombre: 'Fotografía', descripcion: 'Foto tamaño pasaporte', requerido: false },
     { id: 'seguro', nombre: 'Seguro Médico', descripcion: 'Seguro de salud internacional', requerido: false }
   ]
