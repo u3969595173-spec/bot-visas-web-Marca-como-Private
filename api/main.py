@@ -636,30 +636,17 @@ def obtener_usuario_actual(
 # ENDPOINTS PÚBLICOS (Estudiantes)
 # ============================================================================
 
+class RegistroBasicoRequest(BaseModel):
+    nombre: str
+    email: str
+    telefono: str
+    consentimiento_gdpr: bool
+
 @app.post("/api/estudiantes", tags=["Estudiantes"])
 @limiter.limit("3/hour")  # Máximo 3 registros por hora por IP
 async def registrar_estudiante(
     request: Request,
-    nombre: str = Form(...),
-    email: str = Form(...),
-    telefono: str = Form(...),
-    consentimiento_gdpr: str = Form(...),
-    # Campos opcionales para completar después
-    pasaporte: str = Form(None),
-    fecha_nacimiento: str = Form(None),
-    edad: int = Form(None),
-    nacionalidad: str = Form(None),
-    pais_origen: str = Form(None),
-    ciudad_origen: str = Form(None),
-    carrera_deseada: str = Form(None),
-    especialidad: str = Form(None),
-    nivel_espanol: str = Form(None),
-    tipo_visa: str = Form(None),
-    fondos_disponibles: float = Form(None),
-    fecha_inicio_estimada: str = Form(None),
-    archivo_titulo: UploadFile = File(None),
-    archivo_pasaporte: UploadFile = File(None),
-    archivo_extractos: UploadFile = File(None),
+    datos: RegistroBasicoRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -674,9 +661,8 @@ async def registrar_estudiante(
     log_event(
         "registro_intento",
         "Intento de registro de estudiante",
-        email=email,
-        nombre=nombre,
-        pais_origen=pais_origen,
+        email=datos.email,
+        nombre=datos.nombre,
         ip=request.client.host
     )
     
@@ -685,10 +671,6 @@ async def registrar_estudiante(
         import secrets
         import os
         from pathlib import Path
-        
-        # Crear directorio para archivos si no existe
-        uploads_dir = Path("uploads")
-        uploads_dir.mkdir(exist_ok=True)
         
         # Generar código de acceso único
         def generar_codigo_acceso(longitud=8):
@@ -699,7 +681,7 @@ async def registrar_estudiante(
         # Verificar si ya existe el email
         check_email = db.execute(text("""
             SELECT id FROM estudiantes WHERE email = :email
-        """), {"email": email}).fetchone()
+        """), {"email": datos.email}).fetchone()
         
         if check_email:
             raise HTTPException(
@@ -717,68 +699,24 @@ async def registrar_estudiante(
                 break
             codigo_acceso = generar_codigo_acceso()
         
-        # Guardar archivos (solo si se proporcionan)
-        def guardar_archivo(archivo: UploadFile, prefijo: str) -> str:
-            if not archivo or not archivo.filename:
-                return None
-            
-            # Generar nombre único
-            extension = archivo.filename.split('.')[-1]
-            nombre_archivo = f"{prefijo}_{secrets.token_hex(8)}.{extension}"
-            ruta_archivo = uploads_dir / nombre_archivo
-            
-            # Guardar archivo
-            with open(ruta_archivo, "wb") as buffer:
-                content = archivo.file.read()
-                buffer.write(content)
-            
-            return str(ruta_archivo)
-        
-        ruta_titulo = guardar_archivo(archivo_titulo, "titulo") if archivo_titulo else None
-        ruta_pasaporte = guardar_archivo(archivo_pasaporte, "pasaporte") if archivo_pasaporte else None
-        ruta_extractos = guardar_archivo(archivo_extractos, "extractos") if archivo_extractos else None
-        
-        # Insertar nuevo estudiante con SQL directo - CAMPOS OPCIONALES
+        # Insertar nuevo estudiante con SQL directo - SOLO CAMPOS BÁSICOS
         result = db.execute(text("""
             INSERT INTO estudiantes (
                 nombre, email, telefono,
                 consentimiento_gdpr, fecha_consentimiento,
                 estado, documentos_estado, codigo_acceso, created_at,
-                pasaporte, fecha_nacimiento, edad, 
-                nacionalidad, pais_origen, ciudad_origen, carrera_deseada, especialidad, 
-                nivel_espanol, tipo_visa, fondos_disponibles, fecha_inicio_estimada,
-                archivo_titulo, archivo_pasaporte, archivo_extractos
+                perfil_completo
             ) VALUES (
                 :nombre, :email, :telefono,
                 :consentimiento_gdpr, NOW(),
                 'pendiente', 'pendiente', :codigo_acceso, NOW(),
-                :pasaporte, :fecha_nacimiento, :edad,
-                :nacionalidad, :pais_origen, :ciudad_origen, :carrera_deseada, :especialidad,
-                :nivel_espanol, :tipo_visa, :fondos_disponibles, :fecha_inicio_estimada,
-                :archivo_titulo, :archivo_pasaporte, :archivo_extractos
+                FALSE
             ) RETURNING id, codigo_acceso
         """), {
-            "nombre": nombre,
-            "email": email,
-            "telefono": telefono,
-            "consentimiento_gdpr": consentimiento_gdpr == 'true',
-            "codigo_acceso": codigo_acceso,
-            "pasaporte": pasaporte,
-            "fecha_nacimiento": fecha_nacimiento,
-            "edad": edad,
-            "nacionalidad": nacionalidad,
-            "pais_origen": pais_origen,
-            "ciudad_origen": ciudad_origen,
-            "carrera_deseada": carrera_deseada,
-            "especialidad": especialidad,
-            "nivel_espanol": nivel_espanol,
-            "tipo_visa": tipo_visa,
-            "fondos_disponibles": fondos_disponibles,
-            "fecha_inicio_estimada": fecha_inicio_estimada,
-            "archivo_titulo": ruta_titulo,
-            "archivo_pasaporte": ruta_pasaporte,
-            "archivo_extractos": ruta_extractos,
-            "consentimiento_gdpr": consentimiento_gdpr == 'true',
+            "nombre": datos.nombre,
+            "email": datos.email,
+            "telefono": datos.telefono,
+            "consentimiento_gdpr": datos.consentimiento_gdpr,
             "codigo_acceso": codigo_acceso
         })
         
@@ -791,27 +729,22 @@ async def registrar_estudiante(
         # Preparar datos para alertas
         estudiante_registrado = {
             "id": nuevo_id,
-            "nombre": nombre,
-            "email": email,
-            "telefono": telefono,
-            "pasaporte": pasaporte,
-            "fecha_nacimiento": fecha_nacimiento,
-            "edad": edad,
-            "nacionalidad": nacionalidad,
-            "pais_origen": pais_origen,
-            "ciudad_origen": ciudad_origen,
-            "carrera_deseada": carrera_deseada,
-            "especialidad": especialidad,
-            "nivel_espanol": nivel_espanol,
-            "tipo_visa": tipo_visa,
-            "fondos_disponibles": fondos_disponibles,
-            "fecha_inicio_estimada": fecha_inicio_estimada,
-            "archivo_titulo": ruta_titulo,
-            "archivo_pasaporte": ruta_pasaporte,
-            "archivo_extractos": ruta_extractos,
-            "consentimiento_gdpr": consentimiento_gdpr == 'true',
+            "nombre": datos.nombre,
+            "email": datos.email,
+            "telefono": datos.telefono,
             "codigo_acceso": codigo_final
         }
+        
+        # Log registro exitoso
+        log_event(
+            "registro_exitoso",
+            "Estudiante registrado correctamente",
+            estudiante_id=nuevo_id,
+            codigo_acceso=codigo_final,
+            email=datos.email,
+            nombre=datos.nombre,
+            ip=request.client.host
+        )
         
         # Verificar y enviar alertas al admin si hay problemas
         try:
@@ -824,22 +757,9 @@ async def registrar_estudiante(
         # Enviar email de bienvenida con código de acceso
         try:
             from api.email_utils import email_bienvenida_con_codigo
-            email_bienvenida_con_codigo(nombre, email, nuevo_id, codigo_final)
+            email_bienvenida_con_codigo(datos.nombre, datos.email, nuevo_id, codigo_final)
         except Exception as e:
             print(f"[WARN] Error enviando email: {e}")
-        
-        # Log registro exitoso
-        log_event(
-            "registro_exitoso",
-            "Estudiante registrado correctamente",
-            estudiante_id=nuevo_id,
-            codigo_acceso=codigo_final,
-            email=email,
-            nombre=nombre,
-            pais_origen=pais_origen,
-            carrera_deseada=carrera_deseada,
-            ip=request.client.host
-        )
         
         return {
             "id": nuevo_id,
