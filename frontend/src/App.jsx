@@ -31,6 +31,8 @@ import PanelProcesoAdmin from './components/PanelProcesoAdmin'
 import InformacionFinanciera from './components/InformacionFinanciera'
 import InformacionAlojamiento from './components/InformacionAlojamiento'
 import InformacionSeguroMedico from './components/InformacionSeguroMedico'
+import TesoroAdmin from './components/TesoroAdmin'
+import PresupuestosAdmin from './components/PresupuestosAdmin'
 import Home from './components/Home'
 
 function App() {
@@ -392,6 +394,26 @@ function App() {
             element={
               isAuthenticated ? (
                 <PanelProcesoAdmin />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/tesoro"
+            element={
+              isAuthenticated ? (
+                <TesoroAdmin />
+              ) : (
+                <Navigate to="/admin/login" />
+              )
+            }
+          />
+          <Route
+            path="/admin/presupuestos"
+            element={
+              isAuthenticated ? (
+                <PresupuestosAdmin />
               ) : (
                 <Navigate to="/admin/login" />
               )

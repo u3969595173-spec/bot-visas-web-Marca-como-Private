@@ -2588,7 +2588,13 @@ def obtener_documentos_generados_estudiante(
         raise
     except Exception as e:
         logger.error(f"❌ Error consultando documentos: {str(e)}")
-        raise HTTPException(status_code=503, detail="Error al consultar documentos")
+        # Retornar respuesta vacía en lugar de error 503
+        return {
+            'estudiante_id': estudiante_id,
+            'documentos': [],
+            'total': 0,
+            'mensaje': 'No hay documentos disponibles o hay un problema temporal'
+        }
 
 
 @app.get("/api/admin/documentos-generados", tags=["Admin - Documentos"])

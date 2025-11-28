@@ -54,10 +54,13 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await axios.get(`${apiUrl}/api/presupuestos/estudiante/${estudianteId}`);
       if (response.data && response.data.length > 0) {
-        // Obtener el presupuesto más reciente con oferta
-        const ultimoConOferta = response.data.find(p => p.estado === 'ofertado');
+        // Obtener el presupuesto más reciente con oferta  
+        const ultimoConOferta = response.data.find(p => p.estado === 'oferta_enviada' || p.estado === 'ofertado');
         if (ultimoConOferta) {
+          console.log('[DEBUG] Presupuesto con oferta encontrado:', ultimoConOferta);
           setPresupuestoActual(ultimoConOferta);
+        } else {
+          console.log('[DEBUG] No hay presupuestos con oferta. Estados encontrados:', response.data.map(p => p.estado));
         }
       }
     } catch (err) {
@@ -189,7 +192,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       )}
 
       {/* Sección Precio Final - Oferta del Admin */}
-      {presupuestoActual && presupuestoActual.estado === 'ofertado' && (
+      {presupuestoActual && (presupuestoActual.estado === 'ofertado' || presupuestoActual.estado === 'oferta_enviada') && (
         <div style={{
           background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
           color: 'white',

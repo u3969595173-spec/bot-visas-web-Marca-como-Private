@@ -26,6 +26,15 @@
   "created_at": "2025-11-27T14:00:28.875114",
   "updated_at": "2025-11-28T10:01:16.628022",
   "perfil_completo": false,
+  "estado_patrocinio": "aprobado",
+  "comentarios_patrocinio": "gjjjj",
+  "estado_alojamiento": "aprobado",
+  "comentarios_alojamiento": "ghbk",
+  "estado_seguro_medico": "aprobado",
+  "comentarios_seguro_medico": "",
+  "patrocinio_solicitado": true,
+  "gestion_alojamiento_solicitada": false,
+  "gestion_seguro_solicitada": true,
   "cursos_sugeridos": [
     {
       "nombre": "Curso Intensivo de Español (6 meses)",
