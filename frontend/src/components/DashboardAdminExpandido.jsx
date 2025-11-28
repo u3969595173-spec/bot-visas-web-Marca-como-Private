@@ -762,39 +762,39 @@ function DashboardAdminExpandido({ onLogout }) {
                             </span>
                           </td>
                           <td>{new Date(doc.fecha_generacion).toLocaleDateString()}</td>
-                      <td>
-                        <div className="acciones">
-                          <button 
-                            onClick={() => descargarDocumento(doc.id)}
-                            className="btn-descargar"
-                            title="Descargar PDF"
-                          >
-                            📥
-                          </button>
-                          {doc.estado === 'generado' && (
-                            <button 
-                              onClick={() => aprobarDocumento(doc.id)}
-                              className="btn-aprobar"
-                              title="Aprobar y Enviar"
-                            >
-                              ✓
-                            </button>
-                          )}
-                          <button 
-                            onClick={() => eliminarDocumento(doc.id, doc.tipo_documento)}
-                            className="btn-eliminar"
-                            title="Eliminar documento"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                          <td>
+                            <div className="acciones">
+                              <button 
+                                onClick={() => descargarDocumento(doc.id)}
+                                className="btn-descargar"
+                                title="Descargar PDF"
+                              >
+                                📥
+                              </button>
+                              {doc.estado === 'generado' && (
+                                <button 
+                                  onClick={() => aprobarDocumento(doc.id)}
+                                  className="btn-aprobar"
+                                  title="Aprobar y Enviar"
+                                >
+                                  ✓
+                                </button>
+                              )}
+                              <button 
+                                onClick={() => eliminarDocumento(doc.id, doc.tipo_documento)}
+                                className="btn-eliminar"
+                                title="Eliminar documento"
+                              >
+                                🗑️
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </>
           )}
         </div>
