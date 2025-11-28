@@ -293,18 +293,14 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("❌ DATABASE_URL no encontrada en .env")
 
-# Configurar pool de conexiones con retry logic
+# Configurar engine con configuración simplificada
 engine = create_engine(
     DATABASE_URL,
-    pool_size=10,  # Máximo 10 conexiones simultáneas
-    max_overflow=20,  # 20 conexiones adicionales en picos
-    pool_timeout=30,  # Timeout de 30 segundos para obtener conexión
-    pool_recycle=3600,  # Reciclar conexiones cada hora
-    pool_pre_ping=True,  # Verificar conexión antes de usar (auto-reconnect)
-    connect_args={
-        "connect_timeout": 10,  # Timeout de conexión inicial
-        "options": "-c statement_timeout=30000"  # 30s timeout para queries
-    }
+    pool_size=5,  # Reducido para evitar problemas
+    max_overflow=10,  
+    pool_timeout=30,  
+    pool_recycle=1800,  # 30 minutos
+    pool_pre_ping=True
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -316,26 +312,16 @@ def init_db():
 
 def get_db():
     """Get database session with retry logic"""
-    max_retries = 3
-    retry_count = 0
-    
-    while retry_count < max_retries:
-        db = SessionLocal()
-        try:
-            # Test connection
-            db.execute(text("SELECT 1"))
-            yield db
-            return  # Salir después de yield exitoso
-        except Exception as e:
-            retry_count += 1
-            if retry_count >= max_retries:
-                print(f"❌ Error conectando a DB después de {max_retries} intentos: {e}")
-                raise HTTPException(
-                    status_code=503, 
-                    detail="Servicio de base de datos temporalmente no disponible"
-                )
-            print(f"⚠️ Reintentando conexión DB ({retry_count}/{max_retries})...")
-            import time
-            time.sleep(1)  # Esperar 1 segundo antes de reintentar
-        finally:
-            db.close()
+    db = SessionLocal()
+    try:
+        # Test connection
+        db.execute(text("SELECT 1"))
+        yield db
+    except Exception as e:
+        print(f"❌ Error de base de datos: {e}")
+        raise HTTPException(
+            status_code=503, 
+            detail="Servicio de base de datos temporalmente no disponible"
+        )
+    finally:
+        db.close()
