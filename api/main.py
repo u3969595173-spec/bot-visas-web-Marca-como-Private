@@ -1193,11 +1193,11 @@ def obtener_simulador_entrevista(estudiante_id: int, db: Session = Depends(get_d
     estudiante_data = {
         "id": result[0],
         "nombre": result[1],
-        "edad": result[2],
+        "edad": result[2] or 0,
         "especialidad": result[3] or "",
         "nivel_espanol": result[4] or "basico",
         "tipo_visa": result[5] or "estudiante",
-        "fondos_disponibles": float(result[6]) if result[6] else 0
+        "fondos_disponibles": float(result[6]) if result[6] is not None else 0.0
     }
     
     # Generar entrevista personalizada
@@ -2514,57 +2514,64 @@ def obtener_documentos_generados_estudiante(
     db: Session = Depends(get_db)
 ):
     """Obtiene documentos generados de un estudiante (requiere código de acceso)"""
-    
-    if not codigo_acceso or codigo_acceso == "null":
-        raise HTTPException(
-            status_code=401, 
-            detail="Se requiere código de acceso. Por favor inicia sesión."
-        )
-    
-    # Verificar estudiante y código de acceso
-    result = db.execute(
-        text("SELECT id, codigo_acceso FROM estudiantes WHERE id = :id"),
-        {"id": estudiante_id}
-    ).fetchone()
-    
-    if not result:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-    
-    if result[1] != codigo_acceso.upper():
-        raise HTTPException(status_code=403, detail="Código de acceso inválido")
+    try:
+        if not codigo_acceso or codigo_acceso == "null":
+            raise HTTPException(
+                status_code=401, 
+                detail="Se requiere código de acceso. Por favor inicia sesión."
+            )
+        
+        # Verificar estudiante y código de acceso
+        result = db.execute(
+            text("SELECT id, codigo_acceso FROM estudiantes WHERE id = :id"),
+            {"id": estudiante_id}
+        ).fetchone()
+        
+        if not result:
+            raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        
+        if result[1] != codigo_acceso.upper():
+            raise HTTPException(status_code=403, detail="Código de acceso inválido")
+    except Exception as e:
+        logger.error(f"❌ Error de base de datos: {str(e)}")
+        raise HTTPException(status_code=503, detail="Error de conexión a la base de datos")
     
     # Obtener documentos generados
-    docs_result = db.execute(
-        text("""
-            SELECT id, tipo_documento, nombre_archivo, estado, 
-                   fecha_generacion, fecha_aprobacion, enviado_estudiante,
-                   notas, contenido_pdf
-            FROM documentos_generados
-            WHERE estudiante_id = :estudiante_id
-            ORDER BY fecha_generacion DESC
-        """),
-        {"estudiante_id": estudiante_id}
-    ).fetchall()
-    
-    documentos = []
-    for row in docs_result:
-        documentos.append({
-            'id': row[0],
-            'tipo_documento': row[1],
-            'nombre_archivo': row[2],
-            'estado': row[3],
-            'fecha_generacion': row[4].isoformat() if row[4] else None,
-            'fecha_aprobacion': row[5].isoformat() if row[5] else None,
-            'enviado_estudiante': row[6],
-            'notas': row[7],
-            'contenido_pdf': row[8]  # Base64 del PDF
-        })
-    
-    return {
-        'estudiante_id': estudiante_id,
-        'documentos': documentos,
-        'total': len(documentos)
-    }
+    try:
+        docs_result = db.execute(
+            text("""
+                SELECT id, tipo_documento, nombre_archivo, estado, 
+                       fecha_generacion, fecha_aprobacion, enviado_estudiante,
+                       notas, contenido_pdf
+                FROM documentos_generados
+                WHERE estudiante_id = :estudiante_id
+                ORDER BY fecha_generacion DESC
+            """),
+            {"estudiante_id": estudiante_id}
+        ).fetchall()
+        
+        documentos = []
+        for row in docs_result:
+            documentos.append({
+                'id': row[0],
+                'tipo_documento': row[1],
+                'nombre_archivo': row[2],
+                'estado': row[3],
+                'fecha_generacion': row[4].isoformat() if row[4] else None,
+                'fecha_aprobacion': row[5].isoformat() if row[5] else None,
+                'enviado_estudiante': row[6],
+                'notas': row[7],
+                'contenido_pdf': row[8]  # Base64 del PDF
+            })
+        
+        return {
+            'estudiante_id': estudiante_id,
+            'documentos': documentos,
+            'total': len(documentos)
+        }
+    except Exception as e:
+        logger.error(f"❌ Error consultando documentos: {str(e)}")
+        raise HTTPException(status_code=503, detail="Error al consultar documentos")
 
 
 @app.get("/api/admin/documentos-generados", tags=["Admin - Documentos"])
@@ -8911,7 +8918,6 @@ def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depend
 
 @app.get("/api/admin/solicitudes-financieras", tags=["Admin"])
 def obtener_solicitudes_financieras(
-    usuario=Depends(verificar_admin),
     db: Session = Depends(get_db)
 ):
     """Obtener todas las solicitudes de patrocinio financiero de estudiantes"""

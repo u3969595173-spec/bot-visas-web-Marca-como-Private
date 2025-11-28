@@ -97,9 +97,10 @@ def obtener_post(slug: str, db: Session = Depends(get_db)):
 @router.get("/blog/categorias/listar", tags=["Blog - Público"])
 def listar_categorias(db: Session = Depends(get_db)):
     """Obtener categorías disponibles con conteo"""
+    from sqlalchemy import func
     categorias = db.query(
         BlogPost.categoria,
-        db.func.count(BlogPost.id).label('total')
+        func.count(BlogPost.id).label('total')
     ).filter(
         BlogPost.publicado == True
     ).group_by(BlogPost.categoria).all()
