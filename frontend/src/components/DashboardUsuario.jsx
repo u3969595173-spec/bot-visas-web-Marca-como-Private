@@ -53,6 +53,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const response = await axios.get(`${apiUrl}/api/presupuestos/estudiante/${estudianteId}`);
+      console.log('[DEBUG] Presupuestos recibidos:', response.data);
       if (response.data && response.data.length > 0) {
         // Obtener el presupuesto más reciente con oferta  
         const ultimoConOferta = response.data.find(p => p.estado === 'oferta_enviada' || p.estado === 'ofertado');
@@ -61,10 +62,15 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
           setPresupuestoActual(ultimoConOferta);
         } else {
           console.log('[DEBUG] No hay presupuestos con oferta. Estados encontrados:', response.data.map(p => p.estado));
+          setPresupuestoActual(null);
         }
+      } else {
+        console.log('[DEBUG] No hay presupuestos');
+        setPresupuestoActual(null);
       }
     } catch (err) {
       console.error('Error cargando presupuestos:', err);
+      setPresupuestoActual(null);
     }
   };
 

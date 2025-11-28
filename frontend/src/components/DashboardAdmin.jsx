@@ -142,7 +142,10 @@ function DashboardAdmin({ onLogout }) {
         flexWrap: 'wrap'
       }}>
         <button
-          onClick={() => navigate('/admin/tesoro')}
+          onClick={() => {
+            console.log('Navegando a tesoro...');
+            navigate('/admin/tesoro');
+          }}
           className="btn"
           style={{
             background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -154,7 +157,10 @@ function DashboardAdmin({ onLogout }) {
             fontSize: '16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            gap: '8px',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+            transition: 'all 0.2s'
           }}
         >
           💰 Tesoro de Pagos

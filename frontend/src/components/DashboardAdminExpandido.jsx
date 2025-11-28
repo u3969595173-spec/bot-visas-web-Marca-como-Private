@@ -855,116 +855,186 @@ function DashboardAdminExpandido({ onLogout }) {
               No hay solicitudes de presupuesto
             </p>
           ) : (
-            <div style={{overflowX: 'auto'}}>
-              <table className="tabla">
-                <thead>
-                  <tr>
-                    <th>Estudiante</th>
-                    <th>Servicios</th>
-                    <th>Modalidades Ofertadas</th>
-                    <th>Estado</th>
-                    <th>Fecha</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {presupuestos.map(pres => (
-                    <tr key={pres.id}>
-                      <td>
-                        <strong>{pres.nombre_estudiante}</strong><br/>
-                        <small style={{color: '#6b7280'}}>{pres.email_estudiante}</small>
-                      </td>
-                      <td>
-                        <div style={{fontSize: '13px'}}>
-                          {Array.isArray(pres.servicios_solicitados) ? pres.servicios_solicitados.join(', ') : 'N/A'}
-                        </div>
-                      </td>
-                      <td>
-                        {pres.precio_al_empezar ? (
-                          <div style={{fontSize: '12px'}}>
-                            <div>💳 Al empezar: €{pres.precio_al_empezar}</div>
-                            <div>🎯 Con visa: €{pres.precio_con_visa}</div>
-                            <div>📅 Financiado: €{pres.precio_financiado}</div>
-                          </div>
-                        ) : (
-                          <span style={{color: '#6b7280'}}>Sin oferta</span>
-                        )}
-                      </td>
-                      <td>
-                        <span style={{
-                          padding: '4px 10px',
-                          borderRadius: '12px',
+            <div style={{display: 'grid', gap: '20px'}}>
+              {presupuestos.map(pres => (
+                <div key={pres.id} style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  backgroundColor: 'white',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                  {/* Header con info del estudiante */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '15px',
+                    borderBottom: '1px solid #f3f4f6',
+                    paddingBottom: '15px'
+                  }}>
+                    <div>
+                      <h4 style={{margin: '0 0 5px 0', color: '#111827', fontSize: '18px'}}>
+                        👤 {pres.nombre_estudiante || 'Estudiante'}
+                      </h4>
+                      <p style={{margin: 0, color: '#6b7280', fontSize: '14px'}}>
+                        📧 {pres.email_estudiante} • 🆔 #{pres.id}
+                      </p>
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                      <span style={{
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        backgroundColor:
+                          pres.estado === 'pendiente' ? '#fef3c7' :
+                          pres.estado === 'oferta_enviada' ? '#dbeafe' :
+                          pres.estado === 'aceptado' ? '#d1fae5' : '#fee2e2',
+                        color:
+                          pres.estado === 'pendiente' ? '#92400e' :
+                          pres.estado === 'oferta_enviada' ? '#1e40af' :
+                          pres.estado === 'aceptado' ? '#065f46' : '#991b1b'
+                      }}>
+                        {pres.estado === 'oferta_enviada' ? '📤 OFERTA ENVIADA' : 
+                         pres.estado === 'pendiente' ? '⏳ PENDIENTE' :
+                         pres.estado === 'aceptado' ? '✅ ACEPTADO' :
+                         pres.estado === 'rechazado' ? '❌ RECHAZADO' : pres.estado.toUpperCase()}
+                      </span>
+                      <div style={{fontSize: '12px', color: '#6b7280', marginTop: '5px'}}>
+                        📅 {new Date(pres.created_at).toLocaleDateString('es-ES')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Servicios solicitados */}
+                  <div style={{marginBottom: '15px'}}>
+                    <h5 style={{margin: '0 0 8px 0', color: '#374151', fontSize: '14px', fontWeight: '600'}}>
+                      📋 Servicios Solicitados:
+                    </h5>
+                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
+                      {(pres.servicios_solicitados || []).map((servicio, index) => (
+                        <span key={index} style={{
+                          padding: '4px 8px',
+                          backgroundColor: '#f3f4f6',
+                          borderRadius: '6px',
                           fontSize: '12px',
-                          fontWeight: '600',
-                          backgroundColor:
-                            pres.estado === 'pendiente' ? '#fef3c7' :
-                            pres.estado === 'oferta_enviada' ? '#dbeafe' :
-                            pres.estado === 'aceptado' ? '#d1fae5' : '#fee2e2',
-                          color:
-                            pres.estado === 'pendiente' ? '#92400e' :
-                            pres.estado === 'oferta_enviada' ? '#1e40af' :
-                            pres.estado === 'aceptado' ? '#065f46' : '#991b1b'
+                          color: '#4b5563'
                         }}>
-                          {pres.estado === 'oferta_enviada' ? 'OFERTA ENVIADA' : pres.estado.toUpperCase()}
+                          {servicio}
                         </span>
-                      </td>
-                      <td style={{fontSize: '13px', color: '#6b7280'}}>
-                        {new Date(pres.created_at).toLocaleDateString('es-ES')}
-                      </td>
-                      <td>
-                        {pres.estado === 'pendiente' && (
-                          <button
-                            onClick={() => {
-                              setPresupuestoSeleccionado(pres)
-                              setContraoferta({
-                                precio_al_empezar: '',
-                                precio_con_visa: '', 
-                                precio_financiado: '',
-                                comentarios_admin: ''
-                              })
-                              setShowContraofertaModal(true)
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#3b82f6',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '5px',
-                              cursor: 'pointer',
-                              fontSize: '13px'
-                            }}
-                          >
-                            💬 Hacer Oferta
-                          </button>
-                        )}
-                        {pres.estado === 'ofertado' && (
-                          <span style={{fontSize: '13px', color: '#6b7280'}}>
-                            Esperando respuesta...
-                          </span>
-                        )}
-                        {(pres.estado === 'aceptado' || pres.estado === 'rechazado') && (
-                          <button
-                            onClick={() => {
-                              alert(`Detalles del presupuesto ${pres.estado}:\n\nServicios: ${pres.servicios.join(', ')}\nPrecio ofertado: ${pres.precio_ofertado}€\nForma de pago: ${pres.forma_pago}\nMensaje: ${pres.mensaje_admin}`)
-                            }}
-                            style={{
-                              padding: '6px 12px',
-                              backgroundColor: '#6b7280',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '5px',
-                              cursor: 'pointer',
-                              fontSize: '13px'
-                            }}
-                          >
-                            👁️ Ver Detalles
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Precios ofertados */}
+                  {pres.precio_al_empezar ? (
+                    <div style={{marginBottom: '15px'}}>
+                      <h5 style={{margin: '0 0 10px 0', color: '#374151', fontSize: '14px', fontWeight: '600'}}>
+                        💰 Modalidades Ofertadas:
+                      </h5>
+                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px'}}>
+                        <div style={{padding: '10px', backgroundColor: '#ecfdf5', borderRadius: '8px', border: '1px solid #d1fae5'}}>
+                          <div style={{fontSize: '12px', color: '#059669', fontWeight: '600'}}>💳 Al Empezar</div>
+                          <div style={{fontSize: '16px', color: '#047857', fontWeight: 'bold'}}>€{pres.precio_al_empezar}</div>
+                        </div>
+                        <div style={{padding: '10px', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #dbeafe'}}>
+                          <div style={{fontSize: '12px', color: '#2563eb', fontWeight: '600'}}>🎯 Con Visa</div>
+                          <div style={{fontSize: '16px', color: '#1d4ed8', fontWeight: 'bold'}}>€{pres.precio_con_visa}</div>
+                        </div>
+                        <div style={{padding: '10px', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #fed7aa'}}>
+                          <div style={{fontSize: '12px', color: '#d97706', fontWeight: '600'}}>📅 Financiado</div>
+                          <div style={{fontSize: '16px', color: '#92400e', fontWeight: 'bold'}}>€{pres.precio_financiado}</div>
+                          <div style={{fontSize: '10px', color: '#78716c'}}>({(pres.precio_financiado/12).toFixed(2)}€/mes)</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Comentarios admin */}
+                  {pres.comentarios_admin && (
+                    <div style={{marginBottom: '15px'}}>
+                      <h5 style={{margin: '0 0 8px 0', color: '#374151', fontSize: '14px', fontWeight: '600'}}>
+                        💬 Comentarios del Admin:
+                      </h5>
+                      <p style={{
+                        margin: 0,
+                        padding: '10px',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        color: '#4b5563',
+                        fontStyle: 'italic'
+                      }}>
+                        {pres.comentarios_admin}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Acciones */}
+                  <div style={{
+                    borderTop: '1px solid #f3f4f6',
+                    paddingTop: '15px',
+                    display: 'flex',
+                    gap: '10px',
+                    justifyContent: 'flex-end'
+                  }}>
+                    {pres.estado === 'pendiente' ? (
+                      <button
+                        onClick={() => {
+                          setPresupuestoSeleccionado(pres)
+                          setContraoferta({
+                            precio_al_empezar: '',
+                            precio_con_visa: '', 
+                            precio_financiado: '',
+                            comentarios_admin: ''
+                          })
+                          setShowContraofertaModal(true)
+                        }}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        💰 Crear Oferta
+                      </button>
+                    ) : pres.estado === 'aceptado' ? (
+                      <span style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#10b981',
+                        color: 'white',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: '600'
+                      }}>
+                        ✅ Modalidad: {pres.modalidad_seleccionada === 'precio_al_empezar' ? 'Al Empezar' :
+                                       pres.modalidad_seleccionada === 'precio_con_visa' ? 'Con Visa' :
+                                       pres.modalidad_seleccionada === 'precio_financiado' ? 'Financiado' : 'N/A'}
+                      </span>
+                    ) : (
+                      <span style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#6b7280',
+                        color: 'white',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}>
+                        {pres.estado === 'oferta_enviada' ? '⏳ Esperando respuesta' : 
+                         pres.estado === 'rechazado' ? '❌ Oferta rechazada' : 'Estado: ' + pres.estado}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
