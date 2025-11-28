@@ -18,7 +18,13 @@ const CompletarPerfil = () => {
     nivel_espanol: 'basico',
     tipo_visa: 'estudiante',
     fondos_disponibles: '',
-    fecha_inicio_estimada: ''
+    fecha_inicio_estimada: '',
+    fondos_suficientes: false,
+    monto_fondos: '',
+    tiene_patrocinador: false,
+    tipo_patrocinador: '',
+    nombre_patrocinador: '',
+    relacion_patrocinador: ''
   });
   const [archivos, setArchivos] = useState({
     titulo: null,
@@ -53,6 +59,12 @@ const CompletarPerfil = () => {
       if (response.data.tipo_visa) setFormData(prev => ({...prev, tipo_visa: response.data.tipo_visa}));
       if (response.data.fondos_disponibles) setFormData(prev => ({...prev, fondos_disponibles: response.data.fondos_disponibles}));
       if (response.data.fecha_inicio_estimada) setFormData(prev => ({...prev, fecha_inicio_estimada: response.data.fecha_inicio_estimada}));
+      if (response.data.fondos_suficientes !== undefined) setFormData(prev => ({...prev, fondos_suficientes: response.data.fondos_suficientes}));
+      if (response.data.monto_fondos) setFormData(prev => ({...prev, monto_fondos: response.data.monto_fondos}));
+      if (response.data.tiene_patrocinador !== undefined) setFormData(prev => ({...prev, tiene_patrocinador: response.data.tiene_patrocinador}));
+      if (response.data.tipo_patrocinador) setFormData(prev => ({...prev, tipo_patrocinador: response.data.tipo_patrocinador}));
+      if (response.data.nombre_patrocinador) setFormData(prev => ({...prev, nombre_patrocinador: response.data.nombre_patrocinador}));
+      if (response.data.relacion_patrocinador) setFormData(prev => ({...prev, relacion_patrocinador: response.data.relacion_patrocinador}));
     } catch (err) {
       console.error('Error cargando estudiante:', err);
       setError('Error al cargar tus datos');
@@ -326,7 +338,38 @@ const CompletarPerfil = () => {
           <div className="form-section">
             <h3>💰 Información Financiera</h3>
 
+            <div className="form-group">
+              <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: '15px'}}>
+                <input
+                  type="checkbox"
+                  name="fondos_suficientes"
+                  checked={formData.fondos_suficientes}
+                  onChange={(e) => setFormData(prev => ({...prev, fondos_suficientes: e.target.checked}))}
+                  style={{marginRight: '10px', width: '18px', height: '18px', cursor: 'pointer'}}
+                />
+                <span style={{fontWeight: '500'}}>¿Tienes fondos suficientes para tu estancia?</span>
+              </label>
+            </div>
+
             <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="monto_fondos">Monto Total de Fondos (€) *</label>
+                <input
+                  type="number"
+                  id="monto_fondos"
+                  name="monto_fondos"
+                  value={formData.monto_fondos}
+                  onChange={handleChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="8000"
+                />
+                <small style={{color: '#718096', fontSize: '12px'}}>
+                  Mínimo recomendado: €8,000 por año académico
+                </small>
+              </div>
+
               <div className="form-group">
                 <label htmlFor="fondos_disponibles">Fondos Disponibles (€) *</label>
                 <input
@@ -341,21 +384,97 @@ const CompletarPerfil = () => {
                   placeholder="5000"
                 />
                 <small style={{color: '#718096', fontSize: '12px'}}>
-                  Mínimo recomendado: €3,000-€6,000 para 3-6 meses
+                  Fondos líquidos actuales
                 </small>
               </div>
+            </div>
 
-              <div className="form-group">
-                <label htmlFor="fecha_inicio_estimada">Fecha Estimada de Inicio *</label>
+            <div className="form-group" style={{marginTop: '20px'}}>
+              <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', marginBottom: '15px'}}>
                 <input
-                  type="date"
-                  id="fecha_inicio_estimada"
-                  name="fecha_inicio_estimada"
-                  value={formData.fecha_inicio_estimada}
-                  onChange={handleChange}
-                  required
+                  type="checkbox"
+                  name="tiene_patrocinador"
+                  checked={formData.tiene_patrocinador}
+                  onChange={(e) => setFormData(prev => ({...prev, tiene_patrocinador: e.target.checked}))}
+                  style={{marginRight: '10px', width: '18px', height: '18px', cursor: 'pointer'}}
                 />
+                <span style={{fontWeight: '500'}}>¿Tienes un patrocinador?</span>
+              </label>
+            </div>
+
+            {formData.tiene_patrocinador && (
+              <div style={{
+                backgroundColor: '#fef3c7',
+                padding: '20px',
+                borderRadius: '8px',
+                border: '1px solid #fde68a',
+                marginTop: '15px'
+              }}>
+                <h4 style={{margin: '0 0 15px 0', color: '#92400e', fontSize: '16px'}}>
+                  🤝 Datos del Patrocinador
+                </h4>
+
+                <div className="form-group">
+                  <label htmlFor="tipo_patrocinador">Tipo de Patrocinador *</label>
+                  <select
+                    id="tipo_patrocinador"
+                    name="tipo_patrocinador"
+                    value={formData.tipo_patrocinador}
+                    onChange={handleChange}
+                    required={formData.tiene_patrocinador}
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="familiar">Familiar</option>
+                    <option value="empresa">Empresa</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="nombre_patrocinador">Nombre del Patrocinador *</label>
+                  <input
+                    type="text"
+                    id="nombre_patrocinador"
+                    name="nombre_patrocinador"
+                    value={formData.nombre_patrocinador}
+                    onChange={handleChange}
+                    required={formData.tiene_patrocinador}
+                    placeholder="Nombre completo"
+                  />
+                </div>
+
+                {formData.tipo_patrocinador === 'familiar' && (
+                  <div className="form-group">
+                    <label htmlFor="relacion_patrocinador">Relación con el Patrocinador *</label>
+                    <select
+                      id="relacion_patrocinador"
+                      name="relacion_patrocinador"
+                      value={formData.relacion_patrocinador}
+                      onChange={handleChange}
+                      required={formData.tiene_patrocinador && formData.tipo_patrocinador === 'familiar'}
+                    >
+                      <option value="">Seleccionar...</option>
+                      <option value="padre">Padre</option>
+                      <option value="madre">Madre</option>
+                      <option value="hermano">Hermano/a</option>
+                      <option value="abuelo">Abuelo/a</option>
+                      <option value="tio">Tío/a</option>
+                      <option value="otro">Otro Familiar</option>
+                    </select>
+                  </div>
+                )}
               </div>
+            )}
+
+            <div className="form-group" style={{marginTop: '20px'}}>
+              <label htmlFor="fecha_inicio_estimada">Fecha Estimada de Inicio *</label>
+              <input
+                type="date"
+                id="fecha_inicio_estimada"
+                name="fecha_inicio_estimada"
+                value={formData.fecha_inicio_estimada}
+                onChange={handleChange}
+                required
+              />
             </div>
           </div>
 
