@@ -8357,13 +8357,14 @@ def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
     # Insertar presupuesto
+    servicios_json = json.dumps(servicios)
     result = db.execute(text("""
         INSERT INTO presupuestos (estudiante_id, servicios, precio_solicitado, estado, created_at, updated_at)
-        VALUES (:estudiante_id, :servicios::jsonb, :precio, 'pendiente', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES (:estudiante_id, :servicios, :precio, 'pendiente', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
     """), {
         "estudiante_id": estudiante_id,
-        "servicios": json.dumps(servicios),
+        "servicios": servicios_json,
         "precio": precio_solicitado
     })
     db.commit()
