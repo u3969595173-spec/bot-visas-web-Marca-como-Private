@@ -139,32 +139,93 @@ function DashboardAdmin({ onLogout }) {
         display: 'flex',
         gap: '15px',
         marginBottom: '30px',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        backgroundColor: '#f8f9fa',
+        padding: '20px',
+        borderRadius: '12px',
+        border: '2px solid #e9ecef'
       }}>
-        <button
-          onClick={() => {
-            console.log('Navegando a tesoro...');
-            navigate('/admin/tesoro');
-          }}
-          className="btn"
-          style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: 'white',
-            border: 'none',
-            fontWeight: '600',
-            padding: '15px 25px',
-            borderRadius: '10px',
-            fontSize: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-            transition: 'all 0.2s'
-          }}
-        >
-          💰 Tesoro de Pagos
-        </button>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          width: '100%'
+        }}>
+          <h3 style={{margin: 0, color: '#495057', fontSize: '18px', fontWeight: '600'}}>
+            🚀 Acceso Rápido a Herramientas
+          </h3>
+          
+          <div style={{display: 'flex', gap: '15px', flexWrap: 'wrap'}}>
+            <button
+              onClick={() => {
+                console.log('🎯 Botón tesoro clickeado - Navegando a /admin/tesoro');
+                alert('Navegando al Tesoro de Pagos...');
+                navigate('/admin/tesoro');
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                color: 'white',
+                border: '3px solid #20c997',
+                fontWeight: '700',
+                padding: '18px 30px',
+                borderRadius: '12px',
+                fontSize: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                boxShadow: '0 6px 20px rgba(40, 167, 69, 0.4)',
+                transition: 'all 0.3s',
+                minWidth: '200px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 8px 25px rgba(40, 167, 69, 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(40, 167, 69, 0.4)';
+              }}
+            >
+              💰 TESORO DE PAGOS
+            </button>
+
+            <button
+              onClick={() => {
+                console.log('📊 Navegando a presupuestos...');
+                navigate('/admin/presupuestos');
+              }}
+              style={{
+                background: 'linear-gradient(135deg, #007bff 0%, #6610f2 100%)',
+                color: 'white',
+                border: '3px solid #007bff',
+                fontWeight: '700',
+                padding: '18px 30px',
+                borderRadius: '12px',
+                fontSize: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                boxShadow: '0 6px 20px rgba(0, 123, 255, 0.4)',
+                transition: 'all 0.3s',
+                minWidth: '200px',
+                justifyContent: 'center'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 8px 25px rgba(0, 123, 255, 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(0, 123, 255, 0.4)';
+              }}
+            >
+              📋 PRESUPUESTOS
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Estadísticas */}
