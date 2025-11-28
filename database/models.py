@@ -325,9 +325,8 @@ def get_db():
             # Test connection
             db.execute(text("SELECT 1"))
             yield db
-            break
+            return  # Salir después de yield exitoso
         except Exception as e:
-            db.close()
             retry_count += 1
             if retry_count >= max_retries:
                 print(f"❌ Error conectando a DB después de {max_retries} intentos: {e}")
@@ -339,5 +338,4 @@ def get_db():
             import time
             time.sleep(1)  # Esperar 1 segundo antes de reintentar
         finally:
-            if retry_count >= max_retries or db:
-                db.close()
+            db.close()
