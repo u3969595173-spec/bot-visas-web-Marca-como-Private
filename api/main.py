@@ -2587,7 +2587,9 @@ def obtener_documentos_generados_estudiante(
         # Re-raise HTTP exceptions
         raise
     except Exception as e:
-        logger.error(f"❌ Error consultando documentos: {str(e)}")
+        logger.error(f"❌ Error consultando documentos generados: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         # Retornar respuesta vacía en lugar de error 503
         return {
             'estudiante_id': estudiante_id,
@@ -8840,18 +8842,22 @@ def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
     
     # Insertar presupuesto con nueva estructura
     servicios_json = json.dumps(servicios_solicitados)
+    # Campo legacy 'servicios' - usar primer servicio o 'multiple' por compatibilidad
+    servicios_legacy = servicios_solicitados[0] if servicios_solicitados else 'servicios_personalizados'
+    
     result = db.execute(text("""
         INSERT INTO presupuestos (
-            estudiante_id, servicios_solicitados, comentarios_estudiante, 
+            estudiante_id, servicios, servicios_solicitados, comentarios_estudiante, 
             estado, created_at, updated_at
         )
         VALUES (
-            :estudiante_id, :servicios_solicitados, :comentarios_estudiante,
+            :estudiante_id, :servicios, :servicios_solicitados, :comentarios_estudiante,
             :estado, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         )
         RETURNING id
     """), {
         "estudiante_id": estudiante_id,
+        "servicios": servicios_legacy,
         "servicios_solicitados": servicios_json,
         "comentarios_estudiante": comentarios_estudiante,
         "estado": estado
