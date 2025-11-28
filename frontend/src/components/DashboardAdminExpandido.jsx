@@ -65,8 +65,15 @@ function DashboardAdminExpandido({ onLogout }) {
           console.error('Error cargando alertas:', err)
         }
       } else if (activeTab === 'documentos') {
-        const docsRes = await axios.get(`${apiUrl}/api/admin/documentos-generados`)
-        setDocumentosGenerados(docsRes.data)
+        try {
+          const docsRes = await axios.get(`${apiUrl}/api/admin/documentos-generados`)
+          console.log('Documentos cargados:', docsRes.data)
+          setDocumentosGenerados(Array.isArray(docsRes.data) ? docsRes.data : [])
+        } catch (err) {
+          console.error('Error cargando documentos:', err)
+          setDocumentosGenerados([])
+          alert('Error al cargar documentos: ' + (err.response?.data?.detail || err.message))
+        }
       } else if (activeTab === 'cursos') {
         const cursosRes = await axios.get(`${apiUrl}/api/admin/cursos`)
         setCursos(cursosRes.data)
@@ -692,63 +699,69 @@ function DashboardAdminExpandido({ onLogout }) {
       {/* SECCIÓN: DOCUMENTOS GENERADOS */}
       {activeTab === 'documentos' && (
         <div className="documentos-section">
-          <div className="section-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-            <h2>📄 Documentos Generados ({documentosGenerados.length})</h2>
-            <div className="header-actions">
-              <button 
-                onClick={abrirModalGenerarDocumentos} 
-                className="btn-generar"
-                style={{marginRight: '10px'}}
-              >
-                ➕ Generar Documentos
-              </button>
-              <button 
-                onClick={() => eliminarDuplicados()} 
-                className="btn-limpiar"
-                style={{backgroundColor: '#ef4444', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer'}}
-                title="Eliminar documentos duplicados (mantiene solo el más reciente de cada tipo)"
-              >
-                🗑️ Limpiar Duplicados
-              </button>
-            </div>
-          </div>
-          
-          <div className="documentos-info">
-            <p>📄 Aquí puedes generar documentos oficiales para los estudiantes, revisarlos y aprobarlos.</p>
-          </div>
-
-          {documentosGenerados.length === 0 ? (
-            <div className="no-documentos">
-              <p>No hay documentos generados aún</p>
-              <p>Ve a la pestaña de Estudiantes y genera documentos para cada estudiante</p>
+          {loading ? (
+            <div className="loading-spinner">
+              <p>⏳ Cargando documentos...</p>
             </div>
           ) : (
-            <div className="tabla-container">
-              <table className="tabla-documentos">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Estudiante</th>
-                    <th>Tipo Documento</th>
-                    <th>Archivo</th>
-                    <th>Estado</th>
-                    <th>Fecha</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documentosGenerados.map(doc => (
-                    <tr key={doc.id}>
-                      <td>{doc.id}</td>
-                      <td>{doc.estudiante_nombre}</td>
-                      <td>{doc.tipo_documento.replace('_', ' ').toUpperCase()}</td>
-                      <td>{doc.nombre_archivo}</td>
-                      <td>
-                        <span className={`badge badge-${doc.estado}`}>
-                          {doc.estado.toUpperCase()}
-                        </span>
-                      </td>
-                      <td>{new Date(doc.fecha_generacion).toLocaleDateString()}</td>
+            <>
+              <div className="section-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                <h2>📄 Documentos Generados ({documentosGenerados.length})</h2>
+                <div className="header-actions">
+                  <button 
+                    onClick={abrirModalGenerarDocumentos} 
+                    className="btn-generar"
+                    style={{marginRight: '10px'}}
+                  >
+                    ➕ Generar Documentos
+                  </button>
+                  <button 
+                    onClick={() => eliminarDuplicados()} 
+                    className="btn-limpiar"
+                    style={{backgroundColor: '#ef4444', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer'}}
+                    title="Eliminar documentos duplicados (mantiene solo el más reciente de cada tipo)"
+                  >
+                    🗑️ Limpiar Duplicados
+                  </button>
+                </div>
+              </div>
+              
+              <div className="documentos-info">
+                <p>📄 Aquí puedes generar documentos oficiales para los estudiantes, revisarlos y aprobarlos.</p>
+              </div>
+
+              {!documentosGenerados || documentosGenerados.length === 0 ? (
+                <div className="no-documentos">
+                  <p>No hay documentos generados aún</p>
+                  <p>Ve a la pestaña de Estudiantes y genera documentos para cada estudiante</p>
+                </div>
+              ) : (
+                <div className="tabla-container">
+                  <table className="tabla-documentos">
+                    <thead>
+                      <tr>
+                        <th>ID</th>
+                        <th>Estudiante</th>
+                        <th>Tipo Documento</th>
+                        <th>Archivo</th>
+                        <th>Estado</th>
+                        <th>Fecha</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documentosGenerados.map(doc => (
+                        <tr key={doc.id}>
+                          <td>{doc.id}</td>
+                          <td>{doc.estudiante_nombre}</td>
+                          <td>{doc.tipo_documento.replace('_', ' ').toUpperCase()}</td>
+                          <td>{doc.nombre_archivo}</td>
+                          <td>
+                            <span className={`badge badge-${doc.estado}`}>
+                              {doc.estado.toUpperCase()}
+                            </span>
+                          </td>
+                          <td>{new Date(doc.fecha_generacion).toLocaleDateString()}</td>
                       <td>
                         <div className="acciones">
                           <button 
@@ -781,6 +794,8 @@ function DashboardAdminExpandido({ onLogout }) {
                 </tbody>
               </table>
             </div>
+          )}
+            </>
           )}
         </div>
       )}
