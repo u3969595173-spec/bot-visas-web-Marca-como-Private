@@ -303,12 +303,12 @@ class GeneradorDocumentosOficiales:
             ['Email:', datos_estudiante.get('email', 'N/A')],
             ['Teléfono:', datos_estudiante.get('telefono', 'N/A')],
             ['Pasaporte:', datos_estudiante.get('pasaporte', 'N/A')],
-            ['Edad:', str(datos_estudiante.get('edad', 'N/A'))],
+            ['Edad:', str(datos_estudiante.get('edad') or 'N/A')],
             ['Nacionalidad:', datos_estudiante.get('nacionalidad', 'N/A')],
             ['Ciudad de Origen:', datos_estudiante.get('ciudad_origen', 'N/A')],
             ['Especialidad:', datos_estudiante.get('especialidad', 'N/A')],
-            ['Nivel de Español:', datos_estudiante.get('nivel_espanol', 'N/A').capitalize()],
-            ['Tipo de Visa:', datos_estudiante.get('tipo_visa', 'N/A').replace('_', ' ').title()],
+            ['Nivel de Español:', (datos_estudiante.get('nivel_espanol') or 'N/A').capitalize()],
+            ['Tipo de Visa:', (datos_estudiante.get('tipo_visa') or 'N/A').replace('_', ' ').title()],
         ]
         
         tabla = Table(datos, colWidths=[7*cm, 10*cm])
