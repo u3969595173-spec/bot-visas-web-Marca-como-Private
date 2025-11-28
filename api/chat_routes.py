@@ -167,6 +167,82 @@ def marcar_mensaje_leido(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/chat/{estudiante_id}/marcar-todos-leidos")
+def marcar_todos_mensajes_leidos(
+    estudiante_id: int,
+    remitente: str,  # 'admin' o 'estudiante'
+    db: Session = Depends(get_db)
+):
+    """Marcar TODOS los mensajes de una conversación como leídos"""
+    try:
+        # Marcar todos los mensajes del remitente especificado como leídos
+        mensajes_actualizados = db.query(MensajeChat).filter(
+            MensajeChat.estudiante_id == estudiante_id,
+            MensajeChat.remitente == remitente,
+            MensajeChat.leido == False
+        ).update({MensajeChat.leido: True})
+        
+        db.commit()
+        
+        return {
+            "success": True, 
+            "message": f"Marcados {mensajes_actualizados} mensajes como leídos",
+            "mensajes_actualizados": mensajes_actualizados
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/admin/chat/{estudiante_id}/marcar-leidos")
+def admin_marcar_mensajes_leidos(
+    estudiante_id: int,
+    db: Session = Depends(get_db)
+):
+    """Admin marca como leídos todos los mensajes del estudiante"""
+    try:
+        # El admin marca como leídos todos los mensajes que el estudiante le envió
+        mensajes_actualizados = db.query(MensajeChat).filter(
+            MensajeChat.estudiante_id == estudiante_id,
+            MensajeChat.remitente == "estudiante",  # Mensajes que el estudiante envió al admin
+            MensajeChat.leido == False
+        ).update({MensajeChat.leido: True})
+        
+        db.commit()
+        
+        return {
+            "success": True, 
+            "message": f"Admin marcó {mensajes_actualizados} mensajes como leídos",
+            "mensajes_actualizados": mensajes_actualizados
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/estudiante/chat/{estudiante_id}/marcar-leidos")
+def estudiante_marcar_mensajes_leidos(
+    estudiante_id: int,
+    db: Session = Depends(get_db)
+):
+    """Estudiante marca como leídos todos los mensajes del admin"""
+    try:
+        # El estudiante marca como leídos todos los mensajes que el admin le envió
+        mensajes_actualizados = db.query(MensajeChat).filter(
+            MensajeChat.estudiante_id == estudiante_id,
+            MensajeChat.remitente == "admin",  # Mensajes que el admin envió al estudiante
+            MensajeChat.leido == False
+        ).update({MensajeChat.leido: True})
+        
+        db.commit()
+        
+        return {
+            "success": True, 
+            "message": f"Estudiante marcó {mensajes_actualizados} mensajes como leídos",
+            "mensajes_actualizados": mensajes_actualizados
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/chat/{estudiante_id}/no-leidos")
 def contar_mensajes_no_leidos(
     estudiante_id: int,
