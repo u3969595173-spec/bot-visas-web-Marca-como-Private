@@ -31,8 +31,9 @@ logger = logging.getLogger(__name__)
 
 # Conversation states
 (MAIN_MENU, QUESTIONNAIRE, COUNTRY, STUDY_TYPE, UNIVERSITY, UNIVERSITY_TYPE, 
- DURATION, COURSE_COST, FUNDS, SPANISH_LEVEL, RECOMMENDATIONS, 
- INTERVIEW_PRACTICE, INTERVIEW_ANSWER) = range(13)
+ DURATION, COURSE_COST, FUNDS, FUNDS_SOURCE, HAS_SPONSOR, SPONSOR_TYPE, 
+ SPONSOR_NAME, SPONSOR_RELATION, SPANISH_LEVEL, RECOMMENDATIONS, 
+ INTERVIEW_PRACTICE, INTERVIEW_ANSWER) = range(18)
 
 
 class VisaBotHandler:
@@ -321,7 +322,48 @@ Por favor, escribe el total que puedes demostrar en euros:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**Pregunta 7/8**
+**Pregunta 7/10**
+
+💼 **¿Estos fondos son propios o tienes un patrocinador?**
+"""
+            
+            keyboard = [
+                [InlineKeyboardButton("💰 Fondos propios", callback_data='funds_propios')],
+                [InlineKeyboardButton("👨‍👩‍👧 Patrocinador familiar", callback_data='funds_familiar')],
+                [InlineKeyboardButton("🏢 Patrocinador empresa", callback_data='funds_empresa')],
+                [InlineKeyboardButton("🤝 Ambos (propios + patrocinio)", callback_data='funds_ambos')]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+            return FUNDS_SOURCE
+            
+        except ValueError:
+            await update.message.reply_text("❌ Por favor ingresa un número válido")
+            return FUNDS
+    
+    @staticmethod
+    async def handle_funds_source(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle funds source selection"""
+        query = update.callback_query
+        await query.answer()
+        
+        funds_source = query.data.replace('funds_', '')
+        context.user_data['funds_source'] = funds_source
+        
+        # Determinar si tiene fondos propios suficientes
+        if funds_source == 'propios':
+            context.user_data['fondos_suficientes'] = True
+            context.user_data['tiene_patrocinador'] = False
+            available = context.user_data.get('available_funds', 0)
+            context.user_data['monto_fondos'] = available
+            
+            message = f"""
+✅ Origen de fondos: **Propios**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Pregunta 8/10**
 
 🗣️ **¿Qué nivel de español tienes?**
 """
@@ -336,13 +378,138 @@ Por favor, escribe el total que puedes demostrar en euros:
                 [InlineKeyboardButton("Sin certificado", callback_data='spanish_none')]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+            await query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
             return SPANISH_LEVEL
             
-        except ValueError:
-            await update.message.reply_text("❌ Por favor ingresa un número válido")
-            return FUNDS
+        else:
+            # Tiene patrocinador
+            context.user_data['tiene_patrocinador'] = True
+            
+            if funds_source == 'ambos':
+                context.user_data['fondos_suficientes'] = True
+                available = context.user_data.get('available_funds', 0)
+                context.user_data['monto_fondos'] = available
+                tipo_desc = "Propios + Patrocinio"
+            elif funds_source == 'familiar':
+                context.user_data['fondos_suficientes'] = False
+                context.user_data['monto_fondos'] = 0
+                context.user_data['tipo_patrocinador'] = 'familiar'
+                tipo_desc = "Patrocinador Familiar"
+            else:  # empresa
+                context.user_data['fondos_suficientes'] = False
+                context.user_data['monto_fondos'] = 0
+                context.user_data['tipo_patrocinador'] = 'empresa'
+                tipo_desc = "Patrocinador Empresa"
+            
+            message = f"""
+✅ Origen de fondos: **{tipo_desc}**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Pregunta 8/10**
+
+👤 **¿Cuál es el nombre completo del patrocinador?**
+
+Por favor, escribe el nombre completo:
+"""
+            
+            await query.edit_message_text(message, parse_mode='Markdown')
+            return SPONSOR_NAME
+    
+    @staticmethod
+    async def handle_sponsor_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle sponsor name"""
+        sponsor_name = update.message.text
+        context.user_data['nombre_patrocinador'] = sponsor_name
+        
+        funds_source = context.user_data.get('funds_source', 'familiar')
+        
+        if funds_source == 'empresa' or context.user_data.get('tipo_patrocinador') == 'empresa':
+            # Si es empresa, no preguntar relación, pasar directo a español
+            context.user_data['relacion_patrocinador'] = 'Empresa'
+            context.user_data['tipo_patrocinador'] = 'empresa'
+            
+            message = f"""
+✅ Patrocinador: **{sponsor_name}** (Empresa)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Pregunta 9/10**
+
+🗣️ **¿Qué nivel de español tienes?**
+"""
+            
+            keyboard = [
+                [InlineKeyboardButton("C2 - Maestría", callback_data='spanish_c2')],
+                [InlineKeyboardButton("C1 - Dominio efectivo", callback_data='spanish_c1')],
+                [InlineKeyboardButton("B2 - Avanzado", callback_data='spanish_b2')],
+                [InlineKeyboardButton("B1 - Intermedio", callback_data='spanish_b1')],
+                [InlineKeyboardButton("A2 - Básico", callback_data='spanish_a2')],
+                [InlineKeyboardButton("A1 - Principiante", callback_data='spanish_a1')],
+                [InlineKeyboardButton("Sin certificado", callback_data='spanish_none')]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+            return SPANISH_LEVEL
+        else:
+            # Es familiar, preguntar relación
+            context.user_data['tipo_patrocinador'] = 'familiar'
+            
+            message = f"""
+✅ Nombre patrocinador: **{sponsor_name}**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Pregunta 9/10**
+
+👨‍👩‍👧 **¿Qué relación tiene contigo el patrocinador?**
+"""
+            
+            keyboard = [
+                [InlineKeyboardButton("👨 Padre", callback_data='relation_padre')],
+                [InlineKeyboardButton("👩 Madre", callback_data='relation_madre')],
+                [InlineKeyboardButton("👨‍👩‍👧 Padres (ambos)", callback_data='relation_padres')],
+                [InlineKeyboardButton("👴 Abuelo/a", callback_data='relation_abuelo')],
+                [InlineKeyboardButton("🧑 Tío/a", callback_data='relation_tio')],
+                [InlineKeyboardButton("👥 Hermano/a", callback_data='relation_hermano')],
+                [InlineKeyboardButton("👤 Otro familiar", callback_data='relation_otro_familiar')]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.message.reply_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+            return SPONSOR_RELATION
+    
+    @staticmethod
+    async def handle_sponsor_relation(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle sponsor relation"""
+        query = update.callback_query
+        await query.answer()
+        
+        relation = query.data.replace('relation_', '').capitalize()
+        context.user_data['relacion_patrocinador'] = relation
+        
+        message = f"""
+✅ Relación: **{relation}**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+**Pregunta 10/10**
+
+🗣️ **¿Qué nivel de español tienes?**
+"""
+        
+        keyboard = [
+            [InlineKeyboardButton("C2 - Maestría", callback_data='spanish_c2')],
+            [InlineKeyboardButton("C1 - Dominio efectivo", callback_data='spanish_c1')],
+            [InlineKeyboardButton("B2 - Avanzado", callback_data='spanish_b2')],
+            [InlineKeyboardButton("B1 - Intermedio", callback_data='spanish_b1')],
+            [InlineKeyboardButton("A2 - Básico", callback_data='spanish_a2')],
+            [InlineKeyboardButton("A1 - Principiante", callback_data='spanish_a1')],
+            [InlineKeyboardButton("Sin certificado", callback_data='spanish_none')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(message, reply_markup=reply_markup, parse_mode='Markdown')
+        return SPANISH_LEVEL
     
     @staticmethod
     async def handle_spanish_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -353,12 +520,16 @@ Por favor, escribe el total que puedes demostrar en euros:
         spanish_level = query.data.replace('spanish_', '')
         context.user_data['spanish_level'] = spanish_level
         
+        # Ajustar número de pregunta según si tiene patrocinador
+        tiene_patrocinador = context.user_data.get('tiene_patrocinador', False)
+        pregunta_num = "10/10" if tiene_patrocinador else "9/10"
+        
         message = f"""
 ✅ Nivel de español: **{spanish_level.upper() if spanish_level != 'none' else 'Sin certificado'}**
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**Pregunta 8/8**
+**Pregunta {pregunta_num}**
 
 ✉️ **¿Tienes cartas de recomendación?**
 """
@@ -681,6 +852,9 @@ def main():
             UNIVERSITY_TYPE: [CallbackQueryHandler(VisaBotHandler.handle_university_type)],
             COURSE_COST: [MessageHandler(filters.TEXT & ~filters.COMMAND, VisaBotHandler.handle_course_cost)],
             FUNDS: [MessageHandler(filters.TEXT & ~filters.COMMAND, VisaBotHandler.handle_funds)],
+            FUNDS_SOURCE: [CallbackQueryHandler(VisaBotHandler.handle_funds_source)],
+            SPONSOR_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, VisaBotHandler.handle_sponsor_name)],
+            SPONSOR_RELATION: [CallbackQueryHandler(VisaBotHandler.handle_sponsor_relation)],
             SPANISH_LEVEL: [CallbackQueryHandler(VisaBotHandler.handle_spanish_level)],
             RECOMMENDATIONS: [CallbackQueryHandler(VisaBotHandler.handle_recommendations)],
             INTERVIEW_ANSWER: [MessageHandler(filters.TEXT & ~filters.COMMAND, VisaBotHandler.handle_interview_answer)]

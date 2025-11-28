@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, JSON, Text
+from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, JSON, Text, Numeric
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import text
@@ -127,6 +127,15 @@ class Estudiante(Base):
     especialidad = Column(String(255))
     nivel_espanol = Column(String(50))
     fondos_disponibles = Column(Integer)
+    
+    # Nuevos campos de fondos y patrocinio
+    fondos_suficientes = Column(Boolean, default=False)
+    monto_fondos = Column(Numeric(10, 2))
+    tiene_patrocinador = Column(Boolean, default=False)
+    tipo_patrocinador = Column(String(50))  # 'familiar' o 'empresa'
+    nombre_patrocinador = Column(String(200))
+    relacion_patrocinador = Column(String(100))
+    
     usuario_id = Column(Integer)
     fecha_cita = Column(DateTime)
     tipo_visa = Column(String(100))
