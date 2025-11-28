@@ -198,17 +198,23 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       )}
 
       {/* Sección Precio Final - Oferta del Admin */}
-      {presupuestoActual && (presupuestoActual.estado === 'ofertado' || presupuestoActual.estado === 'oferta_enviada') && (
+      {presupuestoActual && (presupuestoActual.estado === 'ofertado' || presupuestoActual.estado === 'oferta_enviada' || presupuestoActual.estado === 'aceptado') && (
         <div style={{
-          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          background: presupuestoActual.estado === 'aceptado' ? 
+            'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 
+            'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
           color: 'white',
           padding: '30px',
           borderRadius: '15px',
           marginBottom: '20px',
-          boxShadow: '0 8px 25px rgba(16, 185, 129, 0.3)'
+          boxShadow: presupuestoActual.estado === 'aceptado' ? 
+            '0 8px 25px rgba(16, 185, 129, 0.3)' : 
+            '0 8px 25px rgba(59, 130, 246, 0.3)'
         }}>
           <h3 style={{ margin: '0 0 20px 0', fontSize: '24px', textAlign: 'center' }}>
-            💰 Precio Final - Oferta Personalizada
+            {presupuestoActual.estado === 'aceptado' ? 
+              '✅ Presupuesto Aceptado - Trabajo En Proceso' : 
+              '💰 Precio Final - Oferta Personalizada'}
           </h3>
           
           <div style={{
