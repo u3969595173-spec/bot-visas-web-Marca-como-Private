@@ -8998,15 +8998,14 @@ def gestionar_patrocinio(
 @app.post("/api/estudiantes/informacion-financiera", tags=["Estudiantes"])
 def guardar_informacion_financiera(
     datos: dict,
-    usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
     """Guardar información financiera del estudiante"""
-    # El usuario debe ser un estudiante, usar su ID directamente
-    estudiante_id = usuario.get('id') or usuario.get('estudiante_id')
+    # Obtener el ID del estudiante desde los datos
+    estudiante_id = datos.get('estudiante_id')
     
     if not estudiante_id:
-        raise HTTPException(status_code=400, detail="ID de estudiante no encontrado")
+        raise HTTPException(status_code=400, detail="estudiante_id es requerido")
     
     # Extraer datos del formulario
     fondos_disponibles = datos.get('fondos_disponibles', 0)

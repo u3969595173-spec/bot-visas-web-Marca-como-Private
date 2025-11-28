@@ -51,7 +51,12 @@ const InformacionFinanciera = ({ estudianteId }) => {
       setError('');
       setSuccess('');
       
-      await axios.post(`${apiUrl}/api/estudiantes/informacion-financiera`, formData);
+      const dataToSend = {
+        ...formData,
+        estudiante_id: estudianteId
+      };
+      
+      await axios.post(`${apiUrl}/api/estudiantes/informacion-financiera`, dataToSend);
       
       setSuccess('✅ Información financiera guardada correctamente');
       setEditing(false);
