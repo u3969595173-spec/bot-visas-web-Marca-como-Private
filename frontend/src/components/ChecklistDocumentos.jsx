@@ -35,12 +35,13 @@ function ChecklistDocumentos({ estudianteId }) {
 
   const cargarDocumentos = async () => {
     try {
+      const codigoAcceso = localStorage.getItem('codigo_acceso') || '';
       const [resSubidos, resGenerados] = await Promise.all([
         axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/documentos`),
-        axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/documentos-generados`)
+        axios.get(`${apiUrl}/api/estudiantes/${estudianteId}/documentos-generados?codigo_acceso=${codigoAcceso}`)
       ])
       setDocumentos(resSubidos.data.documentos || [])
-      setDocumentosGenerados(resGenerados.data || [])
+      setDocumentosGenerados(resGenerados.data.documentos || [])
     } catch (err) {
       console.error('Error cargando documentos:', err)
     } finally {
