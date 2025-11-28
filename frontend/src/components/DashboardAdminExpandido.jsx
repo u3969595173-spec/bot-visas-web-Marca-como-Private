@@ -35,6 +35,8 @@ function DashboardAdminExpandido({ onLogout }) {
   const [enviandoMensaje, setEnviandoMensaje] = useState(false)
   const [showModalGenerarDocs, setShowModalGenerarDocs] = useState(false)
   const [estudiantesAprobados, setEstudiantesAprobados] = useState([])
+  const [showEditarEstudianteModal, setShowEditarEstudianteModal] = useState(false)
+  const [estudianteEditar, setEstudianteEditar] = useState(null)
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -302,6 +304,22 @@ function DashboardAdminExpandido({ onLogout }) {
       documento_solicitado: '' 
     })
     setShowMensajeModal(true)
+  }
+
+  const abrirModalEditarEstudiante = (estudiante) => {
+    setEstudianteEditar({...estudiante})
+    setShowEditarEstudianteModal(true)
+  }
+
+  const guardarEstudiante = async () => {
+    try {
+      await axios.put(`${apiUrl}/api/admin/estudiantes/${estudianteEditar.id}`, estudianteEditar)
+      alert('✅ Estudiante actualizado correctamente')
+      setShowEditarEstudianteModal(false)
+      cargarDatos()
+    } catch (err) {
+      alert('Error al actualizar: ' + (err.response?.data?.detail || err.message))
+    }
   }
 
   const enviarMensaje = async () => {
@@ -717,6 +735,14 @@ function DashboardAdminExpandido({ onLogout }) {
                             </button>
                           </>
                         )}
+                        <button 
+                          onClick={() => abrirModalEditarEstudiante(est)}
+                          className="btn-editar"
+                          title="Editar Detalles"
+                          style={{backgroundColor: '#10b981', color: 'white', padding: '6px 10px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px', marginRight: '5px'}}
+                        >
+                          ✏️
+                        </button>
                         <button 
                           onClick={() => abrirModalMensaje(est)}
                           className="btn-mensaje"
@@ -1462,6 +1488,266 @@ function DashboardAdminExpandido({ onLogout }) {
                 style={{backgroundColor: '#3b82f6', opacity: enviandoMensaje ? 0.6 : 1}}
               >
                 {enviandoMensaje ? '⏳ Enviando...' : '📤 Enviar Mensaje'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Estudiante */}
+      {showEditarEstudianteModal && estudianteEditar && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto'}}>
+            <h3 style={{marginTop: 0, color: '#1f2937', borderBottom: '2px solid #10b981', paddingBottom: '10px'}}>
+              ✏️ Editar Datos del Estudiante
+            </h3>
+
+            {/* Información Básica */}
+            <div style={{marginBottom: '25px'}}>
+              <h4 style={{color: '#3b82f6', marginBottom: '15px', fontSize: '16px'}}>📋 Información Básica</h4>
+              
+              <div className="form-group" style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Nombre Completo:</label>
+                <input
+                  type="text"
+                  value={estudianteEditar.nombre || ''}
+                  onChange={(e) => setEstudianteEditar({...estudianteEditar, nombre: e.target.value})}
+                  style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                  placeholder="Nombre completo del estudiante"
+                />
+              </div>
+
+              <div className="form-group" style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Email:</label>
+                <input
+                  type="email"
+                  value={estudianteEditar.email || ''}
+                  onChange={(e) => setEstudianteEditar({...estudianteEditar, email: e.target.value})}
+                  style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                  placeholder="correo@ejemplo.com"
+                />
+              </div>
+
+              <div className="form-group" style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Teléfono:</label>
+                <input
+                  type="text"
+                  value={estudianteEditar.telefono || ''}
+                  onChange={(e) => setEstudianteEditar({...estudianteEditar, telefono: e.target.value})}
+                  style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                  placeholder="+34 123 456 789"
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px'}}>
+                <div className="form-group">
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Pasaporte:</label>
+                  <input
+                    type="text"
+                    value={estudianteEditar.pasaporte || ''}
+                    onChange={(e) => setEstudianteEditar({...estudianteEditar, pasaporte: e.target.value})}
+                    style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                    placeholder="ABC123456"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Edad:</label>
+                  <input
+                    type="number"
+                    value={estudianteEditar.edad || ''}
+                    onChange={(e) => setEstudianteEditar({...estudianteEditar, edad: parseInt(e.target.value)})}
+                    style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                    placeholder="25"
+                  />
+                </div>
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px'}}>
+                <div className="form-group">
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Nacionalidad:</label>
+                  <input
+                    type="text"
+                    value={estudianteEditar.nacionalidad || ''}
+                    onChange={(e) => setEstudianteEditar({...estudianteEditar, nacionalidad: e.target.value})}
+                    style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                    placeholder="Ej: Colombiana"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Ciudad Origen:</label>
+                  <input
+                    type="text"
+                    value={estudianteEditar.ciudad_origen || ''}
+                    onChange={(e) => setEstudianteEditar({...estudianteEditar, ciudad_origen: e.target.value})}
+                    style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                    placeholder="Ej: Bogotá"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Información Académica */}
+            <div style={{marginBottom: '25px'}}>
+              <h4 style={{color: '#3b82f6', marginBottom: '15px', fontSize: '16px'}}>🎓 Información Académica</h4>
+              
+              <div className="form-group" style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Especialidad:</label>
+                <input
+                  type="text"
+                  value={estudianteEditar.especialidad || ''}
+                  onChange={(e) => setEstudianteEditar({...estudianteEditar, especialidad: e.target.value})}
+                  style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                  placeholder="Ej: Ingeniería de Software"
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px'}}>
+                <div className="form-group">
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Nivel Español:</label>
+                  <select
+                    value={estudianteEditar.nivel_espanol || ''}
+                    onChange={(e) => setEstudianteEditar({...estudianteEditar, nivel_espanol: e.target.value})}
+                    style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="A1">A1 - Principiante</option>
+                    <option value="A2">A2 - Básico</option>
+                    <option value="B1">B1 - Intermedio</option>
+                    <option value="B2">B2 - Intermedio Alto</option>
+                    <option value="C1">C1 - Avanzado</option>
+                    <option value="C2">C2 - Nativo</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Tipo Visa:</label>
+                  <select
+                    value={estudianteEditar.tipo_visa || ''}
+                    onChange={(e) => setEstudianteEditar({...estudianteEditar, tipo_visa: e.target.value})}
+                    style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="estudios">Estudios</option>
+                    <option value="trabajo">Trabajo</option>
+                    <option value="residencia">Residencia</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Información Financiera */}
+            <div style={{marginBottom: '25px', backgroundColor: '#f0fdf4', padding: '15px', borderRadius: '8px', border: '1px solid #bbf7d0'}}>
+              <h4 style={{color: '#10b981', marginBottom: '15px', fontSize: '16px'}}>💰 Información Financiera</h4>
+              
+              <div className="form-group" style={{marginBottom: '15px'}}>
+                <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    checked={estudianteEditar.fondos_suficientes || false}
+                    onChange={(e) => setEstudianteEditar({...estudianteEditar, fondos_suficientes: e.target.checked})}
+                    style={{marginRight: '10px', width: '18px', height: '18px', cursor: 'pointer'}}
+                  />
+                  <span style={{fontWeight: '500', color: '#374151'}}>¿Tiene fondos suficientes?</span>
+                </label>
+              </div>
+
+              <div className="form-group" style={{marginBottom: '15px'}}>
+                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Monto de Fondos (€):</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={estudianteEditar.monto_fondos || ''}
+                  onChange={(e) => setEstudianteEditar({...estudianteEditar, monto_fondos: parseFloat(e.target.value)})}
+                  style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                  placeholder="8000.00"
+                />
+                <small style={{color: '#6b7280', fontSize: '12px'}}>Mínimo recomendado: 8,000€ por año académico</small>
+              </div>
+            </div>
+
+            {/* Información de Patrocinio */}
+            <div style={{marginBottom: '25px', backgroundColor: '#fef3c7', padding: '15px', borderRadius: '8px', border: '1px solid #fde68a'}}>
+              <h4 style={{color: '#f59e0b', marginBottom: '15px', fontSize: '16px'}}>🤝 Información de Patrocinio</h4>
+              
+              <div className="form-group" style={{marginBottom: '15px'}}>
+                <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    checked={estudianteEditar.tiene_patrocinador || false}
+                    onChange={(e) => setEstudianteEditar({...estudianteEditar, tiene_patrocinador: e.target.checked})}
+                    style={{marginRight: '10px', width: '18px', height: '18px', cursor: 'pointer'}}
+                  />
+                  <span style={{fontWeight: '500', color: '#374151'}}>¿Tiene patrocinador?</span>
+                </label>
+              </div>
+
+              {estudianteEditar.tiene_patrocinador && (
+                <>
+                  <div className="form-group" style={{marginBottom: '15px'}}>
+                    <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Tipo de Patrocinador:</label>
+                    <select
+                      value={estudianteEditar.tipo_patrocinador || ''}
+                      onChange={(e) => setEstudianteEditar({...estudianteEditar, tipo_patrocinador: e.target.value})}
+                      style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                    >
+                      <option value="">Seleccionar...</option>
+                      <option value="familiar">Familiar</option>
+                      <option value="empresa">Empresa</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group" style={{marginBottom: '15px'}}>
+                    <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Nombre del Patrocinador:</label>
+                    <input
+                      type="text"
+                      value={estudianteEditar.nombre_patrocinador || ''}
+                      onChange={(e) => setEstudianteEditar({...estudianteEditar, nombre_patrocinador: e.target.value})}
+                      style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                      placeholder="Nombre completo del patrocinador"
+                    />
+                  </div>
+
+                  {estudianteEditar.tipo_patrocinador === 'familiar' && (
+                    <div className="form-group" style={{marginBottom: '15px'}}>
+                      <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Relación con el Patrocinador:</label>
+                      <select
+                        value={estudianteEditar.relacion_patrocinador || ''}
+                        onChange={(e) => setEstudianteEditar({...estudianteEditar, relacion_patrocinador: e.target.value})}
+                        style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                      >
+                        <option value="">Seleccionar...</option>
+                        <option value="padre">Padre</option>
+                        <option value="madre">Madre</option>
+                        <option value="hermano">Hermano/a</option>
+                        <option value="abuelo">Abuelo/a</option>
+                        <option value="tio">Tío/a</option>
+                        <option value="otro">Otro Familiar</option>
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="modal-actions" style={{display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '15px', borderTop: '1px solid #e5e7eb'}}>
+              <button 
+                onClick={() => {
+                  setShowEditarEstudianteModal(false)
+                  setEstudianteEditar(null)
+                }} 
+                className="btn-cancelar"
+                style={{padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '14px'}}
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={guardarEstudiante} 
+                className="btn-confirmar"
+                style={{padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '14px', fontWeight: '500'}}
+              >
+                💾 Guardar Cambios
               </button>
             </div>
           </div>

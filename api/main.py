@@ -2387,7 +2387,13 @@ def generar_documentos_estudiante(
         'ciudad_origen': estudiante.ciudad_origen,
         'especialidad': estudiante.especialidad,
         'nivel_espanol': estudiante.nivel_espanol,
-        'tipo_visa': estudiante.tipo_visa
+        'tipo_visa': estudiante.tipo_visa,
+        'fondos_suficientes': estudiante.fondos_suficientes,
+        'monto_fondos': float(estudiante.monto_fondos) if estudiante.monto_fondos else 0.0,
+        'tiene_patrocinador': estudiante.tiene_patrocinador,
+        'tipo_patrocinador': estudiante.tipo_patrocinador,
+        'nombre_patrocinador': estudiante.nombre_patrocinador,
+        'relacion_patrocinador': estudiante.relacion_patrocinador
     }
     
     documentos_generados = []
@@ -4356,7 +4362,9 @@ def actualizar_estudiante(
     campos_permitidos = ['nombre', 'email', 'telefono', 'pasaporte', 'edad', 
                          'nacionalidad', 'pais_origen', 'ciudad_origen', 
                          'carrera_deseada', 'especialidad', 'nivel_espanol', 
-                         'tipo_visa', 'fondos_disponibles', 'notas']
+                         'tipo_visa', 'fondos_disponibles', 'notas',
+                         'fondos_suficientes', 'monto_fondos', 'tiene_patrocinador',
+                         'tipo_patrocinador', 'nombre_patrocinador', 'relacion_patrocinador']
     
     updates = []
     params = {"id": estudiante_id}
