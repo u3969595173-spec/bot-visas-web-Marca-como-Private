@@ -8816,14 +8816,15 @@ async def actualizar_paso_proceso(
 
 @app.post("/api/presupuestos", tags=["Presupuestos"])
 def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
-    """Estudiante solicita presupuesto de servicios"""
+    """Estudiante solicita presupuesto de servicios personalizados"""
     import json
     estudiante_id = datos.get('estudiante_id')
-    servicios = datos.get('servicios', [])
-    precio_solicitado = datos.get('precio_solicitado', 0)
+    servicios_solicitados = datos.get('servicios_solicitados', [])
+    comentarios_estudiante = datos.get('comentarios_estudiante', '')
+    estado = datos.get('estado', 'pendiente')
     
-    if not estudiante_id or not servicios:
-        raise HTTPException(status_code=400, detail="Faltan datos requeridos")
+    if not estudiante_id or not servicios_solicitados:
+        raise HTTPException(status_code=400, detail="Faltan datos requeridos: estudiante_id y servicios_solicitados")
     
     # Verificar que el estudiante existe
     check = db.execute(text("SELECT id FROM estudiantes WHERE id = :id"), 
@@ -8831,35 +8832,49 @@ def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
     if not check:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
-    # Insertar presupuesto
-    servicios_json = json.dumps(servicios)
+    # Insertar presupuesto con nueva estructura
+    servicios_json = json.dumps(servicios_solicitados)
     result = db.execute(text("""
-        INSERT INTO presupuestos (estudiante_id, servicios, precio_solicitado, estado, created_at, updated_at)
-        VALUES (:estudiante_id, :servicios, :precio, 'pendiente', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        INSERT INTO presupuestos (
+            estudiante_id, servicios_solicitados, comentarios_estudiante, 
+            estado, created_at, updated_at
+        )
+        VALUES (
+            :estudiante_id, :servicios_solicitados, :comentarios_estudiante,
+            :estado, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        )
         RETURNING id
     """), {
         "estudiante_id": estudiante_id,
-        "servicios": servicios_json,
-        "precio": precio_solicitado
+        "servicios_solicitados": servicios_json,
+        "comentarios_estudiante": comentarios_estudiante,
+        "estado": estado
     })
     db.commit()
     
     presupuesto_id = result.fetchone()[0]
     
-    log_event("presupuesto_creado", {
+    log_event("presupuesto_solicitado", {
         'presupuesto_id': presupuesto_id,
         'estudiante_id': estudiante_id,
-        'precio_solicitado': precio_solicitado
+        'servicios_count': len(servicios_solicitados)
     })
     
-    return {"message": "Presupuesto creado", "id": presupuesto_id}
+    return {"message": "Solicitud de presupuesto creada exitosamente", "id": presupuesto_id}
 
 
 @app.get("/api/presupuestos/estudiante/{estudiante_id}", tags=["Presupuestos"])
 def obtener_presupuestos_estudiante(estudiante_id: int, db: Session = Depends(get_db)):
-    """Obtener presupuestos de un estudiante"""
+    """Obtener presupuestos de un estudiante con modalidades de pago"""
     result = db.execute(text("""
-        SELECT p.*, e.nombre, e.email
+        SELECT 
+            p.id, p.estudiante_id, p.servicios, p.precio_solicitado,
+            p.precio_ofertado, p.forma_pago, p.mensaje_admin, p.estado,
+            p.created_at, p.updated_at,
+            p.servicios_solicitados, p.precio_al_empezar, p.precio_con_visa,
+            p.precio_financiado, p.modalidad_seleccionada, p.comentarios_estudiante,
+            p.fecha_aceptacion, p.fecha_pago, p.pagado,
+            e.nombre, e.email
         FROM presupuestos p
         JOIN estudiantes e ON p.estudiante_id = e.id
         WHERE p.estudiante_id = :estudiante_id
@@ -8871,7 +8886,7 @@ def obtener_presupuestos_estudiante(estudiante_id: int, db: Session = Depends(ge
         presupuestos.append({
             'id': row[0],
             'estudiante_id': row[1],
-            'servicios': row[2],
+            'servicios': row[2],  # Campo legacy
             'precio_solicitado': float(row[3]) if row[3] else 0,
             'precio_ofertado': float(row[4]) if row[4] else None,
             'forma_pago': row[5],
@@ -8879,8 +8894,17 @@ def obtener_presupuestos_estudiante(estudiante_id: int, db: Session = Depends(ge
             'estado': row[7],
             'created_at': row[8].isoformat() if row[8] else None,
             'updated_at': row[9].isoformat() if row[9] else None,
-            'nombre_estudiante': row[10],
-            'email_estudiante': row[11]
+            'servicios_solicitados': row[10],  # Nuevos servicios
+            'precio_al_empezar': float(row[11]) if row[11] else None,
+            'precio_con_visa': float(row[12]) if row[12] else None,
+            'precio_financiado': float(row[13]) if row[13] else None,
+            'modalidad_seleccionada': row[14],
+            'comentarios_estudiante': row[15],
+            'fecha_aceptacion': row[16].isoformat() if row[16] else None,
+            'fecha_pago': row[17].isoformat() if row[17] else None,
+            'pagado': bool(row[18]) if row[18] is not None else False,
+            'nombre_estudiante': row[19],
+            'email_estudiante': row[20]
         })
     
     return presupuestos
@@ -8891,9 +8915,16 @@ def listar_presupuestos_admin(
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
-    """Listar todos los presupuestos para el admin"""
+    """Listar todos los presupuestos para el admin con modalidades de pago"""
     result = db.execute(text("""
-        SELECT p.*, e.nombre, e.email, e.telefono
+        SELECT 
+            p.id, p.estudiante_id, p.servicios, p.precio_solicitado,
+            p.precio_ofertado, p.forma_pago, p.mensaje_admin, p.estado,
+            p.created_at, p.updated_at,
+            p.servicios_solicitados, p.precio_al_empezar, p.precio_con_visa,
+            p.precio_financiado, p.modalidad_seleccionada, p.comentarios_estudiante,
+            p.fecha_aceptacion, p.fecha_pago, p.pagado,
+            e.nombre, e.email, e.telefono
         FROM presupuestos p
         JOIN estudiantes e ON p.estudiante_id = e.id
         ORDER BY 
@@ -8911,7 +8942,7 @@ def listar_presupuestos_admin(
         presupuestos.append({
             'id': row[0],
             'estudiante_id': row[1],
-            'servicios': row[2],
+            'servicios': row[2],  # Campo legacy
             'precio_solicitado': float(row[3]) if row[3] else 0,
             'precio_ofertado': float(row[4]) if row[4] else None,
             'forma_pago': row[5],
@@ -8919,56 +8950,218 @@ def listar_presupuestos_admin(
             'estado': row[7],
             'created_at': row[8].isoformat() if row[8] else None,
             'updated_at': row[9].isoformat() if row[9] else None,
-            'nombre_estudiante': row[10],
-            'email_estudiante': row[11],
-            'telefono_estudiante': row[12]
+            'servicios_solicitados': row[10],  # Nuevos servicios
+            'precio_al_empezar': float(row[11]) if row[11] else None,
+            'precio_con_visa': float(row[12]) if row[12] else None,
+            'precio_financiado': float(row[13]) if row[13] else None,
+            'modalidad_seleccionada': row[14],
+            'comentarios_estudiante': row[15],
+            'fecha_aceptacion': row[16].isoformat() if row[16] else None,
+            'fecha_pago': row[17].isoformat() if row[17] else None,
+            'pagado': bool(row[18]) if row[18] is not None else False,
+            'nombre_estudiante': row[19],
+            'email_estudiante': row[20],
+            'telefono_estudiante': row[21]
         })
     
     return presupuestos
 
 
-@app.put("/api/admin/presupuestos/{presupuesto_id}/contraoferta", tags=["Admin"])
-def hacer_contraoferta(
+@app.put("/api/admin/presupuestos/{presupuesto_id}/ofertar-modalidades", tags=["Admin"])
+def ofertar_modalidades_pago(
     presupuesto_id: int,
     datos: dict,
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
-    """Admin hace contraoferta a presupuesto"""
-    precio_ofertado = datos.get('precio_ofertado')
-    forma_pago = datos.get('forma_pago', '')
+    """Admin envía oferta con modalidades de pago personalizadas"""
+    precio_al_empezar = datos.get('precio_al_empezar')
+    precio_con_visa = datos.get('precio_con_visa')
+    precio_financiado = datos.get('precio_financiado')
     mensaje_admin = datos.get('mensaje_admin', '')
     
-    if not precio_ofertado:
-        raise HTTPException(status_code=400, detail="precio_ofertado es requerido")
+    # Validar que al menos una modalidad esté presente
+    modalidades_presentes = [precio_al_empezar, precio_con_visa, precio_financiado]
+    if not any(modalidades_presentes):
+        raise HTTPException(
+            status_code=400, 
+            detail="Debe especificar al menos una modalidad de pago"
+        )
     
+    # Agregar nota automática sobre rechazo y nueva solicitud
+    mensaje_con_nota = f"{mensaje_admin}\n\n📝 NOTA IMPORTANTE: Puedes rechazar esta oferta y solicitar un nuevo presupuesto si no se ajusta a tus necesidades. Estamos aquí para encontrar la mejor solución para ti."
+    
+    # Actualizar presupuesto con modalidades
     db.execute(text("""
         UPDATE presupuestos
-        SET precio_ofertado = :precio,
-            forma_pago = :forma_pago,
+        SET precio_al_empezar = :precio_empezar,
+            precio_con_visa = :precio_visa,
+            precio_financiado = :precio_financiado,
             mensaje_admin = :mensaje,
             estado = 'ofertado',
             updated_at = CURRENT_TIMESTAMP
         WHERE id = :id
     """), {
         "id": presupuesto_id,
-        "precio": precio_ofertado,
-        "forma_pago": forma_pago,
-        "mensaje": mensaje_admin
+        "precio_empezar": precio_al_empezar,
+        "precio_visa": precio_con_visa,
+        "precio_financiado": precio_financiado,
+        "mensaje": mensaje_con_nota
     })
     db.commit()
     
-    log_event("contraoferta_enviada", {
+    log_event("oferta_modalidades_enviada", {
         'presupuesto_id': presupuesto_id,
-        'precio_ofertado': precio_ofertado
+        'modalidades_ofrecidas': len([m for m in modalidades_presentes if m is not None])
     })
     
-    return {"message": "Contraoferta enviada exitosamente"}
+    return {"message": "Oferta con modalidades enviada exitosamente"}
+
+
+@app.get("/api/admin/tesoro", tags=["Admin"])
+def ver_tesoro_pagos(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Tesoro: Ver todos los estudiantes con presupuestos aceptados y estado de pago"""
+    result = db.execute(text("""
+        SELECT 
+            p.id, p.estudiante_id, p.modalidad_seleccionada,
+            p.precio_al_empezar, p.precio_con_visa, p.precio_financiado,
+            p.fecha_aceptacion, p.fecha_pago, p.pagado,
+            e.nombre, e.email, e.telefono
+        FROM presupuestos p
+        JOIN estudiantes e ON p.estudiante_id = e.id
+        WHERE p.estado = 'aceptado'
+        ORDER BY 
+            p.pagado ASC,  -- No pagados primero
+            p.fecha_aceptacion DESC
+    """))
+    
+    pagos_pendientes = []
+    for row in result:
+        # Calcular monto según modalidad seleccionada
+        modalidad = row[2]
+        monto_a_pagar = 0
+        
+        if modalidad == 'al_empezar' and row[3]:
+            monto_a_pagar = float(row[3])
+        elif modalidad == 'con_visa' and row[4]:
+            monto_a_pagar = float(row[4])
+        elif modalidad == 'financiado' and row[5]:
+            monto_a_pagar = float(row[5])
+        
+        pagos_pendientes.append({
+            'presupuesto_id': row[0],
+            'estudiante_id': row[1],
+            'modalidad_seleccionada': modalidad,
+            'monto_a_pagar': monto_a_pagar,
+            'fecha_aceptacion': row[6].isoformat() if row[6] else None,
+            'fecha_pago': row[7].isoformat() if row[7] else None,
+            'pagado': bool(row[8]) if row[8] is not None else False,
+            'nombre_estudiante': row[9],
+            'email_estudiante': row[10],
+            'telefono_estudiante': row[11]
+        })
+    
+    # Estadísticas del tesoro
+    total_pendiente = sum(p['monto_a_pagar'] for p in pagos_pendientes if not p['pagado'])
+    total_pagado = sum(p['monto_a_pagar'] for p in pagos_pendientes if p['pagado'])
+    
+    return {
+        'pagos': pagos_pendientes,
+        'estadisticas': {
+            'total_pendiente': total_pendiente,
+            'total_pagado': total_pagado,
+            'estudiantes_pendientes': len([p for p in pagos_pendientes if not p['pagado']]),
+            'estudiantes_pagados': len([p for p in pagos_pendientes if p['pagado']])
+        }
+    }
+
+
+@app.put("/api/admin/tesoro/{presupuesto_id}/marcar-pagado", tags=["Admin"])
+def marcar_como_pagado(
+    presupuesto_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin marca un presupuesto como pagado"""
+    db.execute(text("""
+        UPDATE presupuestos
+        SET pagado = true,
+            fecha_pago = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :id AND estado = 'aceptado'
+    """), {"id": presupuesto_id})
+    
+    if db.rowcount == 0:
+        raise HTTPException(
+            status_code=404, 
+            detail="Presupuesto no encontrado o no está en estado aceptado"
+        )
+    
+    db.commit()
+    
+    log_event("pago_marcado", {
+        'presupuesto_id': presupuesto_id
+    })
+    
+    return {"message": "Pago marcado exitosamente"}
 
 
 @app.put("/api/presupuestos/{presupuesto_id}/respuesta", tags=["Presupuestos"])
 def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depends(get_db)):
-    """Estudiante acepta o rechaza contraoferta"""
+    """Estudiante acepta o rechaza oferta con modalidades de pago"""
+    aceptar = datos.get('aceptar')
+    modalidad_seleccionada = datos.get('modalidad_seleccionada')  # 'al_empezar', 'con_visa', 'financiado'
+    
+    if aceptar is None:
+        raise HTTPException(status_code=400, detail="Campo 'aceptar' es requerido")
+    
+    if aceptar:
+        if not modalidad_seleccionada:
+            raise HTTPException(
+                status_code=400, 
+                detail="Debe seleccionar una modalidad de pago al aceptar"
+            )
+        
+        # Aceptar con modalidad seleccionada
+        db.execute(text("""
+            UPDATE presupuestos
+            SET estado = 'aceptado',
+                modalidad_seleccionada = :modalidad,
+                fecha_aceptacion = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id
+        """), {
+            "id": presupuesto_id,
+            "modalidad": modalidad_seleccionada
+        })
+        
+        mensaje = f"Oferta aceptada con modalidad: {modalidad_seleccionada}"
+        log_event("oferta_aceptada", {
+            'presupuesto_id': presupuesto_id,
+            'modalidad_seleccionada': modalidad_seleccionada
+        })
+    else:
+        # Rechazar - Permitir que el estudiante haga nuevas solicitudes
+        db.execute(text("""
+            UPDATE presupuestos
+            SET estado = 'rechazado',
+                comentarios_estudiante = COALESCE(comentarios_estudiante, '') || ' - Rechazado por el estudiante',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id
+        """), {"id": presupuesto_id})
+        
+        mensaje = "Oferta rechazada. Puedes hacer una nueva solicitud de presupuesto cuando quieras."
+        log_event("oferta_rechazada", {
+            'presupuesto_id': presupuesto_id,
+            'puede_rehacer_solicitud': True
+        })
+    
+    db.commit()
+    
+    return {"message": mensaje}
     aceptar = datos.get('aceptar', False)
     estado = 'aceptado' if aceptar else 'rechazado'
     

@@ -188,38 +188,116 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         </div>
       )}
 
-      {/* Alerta de Contraoferta Recibida */}
+      {/* Sección Precio Final - Oferta del Admin */}
       {presupuestoActual && presupuestoActual.estado === 'ofertado' && (
         <div style={{
           background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
           color: 'white',
-          padding: '25px',
-          borderRadius: '10px',
+          padding: '30px',
+          borderRadius: '15px',
           marginBottom: '20px',
-          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+          boxShadow: '0 8px 25px rgba(16, 185, 129, 0.3)'
         }}>
-          <h3 style={{ margin: '0 0 15px 0', fontSize: '20px' }}>
-            💰 ¡Tienes una Oferta Personalizada!
+          <h3 style={{ margin: '0 0 20px 0', fontSize: '24px', textAlign: 'center' }}>
+            💰 Precio Final - Oferta Personalizada
           </h3>
           
           <div style={{
-            background: 'rgba(255, 255, 255, 0.2)',
-            padding: '20px',
-            borderRadius: '8px',
-            marginBottom: '20px'
+            background: 'rgba(255, 255, 255, 0.15)',
+            padding: '25px',
+            borderRadius: '12px',
+            marginBottom: '25px'
           }}>
-            <div style={{marginBottom: '12px'}}>
-              <strong>Precio Ofertado:</strong> <span style={{fontSize: '28px', fontWeight: '700'}}>{presupuestoActual.precio_ofertado}€</span>
+            <h4 style={{margin: '0 0 20px 0', fontSize: '18px', color: '#ecfdf5'}}>
+              📋 Servicios Solicitados:
+            </h4>
+            {presupuestoActual.servicios_solicitados && (
+              <ul style={{margin: '0 0 20px 0', paddingLeft: '20px'}}>
+                {JSON.parse(presupuestoActual.servicios_solicitados).map((servicio, index) => (
+                  <li key={index} style={{marginBottom: '5px', fontSize: '14px'}}>{servicio}</li>
+                ))}
+              </ul>
+            )}
+            
+            {/* Modalidades de Pago Disponibles */}
+            <div style={{marginTop: '20px'}}>
+              <h4 style={{margin: '0 0 15px 0', fontSize: '16px', color: '#ecfdf5'}}>
+                💳 Modalidades de Pago Disponibles:
+              </h4>
+              
+              {presupuestoActual.precio_al_empezar && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  marginBottom: '10px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}>
+                  <strong>🚀 Precio al Empezar:</strong> 
+                  <span style={{fontSize: '20px', fontWeight: '700', marginLeft: '10px'}}>
+                    €{presupuestoActual.precio_al_empezar}
+                  </span>
+                  <p style={{margin: '5px 0 0 0', fontSize: '12px', opacity: '0.9'}}>
+                    Pago completo al iniciar el proceso
+                  </p>
+                </div>
+              )}
+              
+              {presupuestoActual.precio_con_visa && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  marginBottom: '10px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}>
+                  <strong>🎯 Precio una vez Obtenida la Visa:</strong> 
+                  <span style={{fontSize: '20px', fontWeight: '700', marginLeft: '10px'}}>
+                    €{presupuestoActual.precio_con_visa}
+                  </span>
+                  <p style={{margin: '5px 0 0 0', fontSize: '12px', opacity: '0.9'}}>
+                    Pago al recibir la visa aprobada
+                  </p>
+                </div>
+              )}
+              
+              {presupuestoActual.precio_financiado && (
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  marginBottom: '10px',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}>
+                  <strong>📅 Precio Financiado 12 Meses:</strong> 
+                  <span style={{fontSize: '20px', fontWeight: '700', marginLeft: '10px'}}>
+                    €{presupuestoActual.precio_financiado}
+                  </span>
+                  <p style={{margin: '5px 0 0 0', fontSize: '12px', opacity: '0.9'}}>
+                    Pago mensual: €{(presupuestoActual.precio_financiado / 12).toFixed(2)} x 12 meses
+                  </p>
+                </div>
+              )}
             </div>
-            <div style={{marginBottom: '12px'}}>
-              <strong>Forma de Pago:</strong> {presupuestoActual.forma_pago}
-            </div>
+
             {presupuestoActual.mensaje_admin && (
-              <div>
-                <strong>Mensaje del equipo:</strong>
-                <p style={{marginTop: '8px', opacity: 0.95}}>{presupuestoActual.mensaje_admin}</p>
+              <div style={{marginTop: '20px', padding: '15px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px'}}>
+                <strong>💬 Mensaje del equipo:</strong>
+                <p style={{marginTop: '8px', opacity: 0.95, fontSize: '14px'}}>{presupuestoActual.mensaje_admin}</p>
               </div>
             )}
+          </div>
+
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            padding: '15px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            textAlign: 'center'
+          }}>
+            <p style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>
+              💬 Para cualquier duda, contacta por chat al administrador
+            </p>
           </div>
 
           <div style={{display: 'flex', gap: '15px', flexWrap: 'wrap'}}>
@@ -559,60 +637,123 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
 
             <div style={{marginBottom: '30px'}}>
               {[
-                {id: 'gestion_visa', nombre: 'Gestión completa de visa de estudios', precio: 100},
-                {id: 'busqueda_universidad', nombre: 'Búsqueda y aplicación a universidades', precio: 100},
-                {id: 'carta_aceptacion', nombre: 'Gestión de carta de aceptación', precio: 100},
-                {id: 'seguro_medico', nombre: 'Contratación de seguro médico', precio: 100},
-                {id: 'busqueda_vivienda', nombre: 'Búsqueda y reserva de alojamiento', precio: 100},
-                {id: 'traduccion_documentos', nombre: 'Traducción oficial de documentos', precio: 100},
-                {id: 'apostilla', nombre: 'Gestión de apostilla de documentos', precio: 100},
-                {id: 'asesoria_bancaria', nombre: 'Asesoría para apertura de cuenta bancaria', precio: 100},
-                {id: 'preparacion_entrevista', nombre: 'Preparación para entrevista consular', precio: 100},
-                {id: 'tramite_urgente', nombre: 'Trámite urgente (express)', precio: 100}
+                {
+                  id: 'gestion_basica_documentos', 
+                  nombre: 'Gestión Básica de Documentos',
+                  descripcion: 'Organización, revisión y preparación de todos tus documentos académicos y personales necesarios para el proceso de visa. Incluye verificación de completitud y formato requerido.'
+                },
+                {
+                  id: 'solicitud_universitaria', 
+                  nombre: 'Solicitud Universitaria',
+                  descripcion: 'Búsqueda personalizada de universidades según tu perfil académico, aplicación completa a múltiples instituciones, seguimiento del proceso y obtención de carta de aceptación.'
+                },
+                {
+                  id: 'legalizacion_apostillamiento', 
+                  nombre: 'Legalización y Apostillamiento',
+                  descripcion: 'Legalización de tu título y documentos académicos en órganos rectores de tu país, apostillado en cancillería y preparación para validación internacional.'
+                },
+                {
+                  id: 'antecedentes_penales', 
+                  nombre: 'Antecedentes Penales',
+                  descripcion: 'Obtención de certificado de antecedentes penales, legalización en instancias correspondientes, apostillado y preparación del documento para presentación consular.'
+                },
+                {
+                  id: 'cita_preparacion_consular', 
+                  nombre: 'Cita y Preparación Consular',
+                  descripcion: 'Agendamiento de cita en consulado, preparación completa para entrevista, simulacros, revisión de documentación requerida y acompañamiento en el proceso.'
+                },
+                {
+                  id: 'seguimiento_visa_otorgada', 
+                  nombre: 'Seguimiento Hasta Visa Otorgada',
+                  descripcion: 'Monitoreo constante del estado de tu solicitud, comunicación con consulado, resolución de requerimientos adicionales y acompañamiento hasta obtención de visa.'
+                },
+                {
+                  id: 'alojamiento_cita', 
+                  nombre: 'Gestión de Alojamiento',
+                  descripcion: 'Esto es solo para llevar a la cita consular como comprobante de alojamiento planificado. Búsqueda y reserva temporal de accommodation.',
+                  esParaCita: true,
+                  navegarA: '/informacion-alojamiento'
+                },
+                {
+                  id: 'seguro_medico_real', 
+                  nombre: 'Seguro Médico Internacional',
+                  descripcion: 'Este seguro sí te va a servir allí. Contratación de seguro médico internacional válido para estudios, con cobertura completa y reconocimiento oficial.',
+                  navegarA: '/informacion-seguro-medico'
+                },
+                {
+                  id: 'financiacion_cita', 
+                  nombre: 'Demostración Financiera',
+                  descripcion: 'Esto es solo para llevar a la cita consular. Preparación de documentos bancarios, certificaciones de solvencia y comprobantes financieros requeridos.',
+                  esParaCita: true,
+                  navegarA: '/informacion-financiera'
+                }
               ].map(servicio => (
                 <div key={servicio.id} style={{
                   backgroundColor: serviciosSeleccionados[servicio.id] ? '#d1fae5' : '#f9fafb',
-                  padding: '15px',
-                  borderRadius: '8px',
-                  marginBottom: '10px',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  marginBottom: '15px',
                   border: serviciosSeleccionados[servicio.id] ? '2px solid #10b981' : '1px solid #e5e7eb',
                   cursor: 'pointer',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  boxShadow: serviciosSeleccionados[servicio.id] ? '0 4px 12px rgba(16, 185, 129, 0.2)' : '0 2px 4px rgba(0,0,0,0.1)'
                 }}
                 onClick={() => {
+                  // Si es un servicio que navega a otro componente
+                  if (servicio.navegarA) {
+                    if (confirm(`Este servicio requiere completar información adicional. ¿Quieres ir a rellenar la solicitud ahora?`)) {
+                      navigate(`${servicio.navegarA}/${estudianteId}`);
+                      return;
+                    }
+                  }
+                  
                   setServiciosSeleccionados(prev => ({
                     ...prev,
                     [servicio.id]: !prev[servicio.id]
                   }))
                 }}
                 >
-                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-                    <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-                      <input
-                        type="checkbox"
-                        checked={serviciosSeleccionados[servicio.id] || false}
-                        onChange={() => {}}
-                        style={{width: '20px', height: '20px', cursor: 'pointer'}}
-                      />
-                      <div>
-                        <strong style={{color: '#1f2937', fontSize: '15px'}}>{servicio.nombre}</strong>
+                  <div style={{display: 'flex', alignItems: 'flex-start', gap: '15px'}}>
+                    <input
+                      type="checkbox"
+                      checked={serviciosSeleccionados[servicio.id] || false}
+                      onChange={() => {}}
+                      style={{width: '20px', height: '20px', cursor: 'pointer', marginTop: '2px'}}
+                    />
+                    <div style={{flex: 1}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+                        <strong style={{color: '#1f2937', fontSize: '16px'}}>{servicio.nombre}</strong>
+                        {servicio.esParaCita && (
+                          <span style={{
+                            backgroundColor: '#fbbf24',
+                            color: '#92400e',
+                            fontSize: '11px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontWeight: '600'
+                          }}>SOLO PARA CITA</span>
+                        )}
+                        {servicio.navegarA && (
+                          <span style={{
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            fontSize: '11px',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontWeight: '600'
+                          }}>REQUIERE FORMULARIO</span>
+                        )}
                       </div>
-                    </div>
-                    <div style={{
-                      backgroundColor: serviciosSeleccionados[servicio.id] ? '#10b981' : '#6b7280',
-                      color: 'white',
-                      padding: '6px 12px',
-                      borderRadius: '5px',
-                      fontWeight: '600'
-                    }}>
-                      {servicio.precio}€
+                      <p style={{color: '#6b7280', fontSize: '14px', margin: 0, lineHeight: '1.4'}}>
+                        {servicio.descripcion}
+                      </p>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Resumen de Precio */}
+            {/* Resumen de Servicios Seleccionados */}
             <div style={{
               backgroundColor: '#f0fdf4',
               padding: '20px',
@@ -620,29 +761,45 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               border: '2px solid #10b981',
               marginBottom: '20px'
             }}>
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                <div>
-                  <h4 style={{margin: '0 0 5px 0', color: '#065f46', fontSize: '16px'}}>Total Estimado:</h4>
-                  <p style={{margin: 0, fontSize: '13px', color: '#059669'}}>
-                    {Object.values(serviciosSeleccionados).filter(Boolean).length} servicios seleccionados
+              <div>
+                <h4 style={{margin: '0 0 15px 0', color: '#065f46', fontSize: '18px'}}>📋 Servicios Seleccionados</h4>
+                <p style={{margin: '0 0 10px 0', fontSize: '16px', color: '#059669', fontWeight: '600'}}>
+                  {Object.values(serviciosSeleccionados).filter(Boolean).length} servicios solicitados
+                </p>
+                {Object.values(serviciosSeleccionados).filter(Boolean).length > 0 && (
+                  <p style={{margin: 0, fontSize: '14px', color: '#065f46'}}>
+                    ✅ Tu solicitud será revisada y recibirás una oferta personalizada
                   </p>
-                </div>
-                <div style={{fontSize: '32px', fontWeight: '700', color: '#10b981'}}>
-                  {Object.values(serviciosSeleccionados).filter(Boolean).length * 100}€
-                </div>
+                )}
               </div>
             </div>
 
             <div style={{
-              backgroundColor: '#fef3c7',
-              padding: '15px',
-              borderRadius: '8px',
+              backgroundColor: '#e0f2fe',
+              padding: '20px',
+              borderRadius: '12px',
               marginBottom: '20px',
-              border: '1px solid #fde68a'
+              border: '1px solid #81d4fa'
             }}>
-              <p style={{margin: 0, fontSize: '14px', color: '#92400e'}}>
-                ℹ️ <strong>Importante:</strong> Este es un precio estimado. Una vez enviada tu solicitud, revisaremos tu caso y te enviaremos una oferta personalizada con forma de pago.
-              </p>
+              <div style={{marginBottom: '15px'}}>
+                <h4 style={{margin: '0 0 10px 0', color: '#01579b', fontSize: '16px'}}>💰 Proceso de Presupuesto:</h4>
+                <ol style={{margin: 0, paddingLeft: '20px', color: '#0277bd', fontSize: '14px'}}>
+                  <li>Seleccionas los servicios que necesitas</li>
+                  <li>Nuestro equipo revisa tu solicitud personalizada</li>
+                  <li>Te enviamos una oferta con modalidades de pago</li>
+                  <li>Puedes aceptar, rechazar o consultar dudas por chat</li>
+                </ol>
+              </div>
+              <div style={{
+                backgroundColor: '#b3e5fc',
+                padding: '12px',
+                borderRadius: '8px',
+                marginTop: '15px'
+              }}>
+                <p style={{margin: 0, fontSize: '14px', color: '#01579b', fontWeight: '600'}}>
+                  💬 Para cualquier duda, contacta por chat al administrador
+                </p>
+              </div>
             </div>
 
             <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
@@ -670,7 +827,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                     .map(([id]) => id);
                   
                   if (serviciosArray.length === 0) {
-                    alert('⚠️ Por favor selecciona al menos un servicio');
+                    alert('⚠️ Por favor selecciona al menos un servicio para solicitar presupuesto');
                     return;
                   }
 
@@ -678,30 +835,47 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
                     await axios.post(`${apiUrl}/api/presupuestos`, {
                       estudiante_id: estudianteId,
-                      servicios: serviciosArray,
-                      precio_solicitado: serviciosArray.length * 100
+                      servicios_solicitados: serviciosArray,
+                      estado: 'pendiente',
+                      comentarios_estudiante: 'Solicitud de presupuesto personalizado'
                     });
-                    alert('✅ Solicitud enviada. Te enviaremos una oferta personalizada pronto.');
+                    alert('✅ Solicitud enviada exitosamente!\n\nNuestro equipo revisará tu solicitud y te enviará una oferta personalizada con diferentes modalidades de pago.\n\nPuedes consultar dudas por chat.');
                     setShowPresupuestoModal(false);
                     setServiciosSeleccionados({});
                   } catch (err) {
+                    console.error('Error enviando solicitud:', err);
                     alert('❌ Error al enviar solicitud: ' + (err.response?.data?.detail || err.message));
                   }
                 }}
                 disabled={Object.values(serviciosSeleccionados).filter(Boolean).length === 0}
                 style={{
-                  padding: '10px 20px',
+                  padding: '12px 30px',
                   backgroundColor: Object.values(serviciosSeleccionados).filter(Boolean).length > 0 ? '#10b981' : '#d1d5db',
                   color: 'white',
+                  fontSize: '16px',
+                  fontWeight: '600',
                   border: 'none',
-                  borderRadius: '5px',
+                  borderRadius: '8px',
                   cursor: Object.values(serviciosSeleccionados).filter(Boolean).length > 0 ? 'pointer' : 'not-allowed',
-                  fontSize: '14px',
-                  fontWeight: '600'
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  transition: 'all 0.2s'
                 }}
               >
-                📤 Enviar Solicitud
+                💰 Solicitar Presupuesto Personalizado
               </button>
+            </div>
+
+            {/* Nota sobre presupuestos rechazados */}
+            <div style={{
+              marginTop: '20px',
+              padding: '15px',
+              backgroundColor: '#e6f3ff',
+              borderLeft: '4px solid #2563eb',
+              borderRadius: '8px'
+            }}>
+              <p style={{margin: 0, fontSize: '13px', color: '#1e40af', lineHeight: '1.5'}}>
+                💡 <strong>¿Rechazaste alguna oferta anterior?</strong> No te preocupes, puedes solicitar un nuevo presupuesto las veces que necesites hasta encontrar la opción perfecta para ti. Nuestro equipo está aquí para ayudarte.
+              </p>
             </div>
           </div>
         </div>
