@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-function TesoroAdmin() {
+function TesoroAdmin({ embedded = false }) {
   const [pagos, setPagos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -88,13 +88,15 @@ function TesoroAdmin() {
             Gestión de todos los pagos pendientes y realizados
           </p>
         </div>
-        <button
-          onClick={() => navigate('/admin')}
-          className="btn"
-          style={{ background: 'white', color: '#667eea' }}
-        >
-          ← Volver al Dashboard
-        </button>
+        {!embedded && (
+          <button
+            onClick={() => navigate('/admin')}
+            className="btn"
+            style={{ background: 'white', color: '#667eea' }}
+          >
+            ← Volver al Dashboard
+          </button>
+        )}
       </div>
 
       {/* Alertas */}

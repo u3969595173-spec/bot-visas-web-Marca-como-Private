@@ -832,14 +832,14 @@ function DashboardAdminExpandido({ onLogout }) {
       {/* SECCIÓN: PRESUPUESTOS */}
       {activeTab === 'presupuestos' && (
         <div style={{margin: '-20px'}}>
-          <PresupuestosAdmin />
+          <PresupuestosAdmin embedded={true} />
         </div>
       )}
 
       {/* SECCIÓN: TESORO */}
       {activeTab === 'tesoro' && (
         <div style={{margin: '-20px'}}>
-          <TesoroAdmin />
+          <TesoroAdmin embedded={true} />
         </div>
       )}
 

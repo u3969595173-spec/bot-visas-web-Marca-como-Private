@@ -63,6 +63,15 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         );
         if (ultimoConOferta) {
           console.log('[DEBUG] Presupuesto con oferta encontrado:', ultimoConOferta);
+          console.log('[DEBUG] Precios disponibles:', {
+            precio_al_empezar: ultimoConOferta.precio_al_empezar,
+            precio_con_visa: ultimoConOferta.precio_con_visa,
+            precio_financiado: ultimoConOferta.precio_financiado
+          });
+          console.log('[DEBUG] Estado del presupuesto:', ultimoConOferta.estado);
+          console.log('[DEBUG] ¿Tiene al menos un precio?', 
+            !!(ultimoConOferta.precio_al_empezar || ultimoConOferta.precio_con_visa || ultimoConOferta.precio_financiado)
+          );
           setPresupuestoActual(ultimoConOferta);
         } else {
           console.log('[DEBUG] No hay presupuestos con oferta. Estados encontrados:', response.data.map(p => p.estado));
@@ -202,15 +211,9 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       )}
 
       {/* Sección Precio Final - Oferta del Admin */}
-      {presupuestoActual && (
-        presupuestoActual.estado === 'ofertado' || 
-        presupuestoActual.estado === 'oferta_enviada' || 
-        presupuestoActual.estado === 'aceptado'
-      ) && (
-        presupuestoActual.precio_al_empezar || 
-        presupuestoActual.precio_con_visa || 
-        presupuestoActual.precio_financiado
-      ) && (
+      {presupuestoActual && 
+       ['ofertado', 'oferta_enviada', 'aceptado'].includes(presupuestoActual.estado) && 
+       (presupuestoActual.precio_al_empezar || presupuestoActual.precio_con_visa || presupuestoActual.precio_financiado) && (
         <div style={{
           background: presupuestoActual.estado === 'aceptado' ? 
             'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 

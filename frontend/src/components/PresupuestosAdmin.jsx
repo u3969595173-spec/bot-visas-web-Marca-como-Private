@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 
-function PresupuestosAdmin() {
+function PresupuestosAdmin({ embedded = false }) {
   const [presupuestos, setPresupuestos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -130,13 +130,15 @@ function PresupuestosAdmin() {
             Administra todas las solicitudes de presupuesto
           </p>
         </div>
-        <button
-          onClick={() => navigate('/admin')}
-          className="btn"
-          style={{ background: 'white', color: '#667eea' }}
-        >
-          ← Volver al Dashboard
-        </button>
+        {!embedded && (
+          <button
+            onClick={() => navigate('/admin')}
+            className="btn"
+            style={{ background: 'white', color: '#667eea' }}
+          >
+            ← Volver al Dashboard
+          </button>
+        )}
       </div>
 
       {/* Alertas */}
