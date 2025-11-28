@@ -452,6 +452,30 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               </div>
             )}
 
+            {/* Nota informativa */}
+            <div style={{
+              background: '#fef3c7',
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '12px',
+              border: '1px solid #fbbf24'
+            }}>
+              <p style={{ 
+                margin: 0, 
+                color: '#92400e', 
+                fontSize: '12px', 
+                lineHeight: '1.5',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '6px'
+              }}>
+                <span style={{ fontSize: '14px', marginTop: '-1px' }}>💡</span>
+                <span>
+                  <strong>Nota:</strong> Si esta oferta no se ajusta a tus necesidades, puedes rechazarla y solicitar un nuevo presupuesto ajustando los servicios que requieres. Estamos aquí para encontrar la mejor solución para ti.
+                </span>
+              </p>
+            </div>
+
             {/* Botones de acción solo si está "ofertado" */}
             {presupuestoActual.estado === 'ofertado' && (
               <div style={{ display: 'flex', gap: '8px' }}>
