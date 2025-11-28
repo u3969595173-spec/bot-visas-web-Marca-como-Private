@@ -2514,13 +2514,13 @@ def obtener_documentos_generados_estudiante(
     db: Session = Depends(get_db)
 ):
     """Obtiene documentos generados de un estudiante (requiere código de acceso)"""
+    if not codigo_acceso or codigo_acceso == "null":
+        raise HTTPException(
+            status_code=401, 
+            detail="Se requiere código de acceso. Por favor inicia sesión."
+        )
+    
     try:
-        if not codigo_acceso or codigo_acceso == "null":
-            raise HTTPException(
-                status_code=401, 
-                detail="Se requiere código de acceso. Por favor inicia sesión."
-            )
-        
         # Verificar estudiante y código de acceso
         result = db.execute(
             text("SELECT id, codigo_acceso FROM estudiantes WHERE id = :id"),
@@ -2532,12 +2532,8 @@ def obtener_documentos_generados_estudiante(
         
         if result[1] != codigo_acceso.upper():
             raise HTTPException(status_code=403, detail="Código de acceso inválido")
-    except Exception as e:
-        logger.error(f"❌ Error de base de datos: {str(e)}")
-        raise HTTPException(status_code=503, detail="Error de conexión a la base de datos")
-    
-    # Obtener documentos generados
-    try:
+            
+        # Obtener documentos generados
         docs_result = db.execute(
             text("""
                 SELECT id, tipo_documento, nombre_archivo, estado, 
@@ -2569,6 +2565,10 @@ def obtener_documentos_generados_estudiante(
             'documentos': documentos,
             'total': len(documentos)
         }
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
         logger.error(f"❌ Error consultando documentos: {str(e)}")
         raise HTTPException(status_code=503, detail="Error al consultar documentos")
