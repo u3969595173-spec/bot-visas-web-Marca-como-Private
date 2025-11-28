@@ -215,180 +215,194 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
        ['ofertado', 'oferta_enviada', 'aceptado'].includes(presupuestoActual.estado) && 
        (presupuestoActual.precio_al_empezar || presupuestoActual.precio_con_visa || presupuestoActual.precio_financiado) && (
         <div style={{
-          background: presupuestoActual.estado === 'aceptado' ? 
-            'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 
-            'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-          color: 'white',
-          padding: '30px',
-          borderRadius: '15px',
+          background: 'white',
+          padding: '25px',
+          borderRadius: '12px',
           marginBottom: '20px',
-          boxShadow: presupuestoActual.estado === 'aceptado' ? 
-            '0 8px 25px rgba(16, 185, 129, 0.3)' : 
-            '0 8px 25px rgba(59, 130, 246, 0.3)'
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          border: '2px solid #10b981'
         }}>
-          <h3 style={{ margin: '0 0 20px 0', fontSize: '24px', textAlign: 'center' }}>
-            {presupuestoActual.estado === 'aceptado' ? 
-              '✅ Presupuesto Aceptado - Trabajo En Proceso' : 
-              '💰 Precio Final - Oferta Personalizada'}
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px'
+            }}>
+              💰
+            </div>
+            <div>
+              <h3 style={{ margin: 0, color: '#1f2937', fontSize: '20px', fontWeight: '600' }}>
+                {presupuestoActual.estado === 'aceptado' ? 
+                  '✅ Presupuesto Aceptado' : 
+                  'Oferta Personalizada Recibida'}
+              </h3>
+              <p style={{ margin: '5px 0 0 0', color: '#6b7280', fontSize: '14px' }}>
+                {presupuestoActual.estado === 'aceptado' ? 
+                  'Trabajo en proceso - Modalidad seleccionada' :
+                  'Revisa las modalidades de pago disponibles'}
+              </p>
+            </div>
+          </div>
           
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.15)',
-            padding: '25px',
-            borderRadius: '12px',
-            marginBottom: '25px'
-          }}>
-            <h4 style={{margin: '0 0 20px 0', fontSize: '18px', color: '#ecfdf5'}}>
-              📋 Servicios Solicitados:
-            </h4>
-            {presupuestoActual.servicios_solicitados && (
-              <ul style={{margin: '0 0 20px 0', paddingLeft: '20px'}}>
-                {JSON.parse(presupuestoActual.servicios_solicitados).map((servicio, index) => (
-                  <li key={index} style={{marginBottom: '5px', fontSize: '14px'}}>{servicio}</li>
-                ))}
-              </ul>
+          {/* Modalidades de Pago */}
+          <div style={{ display: 'grid', gap: '12px', marginBottom: '20px' }}>
+            {presupuestoActual.precio_al_empezar && (
+              <div style={{
+                background: '#fef3c7',
+                padding: '15px',
+                borderRadius: '10px',
+                border: '2px solid #f59e0b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+                    🚀 Pago al Empezar
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#78350f' }}>
+                    Pago completo al iniciar
+                  </div>
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#92400e' }}>
+                  €{presupuestoActual.precio_al_empezar}
+                </div>
+              </div>
             )}
             
-            {/* Modalidades de Pago Disponibles */}
-            <div style={{marginTop: '20px'}}>
-              <h4 style={{margin: '0 0 15px 0', fontSize: '16px', color: '#ecfdf5'}}>
-                💳 Modalidades de Pago Disponibles:
-              </h4>
-              
-              {presupuestoActual.precio_al_empezar && (
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '15px',
-                  borderRadius: '8px',
-                  marginBottom: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.3)'
-                }}>
-                  <strong>🚀 Precio al Empezar:</strong> 
-                  <span style={{fontSize: '20px', fontWeight: '700', marginLeft: '10px'}}>
-                    €{presupuestoActual.precio_al_empezar}
-                  </span>
-                  <p style={{margin: '5px 0 0 0', fontSize: '12px', opacity: '0.9'}}>
-                    Pago completo al iniciar el proceso
-                  </p>
+            {presupuestoActual.precio_con_visa && (
+              <div style={{
+                background: '#dbeafe',
+                padding: '15px',
+                borderRadius: '10px',
+                border: '2px solid #3b82f6',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ fontWeight: '600', color: '#1e40af', marginBottom: '4px' }}>
+                    🎯 Pago con Visa
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#1e40af' }}>
+                    Al recibir visa aprobada
+                  </div>
                 </div>
-              )}
-              
-              {presupuestoActual.precio_con_visa && (
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '15px',
-                  borderRadius: '8px',
-                  marginBottom: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.3)'
-                }}>
-                  <strong>🎯 Precio una vez Obtenida la Visa:</strong> 
-                  <span style={{fontSize: '20px', fontWeight: '700', marginLeft: '10px'}}>
-                    €{presupuestoActual.precio_con_visa}
-                  </span>
-                  <p style={{margin: '5px 0 0 0', fontSize: '12px', opacity: '0.9'}}>
-                    Pago al recibir la visa aprobada
-                  </p>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#1e40af' }}>
+                  €{presupuestoActual.precio_con_visa}
                 </div>
-              )}
-              
-              {presupuestoActual.precio_financiado && (
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '15px',
-                  borderRadius: '8px',
-                  marginBottom: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.3)'
-                }}>
-                  <strong>📅 Precio Financiado 12 Meses:</strong> 
-                  <span style={{fontSize: '20px', fontWeight: '700', marginLeft: '10px'}}>
-                    €{presupuestoActual.precio_financiado}
-                  </span>
-                  <p style={{margin: '5px 0 0 0', fontSize: '12px', opacity: '0.9'}}>
-                    Pago mensual: €{(presupuestoActual.precio_financiado / 12).toFixed(2)} x 12 meses
-                  </p>
+              </div>
+            )}
+            
+            {presupuestoActual.precio_financiado && (
+              <div style={{
+                background: '#e0e7ff',
+                padding: '15px',
+                borderRadius: '10px',
+                border: '2px solid #6366f1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <div>
+                  <div style={{ fontWeight: '600', color: '#4338ca', marginBottom: '4px' }}>
+                    📅 Financiado 12 Meses
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#4338ca' }}>
+                    €{(presupuestoActual.precio_financiado / 12).toFixed(2)}/mes x 12
+                  </div>
                 </div>
-              )}
-            </div>
-
-            {presupuestoActual.mensaje_admin && (
-              <div style={{marginTop: '20px', padding: '15px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '8px'}}>
-                <strong>💬 Mensaje del equipo:</strong>
-                <p style={{marginTop: '8px', opacity: 0.95, fontSize: '14px'}}>{presupuestoActual.mensaje_admin}</p>
+                <div style={{ fontSize: '24px', fontWeight: '700', color: '#4338ca' }}>
+                  €{presupuestoActual.precio_financiado}
+                </div>
               </div>
             )}
           </div>
 
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            padding: '15px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            textAlign: 'center'
-          }}>
-            <p style={{margin: 0, fontSize: '14px', fontWeight: '600'}}>
-              💬 Para cualquier duda, contacta por chat al administrador
-            </p>
-          </div>
+          {presupuestoActual.mensaje_admin && (
+            <div style={{
+              background: '#f0f9ff',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '15px',
+              border: '1px solid #bae6fd'
+            }}>
+              <strong style={{ color: '#0369a1', fontSize: '14px' }}>💬 Mensaje del equipo:</strong>
+              <p style={{ margin: '8px 0 0 0', color: '#0c4a6e', fontSize: '13px', lineHeight: '1.5' }}>
+                {presupuestoActual.mensaje_admin}
+              </p>
+            </div>
+          )}
 
-          <div style={{display: 'flex', gap: '15px', flexWrap: 'wrap'}}>
-            <button
-              onClick={async () => {
-                if (!confirm('¿Estás seguro de aceptar esta oferta?')) return;
-                try {
-                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-                  await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
-                    aceptar: true
-                  });
-                  alert('✅ ¡Perfecto! Oferta aceptada. Nos pondremos en contacto contigo pronto.');
-                  setPresupuestoActual(null);
-                  cargarPresupuestos();
-                } catch (err) {
-                  alert('❌ Error: ' + (err.response?.data?.detail || err.message));
-                }
-              }}
-              style={{
-                background: 'white',
-                color: '#10b981',
-                padding: '12px 25px',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-              }}
-            >
-              ✅ Aceptar Oferta
-            </button>
-            <button
-              onClick={async () => {
-                if (!confirm('¿Seguro que quieres rechazar esta oferta?')) return;
-                try {
-                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-                  await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
-                    aceptar: false
-                  });
-                  alert('Oferta rechazada. Puedes solicitar un nuevo presupuesto cuando quieras.');
-                  setPresupuestoActual(null);
-                  cargarPresupuestos();
-                } catch (err) {
-                  alert('❌ Error: ' + (err.response?.data?.detail || err.message));
-                }
-              }}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                color: 'white',
-                padding: '12px 25px',
-                border: '2px solid white',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer'
-              }}
-            >
-              ❌ Rechazar
-            </button>
-          </div>
+          {/* Acciones: Aceptar/Rechazar solo si está en estado "ofertado" */}
+          {presupuestoActual.estado === 'ofertado' && (
+            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+              <button
+                onClick={async () => {
+                  if (!confirm('¿Estás seguro de aceptar esta oferta?')) return;
+                  try {
+                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                    await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
+                      aceptar: true
+                    });
+                    alert('✅ ¡Perfecto! Oferta aceptada. Nos pondremos en contacto contigo pronto.');
+                    setPresupuestoActual(null);
+                    cargarPresupuestos();
+                  } catch (err) {
+                    alert('❌ Error: ' + (err.response?.data?.detail || err.message));
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  padding: '12px 25px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                }}
+              >
+                ✅ Aceptar Oferta
+              </button>
+              <button
+                onClick={async () => {
+                  if (!confirm('¿Seguro que quieres rechazar esta oferta?')) return;
+                  try {
+                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                    await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
+                      aceptar: false
+                    });
+                    alert('Oferta rechazada. Puedes solicitar un nuevo presupuesto cuando quieras.');
+                    setPresupuestoActual(null);
+                    cargarPresupuestos();
+                  } catch (err) {
+                    alert('❌ Error: ' + (err.response?.data?.detail || err.message));
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  background: 'white',
+                  color: '#ef4444',
+                  padding: '12px 25px',
+                  border: '2px solid #ef4444',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer'
+                }}
+              >
+                ❌ Rechazar
+              </button>
+            </div>
+          )}
         </div>
       )}
 
