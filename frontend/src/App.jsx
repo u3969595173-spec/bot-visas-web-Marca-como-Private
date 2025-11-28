@@ -22,7 +22,6 @@ import TestimoniosLista from './components/TestimoniosLista'
 import AdminTestimonios from './components/AdminTestimonios'
 import Notificaciones from './components/Notificaciones'
 import ChatWidget from './components/ChatWidget'
-import AdminChats from './components/AdminChats'
 import DashboardAnalytics from './components/DashboardAnalytics'
 import GestorDocumentos from './components/GestorDocumentos'
 import AdminDocumentos from './components/AdminDocumentos'
@@ -332,16 +331,6 @@ function App() {
             element={
               isAuthenticated ? (
                 <AdminTestimonios />
-              ) : (
-                <Navigate to="/admin/login" />
-              )
-            }
-          />
-          <Route
-            path="/admin/chats"
-            element={
-              isAuthenticated ? (
-                <AdminChats />
               ) : (
                 <Navigate to="/admin/login" />
               )
