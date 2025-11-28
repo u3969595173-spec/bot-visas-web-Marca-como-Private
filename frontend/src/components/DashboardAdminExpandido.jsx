@@ -1246,9 +1246,9 @@ function DashboardAdminExpandido({ onLogout }) {
                   <tr style={{backgroundColor: '#f8fafc'}}>
                     <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estudiante</th>
                     <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Email</th>
-                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Preferencias</th>
-                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estado Solicitud</th>
-                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Fecha Solicitud</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Situación de Alojamiento</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estado Gestión</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Fecha</th>
                     <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Acciones</th>
                   </tr>
                 </thead>
@@ -1257,37 +1257,57 @@ function DashboardAdminExpandido({ onLogout }) {
                     <tr key={estudiante.id} style={{borderBottom: '1px solid #e5e7eb'}}>
                       <td style={{padding: '16px'}}>
                         <div style={{fontWeight: '600', color: '#1f2937'}}>{estudiante.nombre}</div>
-                        <div style={{fontSize: '12px', color: '#666'}}>{estudiante.nacionalidad}</div>
+                        <div style={{fontSize: '12px', color: '#666'}}>ID: {estudiante.id}</div>
                       </td>
                       <td style={{padding: '16px'}}>{estudiante.email}</td>
                       <td style={{padding: '16px'}}>
-                        {estudiante.comentarios_alojamiento ? (
-                          <div style={{maxWidth: '200px'}}>
-                            <div style={{fontSize: '12px', color: '#374151', fontWeight: '500'}}>
-                              {estudiante.comentarios_alojamiento.substring(0, 100)}
-                              {estudiante.comentarios_alojamiento.length > 100 && '...'}
+                        {estudiante.tiene_alojamiento === false ? (
+                          <div>
+                            <div style={{fontSize: '12px', fontWeight: '600', color: '#dc2626'}}>🏢 Solicita gestión
                             </div>
+                            {estudiante.comentarios_alojamiento && (
+                              <div style={{fontSize: '11px', color: '#666', marginTop: '4px', maxWidth: '200px'}}>
+                                {estudiante.comentarios_alojamiento.substring(0, 80)}
+                                {estudiante.comentarios_alojamiento.length > 80 && '...'}
+                              </div>
+                            )}
                           </div>
                         ) : (
-                          <span style={{color: '#9ca3af', fontSize: '12px'}}>Sin preferencias especificadas</span>
+                          <div>
+                            <div style={{fontSize: '12px', fontWeight: '600', color: '#059669'}}>🏡 Ya tiene alojamiento</div>
+                            <div style={{fontSize: '11px', color: '#666'}}>{estudiante.tipo_alojamiento || 'Sin especificar'}</div>
+                          </div>
                         )}
                       </td>
                       <td style={{padding: '16px'}}>
-                        <span style={{
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          fontWeight: '600',
-                          backgroundColor: 
-                            estudiante.estado_alojamiento === 'aprobado' ? '#d1fae5' :
-                            estudiante.estado_alojamiento === 'rechazado' ? '#fee2e2' : '#fef3c7',
-                          color:
-                            estudiante.estado_alojamiento === 'aprobado' ? '#065f46' :
-                            estudiante.estado_alojamiento === 'rechazado' ? '#dc2626' : '#92400e'
-                        }}>
-                          {estudiante.estado_alojamiento === 'aprobado' ? '✅ Aceptado' :
-                           estudiante.estado_alojamiento === 'rechazado' ? '❌ Rechazado' : '⏳ Pendiente'}
-                        </span>
+                        {estudiante.gestion_solicitada ? (
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            backgroundColor: 
+                              estudiante.estado_alojamiento === 'aprobado' ? '#d1fae5' :
+                              estudiante.estado_alojamiento === 'rechazado' ? '#fee2e2' : '#fef3c7',
+                            color:
+                              estudiante.estado_alojamiento === 'aprobado' ? '#065f46' :
+                              estudiante.estado_alojamiento === 'rechazado' ? '#dc2626' : '#92400e'
+                          }}>
+                            {estudiante.estado_alojamiento === 'aprobado' ? '✅ Aprobada' :
+                             estudiante.estado_alojamiento === 'rechazado' ? '❌ Rechazada' : '⏳ Pendiente'}
+                          </span>
+                        ) : (
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            backgroundColor: '#e0e7ff',
+                            color: '#3730a3'
+                          }}>
+                            ℹ️ Solo informativo
+                          </span>
+                        )}
                       </td>
                       <td style={{padding: '16px'}}>
                         {estudiante.fecha_solicitud && estudiante.fecha_solicitud !== 'Invalid Date' ? 
@@ -1296,7 +1316,7 @@ function DashboardAdminExpandido({ onLogout }) {
                         }
                       </td>
                       <td style={{padding: '16px'}}>
-                        {(!estudiante.estado_alojamiento || estudiante.estado_alojamiento === 'pendiente') ? (
+                        {estudiante.gestion_solicitada && (!estudiante.estado_alojamiento || estudiante.estado_alojamiento === 'pendiente') ? (
                           <div style={{display: 'flex', gap: '8px'}}>
                             <button
                               onClick={() => gestionarAlojamiento(estudiante.id, 'aceptado')}
@@ -1311,7 +1331,7 @@ function DashboardAdminExpandido({ onLogout }) {
                                 cursor: 'pointer'
                               }}
                             >
-                              ✅ Aceptar
+                              ✅ Aceptar Gestión
                             </button>
                             <button
                               onClick={() => gestionarAlojamiento(estudiante.id, 'rechazado')}
@@ -1326,12 +1346,16 @@ function DashboardAdminExpandido({ onLogout }) {
                                 cursor: 'pointer'
                               }}
                             >
-                              ❌ Rechazar
+                              ❌ Rechazar Gestión
                             </button>
                           </div>
-                        ) : (
+                        ) : estudiante.gestion_solicitada ? (
                           <span style={{fontSize: '12px', color: '#666'}}>
-                            {estudiante.estado_alojamiento === 'aprobado' ? '✅ Procesado' : '❌ Procesado'}
+                            {estudiante.estado_alojamiento === 'aprobado' ? '✅ Gestión Aprobada' : '❌ Gestión Rechazada'}
+                          </span>
+                        ) : (
+                          <span style={{fontSize: '12px', color: '#9ca3af'}}>
+                            No requiere gestión
                           </span>
                         )}
                       </td>
