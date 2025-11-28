@@ -65,6 +65,7 @@ function ProcesoVisa({ estudianteId }) {
       icon: '🏛️',
       pasos: [
         { key: 'paso_cita_agendada', nombre: 'Cita Agendada', descripcion: 'Fecha y hora de cita consular confirmada' },
+        { key: 'fecha_cita_embajada', nombre: 'Fecha Confirmada', descripcion: 'Día y hora específicos de tu cita en embajada', esFecha: true },
         { key: 'paso_documentos_revisados', nombre: 'Documentos Revisados', descripcion: 'Verificación final de documentación completa' },
         { key: 'paso_simulacro_entrevista', nombre: 'Simulacro de Entrevista', descripcion: 'Preparación y práctica para entrevista consular' }
       ]
@@ -74,7 +75,8 @@ function ProcesoVisa({ estudianteId }) {
       nombre: 'ENTREVISTA',
       icon: '🎤',
       pasos: [
-        { key: 'paso_entrevista_completada', nombre: 'Entrevista Realizada', descripcion: 'Entrevista consular completada' }
+        { key: 'paso_entrevista_completada', nombre: 'Entrevista Realizada', descripcion: 'Entrevista consular completada' },
+        { key: 'resultado_entrevista', nombre: 'Resultado', descripcion: 'Resultado oficial de la entrevista consular', esResultado: true }
       ]
     },
     {
@@ -209,7 +211,23 @@ function ProcesoVisa({ estudianteId }) {
               {/* Pasos de la fase */}
               <div className="fase-pasos">
                 {fase.pasos.map((paso) => {
-                  const completado = proceso[paso.key] === true
+                  // Manejo especial para campos que no son booleanos
+                  let completado = false
+                  let valorMostrar = null
+                  
+                  if (paso.esFecha) {
+                    // Es un campo de fecha
+                    completado = !!proceso[paso.key]
+                    valorMostrar = proceso[paso.key] ? formatearFecha(proceso[paso.key]) : null
+                  } else if (paso.esResultado) {
+                    // Es el resultado de entrevista
+                    completado = !!proceso[paso.key]
+                    valorMostrar = proceso[paso.key]
+                  } else {
+                    // Es un campo booleano normal
+                    completado = proceso[paso.key] === true
+                  }
+                  
                   const fechaKey = paso.key.replace('paso_', 'fecha_')
                   const fecha = proceso[fechaKey]
 
@@ -225,7 +243,17 @@ function ProcesoVisa({ estudianteId }) {
                       <div className="paso-contenido">
                         <h4>{paso.nombre}</h4>
                         <p>{paso.descripcion}</p>
-                        {completado && fecha && (
+                        {completado && paso.esFecha && valorMostrar && (
+                          <span className="paso-fecha">📅 {formatearFecha(valorMostrar)}</span>
+                        )}
+                        {completado && paso.esResultado && valorMostrar && (
+                          <span className={`paso-resultado resultado-${valorMostrar}`}>
+                            {valorMostrar === 'aprobada' && '✅ Aprobada'}
+                            {valorMostrar === 'rechazada' && '❌ No Aprobada'}
+                            {valorMostrar === 'pendiente_documentos' && '📄 Docs. Adicionales'}
+                          </span>
+                        )}
+                        {completado && !paso.esFecha && !paso.esResultado && fecha && (
                           <span className="paso-fecha">✅ Completado: {formatearFecha(fecha)}</span>
                         )}
                         {!completado && (

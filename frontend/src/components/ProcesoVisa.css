@@ -233,6 +233,30 @@
   font-weight: 500;
 }
 
+.paso-resultado {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 15px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.paso-resultado.resultado-aprobada {
+  background: #28a745;
+  color: white;
+}
+
+.paso-resultado.resultado-rechazada {
+  background: #dc3545;
+  color: white;
+}
+
+.paso-resultado.resultado-pendiente_documentos {
+  background: #ffc107;
+  color: #333;
+}
+
 .paso-pendiente-label {
   display: inline-block;
   padding: 4px 12px;
