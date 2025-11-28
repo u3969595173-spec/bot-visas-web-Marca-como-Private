@@ -226,8 +226,38 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
-  const descargarDocumento = (docId) => {
-    window.open(`${apiUrl}/api/admin/documentos-generados/${docId}/descargar`, '_blank')
+  const descargarDocumento = async (docId) => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await axios.get(
+        `${apiUrl}/api/admin/documentos-generados/${docId}/descargar`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: 'blob'
+        }
+      )
+      
+      // Crear URL del blob y descargar
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      
+      // Obtener nombre del archivo del header Content-Disposition
+      const contentDisposition = response.headers['content-disposition']
+      let filename = 'documento.pdf'
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?(.+)"?/)
+        if (filenameMatch) filename = filenameMatch[1]
+      }
+      
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      alert('Error al descargar: ' + (err.response?.data?.detail || err.message))
+    }
   }
 
   const eliminarDocumento = async (docId, tipoDoc) => {
