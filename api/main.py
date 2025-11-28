@@ -9002,7 +9002,11 @@ def guardar_informacion_financiera(
     db: Session = Depends(get_db)
 ):
     """Guardar información financiera del estudiante"""
-    estudiante_id = usuario['estudiante_id']
+    # El usuario debe ser un estudiante, usar su ID directamente
+    estudiante_id = usuario.get('id') or usuario.get('estudiante_id')
+    
+    if not estudiante_id:
+        raise HTTPException(status_code=400, detail="ID de estudiante no encontrado")
     
     # Extraer datos del formulario
     fondos_disponibles = datos.get('fondos_disponibles', 0)
