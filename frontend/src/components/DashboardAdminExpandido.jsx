@@ -41,7 +41,12 @@ function DashboardAdminExpandido({ onLogout }) {
   const [presupuestos, setPresupuestos] = useState([])
   const [showContraofertaModal, setShowContraofertaModal] = useState(false)
   const [presupuestoSeleccionado, setPresupuestoSeleccionado] = useState(null)
-  const [contraoferta, setContraoferta] = useState({ precio_ofertado: '', forma_pago: '', mensaje_admin: '' })
+  const [contraoferta, setContraoferta] = useState({ 
+    precio_al_empezar: '', 
+    precio_con_visa: '', 
+    precio_financiado: '', 
+    comentarios_admin: '' 
+  })
   const [referidos, setReferidos] = useState([])
   const [showAjustarCreditoModal, setShowAjustarCreditoModal] = useState(false)
   const [estudianteReferido, setEstudianteReferido] = useState(null)
@@ -821,17 +826,17 @@ function DashboardAdminExpandido({ onLogout }) {
           <h2 style={{marginBottom: '20px', color: '#1f2937'}}>💰 Gestión de Presupuestos</h2>
           
           <div style={{marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
-            {['pendiente', 'ofertado', 'aceptado', 'rechazado'].map(estado => (
+            {['pendiente', 'oferta_enviada', 'aceptado', 'rechazado'].map(estado => (
               <div key={estado} style={{
                 padding: '10px 20px',
                 borderRadius: '8px',
                 backgroundColor: 
                   estado === 'pendiente' ? '#fef3c7' :
-                  estado === 'ofertado' ? '#dbeafe' :
+                  estado === 'oferta_enviada' ? '#dbeafe' :
                   estado === 'aceptado' ? '#d1fae5' : '#fee2e2',
                 border: `2px solid ${
                   estado === 'pendiente' ? '#f59e0b' :
-                  estado === 'ofertado' ? '#3b82f6' :
+                  estado === 'oferta_enviada' ? '#3b82f6' :
                   estado === 'aceptado' ? '#10b981' : '#ef4444'
                 }`
               }}>
@@ -839,7 +844,7 @@ function DashboardAdminExpandido({ onLogout }) {
                   {presupuestos.filter(p => p.estado === estado).length}
                 </div>
                 <div style={{fontSize: '13px', textTransform: 'capitalize'}}>
-                  {estado}
+                  {estado === 'oferta_enviada' ? 'Oferta Enviada' : estado}
                 </div>
               </div>
             ))}
@@ -856,8 +861,7 @@ function DashboardAdminExpandido({ onLogout }) {
                   <tr>
                     <th>Estudiante</th>
                     <th>Servicios</th>
-                    <th>Precio Solicitado</th>
-                    <th>Precio Ofertado</th>
+                    <th>Modalidades Ofertadas</th>
                     <th>Estado</th>
                     <th>Fecha</th>
                     <th>Acciones</th>
@@ -872,14 +876,19 @@ function DashboardAdminExpandido({ onLogout }) {
                       </td>
                       <td>
                         <div style={{fontSize: '13px'}}>
-                          {Array.isArray(pres.servicios) ? pres.servicios.length : 0} servicios
+                          {Array.isArray(pres.servicios_solicitados) ? pres.servicios_solicitados.join(', ') : 'N/A'}
                         </div>
                       </td>
-                      <td style={{fontWeight: '600', color: '#1f2937'}}>
-                        {pres.precio_solicitado}€
-                      </td>
-                      <td style={{fontWeight: '600', color: '#10b981'}}>
-                        {pres.precio_ofertado ? `${pres.precio_ofertado}€` : '-'}
+                      <td>
+                        {pres.precio_al_empezar ? (
+                          <div style={{fontSize: '12px'}}>
+                            <div>💳 Al empezar: €{pres.precio_al_empezar}</div>
+                            <div>🎯 Con visa: €{pres.precio_con_visa}</div>
+                            <div>📅 Financiado: €{pres.precio_financiado}</div>
+                          </div>
+                        ) : (
+                          <span style={{color: '#6b7280'}}>Sin oferta</span>
+                        )}
                       </td>
                       <td>
                         <span style={{
@@ -889,14 +898,14 @@ function DashboardAdminExpandido({ onLogout }) {
                           fontWeight: '600',
                           backgroundColor:
                             pres.estado === 'pendiente' ? '#fef3c7' :
-                            pres.estado === 'ofertado' ? '#dbeafe' :
+                            pres.estado === 'oferta_enviada' ? '#dbeafe' :
                             pres.estado === 'aceptado' ? '#d1fae5' : '#fee2e2',
                           color:
                             pres.estado === 'pendiente' ? '#92400e' :
-                            pres.estado === 'ofertado' ? '#1e40af' :
+                            pres.estado === 'oferta_enviada' ? '#1e40af' :
                             pres.estado === 'aceptado' ? '#065f46' : '#991b1b'
                         }}>
-                          {pres.estado.toUpperCase()}
+                          {pres.estado === 'oferta_enviada' ? 'OFERTA ENVIADA' : pres.estado.toUpperCase()}
                         </span>
                       </td>
                       <td style={{fontSize: '13px', color: '#6b7280'}}>
@@ -908,9 +917,10 @@ function DashboardAdminExpandido({ onLogout }) {
                             onClick={() => {
                               setPresupuestoSeleccionado(pres)
                               setContraoferta({
-                                precio_ofertado: pres.precio_solicitado,
-                                forma_pago: '',
-                                mensaje_admin: ''
+                                precio_al_empezar: '',
+                                precio_con_visa: '', 
+                                precio_financiado: '',
+                                comentarios_admin: ''
                               })
                               setShowContraofertaModal(true)
                             }}
@@ -2933,7 +2943,7 @@ function DashboardAdminExpandido({ onLogout }) {
         <div className="modal-overlay">
           <div className="modal-content" style={{maxWidth: '600px'}}>
             <h3 style={{marginTop: 0, color: '#1f2937', borderBottom: '2px solid #10b981', paddingBottom: '10px'}}>
-              💬 Hacer Contraoferta
+              💰 Ofertar Modalidades de Pago
             </h3>
 
             <div style={{backgroundColor: '#f9fafb', padding: '15px', borderRadius: '8px', marginBottom: '20px'}}>
@@ -2944,56 +2954,70 @@ function DashboardAdminExpandido({ onLogout }) {
                 <strong>Email:</strong> {presupuestoSeleccionado.email_estudiante}
               </p>
               <p style={{margin: '0 0 5px 0', fontSize: '14px', color: '#6b7280'}}>
-                <strong>Servicios solicitados:</strong> {Array.isArray(presupuestoSeleccionado.servicios) ? presupuestoSeleccionado.servicios.length : 0}
-              </p>
-              <p style={{margin: 0, fontSize: '14px', color: '#6b7280'}}>
-                <strong>Precio solicitado:</strong> <span style={{color: '#1f2937', fontWeight: '600'}}>{presupuestoSeleccionado.precio_solicitado}€</span>
+                <strong>Servicios solicitados:</strong> {Array.isArray(presupuestoSeleccionado.servicios_solicitados) ? presupuestoSeleccionado.servicios_solicitados.join(', ') : 'N/A'}
               </p>
             </div>
 
             <div className="form-group" style={{marginBottom: '15px'}}>
               <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>
-                Precio Ofertado (€) *
+                💳 Precio al Empezar (€) *
               </label>
               <input
                 type="number"
                 step="0.01"
-                value={contraoferta.precio_ofertado}
-                onChange={(e) => setContraoferta({...contraoferta, precio_ofertado: e.target.value})}
+                value={contraoferta.precio_al_empezar}
+                onChange={(e) => setContraoferta({...contraoferta, precio_al_empezar: e.target.value})}
                 style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
-                placeholder="500.00"
+                placeholder="1200.00"
               />
             </div>
 
             <div className="form-group" style={{marginBottom: '15px'}}>
               <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>
-                Forma de Pago *
+                🎯 Precio con Visa (€) *
               </label>
-              <select
-                value={contraoferta.forma_pago}
-                onChange={(e) => setContraoferta({...contraoferta, forma_pago: e.target.value})}
+              <input
+                type="number"
+                step="0.01"
+                value={contraoferta.precio_con_visa}
+                onChange={(e) => setContraoferta({...contraoferta, precio_con_visa: e.target.value})}
                 style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
-              >
-                <option value="">Seleccionar...</option>
-                <option value="pago_unico">Pago único</option>
-                <option value="2_cuotas">2 cuotas (50% adelantado + 50% al finalizar)</option>
-                <option value="3_cuotas">3 cuotas mensuales</option>
-                <option value="transferencia">Transferencia bancaria</option>
-                <option value="tarjeta">Tarjeta de crédito/débito</option>
-              </select>
+                placeholder="1350.00"
+              />
+            </div>
+
+            <div className="form-group" style={{marginBottom: '15px'}}>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>
+                📅 Precio Financiado - 12 cuotas (€) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={contraoferta.precio_financiado}
+                onChange={(e) => setContraoferta({...contraoferta, precio_financiado: e.target.value})}
+                style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                placeholder="1500.00"
+              />
+              <small style={{color: '#6b7280'}}>Cuota mensual: €{contraoferta.precio_financiado ? (contraoferta.precio_financiado / 12).toFixed(2) : '0.00'}</small>
             </div>
 
             <div className="form-group" style={{marginBottom: '20px'}}>
               <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>
-                Mensaje para el estudiante
+                💬 Comentarios Adicionales
               </label>
               <textarea
-                value={contraoferta.mensaje_admin}
-                onChange={(e) => setContraoferta({...contraoferta, mensaje_admin: e.target.value})}
+                value={contraoferta.comentarios_admin}
+                onChange={(e) => setContraoferta({...contraoferta, comentarios_admin: e.target.value})}
                 rows="4"
                 style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px', fontFamily: 'inherit'}}
-                placeholder="Ej: Hemos ajustado el precio considerando tus necesidades específicas..."
+                placeholder="Detalles adicionales sobre la oferta..."
               />
+            </div>
+
+            <div style={{marginBottom: '15px', padding: '12px', backgroundColor: '#e0f2fe', borderLeft: '4px solid #0288d1', borderRadius: '5px'}}>
+              <p style={{margin: 0, fontSize: '12px', color: '#01579b'}}>
+                📝 <strong>Nota:</strong> Se incluirá automáticamente un mensaje indicando que el estudiante puede rechazar esta oferta y solicitar un nuevo presupuesto.
+              </p>
             </div>
 
             <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
@@ -3001,7 +3025,12 @@ function DashboardAdminExpandido({ onLogout }) {
                 onClick={() => {
                   setShowContraofertaModal(false)
                   setPresupuestoSeleccionado(null)
-                  setContraoferta({precio_ofertado: '', forma_pago: '', mensaje_admin: ''})
+                  setContraoferta({
+                    precio_al_empezar: '', 
+                    precio_con_visa: '', 
+                    precio_financiado: '', 
+                    comentarios_admin: ''
+                  })
                 }}
                 style={{
                   padding: '10px 20px',
@@ -3017,24 +3046,30 @@ function DashboardAdminExpandido({ onLogout }) {
               </button>
               <button
                 onClick={async () => {
-                  if (!contraoferta.precio_ofertado || !contraoferta.forma_pago) {
-                    alert('⚠️ Por favor completa todos los campos obligatorios');
+                  if (!contraoferta.precio_al_empezar || !contraoferta.precio_con_visa || !contraoferta.precio_financiado) {
+                    alert('⚠️ Por favor completa todas las modalidades de pago');
                     return;
                   }
 
                   try {
-                    await axios.put(`${apiUrl}/api/admin/presupuestos/${presupuestoSeleccionado.id}/contraoferta`, {
-                      precio_ofertado: parseFloat(contraoferta.precio_ofertado),
-                      forma_pago: contraoferta.forma_pago,
-                      mensaje_admin: contraoferta.mensaje_admin
+                    await axios.put(`${apiUrl}/api/admin/presupuestos/${presupuestoSeleccionado.id}/ofertar-modalidades`, {
+                      precio_al_empezar: parseFloat(contraoferta.precio_al_empezar),
+                      precio_con_visa: parseFloat(contraoferta.precio_con_visa),
+                      precio_financiado: parseFloat(contraoferta.precio_financiado),
+                      comentarios_admin: contraoferta.comentarios_admin
                     });
-                    alert('✅ Contraoferta enviada exitosamente');
+                    alert('✅ Oferta con modalidades enviada exitosamente');
                     setShowContraofertaModal(false);
                     setPresupuestoSeleccionado(null);
-                    setContraoferta({precio_ofertado: '', forma_pago: '', mensaje_admin: ''});
+                    setContraoferta({
+                      precio_al_empezar: '', 
+                      precio_con_visa: '', 
+                      precio_financiado: '', 
+                      comentarios_admin: ''
+                    });
                     cargarDatos();
                   } catch (err) {
-                    alert('❌ Error al enviar contraoferta: ' + (err.response?.data?.detail || err.message));
+                    alert('❌ Error al enviar oferta: ' + (err.response?.data?.detail || err.message));
                   }
                 }}
                 style={{
@@ -3048,7 +3083,7 @@ function DashboardAdminExpandido({ onLogout }) {
                   fontWeight: '600'
                 }}
               >
-                📤 Enviar Contraoferta
+                📤 Enviar Oferta
               </button>
             </div>
           </div>
