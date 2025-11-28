@@ -709,7 +709,7 @@ function DashboardAdminExpandido({ onLogout }) {
                 <h2>📄 Documentos Generados ({documentosGenerados.length})</h2>
                 <div className="header-actions">
                   <button 
-                    onClick={abrirModalGenerarDocumentos} 
+                    onClick={abrirModalGenerarDocs} 
                     className="btn-generar"
                     style={{marginRight: '10px'}}
                   >
