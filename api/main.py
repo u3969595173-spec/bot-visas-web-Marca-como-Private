@@ -8597,9 +8597,12 @@ async def validar_codigo_referido(codigo: str):
 
 
 @app.get("/api/referidos/estadisticas/{estudiante_id}")
-async def obtener_estadisticas_referidos(estudiante_id: int, token: str = Depends(oauth2_scheme)):
+async def obtener_estadisticas_referidos(
+    estudiante_id: int, 
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
     """Obtiene estadísticas de referidos de un estudiante"""
-    db = next(get_db())
     
     # Obtener datos del estudiante
     estudiante = db.execute(text("""
@@ -8645,10 +8648,11 @@ async def obtener_estadisticas_referidos(estudiante_id: int, token: str = Depend
 
 
 @app.get("/api/admin/referidos")
-async def admin_obtener_referidos(token: str = Depends(oauth2_scheme)):
+async def admin_obtener_referidos(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
     """Admin: Obtiene lista completa de referidos y créditos"""
-    verificar_admin(token)
-    db = next(get_db())
     
     result = db.execute(text("""
         SELECT 
@@ -8686,11 +8690,10 @@ async def admin_obtener_referidos(token: str = Depends(oauth2_scheme)):
 async def admin_ajustar_credito(
     estudiante_id: int,
     data: dict,
-    token: str = Depends(oauth2_scheme)
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
 ):
     """Admin: Ajusta manualmente el crédito de un estudiante"""
-    verificar_admin(token)
-    db = next(get_db())
     
     nuevo_credito = data.get('credito', 0)
     tipo_recompensa = data.get('tipo_recompensa', 'dinero')
