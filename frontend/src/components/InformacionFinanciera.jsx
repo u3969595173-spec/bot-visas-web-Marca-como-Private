@@ -15,6 +15,8 @@ const InformacionFinanciera = ({ estudianteId }) => {
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [estadoPatrocinio, setEstadoPatrocinio] = useState(null); // pendiente/aprobado/rechazado
+  const [comentariosAdmin, setComentariosAdmin] = useState('');
 
   useEffect(() => {
     cargarDatos();
@@ -31,6 +33,16 @@ const InformacionFinanciera = ({ estudianteId }) => {
         patrocinador_relacion: response.data.patrocinador_relacion || '',
         patrocinio_solicitado: response.data.patrocinio_solicitado || false
       });
+      
+      // Cargar estado de la gestión por el admin
+      setEstadoPatrocinio(response.data.estado_patrocinio || 'pendiente');
+      setComentariosAdmin(response.data.comentarios_patrocinio || '');
+      
+      // Si ya fue procesado por el admin, no mostrar en modo edición por defecto
+      if (response.data.estado_patrocinio && response.data.estado_patrocinio !== 'pendiente') {
+        setEditing(false);
+      }
+      
       setLoading(false);
     } catch (err) {
       setError('Error al cargar información financiera');
@@ -171,6 +183,99 @@ const InformacionFinanciera = ({ estudianteId }) => {
           {success}
         </div>
       )}
+
+      {/* Vista de estado procesado */}
+      {estadoPatrocinio && estadoPatrocinio !== 'pendiente' && !editing ? (
+        <div>
+          {/* Estado de la solicitud */}
+          <div style={{
+            padding: '30px',
+            backgroundColor: estadoPatrocinio === 'aprobado' ? '#d1fae5' : '#fee2e2',
+            border: `3px solid ${estadoPatrocinio === 'aprobado' ? '#10b981' : '#ef4444'}`,
+            borderRadius: '15px',
+            textAlign: 'center',
+            marginBottom: '25px'
+          }}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '15px'
+            }}>
+              {estadoPatrocinio === 'aprobado' ? '✅' : '❌'}
+            </div>
+            <h2 style={{
+              color: estadoPatrocinio === 'aprobado' ? '#065f46' : '#991b1b',
+              fontSize: '24px',
+              fontWeight: '700',
+              marginBottom: '10px'
+            }}>
+              Solicitud de Patrocinio {estadoPatrocinio === 'aprobado' ? 'APROBADA' : 'RECHAZADA'}
+            </h2>
+            <p style={{
+              color: estadoPatrocinio === 'aprobado' ? '#047857' : '#dc2626',
+              fontSize: '16px',
+              margin: 0
+            }}>
+              {estadoPatrocinio === 'aprobado' 
+                ? 'Tu solicitud ha sido aprobada por nuestro equipo' 
+                : 'Tu solicitud ha sido rechazada por nuestro equipo'
+              }
+            </p>
+          </div>
+
+          {/* Comentarios del admin */}
+          {comentariosAdmin && (
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              border: '2px solid #e2e8f0',
+              borderRadius: '10px',
+              marginBottom: '25px'
+            }}>
+              <h3 style={{
+                color: '#374151',
+                fontSize: '16px',
+                fontWeight: '600',
+                marginBottom: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                💬 Comentarios del equipo
+              </h3>
+              <p style={{
+                color: '#6b7280',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                margin: 0
+              }}>
+                {comentariosAdmin}
+              </p>
+            </div>
+          )}
+
+          {/* Botón editar */}
+          <div style={{ textAlign: 'center' }}>
+            <button
+              onClick={() => setEditing(true)}
+              style={{
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                padding: '12px 30px',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
+              }}
+            >
+              ✏️ Editar Información
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Formulario de edición - contenido existente */
 
       <div style={{
         display: 'grid',
@@ -678,8 +783,40 @@ const InformacionFinanciera = ({ estudianteId }) => {
           </div>
         </div>
 
-
+        {/* Aviso si está editando una solicitud procesada */}
+        {estadoPatrocinio && estadoPatrocinio !== 'pendiente' && (
+          <div style={{
+            marginTop: '20px',
+            padding: '15px',
+            backgroundColor: '#fef3c7',
+            border: '2px solid #f59e0b',
+            borderRadius: '8px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ color: '#92400e', fontWeight: '500' }}>
+              ⚠️ Editando solicitud ya procesada
+            </span>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              style={{
+                backgroundColor: '#6b7280',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
       </div>
+      )}
     </div>
   );
 };

@@ -381,6 +381,18 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         >
           🏠 Información de Alojamiento
         </button>
+        <button
+          onClick={() => navigate('/estudiante/informacion-seguro-medico')}
+          className="btn"
+          style={{
+            background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+            color: 'white',
+            border: 'none',
+            fontWeight: '600'
+          }}
+        >
+          🏥 Seguro Médico
+        </button>
       </div>
 
       {/* TAB: Perfil */}
@@ -643,6 +655,112 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             <h2 style={{margin: '0 0 20px 0', color: '#2d3748'}}>
               💎 Mis Referidos
             </h2>
+
+            {/* Enlace de Referido para Compartir */}
+            <div style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '10px',
+              marginBottom: '25px'
+            }}>
+              <h3 style={{fontSize: '18px', marginBottom: '15px', margin: '0 0 15px 0'}}>
+                🔗 Tu Enlace de Referido
+              </h3>
+              <div style={{
+                background: 'rgba(255,255,255,0.2)',
+                padding: '12px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                marginBottom: '15px'
+              }}>
+                <input
+                  type="text"
+                  value={`${window.location.origin}/estudiante/registro?ref=${estadisticasReferidos.codigo_referido}`}
+                  readOnly
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#2d3748',
+                    fontSize: '14px'
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const enlace = `${window.location.origin}/estudiante/registro?ref=${estadisticasReferidos.codigo_referido}`;
+                    navigator.clipboard.writeText(enlace).then(() => {
+                      alert('✅ Enlace copiado al portapapeles');
+                    });
+                  }}
+                  style={{
+                    padding: '10px 15px',
+                    background: 'white',
+                    color: '#3b82f6',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  📋 Copiar
+                </button>
+              </div>
+              <p style={{fontSize: '13px', opacity: 0.9, margin: '0 0 15px 0'}}>
+                Comparte este enlace y recibe 25€ por cada persona que se registre usando tu código: <strong>{estadisticasReferidos.codigo_referido}</strong>
+              </p>
+              
+              {/* Botones de compartir rápido */}
+              <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                <button
+                  onClick={() => {
+                    const enlace = `${window.location.origin}/estudiante/registro?ref=${estadisticasReferidos.codigo_referido}`;
+                    const mensaje = `¡Hola! 👋 Te invito a registrarte en Bot Visas de Estudio usando mi código de referido ${estadisticasReferidos.codigo_referido}. ¡Es completamente gratis y te ayudará con tu visa de estudiante! ${enlace}`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    background: '#25d366',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  📱 WhatsApp
+                </button>
+                <button
+                  onClick={() => {
+                    const enlace = `${window.location.origin}/estudiante/registro?ref=${estadisticasReferidos.codigo_referido}`;
+                    const mensaje = `¡Registrate en Bot Visas de Estudio con mi código ${estadisticasReferidos.codigo_referido} y recibe ayuda GRATIS para tu visa! ${enlace}`;
+                    navigator.clipboard.writeText(mensaje).then(() => {
+                      alert('✅ Mensaje copiado. Pégalo en cualquier red social');
+                    });
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    border: '2px solid white',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  📄 Copiar Mensaje
+                </button>
+              </div>
+            </div>
 
             <div style={{
               display: 'grid',
