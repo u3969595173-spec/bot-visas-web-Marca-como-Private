@@ -27,9 +27,12 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
     if (estudianteId) {
       // Guardar ID en localStorage para persistencia entre navegaciones
       localStorage.setItem('estudiante_id', estudianteId);
+      console.log('[DEBUG] Iniciando carga de datos...');
       cargarDatos();
       cargarPresupuestos();
+      console.log('[DEBUG] Llamando a cargarEstadisticasReferidos...');
       cargarEstadisticasReferidos();
+      console.log('[DEBUG] Todas las funciones de carga iniciadas');
     }
   }, [estudianteId]);
 
