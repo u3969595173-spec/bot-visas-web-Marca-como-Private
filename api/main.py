@@ -8997,7 +8997,7 @@ def gestionar_patrocinio(
         mensaje_notificacion += f" Comentarios: {comentarios}"
     
     db.execute(text("""
-        INSERT INTO notificaciones (estudiante_id, titulo, mensaje, tipo, fecha_creacion)
+        INSERT INTO notificaciones (estudiante_id, titulo, mensaje, tipo, created_at)
         VALUES (:estudiante_id, :titulo, :mensaje, 'patrocinio', CURRENT_TIMESTAMP)
     """), {
         "estudiante_id": estudiante_id,
@@ -9217,7 +9217,7 @@ def gestionar_alojamiento(
         mensaje_notificacion += f" Comentarios: {comentarios}"
     
     db.execute(text("""
-        INSERT INTO notificaciones (estudiante_id, titulo, mensaje, tipo, fecha_creacion)
+        INSERT INTO notificaciones (estudiante_id, titulo, mensaje, tipo, created_at)
         VALUES (:estudiante_id, :titulo, :mensaje, 'alojamiento', CURRENT_TIMESTAMP)
     """), {
         "estudiante_id": estudiante_id,

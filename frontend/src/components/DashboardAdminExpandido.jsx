@@ -5,6 +5,7 @@ import './DashboardAdminExpandido.css'
 import PartnersAdmin from './PartnersAdmin'
 import AlertasAdmin from './AlertasAdmin'
 import GuiaProceso from './GuiaProceso'
+import AdminChats from './AdminChats'
 
 function DashboardAdminExpandido({ onLogout }) {
   const [activeTab, setActiveTab] = useState('estudiantes')
@@ -48,6 +49,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [solicitudesCredito, setSolicitudesCredito] = useState([])
   const [solicitudesFinancieras, setSolicitudesFinancieras] = useState([])
   const [solicitudesAlojamiento, setSolicitudesAlojamiento] = useState([])
+  const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0)
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -58,7 +60,27 @@ function DashboardAdminExpandido({ onLogout }) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
     }
     cargarDatos()
+    cargarContadorMensajes() // Cargar contador inicial
+    
+    // Actualizar contador cada 30 segundos
+    const interval = setInterval(cargarContadorMensajes, 30000)
+    return () => clearInterval(interval)
   }, [activeTab])
+
+  const cargarContadorMensajes = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await axios.get(`${apiUrl}/api/admin/chat/total-no-leidos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (response.data.success) {
+        setMensajesNoLeidos(response.data.total_no_leidos || 0)
+      }
+    } catch (error) {
+      console.error('Error cargando contador de mensajes:', error)
+      setMensajesNoLeidos(0)
+    }
+  }
 
   const cargarDatos = async () => {
     setLoading(true)
@@ -641,13 +663,6 @@ function DashboardAdminExpandido({ onLogout }) {
           🏠 Gestión de Alojamiento
         </button>
         <button 
-          className={`tab ${activeTab === 'informacion-alojamiento' ? 'tab-active' : ''}`}
-          onClick={() => setActiveTab('informacion-alojamiento')}
-          style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', fontWeight: 'bold' }}
-        >
-          🏠 Gestión de Alojamiento
-        </button>
-        <button 
           className={`tab ${activeTab === 'servicios' ? 'tab-active' : ''}`}
           onClick={() => navigate('/admin/servicios')}
           style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', color: 'white', fontWeight: 'bold' }}
@@ -674,6 +689,33 @@ function DashboardAdminExpandido({ onLogout }) {
           style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', fontWeight: 'bold' }}
         >
           📅 Alertas de Fechas
+        </button>
+        <button 
+          className={`tab ${activeTab === 'chat' ? 'tab-active' : ''}`}
+          onClick={() => {setActiveTab('chat'); cargarContadorMensajes()}}
+          style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', fontWeight: 'bold', position: 'relative' }}
+        >
+          💬 Chat Estudiantes
+          {mensajesNoLeidos > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '-8px',
+              right: '-8px',
+              backgroundColor: '#ef4444',
+              color: 'white',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '12px',
+              fontWeight: 'bold',
+              border: '2px solid white'
+            }}>
+              {mensajesNoLeidos > 99 ? '99+' : mensajesNoLeidos}
+            </span>
+          )}
         </button>
         <button 
           className={`tab ${activeTab === 'cursos' ? 'tab-active' : ''}`}
@@ -732,6 +774,13 @@ function DashboardAdminExpandido({ onLogout }) {
           📊 Reportes
         </button>
       </div>
+
+      {/* SECCIÓN: CHAT CON ESTUDIANTES */}
+      {activeTab === 'chat' && (
+        <div style={{margin: '-20px'}}>
+          <AdminChats />
+        </div>
+      )}
 
       {/* SECCIÓN: PARTNERSHIPS */}
       {activeTab === 'partners' && <PartnersAdmin />}

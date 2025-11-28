@@ -308,3 +308,35 @@ def listar_conversaciones_activas(
     except Exception as e:
         print(f"❌ Error listando conversaciones: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/admin/chat/total-no-leidos")
+def obtener_total_mensajes_no_leidos(
+    db: Session = Depends(get_db)
+):
+    """Obtener el total de mensajes no leídos de todos los estudiantes"""
+    try:
+        import os
+        import psycopg2
+        
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT COUNT(*) as total_no_leidos
+            FROM mensajes_chat 
+            WHERE remitente = 'estudiante' AND leido = false
+        """)
+        
+        result = cursor.fetchone()
+        total_no_leidos = result[0] if result else 0
+        
+        cursor.close()
+        conn.close()
+        
+        return {
+            "success": True,
+            "total_no_leidos": total_no_leidos
+        }
+    except Exception as e:
+        print(f"❌ Error obteniendo total de mensajes no leídos: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
