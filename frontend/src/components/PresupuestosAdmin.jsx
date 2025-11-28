@@ -53,21 +53,33 @@ function PresupuestosAdmin({ embedded = false }) {
   const enviarOferta = async () => {
     if (!presupuestoSeleccionado) return
 
-    // Validación
-    if (!modalidades.precio_al_empezar || !modalidades.precio_con_visa || !modalidades.precio_financiado) {
-      setError('Por favor completa todos los precios')
+    // Validación - al menos una modalidad debe estar completa
+    const tieneAlMenosUnaModalidad = modalidades.precio_al_empezar || 
+                                     modalidades.precio_con_visa || 
+                                     modalidades.precio_financiado
+
+    if (!tieneAlMenosUnaModalidad) {
+      setError('⚠️ Debes completar al menos una modalidad de pago')
+      setTimeout(() => setError(''), 3000)
       return
     }
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       await axios.put(`${apiUrl}/api/admin/presupuestos/${presupuestoSeleccionado.id}/ofertar-modalidades`, modalidades)
-      setSuccess('✅ Oferta enviada exitosamente')
+      setSuccess('✅ Oferta enviada exitosamente al cliente')
       setMostrarModal(false)
+      setModalidades({
+        precio_al_empezar: '',
+        precio_con_visa: '',
+        precio_financiado: '',
+        comentarios_admin: ''
+      })
       cargarPresupuestos()
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
-      setError('Error al enviar oferta: ' + (err.response?.data?.detail || err.message))
+      setError('❌ Error al enviar oferta: ' + (err.response?.data?.detail || err.message))
+      setTimeout(() => setError(''), 5000)
     }
   }
 
@@ -293,135 +305,318 @@ function PresupuestosAdmin({ embedded = false }) {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          zIndex: 1000
+          zIndex: 1000,
+          padding: '20px'
         }}>
           <div style={{
             backgroundColor: 'white',
             padding: '30px',
             borderRadius: '15px',
-            maxWidth: '600px',
-            width: '90%',
-            maxHeight: '90%',
+            maxWidth: '800px',
+            width: '95%',
+            maxHeight: '90vh',
             overflowY: 'auto'
           }}>
-            <h3 style={{ marginTop: 0, marginBottom: '20px', color: '#2d3748' }}>
-              💰 Crear Oferta para {presupuestoSeleccionado.estudiante_nombre}
+            <h3 style={{ 
+              marginTop: 0, 
+              marginBottom: '10px', 
+              color: '#1f2937',
+              borderBottom: '2px solid #10b981',
+              paddingBottom: '10px'
+            }}>
+              💰 Crear Oferta de Presupuesto
             </h3>
+            
+            <p style={{ color: '#6b7280', marginBottom: '25px' }}>
+              Cliente: <strong>{presupuestoSeleccionado.estudiante_nombre}</strong>
+            </p>
 
-            <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
-              <h4 style={{ margin: '0 0 10px 0', color: '#4a5568' }}>Servicios Solicitados:</h4>
-              <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                {presupuestoSeleccionado.servicios_solicitados?.map((servicio, index) => (
-                  <li key={index} style={{ color: '#2d3748' }}>{servicio}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div style={{ display: 'grid', gap: '15px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-                  💳 Precio al Empezar (€)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={modalidades.precio_al_empezar}
-                  onChange={(e) => setModalidades({...modalidades, precio_al_empezar: parseFloat(e.target.value) || ''})}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '5px'
-                  }}
-                  placeholder="Ej: 1200.00"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-                  🎯 Precio con Visa (€)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={modalidades.precio_con_visa}
-                  onChange={(e) => setModalidades({...modalidades, precio_con_visa: parseFloat(e.target.value) || ''})}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '5px'
-                  }}
-                  placeholder="Ej: 1350.00"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-                  📅 Precio Financiado (€)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={modalidades.precio_financiado}
-                  onChange={(e) => setModalidades({...modalidades, precio_financiado: parseFloat(e.target.value) || ''})}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '5px'
-                  }}
-                  placeholder="Ej: 1500.00"
-                />
-              </div>
-
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-                  💬 Comentarios Adicionales
-                </label>
-                <textarea
-                  value={modalidades.comentarios_admin}
-                  onChange={(e) => setModalidades({...modalidades, comentarios_admin: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '5px',
-                    minHeight: '80px',
-                    resize: 'vertical'
-                  }}
-                  placeholder="Detalles adicionales sobre la oferta..."
-                />
+            {/* Servicios Solicitados por el Cliente */}
+            <div style={{ marginBottom: '30px' }}>
+              <h4 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#1f2937',
+                fontSize: '18px'
+              }}>
+                📋 Servicios Solicitados por el Cliente
+              </h4>
+              
+              {presupuestoSeleccionado.servicios_solicitados?.map((servicio, index) => (
+                <div key={index} style={{
+                  backgroundColor: '#f0fdf4',
+                  padding: '15px 20px',
+                  borderRadius: '12px',
+                  marginBottom: '10px',
+                  border: '2px solid #10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <span style={{ fontSize: '20px' }}>✅</span>
+                  <span style={{ 
+                    color: '#065f46', 
+                    fontSize: '15px',
+                    fontWeight: '500'
+                  }}>
+                    {servicio}
+                  </span>
+                </div>
+              ))}
+              
+              <div style={{
+                backgroundColor: '#e0f2fe',
+                padding: '15px',
+                borderRadius: '10px',
+                marginTop: '15px',
+                border: '1px solid #7dd3fc'
+              }}>
+                <p style={{ 
+                  margin: 0, 
+                  fontSize: '14px', 
+                  color: '#0369a1',
+                  textAlign: 'center'
+                }}>
+                  💬 El cliente está esperando tu oferta personalizada
+                </p>
               </div>
             </div>
 
+            {/* Modalidades de Pago - Crear Oferta */}
+            <div style={{ marginBottom: '25px' }}>
+              <h4 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#1f2937',
+                fontSize: '18px',
+                borderTop: '1px solid #e5e7eb',
+                paddingTop: '20px'
+              }}>
+                💳 Modalidades de Pago - Crea tu Oferta
+              </h4>
+              
+              <p style={{ color: '#6b7280', marginBottom: '20px', fontSize: '14px' }}>
+                Ingresa los precios para cada modalidad de pago. Todas son opcionales pero debes completar al menos una.
+              </p>
+
+              {/* Modalidad 1: Pago Inicial */}
+              <div style={{
+                backgroundColor: '#fef3c7',
+                padding: '20px',
+                borderRadius: '12px',
+                marginBottom: '15px',
+                border: '2px solid #f59e0b',
+                transition: 'all 0.2s'
+              }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '24px' }}>🚀</span>
+                    <strong style={{ color: '#92400e', fontSize: '16px' }}>
+                      Pago Inicial (Al Empezar el Proceso)
+                    </strong>
+                  </div>
+                  <p style={{ 
+                    color: '#78350f', 
+                    fontSize: '13px', 
+                    margin: '0 0 0 34px',
+                    lineHeight: '1.4'
+                  }}>
+                    El cliente paga el monto completo al iniciar el proceso. Ideal para descuentos por pago anticipado.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: '34px' }}>
+                  <span style={{ color: '#92400e', fontWeight: '600' }}>€</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={modalidades.precio_al_empezar}
+                    onChange={(e) => setModalidades({...modalidades, precio_al_empezar: parseFloat(e.target.value) || ''})}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: '2px solid #fbbf24',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600'
+                    }}
+                    placeholder="Ej: 1200.00"
+                  />
+                </div>
+              </div>
+
+              {/* Modalidad 2: Pago con Visa */}
+              <div style={{
+                backgroundColor: '#dbeafe',
+                padding: '20px',
+                borderRadius: '12px',
+                marginBottom: '15px',
+                border: '2px solid #3b82f6',
+                transition: 'all 0.2s'
+              }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '24px' }}>🎯</span>
+                    <strong style={{ color: '#1e40af', fontSize: '16px' }}>
+                      Pago una vez Obtenida la Visa
+                    </strong>
+                  </div>
+                  <p style={{ 
+                    color: '#1e40af', 
+                    fontSize: '13px', 
+                    margin: '0 0 0 34px',
+                    lineHeight: '1.4'
+                  }}>
+                    El cliente paga cuando recibe la visa aprobada. Mayor precio por el riesgo asumido.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: '34px' }}>
+                  <span style={{ color: '#1e40af', fontWeight: '600' }}>€</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={modalidades.precio_con_visa}
+                    onChange={(e) => setModalidades({...modalidades, precio_con_visa: parseFloat(e.target.value) || ''})}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: '2px solid #60a5fa',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600'
+                    }}
+                    placeholder="Ej: 1500.00"
+                  />
+                </div>
+              </div>
+
+              {/* Modalidad 3: Pago Financiado */}
+              <div style={{
+                backgroundColor: '#e0e7ff',
+                padding: '20px',
+                borderRadius: '12px',
+                marginBottom: '15px',
+                border: '2px solid #6366f1',
+                transition: 'all 0.2s'
+              }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '24px' }}>📅</span>
+                    <strong style={{ color: '#4338ca', fontSize: '16px' }}>
+                      Pago Financiado a 12 Meses
+                    </strong>
+                  </div>
+                  <p style={{ 
+                    color: '#4338ca', 
+                    fontSize: '13px', 
+                    margin: '0 0 0 34px',
+                    lineHeight: '1.4'
+                  }}>
+                    El cliente paga en cuotas mensuales durante un año. Precio más alto por facilidades de pago.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: '34px' }}>
+                  <span style={{ color: '#4338ca', fontWeight: '600' }}>€</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={modalidades.precio_financiado}
+                    onChange={(e) => setModalidades({...modalidades, precio_financiado: parseFloat(e.target.value) || ''})}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: '2px solid #818cf8',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600'
+                    }}
+                    placeholder="Ej: 1800.00"
+                  />
+                </div>
+                {modalidades.precio_financiado && modalidades.precio_financiado > 0 && (
+                  <div style={{ 
+                    marginTop: '10px', 
+                    marginLeft: '34px',
+                    padding: '8px 12px',
+                    backgroundColor: '#c7d2fe',
+                    borderRadius: '6px'
+                  }}>
+                    <span style={{ color: '#3730a3', fontSize: '13px', fontWeight: '500' }}>
+                      💰 Cuota mensual: €{(modalidades.precio_financiado / 12).toFixed(2)} x 12 meses
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Comentarios Opcionales */}
+            <div style={{ marginBottom: '25px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontWeight: '600',
+                color: '#374151'
+              }}>
+                💬 Comentarios Adicionales (Opcional)
+              </label>
+              <textarea
+                value={modalidades.comentarios_admin}
+                onChange={(e) => setModalidades({...modalidades, comentarios_admin: e.target.value})}
+                rows="3"
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  resize: 'vertical'
+                }}
+                placeholder="Incluye cualquier nota o aclaración para el cliente..."
+              />
+            </div>
+
+            {/* Botones de Acción */}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '25px' }}>
               <button
-                onClick={() => setMostrarModal(false)}
+                onClick={() => {
+                  setMostrarModal(false)
+                  setModalidades({
+                    precio_al_empezar: '',
+                    precio_con_visa: '',
+                    precio_financiado: '',
+                    comentarios_admin: ''
+                  })
+                }}
                 style={{
-                  padding: '10px 20px',
+                  padding: '12px 24px',
                   backgroundColor: '#6b7280',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer'
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
                 }}
               >
-                Cancelar
+                ✖️ Cancelar
               </button>
               <button
                 onClick={enviarOferta}
+                disabled={!modalidades.precio_al_empezar && !modalidades.precio_con_visa && !modalidades.precio_financiado}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#10b981',
+                  padding: '12px 30px',
+                  backgroundColor: (modalidades.precio_al_empezar || modalidades.precio_con_visa || modalidades.precio_financiado) ? '#10b981' : '#d1d5db',
                   color: 'white',
                   border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontWeight: '600'
+                  borderRadius: '8px',
+                  cursor: (modalidades.precio_al_empezar || modalidades.precio_con_visa || modalidades.precio_financiado) ? 'pointer' : 'not-allowed',
+                  fontWeight: '600',
+                  fontSize: '15px',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                 }}
               >
-                📤 Enviar Oferta
+                📤 Enviar Oferta al Cliente
               </button>
             </div>
           </div>
