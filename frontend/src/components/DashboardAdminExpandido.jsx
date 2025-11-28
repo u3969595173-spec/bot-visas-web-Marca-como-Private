@@ -4,6 +4,7 @@ import axios from 'axios'
 import './DashboardAdminExpandido.css'
 import PartnersAdmin from './PartnersAdmin'
 import AlertasAdmin from './AlertasAdmin'
+import GuiaProceso from './GuiaProceso'
 
 function DashboardAdminExpandido({ onLogout }) {
   const [activeTab, setActiveTab] = useState('estudiantes')
@@ -579,6 +580,13 @@ function DashboardAdminExpandido({ onLogout }) {
           🤝 Partnerships
         </button>
         <button 
+          className={`tab ${activeTab === 'guia' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('guia')}
+          style={{ background: 'linear-gradient(135deg, #38b2ac 0%, #2c7a7b 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          📋 Guía del Proceso
+        </button>
+        <button 
           className={`tab ${activeTab === 'reportes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('reportes')}
         >
@@ -591,6 +599,9 @@ function DashboardAdminExpandido({ onLogout }) {
 
       {/* SECCIÓN: ALERTAS DE FECHAS */}
       {activeTab === 'alertas' && <AlertasAdmin apiUrl={apiUrl} />}
+
+      {/* SECCIÓN: GUÍA DEL PROCESO */}
+      {activeTab === 'guia' && <GuiaProceso />}
 
       {/* SECCIÓN: ESTUDIANTES */}
       {activeTab === 'estudiantes' && (
