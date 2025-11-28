@@ -8335,6 +8335,183 @@ async def actualizar_paso_proceso(
     return {'success': True, 'mensaje': f'Paso {paso} actualizado'}
 
 
+# ============================================
+# ENDPOINTS DE PRESUPUESTOS
+# ============================================
+
+@app.post("/api/presupuestos", tags=["Presupuestos"])
+def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
+    """Estudiante solicita presupuesto de servicios"""
+    import json
+    estudiante_id = datos.get('estudiante_id')
+    servicios = datos.get('servicios', [])
+    precio_solicitado = datos.get('precio_solicitado', 0)
+    
+    if not estudiante_id or not servicios:
+        raise HTTPException(status_code=400, detail="Faltan datos requeridos")
+    
+    # Verificar que el estudiante existe
+    check = db.execute(text("SELECT id FROM estudiantes WHERE id = :id"), 
+                       {"id": estudiante_id}).fetchone()
+    if not check:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Insertar presupuesto
+    result = db.execute(text("""
+        INSERT INTO presupuestos (estudiante_id, servicios, precio_solicitado, estado, created_at, updated_at)
+        VALUES (:estudiante_id, :servicios::jsonb, :precio, 'pendiente', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        RETURNING id
+    """), {
+        "estudiante_id": estudiante_id,
+        "servicios": json.dumps(servicios),
+        "precio": precio_solicitado
+    })
+    db.commit()
+    
+    presupuesto_id = result.fetchone()[0]
+    
+    log_event("presupuesto_creado", {
+        'presupuesto_id': presupuesto_id,
+        'estudiante_id': estudiante_id,
+        'precio_solicitado': precio_solicitado
+    })
+    
+    return {"message": "Presupuesto creado", "id": presupuesto_id}
+
+
+@app.get("/api/presupuestos/estudiante/{estudiante_id}", tags=["Presupuestos"])
+def obtener_presupuestos_estudiante(estudiante_id: int, db: Session = Depends(get_db)):
+    """Obtener presupuestos de un estudiante"""
+    result = db.execute(text("""
+        SELECT p.*, e.nombre, e.email
+        FROM presupuestos p
+        JOIN estudiantes e ON p.estudiante_id = e.id
+        WHERE p.estudiante_id = :estudiante_id
+        ORDER BY p.created_at DESC
+    """), {"estudiante_id": estudiante_id})
+    
+    presupuestos = []
+    for row in result:
+        presupuestos.append({
+            'id': row[0],
+            'estudiante_id': row[1],
+            'servicios': row[2],
+            'precio_solicitado': float(row[3]) if row[3] else 0,
+            'precio_ofertado': float(row[4]) if row[4] else None,
+            'forma_pago': row[5],
+            'mensaje_admin': row[6],
+            'estado': row[7],
+            'created_at': row[8].isoformat() if row[8] else None,
+            'updated_at': row[9].isoformat() if row[9] else None,
+            'nombre_estudiante': row[10],
+            'email_estudiante': row[11]
+        })
+    
+    return presupuestos
+
+
+@app.get("/api/admin/presupuestos", tags=["Admin"])
+def listar_presupuestos_admin(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Listar todos los presupuestos para el admin"""
+    result = db.execute(text("""
+        SELECT p.*, e.nombre, e.email, e.telefono
+        FROM presupuestos p
+        JOIN estudiantes e ON p.estudiante_id = e.id
+        ORDER BY 
+            CASE p.estado
+                WHEN 'pendiente' THEN 1
+                WHEN 'ofertado' THEN 2
+                WHEN 'aceptado' THEN 3
+                WHEN 'rechazado' THEN 4
+            END,
+            p.created_at DESC
+    """))
+    
+    presupuestos = []
+    for row in result:
+        presupuestos.append({
+            'id': row[0],
+            'estudiante_id': row[1],
+            'servicios': row[2],
+            'precio_solicitado': float(row[3]) if row[3] else 0,
+            'precio_ofertado': float(row[4]) if row[4] else None,
+            'forma_pago': row[5],
+            'mensaje_admin': row[6],
+            'estado': row[7],
+            'created_at': row[8].isoformat() if row[8] else None,
+            'updated_at': row[9].isoformat() if row[9] else None,
+            'nombre_estudiante': row[10],
+            'email_estudiante': row[11],
+            'telefono_estudiante': row[12]
+        })
+    
+    return presupuestos
+
+
+@app.put("/api/admin/presupuestos/{presupuesto_id}/contraoferta", tags=["Admin"])
+def hacer_contraoferta(
+    presupuesto_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin hace contraoferta a presupuesto"""
+    precio_ofertado = datos.get('precio_ofertado')
+    forma_pago = datos.get('forma_pago', '')
+    mensaje_admin = datos.get('mensaje_admin', '')
+    
+    if not precio_ofertado:
+        raise HTTPException(status_code=400, detail="precio_ofertado es requerido")
+    
+    db.execute(text("""
+        UPDATE presupuestos
+        SET precio_ofertado = :precio,
+            forma_pago = :forma_pago,
+            mensaje_admin = :mensaje,
+            estado = 'ofertado',
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :id
+    """), {
+        "id": presupuesto_id,
+        "precio": precio_ofertado,
+        "forma_pago": forma_pago,
+        "mensaje": mensaje_admin
+    })
+    db.commit()
+    
+    log_event("contraoferta_enviada", {
+        'presupuesto_id': presupuesto_id,
+        'precio_ofertado': precio_ofertado
+    })
+    
+    return {"message": "Contraoferta enviada exitosamente"}
+
+
+@app.put("/api/presupuestos/{presupuesto_id}/respuesta", tags=["Presupuestos"])
+def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depends(get_db)):
+    """Estudiante acepta o rechaza contraoferta"""
+    aceptar = datos.get('aceptar', False)
+    estado = 'aceptado' if aceptar else 'rechazado'
+    
+    db.execute(text("""
+        UPDATE presupuestos
+        SET estado = :estado,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :id
+    """), {"id": presupuesto_id, "estado": estado})
+    db.commit()
+    
+    log_event("presupuesto_respondido", {
+        'presupuesto_id': presupuesto_id,
+        'estado': estado
+    })
+    
+    return {"message": f"Presupuesto {estado}"}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

@@ -37,6 +37,10 @@ function DashboardAdminExpandido({ onLogout }) {
   const [estudiantesAprobados, setEstudiantesAprobados] = useState([])
   const [showEditarEstudianteModal, setShowEditarEstudianteModal] = useState(false)
   const [estudianteEditar, setEstudianteEditar] = useState(null)
+  const [presupuestos, setPresupuestos] = useState([])
+  const [showContraofertaModal, setShowContraofertaModal] = useState(false)
+  const [presupuestoSeleccionado, setPresupuestoSeleccionado] = useState(null)
+  const [contraoferta, setContraoferta] = useState({ precio_ofertado: '', forma_pago: '', mensaje_admin: '' })
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -86,6 +90,9 @@ function DashboardAdminExpandido({ onLogout }) {
       } else if (activeTab === 'reportes') {
         const reporteRes = await axios.get(`${apiUrl}/api/admin/reportes/estudiantes`)
         setReporteEstudiantes(reporteRes.data)
+      } else if (activeTab === 'presupuestos') {
+        const presRes = await axios.get(`${apiUrl}/api/admin/presupuestos`)
+        setPresupuestos(presRes.data)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -605,6 +612,13 @@ function DashboardAdminExpandido({ onLogout }) {
           📋 Guía del Proceso
         </button>
         <button 
+          className={`tab ${activeTab === 'presupuestos' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('presupuestos')}
+          style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          💰 Presupuestos
+        </button>
+        <button 
           className={`tab ${activeTab === 'reportes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('reportes')}
         >
@@ -620,6 +634,151 @@ function DashboardAdminExpandido({ onLogout }) {
 
       {/* SECCIÓN: GUÍA DEL PROCESO */}
       {activeTab === 'guia' && <GuiaProceso />}
+
+      {/* SECCIÓN: PRESUPUESTOS */}
+      {activeTab === 'presupuestos' && (
+        <div className="card">
+          <h2 style={{marginBottom: '20px', color: '#1f2937'}}>💰 Gestión de Presupuestos</h2>
+          
+          <div style={{marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+            {['pendiente', 'ofertado', 'aceptado', 'rechazado'].map(estado => (
+              <div key={estado} style={{
+                padding: '10px 20px',
+                borderRadius: '8px',
+                backgroundColor: 
+                  estado === 'pendiente' ? '#fef3c7' :
+                  estado === 'ofertado' ? '#dbeafe' :
+                  estado === 'aceptado' ? '#d1fae5' : '#fee2e2',
+                border: `2px solid ${
+                  estado === 'pendiente' ? '#f59e0b' :
+                  estado === 'ofertado' ? '#3b82f6' :
+                  estado === 'aceptado' ? '#10b981' : '#ef4444'
+                }`
+              }}>
+                <div style={{fontSize: '20px', fontWeight: '700'}}>
+                  {presupuestos.filter(p => p.estado === estado).length}
+                </div>
+                <div style={{fontSize: '13px', textTransform: 'capitalize'}}>
+                  {estado}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {presupuestos.length === 0 ? (
+            <p style={{textAlign: 'center', padding: '40px', color: '#6b7280'}}>
+              No hay solicitudes de presupuesto
+            </p>
+          ) : (
+            <div style={{overflowX: 'auto'}}>
+              <table className="tabla">
+                <thead>
+                  <tr>
+                    <th>Estudiante</th>
+                    <th>Servicios</th>
+                    <th>Precio Solicitado</th>
+                    <th>Precio Ofertado</th>
+                    <th>Estado</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {presupuestos.map(pres => (
+                    <tr key={pres.id}>
+                      <td>
+                        <strong>{pres.nombre_estudiante}</strong><br/>
+                        <small style={{color: '#6b7280'}}>{pres.email_estudiante}</small>
+                      </td>
+                      <td>
+                        <div style={{fontSize: '13px'}}>
+                          {Array.isArray(pres.servicios) ? pres.servicios.length : 0} servicios
+                        </div>
+                      </td>
+                      <td style={{fontWeight: '600', color: '#1f2937'}}>
+                        {pres.precio_solicitado}€
+                      </td>
+                      <td style={{fontWeight: '600', color: '#10b981'}}>
+                        {pres.precio_ofertado ? `${pres.precio_ofertado}€` : '-'}
+                      </td>
+                      <td>
+                        <span style={{
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor:
+                            pres.estado === 'pendiente' ? '#fef3c7' :
+                            pres.estado === 'ofertado' ? '#dbeafe' :
+                            pres.estado === 'aceptado' ? '#d1fae5' : '#fee2e2',
+                          color:
+                            pres.estado === 'pendiente' ? '#92400e' :
+                            pres.estado === 'ofertado' ? '#1e40af' :
+                            pres.estado === 'aceptado' ? '#065f46' : '#991b1b'
+                        }}>
+                          {pres.estado.toUpperCase()}
+                        </span>
+                      </td>
+                      <td style={{fontSize: '13px', color: '#6b7280'}}>
+                        {new Date(pres.created_at).toLocaleDateString('es-ES')}
+                      </td>
+                      <td>
+                        {pres.estado === 'pendiente' && (
+                          <button
+                            onClick={() => {
+                              setPresupuestoSeleccionado(pres)
+                              setContraoferta({
+                                precio_ofertado: pres.precio_solicitado,
+                                forma_pago: '',
+                                mensaje_admin: ''
+                              })
+                              setShowContraofertaModal(true)
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '5px',
+                              cursor: 'pointer',
+                              fontSize: '13px'
+                            }}
+                          >
+                            💬 Hacer Oferta
+                          </button>
+                        )}
+                        {pres.estado === 'ofertado' && (
+                          <span style={{fontSize: '13px', color: '#6b7280'}}>
+                            Esperando respuesta...
+                          </span>
+                        )}
+                        {(pres.estado === 'aceptado' || pres.estado === 'rechazado') && (
+                          <button
+                            onClick={() => {
+                              alert(`Detalles del presupuesto ${pres.estado}:\n\nServicios: ${pres.servicios.join(', ')}\nPrecio ofertado: ${pres.precio_ofertado}€\nForma de pago: ${pres.forma_pago}\nMensaje: ${pres.mensaje_admin}`)
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#6b7280',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '5px',
+                              cursor: 'pointer',
+                              fontSize: '13px'
+                            }}
+                          >
+                            👁️ Ver Detalles
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* SECCIÓN: ESTUDIANTES */}
       {activeTab === 'estudiantes' && (
@@ -1748,6 +1907,133 @@ function DashboardAdminExpandido({ onLogout }) {
                 style={{padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '14px', fontWeight: '500'}}
               >
                 💾 Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Contraoferta */}
+      {showContraofertaModal && presupuestoSeleccionado && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{maxWidth: '600px'}}>
+            <h3 style={{marginTop: 0, color: '#1f2937', borderBottom: '2px solid #10b981', paddingBottom: '10px'}}>
+              💬 Hacer Contraoferta
+            </h3>
+
+            <div style={{backgroundColor: '#f9fafb', padding: '15px', borderRadius: '8px', marginBottom: '20px'}}>
+              <p style={{margin: '0 0 5px 0', fontSize: '14px', color: '#6b7280'}}>
+                <strong>Estudiante:</strong> {presupuestoSeleccionado.nombre_estudiante}
+              </p>
+              <p style={{margin: '0 0 5px 0', fontSize: '14px', color: '#6b7280'}}>
+                <strong>Email:</strong> {presupuestoSeleccionado.email_estudiante}
+              </p>
+              <p style={{margin: '0 0 5px 0', fontSize: '14px', color: '#6b7280'}}>
+                <strong>Servicios solicitados:</strong> {Array.isArray(presupuestoSeleccionado.servicios) ? presupuestoSeleccionado.servicios.length : 0}
+              </p>
+              <p style={{margin: 0, fontSize: '14px', color: '#6b7280'}}>
+                <strong>Precio solicitado:</strong> <span style={{color: '#1f2937', fontWeight: '600'}}>{presupuestoSeleccionado.precio_solicitado}€</span>
+              </p>
+            </div>
+
+            <div className="form-group" style={{marginBottom: '15px'}}>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>
+                Precio Ofertado (€) *
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={contraoferta.precio_ofertado}
+                onChange={(e) => setContraoferta({...contraoferta, precio_ofertado: e.target.value})}
+                style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+                placeholder="500.00"
+              />
+            </div>
+
+            <div className="form-group" style={{marginBottom: '15px'}}>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>
+                Forma de Pago *
+              </label>
+              <select
+                value={contraoferta.forma_pago}
+                onChange={(e) => setContraoferta({...contraoferta, forma_pago: e.target.value})}
+                style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
+              >
+                <option value="">Seleccionar...</option>
+                <option value="pago_unico">Pago único</option>
+                <option value="2_cuotas">2 cuotas (50% adelantado + 50% al finalizar)</option>
+                <option value="3_cuotas">3 cuotas mensuales</option>
+                <option value="transferencia">Transferencia bancaria</option>
+                <option value="tarjeta">Tarjeta de crédito/débito</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{marginBottom: '20px'}}>
+              <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>
+                Mensaje para el estudiante
+              </label>
+              <textarea
+                value={contraoferta.mensaje_admin}
+                onChange={(e) => setContraoferta({...contraoferta, mensaje_admin: e.target.value})}
+                rows="4"
+                style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px', fontFamily: 'inherit'}}
+                placeholder="Ej: Hemos ajustado el precio considerando tus necesidades específicas..."
+              />
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={() => {
+                  setShowContraofertaModal(false)
+                  setPresupuestoSeleccionado(null)
+                  setContraoferta({precio_ofertado: '', forma_pago: '', mensaje_admin: ''})
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!contraoferta.precio_ofertado || !contraoferta.forma_pago) {
+                    alert('⚠️ Por favor completa todos los campos obligatorios');
+                    return;
+                  }
+
+                  try {
+                    await axios.put(`${apiUrl}/api/admin/presupuestos/${presupuestoSeleccionado.id}/contraoferta`, {
+                      precio_ofertado: parseFloat(contraoferta.precio_ofertado),
+                      forma_pago: contraoferta.forma_pago,
+                      mensaje_admin: contraoferta.mensaje_admin
+                    });
+                    alert('✅ Contraoferta enviada exitosamente');
+                    setShowContraofertaModal(false);
+                    setPresupuestoSeleccionado(null);
+                    setContraoferta({precio_ofertado: '', forma_pago: '', mensaje_admin: ''});
+                    cargarDatos();
+                  } catch (err) {
+                    alert('❌ Error al enviar contraoferta: ' + (err.response?.data?.detail || err.message));
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                📤 Enviar Contraoferta
               </button>
             </div>
           </div>

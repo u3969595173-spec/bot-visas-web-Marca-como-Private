@@ -15,6 +15,9 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('perfil');
+  const [showPresupuestoModal, setShowPresupuestoModal] = useState(false);
+  const [serviciosSeleccionados, setServiciosSeleccionados] = useState({});
+  const [presupuestoActual, setPresupuestoActual] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -195,6 +198,19 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             {tab === 'mensajes' && '💬 Mensajes'}
           </button>
         ))}
+        <button
+          onClick={() => setShowPresupuestoModal(true)}
+          className="btn"
+          style={{
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            border: 'none',
+            fontWeight: '600',
+            marginLeft: 'auto'
+          }}
+        >
+          💰 Solicitar Presupuesto
+        </button>
       </div>
 
       {/* TAB: Perfil */}
@@ -266,6 +282,168 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       {/* TAB: Mensajes */}
       {activeTab === 'mensajes' && (
         <ChatMensajes estudianteId={estudianteId} remitente="estudiante" />
+      )}
+
+      {/* Modal Solicitar Presupuesto */}
+      {showPresupuestoModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto'}}>
+            <h3 style={{marginTop: 0, color: '#1f2937', borderBottom: '2px solid #10b981', paddingBottom: '10px'}}>
+              💰 Solicitar Presupuesto de Servicios
+            </h3>
+
+            <p style={{color: '#6b7280', marginBottom: '25px'}}>
+              Selecciona los servicios que necesitas y verás el precio total calculado automáticamente.
+            </p>
+
+            <div style={{marginBottom: '30px'}}>
+              {[
+                {id: 'gestion_visa', nombre: 'Gestión completa de visa de estudios', precio: 100},
+                {id: 'busqueda_universidad', nombre: 'Búsqueda y aplicación a universidades', precio: 100},
+                {id: 'carta_aceptacion', nombre: 'Gestión de carta de aceptación', precio: 100},
+                {id: 'seguro_medico', nombre: 'Contratación de seguro médico', precio: 100},
+                {id: 'busqueda_vivienda', nombre: 'Búsqueda y reserva de alojamiento', precio: 100},
+                {id: 'traduccion_documentos', nombre: 'Traducción oficial de documentos', precio: 100},
+                {id: 'apostilla', nombre: 'Gestión de apostilla de documentos', precio: 100},
+                {id: 'asesoria_bancaria', nombre: 'Asesoría para apertura de cuenta bancaria', precio: 100},
+                {id: 'preparacion_entrevista', nombre: 'Preparación para entrevista consular', precio: 100},
+                {id: 'tramite_urgente', nombre: 'Trámite urgente (express)', precio: 100}
+              ].map(servicio => (
+                <div key={servicio.id} style={{
+                  backgroundColor: serviciosSeleccionados[servicio.id] ? '#d1fae5' : '#f9fafb',
+                  padding: '15px',
+                  borderRadius: '8px',
+                  marginBottom: '10px',
+                  border: serviciosSeleccionados[servicio.id] ? '2px solid #10b981' : '1px solid #e5e7eb',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onClick={() => {
+                  setServiciosSeleccionados(prev => ({
+                    ...prev,
+                    [servicio.id]: !prev[servicio.id]
+                  }))
+                }}
+                >
+                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                      <input
+                        type="checkbox"
+                        checked={serviciosSeleccionados[servicio.id] || false}
+                        onChange={() => {}}
+                        style={{width: '20px', height: '20px', cursor: 'pointer'}}
+                      />
+                      <div>
+                        <strong style={{color: '#1f2937', fontSize: '15px'}}>{servicio.nombre}</strong>
+                      </div>
+                    </div>
+                    <div style={{
+                      backgroundColor: serviciosSeleccionados[servicio.id] ? '#10b981' : '#6b7280',
+                      color: 'white',
+                      padding: '6px 12px',
+                      borderRadius: '5px',
+                      fontWeight: '600'
+                    }}>
+                      {servicio.precio}€
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Resumen de Precio */}
+            <div style={{
+              backgroundColor: '#f0fdf4',
+              padding: '20px',
+              borderRadius: '10px',
+              border: '2px solid #10b981',
+              marginBottom: '20px'
+            }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div>
+                  <h4 style={{margin: '0 0 5px 0', color: '#065f46', fontSize: '16px'}}>Total Estimado:</h4>
+                  <p style={{margin: 0, fontSize: '13px', color: '#059669'}}>
+                    {Object.values(serviciosSeleccionados).filter(Boolean).length} servicios seleccionados
+                  </p>
+                </div>
+                <div style={{fontSize: '32px', fontWeight: '700', color: '#10b981'}}>
+                  {Object.values(serviciosSeleccionados).filter(Boolean).length * 100}€
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              backgroundColor: '#fef3c7',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              border: '1px solid #fde68a'
+            }}>
+              <p style={{margin: 0, fontSize: '14px', color: '#92400e'}}>
+                ℹ️ <strong>Importante:</strong> Este es un precio estimado. Una vez enviada tu solicitud, revisaremos tu caso y te enviaremos una oferta personalizada con forma de pago.
+              </p>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={() => {
+                  setShowPresupuestoModal(false)
+                  setServiciosSeleccionados({})
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  const serviciosArray = Object.entries(serviciosSeleccionados)
+                    .filter(([_, selected]) => selected)
+                    .map(([id]) => id);
+                  
+                  if (serviciosArray.length === 0) {
+                    alert('⚠️ Por favor selecciona al menos un servicio');
+                    return;
+                  }
+
+                  try {
+                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                    await axios.post(`${apiUrl}/api/presupuestos`, {
+                      estudiante_id: estudianteId,
+                      servicios: serviciosArray,
+                      precio_solicitado: serviciosArray.length * 100
+                    });
+                    alert('✅ Solicitud enviada. Te enviaremos una oferta personalizada pronto.');
+                    setShowPresupuestoModal(false);
+                    setServiciosSeleccionados({});
+                  } catch (err) {
+                    alert('❌ Error al enviar solicitud: ' + (err.response?.data?.detail || err.message));
+                  }
+                }}
+                disabled={Object.values(serviciosSeleccionados).filter(Boolean).length === 0}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: Object.values(serviciosSeleccionados).filter(Boolean).length > 0 ? '#10b981' : '#d1d5db',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: Object.values(serviciosSeleccionados).filter(Boolean).length > 0 ? 'pointer' : 'not-allowed',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                📤 Enviar Solicitud
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
