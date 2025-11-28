@@ -8610,7 +8610,15 @@ async def obtener_estadisticas_referidos(
     """), {"id": estudiante_id}).fetchone()
     
     if not estudiante:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        # Si no existe el estudiante, devolver datos vacíos en lugar de error
+        return {
+            "codigo_referido": "",
+            "credito_disponible": 0.0,
+            "tipo_recompensa": "dinero",
+            "total_referidos": 0,
+            "total_ganado": 0.0,
+            "referidos": []
+        }
     
     # Contar referidos
     referidos = db.execute(text("""
@@ -8629,11 +8637,11 @@ async def obtener_estadisticas_referidos(
     """), {"id": estudiante_id}).fetchone()[0]
     
     return {
-        "codigo_referido": estudiante[0],
-        "credito_disponible": float(estudiante[1]),
-        "tipo_recompensa": estudiante[2],
+        "codigo_referido": estudiante[0] or "",
+        "credito_disponible": float(estudiante[1] or 0),
+        "tipo_recompensa": estudiante[2] or "dinero",
         "total_referidos": len(referidos),
-        "total_ganado": float(total_ganado),
+        "total_ganado": float(total_ganado or 0),
         "referidos": [
             {
                 "id": r[0],
