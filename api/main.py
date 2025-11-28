@@ -8926,7 +8926,6 @@ def obtener_solicitudes_financieras(
             SELECT 
                 e.id,
                 e.nombre,
-                e.apellido,
                 e.email,
                 e.telefono,
                 e.fondos_disponibles,
@@ -8946,16 +8945,15 @@ def obtener_solicitudes_financieras(
             solicitudes.append({
                 'id': row[0],
                 'nombre': row[1],
-                'apellido': row[2],
-                'email': row[3],
-                'telefono': row[4],
-                'fondos_disponibles': row[5],
-                'moneda_fondos': row[6],
-                'patrocinador_nombre': row[7],
-                'patrocinador_relacion': row[8],
-                'patrocinio_solicitado': row[9],
-                'estado_patrocinio': row[10] or 'pendiente',
-                'fecha_solicitud': row[11].isoformat() if row[11] else None
+                'email': row[2],
+                'telefono': row[3],
+                'fondos_disponibles': row[4],
+                'moneda_fondos': row[5],
+                'patrocinador_nombre': row[6],
+                'patrocinador_relacion': row[7],
+                'patrocinio_solicitado': row[8],
+                'estado_patrocinio': row[9] or 'pendiente',
+                'fecha_solicitud': row[10].isoformat() if row[10] else None
             })
         
         return solicitudes
