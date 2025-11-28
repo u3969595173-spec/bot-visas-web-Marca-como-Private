@@ -27,19 +27,22 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
     if (estudianteId) {
       // Guardar ID en localStorage para persistencia entre navegaciones
       localStorage.setItem('estudiante_id', estudianteId);
+      cargarDatos();
+      cargarPresupuestos();
+      cargarEstadisticasReferidos();
     }
-    cargarDatos();
-    cargarPresupuestos();
-    cargarEstadisticasReferidos();
   }, [estudianteId]);
 
   const cargarEstadisticasReferidos = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      console.log('[REFERIDOS] Cargando estadísticas para estudiante:', estudianteId);
       const response = await axios.get(`${apiUrl}/api/referidos/estadisticas/${estudianteId}`);
+      console.log('[REFERIDOS] Datos recibidos:', response.data);
       setEstadisticasReferidos(response.data);
     } catch (err) {
-      console.error('Error cargando estadísticas de referidos:', err);
+      console.error('[REFERIDOS] Error cargando estadísticas:', err);
+      console.error('[REFERIDOS] Error detalles:', err.response?.data);
     }
   };
 
