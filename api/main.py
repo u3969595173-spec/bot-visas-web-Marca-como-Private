@@ -9234,6 +9234,124 @@ def gestionar_alojamiento(
     
     return {"message": f"Gestión de alojamiento {estado_alojamiento} exitosamente. Estudiante notificado."}
 
+# ===============================================
+# ENDPOINTS: GESTIÓN DE SEGURO MÉDICO
+# ===============================================
+
+@app.get("/api/admin/solicitudes-seguro-medico")
+async def obtener_solicitudes_seguro_medico(db: Session = Depends(get_db)):
+    """
+    Obtener todas las solicitudes de gestión de seguro médico
+    """
+    try:
+        result = db.execute(text("""
+            SELECT id, nombre, email, gestion_seguro_solicitada, comentarios_seguro_medico,
+                   estado_seguro_medico, created_at as fecha_solicitud
+            FROM estudiantes 
+            WHERE gestion_seguro_solicitada = true
+            ORDER BY created_at DESC
+        """))
+        
+        solicitudes = []
+        for row in result.fetchall():
+            solicitudes.append({
+                "id": row.id,
+                "nombre": row.nombre,
+                "email": row.email,
+                "gestion_seguro_solicitada": row.gestion_seguro_solicitada,
+                "comentarios_seguro_medico": row.comentarios_seguro_medico,
+                "estado_seguro_medico": row.estado_seguro_medico,
+                "fecha_solicitud": row.fecha_solicitud.isoformat() if row.fecha_solicitud else None
+            })
+        
+        log_event("solicitudes_seguro_consultadas", {
+            'total': len(solicitudes)
+        })
+        
+        return solicitudes
+    
+    except Exception as e:
+        print(f"❌ Error obteniendo solicitudes de seguro médico: {e}")
+        log_event("error_consulta_seguro", {'error': str(e)})
+        raise HTTPException(status_code=503, detail="Error interno del servidor")
+
+@app.put("/api/admin/gestionar-seguro-medico/{estudiante_id}")
+async def gestionar_seguro_medico(
+    estudiante_id: int,
+    datos: dict,
+    db: Session = Depends(get_db)
+):
+    """
+    Gestionar solicitud de seguro médico (aprobar/rechazar)
+    """
+    try:
+        accion = datos.get('accion')  # 'aprobar' o 'rechazar'
+        comentarios = datos.get('comentarios', '')
+        
+        if accion not in ['aprobar', 'rechazar']:
+            raise HTTPException(status_code=400, detail="Acción debe ser 'aprobar' o 'rechazar'")
+        
+        # Verificar que el estudiante existe
+        estudiante = db.execute(text("""
+            SELECT id, nombre, email, gestion_seguro_solicitada 
+            FROM estudiantes 
+            WHERE id = :id
+        """), {"id": estudiante_id}).fetchone()
+        
+        if not estudiante:
+            raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        
+        if not estudiante.gestion_seguro_solicitada:
+            raise HTTPException(status_code=400, detail="El estudiante no ha solicitado gestión de seguro médico")
+        
+        # Determinar estado
+        estado_seguro = 'aprobado' if accion == 'aprobar' else 'rechazado'
+        
+        # Actualizar estado del estudiante
+        db.execute(text("""
+            UPDATE estudiantes
+            SET estado_seguro_medico = :estado,
+                comentarios_seguro_medico = :comentarios,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id
+        """), {
+            "id": estudiante_id,
+            "estado": estado_seguro,
+            "comentarios": comentarios
+        })
+        db.commit()
+        
+        # Crear notificación para el estudiante
+        mensaje_notificacion = f"Su solicitud de gestión de seguro médico ha sido {'aprobada' if accion == 'aprobar' else 'rechazada'}."
+        if comentarios:
+            mensaje_notificacion += f" Comentarios: {comentarios}"
+        
+        db.execute(text("""
+            INSERT INTO notificaciones (estudiante_id, titulo, mensaje, tipo, created_at)
+            VALUES (:estudiante_id, :titulo, :mensaje, 'seguro_medico', CURRENT_TIMESTAMP)
+        """), {
+            "estudiante_id": estudiante_id,
+            "titulo": f"Gestión de seguro médico {'aprobada' if accion == 'aprobar' else 'rechazada'}",
+            "mensaje": mensaje_notificacion
+        })
+        db.commit()
+        
+        log_event("seguro_medico_gestionado", {
+            'estudiante_id': estudiante_id,
+            'accion': accion,
+            'estado': estado_seguro
+        })
+        
+        return {"message": f"Gestión de seguro médico {estado_seguro} exitosamente. Estudiante notificado."}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error de base de datos: {e}")
+        log_event("error_gestion_seguro", {'error': str(e)})
+        raise HTTPException(status_code=503, detail="Servicio de base de datos temporalmente no disponible")
+
 
 if __name__ == "__main__":
     import uvicorn

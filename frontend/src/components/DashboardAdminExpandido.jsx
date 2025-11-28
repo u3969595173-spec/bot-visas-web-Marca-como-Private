@@ -49,6 +49,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [solicitudesCredito, setSolicitudesCredito] = useState([])
   const [solicitudesFinancieras, setSolicitudesFinancieras] = useState([])
   const [solicitudesAlojamiento, setSolicitudesAlojamiento] = useState([])
+  const [solicitudesSeguroMedico, setSolicitudesSeguroMedico] = useState([])
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0)
   const navigate = useNavigate()
 
@@ -138,6 +139,9 @@ function DashboardAdminExpandido({ onLogout }) {
       } else if (activeTab === 'informacion-alojamiento') {
         const response = await axios.get(`${apiUrl}/api/admin/solicitudes-alojamiento`)
         setSolicitudesAlojamiento(response.data)
+      } else if (activeTab === 'informacion-seguro-medico') {
+        const response = await axios.get(`${apiUrl}/api/admin/solicitudes-seguro-medico`)
+        setSolicitudesSeguroMedico(response.data)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -526,6 +530,29 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
+  const gestionarSeguroMedico = async (estudianteId, decision) => {
+    const accion = decision === 'aceptado' ? 'aprobar' : 'rechazar'
+    const mensaje = decision === 'aceptado' ? 
+      '¿Aprobar la solicitud de gestión de seguro médico? El estudiante será notificado.' :
+      '¿Rechazar la solicitud de gestión de seguro médico? El estudiante será notificado.'
+
+    if (!confirm(mensaje)) return
+
+    const comentarios = prompt('Comentarios adicionales (opcional):') || ''
+
+    try {
+      await axios.put(`${apiUrl}/api/admin/gestionar-seguro-medico/${estudianteId}`, {
+        accion: accion,
+        comentarios: comentarios
+      })
+      
+      alert(`Solicitud ${decision === 'aceptado' ? 'aprobada' : 'rechazada'} correctamente. El estudiante ha sido notificado.`)
+      cargarDatos() // Recargar datos para actualizar la tabla
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
   const actualizarEstadoEstudiante = async (estudianteId, nuevoEstado) => {
     try {
       await axios.put(`${apiUrl}/api/admin/estudiantes/${estudianteId}/actualizar-estado`, null, {
@@ -678,6 +705,13 @@ function DashboardAdminExpandido({ onLogout }) {
           style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', fontWeight: 'bold' }}
         >
           🏠 Gestión de Alojamiento
+        </button>
+        <button 
+          className={`tab ${activeTab === 'informacion-seguro-medico' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('informacion-seguro-medico')}
+          style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          🏥 Seguro Médico
         </button>
         <button 
           className={`tab ${activeTab === 'servicios' ? 'tab-active' : ''}`}
@@ -1371,6 +1405,138 @@ function DashboardAdminExpandido({ onLogout }) {
                         ) : (
                           <span style={{fontSize: '12px', color: '#666'}}>
                             {estudiante.estado_alojamiento === 'aprobado' ? '✅ Procesado' : '❌ Procesado'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SECCIÓN: SEGURO MÉDICO */}
+      {activeTab === 'informacion-seguro-medico' && (
+        <div className="card">
+          <div className="section-header">
+            <h2>🏥 Solicitudes de Gestión de Seguro Médico</h2>
+            <div style={{fontSize: '14px', color: '#718096'}}>
+              Estudiantes que solicitan que la empresa les gestione el seguro médico
+            </div>
+          </div>
+          
+          {solicitudesSeguroMedico.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              color: '#666'
+            }}>
+              <div style={{fontSize: '48px', marginBottom: '16px'}}>🏥</div>
+              <h3 style={{color: '#374151', marginBottom: '8px'}}>No hay solicitudes de gestión de seguro médico</h3>
+              <p style={{color: '#6b7280'}}>Aquí aparecerán las solicitudes cuando los estudiantes requieran gestión de seguro médico</p>
+            </div>
+          ) : (
+            <div style={{overflowX: 'auto'}}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+              }}>
+                <thead>
+                  <tr style={{backgroundColor: '#f8fafc'}}>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estudiante</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Email</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Información Médica</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estado</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Fecha</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {solicitudesSeguroMedico.map((estudiante) => (
+                    <tr key={estudiante.id} style={{borderBottom: '1px solid #e5e7eb'}}>
+                      <td style={{padding: '16px'}}>
+                        <div style={{fontWeight: '600', color: '#1f2937'}}>{estudiante.nombre}</div>
+                        <div style={{fontSize: '12px', color: '#666'}}>ID: {estudiante.id}</div>
+                      </td>
+                      <td style={{padding: '16px'}}>{estudiante.email}</td>
+                      <td style={{padding: '16px'}}>
+                        {estudiante.comentarios_seguro_medico ? (
+                          <div style={{maxWidth: '250px'}}>
+                            <div style={{fontSize: '12px', color: '#374151', fontWeight: '500'}}>
+                              {estudiante.comentarios_seguro_medico.substring(0, 120)}
+                              {estudiante.comentarios_seguro_medico.length > 120 && '...'}
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{color: '#9ca3af', fontSize: '12px'}}>Sin información especificada</span>
+                        )}
+                      </td>
+                      <td style={{padding: '16px'}}>
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor: 
+                            estudiante.estado_seguro_medico === 'aprobado' ? '#d1fae5' :
+                            estudiante.estado_seguro_medico === 'rechazado' ? '#fee2e2' : '#fef3c7',
+                          color:
+                            estudiante.estado_seguro_medico === 'aprobado' ? '#065f46' :
+                            estudiante.estado_seguro_medico === 'rechazado' ? '#dc2626' : '#92400e'
+                        }}>
+                          {estudiante.estado_seguro_medico === 'aprobado' ? '✅ Aprobada' :
+                           estudiante.estado_seguro_medico === 'rechazado' ? '❌ Rechazada' : '⏳ Pendiente'}
+                        </span>
+                      </td>
+                      <td style={{padding: '16px'}}>
+                        {estudiante.fecha_solicitud && estudiante.fecha_solicitud !== 'Invalid Date' ? 
+                          new Date(estudiante.fecha_solicitud).toLocaleDateString('es-ES') : 
+                          'Fecha no disponible'
+                        }
+                      </td>
+                      <td style={{padding: '16px'}}>
+                        {(!estudiante.estado_seguro_medico || estudiante.estado_seguro_medico === 'pendiente') ? (
+                          <div style={{display: 'flex', gap: '8px'}}>
+                            <button
+                              onClick={() => gestionarSeguroMedico(estudiante.id, 'aceptado')}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ✅ Aceptar
+                            </button>
+                            <button
+                              onClick={() => gestionarSeguroMedico(estudiante.id, 'rechazado')}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ❌ Rechazar
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{fontSize: '12px', color: '#666'}}>
+                            {estudiante.estado_seguro_medico === 'aprobado' ? '✅ Procesado' : '❌ Procesado'}
                           </span>
                         )}
                       </td>

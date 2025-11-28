@@ -30,6 +30,7 @@ import ContactarUniversidades from './components/ContactarUniversidades'
 import PanelProcesoAdmin from './components/PanelProcesoAdmin'
 import InformacionFinanciera from './components/InformacionFinanciera'
 import InformacionAlojamiento from './components/InformacionAlojamiento'
+import InformacionSeguroMedico from './components/InformacionSeguroMedico'
 import Home from './components/Home'
 
 function App() {
@@ -260,6 +261,16 @@ function App() {
             element={
               estudianteId ? (
                 <InformacionAlojamiento estudianteId={estudianteId} />
+              ) : (
+                <Navigate to="/portal" />
+              )
+            }
+          />
+          <Route
+            path="/estudiante/informacion-seguro-medico"
+            element={
+              estudianteId ? (
+                <InformacionSeguroMedico />
               ) : (
                 <Navigate to="/portal" />
               )

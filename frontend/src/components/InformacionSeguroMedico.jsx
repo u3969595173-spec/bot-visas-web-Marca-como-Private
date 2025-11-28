@@ -1,0 +1,355 @@
+import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://bot-visas-api.onrender.com'
+
+function InformacionSeguroMedico() {
+  const [tieneSeguro, setTieneSeguro] = useState(null)
+  const [gestionSolicitada, setGestionSolicitada] = useState(false)
+  const [comentarios, setComentarios] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [guardado, setGuardado] = useState(false)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    // Verificar autenticación
+    const estudianteId = localStorage.getItem('estudiante_id')
+    if (!estudianteId) {
+      navigate('/estudiante/login')
+      return
+    }
+    
+    cargarDatos()
+  }, [])
+
+  const cargarDatos = async () => {
+    try {
+      const estudianteId = localStorage.getItem('estudiante_id')
+      const response = await axios.get(`${API_URL}/api/estudiantes/${estudianteId}`)
+      
+      if (response.data) {
+        const data = response.data
+        
+        // Determinar si ya tiene seguro basado en si ha solicitado gestión
+        if (data.gestion_seguro_solicitada) {
+          setTieneSeguro('no')
+          setGestionSolicitada(true)
+        }
+        
+        setComentarios(data.comentarios_seguro_medico || '')
+        setGuardado(true)
+      }
+    } catch (error) {
+      console.error('Error cargando datos:', error)
+    }
+  }
+
+  const manejarSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+      const estudianteId = localStorage.getItem('estudiante_id')
+      const datosActualizacion = {}
+
+      if (tieneSeguro === 'si') {
+        // Ya tiene seguro, no necesita gestión
+        datosActualizacion.gestion_seguro_solicitada = false
+        datosActualizacion.comentarios_seguro_medico = comentarios || null
+      } else if (tieneSeguro === 'no' && gestionSolicitada) {
+        // No tiene seguro y quiere que la empresa lo gestione
+        datosActualizacion.gestion_seguro_solicitada = true
+        datosActualizacion.comentarios_seguro_medico = comentarios || ''
+      } else {
+        // No tiene seguro pero no quiere gestión
+        datosActualizacion.gestion_seguro_solicitada = false
+        datosActualizacion.comentarios_seguro_medico = comentarios || null
+      }
+
+      await axios.put(`${API_URL}/api/estudiantes/${estudianteId}`, datosActualizacion)
+      
+      setGuardado(true)
+      alert('✅ Información de seguro médico actualizada correctamente')
+      
+    } catch (error) {
+      console.error('Error guardando:', error)
+      alert('❌ Error al guardar la información: ' + (error.response?.data?.detail || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{
+      maxWidth: '800px',
+      margin: '40px auto',
+      padding: '30px',
+      backgroundColor: '#ffffff',
+      borderRadius: '15px',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+      border: '1px solid #e1e5e9'
+    }}>
+      {/* Header */}
+      <div style={{
+        textAlign: 'center',
+        marginBottom: '30px',
+        paddingBottom: '20px',
+        borderBottom: '2px solid #f0f0f0'
+      }}>
+        <h1 style={{
+          color: '#2d3748',
+          fontSize: '28px',
+          fontWeight: '700',
+          marginBottom: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px'
+        }}>
+          🏥 Información de Seguro Médico
+        </h1>
+        <p style={{
+          color: '#718096',
+          fontSize: '16px',
+          margin: 0
+        }}>
+          Gestiona tu seguro médico para tu estancia en España
+        </p>
+      </div>
+
+      <form onSubmit={manejarSubmit}>
+        {/* Pregunta principal sobre seguro */}
+        <div style={{
+          marginBottom: '30px',
+          padding: '25px',
+          backgroundColor: '#f7fafc',
+          borderRadius: '10px',
+          border: '2px solid #e2e8f0'
+        }}>
+          <label style={{
+            display: 'block',
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#2d3748',
+            marginBottom: '15px'
+          }}>
+            ¿Ya tienes seguro médico para tu estancia en España?
+          </label>
+          
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              padding: '12px 20px',
+              backgroundColor: tieneSeguro === 'si' ? '#d1fae5' : '#ffffff',
+              border: `2px solid ${tieneSeguro === 'si' ? '#10b981' : '#d1d5db'}`,
+              borderRadius: '8px',
+              transition: 'all 0.2s'
+            }}>
+              <input
+                type="radio"
+                name="tieneSeguro"
+                value="si"
+                checked={tieneSeguro === 'si'}
+                onChange={(e) => {
+                  setTieneSeguro(e.target.value)
+                  setGestionSolicitada(false)
+                }}
+                style={{ marginRight: '10px', width: '18px', height: '18px' }}
+              />
+              <span style={{ fontWeight: '500', color: '#374151' }}>
+                ✅ Sí, ya tengo seguro
+              </span>
+            </label>
+
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              padding: '12px 20px',
+              backgroundColor: tieneSeguro === 'no' ? '#fef3c7' : '#ffffff',
+              border: `2px solid ${tieneSeguro === 'no' ? '#f59e0b' : '#d1d5db'}`,
+              borderRadius: '8px',
+              transition: 'all 0.2s'
+            }}>
+              <input
+                type="radio"
+                name="tieneSeguro"
+                value="no"
+                checked={tieneSeguro === 'no'}
+                onChange={(e) => setTieneSeguro(e.target.value)}
+                style={{ marginRight: '10px', width: '18px', height: '18px' }}
+              />
+              <span style={{ fontWeight: '500', color: '#374151' }}>
+                ❌ No, necesito seguro
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* Gestión por la empresa (solo si no tiene seguro) */}
+        {tieneSeguro === 'no' && (
+          <div style={{
+            marginBottom: '30px',
+            padding: '25px',
+            backgroundColor: '#fef9e7',
+            borderRadius: '10px',
+            border: '2px solid #f59e0b'
+          }}>
+            <label style={{
+              display: 'block',
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#92400e',
+              marginBottom: '15px'
+            }}>
+              ¿Quieres que nuestra empresa gestione tu seguro médico?
+            </label>
+            
+            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+                padding: '12px 20px',
+                backgroundColor: gestionSolicitada ? '#d1fae5' : '#ffffff',
+                border: `2px solid ${gestionSolicitada ? '#10b981' : '#d1d5db'}`,
+                borderRadius: '8px',
+                transition: 'all 0.2s'
+              }}>
+                <input
+                  type="radio"
+                  name="gestionSolicitada"
+                  value="si"
+                  checked={gestionSolicitada}
+                  onChange={() => setGestionSolicitada(true)}
+                  style={{ marginRight: '10px', width: '18px', height: '18px' }}
+                />
+                <span style={{ fontWeight: '500', color: '#374151' }}>
+                  👍 Sí, que la empresa me lo gestione
+                </span>
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+                padding: '12px 20px',
+                backgroundColor: !gestionSolicitada ? '#fee2e2' : '#ffffff',
+                border: `2px solid ${!gestionSolicitada ? '#ef4444' : '#d1d5db'}`,
+                borderRadius: '8px',
+                transition: 'all 0.2s'
+              }}>
+                <input
+                  type="radio"
+                  name="gestionSolicitada"
+                  value="no"
+                  checked={!gestionSolicitada}
+                  onChange={() => setGestionSolicitada(false)}
+                  style={{ marginRight: '10px', width: '18px', height: '18px' }}
+                />
+                <span style={{ fontWeight: '500', color: '#374151' }}>
+                  🚫 No, lo buscaré yo mismo
+                </span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Información médica adicional */}
+        <div style={{
+          marginBottom: '30px',
+          padding: '25px',
+          backgroundColor: '#f0f9ff',
+          borderRadius: '10px',
+          border: '2px solid #0ea5e9'
+        }}>
+          <label style={{
+            display: 'block',
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#075985',
+            marginBottom: '15px'
+          }}>
+            Información médica adicional (opcional)
+          </label>
+          <p style={{
+            fontSize: '14px',
+            color: '#64748b',
+            marginBottom: '10px'
+          }}>
+            Incluye condiciones médicas, medicamentos que tomas, alergias, o cualquier información relevante para el seguro.
+          </p>
+          <textarea
+            value={comentarios}
+            onChange={(e) => setComentarios(e.target.value)}
+            placeholder="Ej: Tomo medicación para la diabetes, alergia a la penicilina, etc."
+            rows="4"
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '2px solid #cbd5e1',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontFamily: 'inherit',
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        {/* Botón de envío */}
+        <div style={{ textAlign: 'center' }}>
+          <button
+            type="submit"
+            disabled={loading || !tieneSeguro}
+            style={{
+              backgroundColor: loading ? '#9ca3af' : '#7c3aed',
+              color: 'white',
+              border: 'none',
+              padding: '15px 40px',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: loading || !tieneSeguro ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 12px rgba(124, 58, 237, 0.2)'
+            }}
+          >
+            {loading ? '🔄 Guardando...' : guardado ? '✅ Actualizar Información' : '📝 Guardar Información'}
+          </button>
+        </div>
+      </form>
+
+      {/* Información importante */}
+      <div style={{
+        marginTop: '30px',
+        padding: '20px',
+        backgroundColor: '#fffbeb',
+        border: '2px solid #f59e0b',
+        borderRadius: '10px'
+      }}>
+        <h3 style={{
+          color: '#92400e',
+          fontSize: '16px',
+          fontWeight: '600',
+          marginBottom: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          ℹ️ Información importante
+        </h3>
+        <ul style={{ fontSize: '14px', color: '#78350f', lineHeight: '1.6', paddingLeft: '20px' }}>
+          <li>El seguro médico es <strong>obligatorio</strong> para obtener la visa de estudiante</li>
+          <li>Debe cubrir al menos <strong>30.000€ en gastos médicos</strong></li>
+          <li>Si nuestra empresa gestiona tu seguro, te contactaremos con las opciones disponibles</li>
+          <li>Puedes actualizar esta información cuando lo necesites</li>
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+export default InformacionSeguroMedico
