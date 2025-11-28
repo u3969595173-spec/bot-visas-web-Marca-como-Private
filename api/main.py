@@ -8921,45 +8921,47 @@ def obtener_solicitudes_financieras(
     db: Session = Depends(get_db)
 ):
     """Obtener todas las solicitudes de patrocinio financiero de estudiantes"""
-    query = """
-        SELECT 
-            e.id,
-            e.nombre,
-            e.apellido,
-            e.email,
-            e.telefono,
-            e.fondos_disponibles,
-            e.moneda_fondos,
-            e.patrocinador_nombre,
-            e.patrocinador_relacion,
-            e.patrocinio_solicitado,
-            e.estado_patrocinio,
-            e.created_at
-        FROM estudiantes e
-        WHERE e.patrocinio_solicitado = true
-        ORDER BY e.created_at DESC
-    """
-    
-    result = db.execute(text(query))
-    solicitudes = []
-    
-    for row in result:
-        solicitudes.append({
-            'id': row[0],
-            'nombre': row[1],
-            'apellido': row[2],
-            'email': row[3],
-            'telefono': row[4],
-            'fondos_disponibles': row[5],
-            'moneda_fondos': row[6],
-            'patrocinador_nombre': row[7],
-            'patrocinador_relacion': row[8],
-            'patrocinio_solicitado': row[9],
-            'estado_patrocinio': row[10] or 'pendiente',
-            'fecha_solicitud': row[11].isoformat() if row[11] else None
-        })
-    
-    return solicitudes
+    try:
+        result = db.execute(text("""
+            SELECT 
+                e.id,
+                e.nombre,
+                e.apellido,
+                e.email,
+                e.telefono,
+                e.fondos_disponibles,
+                e.moneda_fondos,
+                e.patrocinador_nombre,
+                e.patrocinador_relacion,
+                e.patrocinio_solicitado,
+                e.estado_patrocinio,
+                e.created_at
+            FROM estudiantes e
+            WHERE e.patrocinio_solicitado = true
+            ORDER BY e.created_at DESC
+        """))
+        solicitudes = []
+        
+        for row in result:
+            solicitudes.append({
+                'id': row[0],
+                'nombre': row[1],
+                'apellido': row[2],
+                'email': row[3],
+                'telefono': row[4],
+                'fondos_disponibles': row[5],
+                'moneda_fondos': row[6],
+                'patrocinador_nombre': row[7],
+                'patrocinador_relacion': row[8],
+                'patrocinio_solicitado': row[9],
+                'estado_patrocinio': row[10] or 'pendiente',
+                'fecha_solicitud': row[11].isoformat() if row[11] else None
+            })
+        
+        return solicitudes
+    except Exception as e:
+        logger.error(f"❌ Error obteniendo solicitudes financieras: {str(e)}")
+        raise HTTPException(status_code=503, detail="Error al obtener solicitudes financieras")
 
 
 @app.put("/api/admin/gestionar-patrocinio/{estudiante_id}", tags=["Admin"])
