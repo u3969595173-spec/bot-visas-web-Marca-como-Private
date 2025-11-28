@@ -421,18 +421,6 @@ const PerfilEstudiante = ({ estudianteId }) => {
               </div>
 
               <div className="form-group">
-                <label>Fondos Disponibles (€)</label>
-                <input
-                  type="number"
-                  name="fondos_disponibles"
-                  value={formData.fondos_disponibles || ''}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                />
-              </div>
-
-              <div className="form-group">
                 <label>Fecha Estimada de Inicio</label>
                 <input
                   type="date"
@@ -550,20 +538,6 @@ const PerfilEstudiante = ({ estudianteId }) => {
               <div className="info-item">
                 <label>Tipo de Visa</label>
                 <p>{estudiante.tipo_visa || 'No especificado'}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="info-card">
-            <h2>Información Financiera</h2>
-            <div className="info-grid">
-              <div className="info-item">
-                <label>Fondos Disponibles</label>
-                <p>{estudiante.fondos_disponibles ? `€${Number(estudiante.fondos_disponibles).toLocaleString('es-ES', {minimumFractionDigits: 2})}` : 'No especificado'}</p>
-              </div>
-              <div className="info-item">
-                <label>Fecha Estimada de Inicio</label>
-                <p>{estudiante.fecha_inicio_estimada ? new Date(estudiante.fecha_inicio_estimada).toLocaleDateString() : 'No especificado'}</p>
               </div>
             </div>
           </div>

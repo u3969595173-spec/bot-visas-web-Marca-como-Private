@@ -5,7 +5,11 @@ Logs en formato JSON para mejor debugging y análisis
 
 import logging
 import sys
-from pythonjsonlogger import jsonlogger
+try:
+    from pythonjsonlogger import jsonlogger
+except ImportError:
+    # Fallback si no está disponible
+    jsonlogger = None
 from datetime import datetime
 
 def setup_logger(name: str = "bot-visas"):
@@ -22,10 +26,15 @@ def setup_logger(name: str = "bot-visas"):
     # Handler para stdout (Render lo captura automáticamente)
     logHandler = logging.StreamHandler(sys.stdout)
     
-    # Formato JSON estructurado
-    formatter = jsonlogger.JsonFormatter(
-        '%(timestamp)s %(levelname)s %(name)s %(message)s'
-    )
+    # Formato estructurado (JSON si está disponible, texto simple si no)
+    if jsonlogger:
+        formatter = jsonlogger.JsonFormatter(
+            '%(timestamp)s %(levelname)s %(name)s %(message)s'
+        )
+    else:
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
+        )
     
     logHandler.setFormatter(formatter)
     logger.addHandler(logHandler)

@@ -633,6 +633,18 @@ def obtener_usuario_actual(
     return payload
 
 
+def verificar_admin(
+    usuario = Depends(obtener_usuario_actual)
+):
+    """Verifica que el usuario sea administrador"""
+    if not usuario.get('is_admin'):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Se requieren permisos de administrador"
+        )
+    return usuario
+
+
 # ============================================================================
 # ENDPOINTS PÚBLICOS (Estudiantes)
 # ============================================================================
@@ -8895,6 +8907,137 @@ def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depend
     })
     
     return {"message": f"Presupuesto {estado}"}
+
+
+@app.get("/api/admin/solicitudes-financieras", tags=["Admin"])
+def obtener_solicitudes_financieras(
+    usuario=Depends(verificar_admin),
+    db: Session = Depends(get_db)
+):
+    """Obtener todas las solicitudes de patrocinio financiero de estudiantes"""
+    query = """
+        SELECT 
+            e.id,
+            e.nombre,
+            e.apellido,
+            e.email,
+            e.telefono,
+            e.fondos_disponibles,
+            e.moneda_fondos,
+            e.patrocinador_nombre,
+            e.patrocinador_relacion,
+            e.patrocinio_solicitado,
+            e.estado_patrocinio,
+            e.created_at
+        FROM estudiantes e
+        WHERE e.patrocinio_solicitado = true
+        ORDER BY e.created_at DESC
+    """
+    
+    result = db.execute(text(query))
+    solicitudes = []
+    
+    for row in result:
+        solicitudes.append({
+            'id': row[0],
+            'nombre': row[1],
+            'apellido': row[2],
+            'email': row[3],
+            'telefono': row[4],
+            'fondos_disponibles': row[5],
+            'moneda_fondos': row[6],
+            'patrocinador_nombre': row[7],
+            'patrocinador_relacion': row[8],
+            'patrocinio_solicitado': row[9],
+            'estado_patrocinio': row[10] or 'pendiente',
+            'fecha_solicitud': row[11].isoformat() if row[11] else None
+        })
+    
+    return solicitudes
+
+
+@app.put("/api/admin/gestionar-patrocinio/{estudiante_id}", tags=["Admin"])
+def gestionar_patrocinio(
+    estudiante_id: int,
+    datos: dict,
+    usuario=Depends(verificar_admin),
+    db: Session = Depends(get_db)
+):
+    """Admin aprueba o rechaza solicitud de patrocinio"""
+    accion = datos.get('accion')  # 'aprobar' o 'rechazar'
+    comentarios = datos.get('comentarios', '')
+    
+    if accion not in ['aprobar', 'rechazar']:
+        raise HTTPException(status_code=400, detail="Acción debe ser 'aprobar' o 'rechazar'")
+    
+    estado_patrocinio = 'aprobado' if accion == 'aprobar' else 'rechazado'
+    
+    # Actualizar estado del estudiante
+    db.execute(text("""
+        UPDATE estudiantes
+        SET estado_patrocinio = :estado,
+            comentarios_patrocinio = :comentarios,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :id
+    """), {
+        "id": estudiante_id,
+        "estado": estado_patrocinio,
+        "comentarios": comentarios
+    })
+    db.commit()
+    
+    log_event("patrocinio_gestionado", {
+        'estudiante_id': estudiante_id,
+        'accion': accion,
+        'admin_id': usuario['id']
+    })
+    
+    return {"message": f"Patrocinio {estado_patrocinio} exitosamente"}
+
+
+@app.post("/api/estudiantes/informacion-financiera", tags=["Estudiantes"])
+def guardar_informacion_financiera(
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Guardar información financiera del estudiante"""
+    estudiante_id = usuario['estudiante_id']
+    
+    # Extraer datos del formulario
+    fondos_disponibles = datos.get('fondos_disponibles', 0)
+    moneda_fondos = datos.get('moneda_fondos', 'CUP')
+    patrocinador_nombre = datos.get('patrocinador_nombre', '')
+    patrocinador_relacion = datos.get('patrocinador_relacion', '')
+    patrocinio_solicitado = datos.get('patrocinio_solicitado', False)
+    
+    # Actualizar información del estudiante
+    db.execute(text("""
+        UPDATE estudiantes
+        SET fondos_disponibles = :fondos,
+            moneda_fondos = :moneda,
+            patrocinador_nombre = :pat_nombre,
+            patrocinador_relacion = :pat_relacion,
+            patrocinio_solicitado = :pat_solicitado,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :id
+    """), {
+        "id": estudiante_id,
+        "fondos": fondos_disponibles,
+        "moneda": moneda_fondos,
+        "pat_nombre": patrocinador_nombre,
+        "pat_relacion": patrocinador_relacion,
+        "pat_solicitado": patrocinio_solicitado
+    })
+    db.commit()
+    
+    log_event("informacion_financiera_guardada", {
+        'estudiante_id': estudiante_id,
+        'moneda': moneda_fondos,
+        'patrocinio_solicitado': patrocinio_solicitado
+    })
+    
+    return {"message": "Información financiera guardada exitosamente"}
 
 
 if __name__ == "__main__":

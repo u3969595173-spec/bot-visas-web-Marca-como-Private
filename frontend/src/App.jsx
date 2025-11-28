@@ -29,6 +29,7 @@ import AdminDocumentos from './components/AdminDocumentos'
 import AdminServicios from './components/AdminServicios'
 import ContactarUniversidades from './components/ContactarUniversidades'
 import PanelProcesoAdmin from './components/PanelProcesoAdmin'
+import InformacionFinanciera from './components/InformacionFinanciera'
 import Home from './components/Home'
 
 function App() {
@@ -239,6 +240,16 @@ function App() {
             element={
               estudianteId ? (
                 <GestorDocumentos estudianteId={estudianteId} />
+              ) : (
+                <Navigate to="/portal" />
+              )
+            }
+          />
+          <Route
+            path="/estudiante/informacion-financiera"
+            element={
+              estudianteId ? (
+                <InformacionFinanciera estudianteId={estudianteId} />
               ) : (
                 <Navigate to="/portal" />
               )

@@ -46,6 +46,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [estudianteReferido, setEstudianteReferido] = useState(null)
   const [ajusteCredito, setAjusteCredito] = useState({ credito: 0, tipo_recompensa: 'dinero' })
   const [solicitudesCredito, setSolicitudesCredito] = useState([])
+  const [solicitudesFinancieras, setSolicitudesFinancieras] = useState([])
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -108,6 +109,9 @@ function DashboardAdminExpandido({ onLogout }) {
         ])
         setReferidos(refRes.data)
         setSolicitudesCredito(solRes.data)
+      } else if (activeTab === 'informacion-financiera') {
+        const response = await axios.get(`${apiUrl}/api/admin/solicitudes-financieras`)
+        setSolicitudesFinancieras(response.data)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -450,6 +454,29 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
+  const gestionarPatrocinio = async (estudianteId, decision) => {
+    const accion = decision === 'aceptado' ? 'aprobar' : 'rechazar'
+    const mensaje = decision === 'aceptado' ? 
+      '¿Aprobar la solicitud de gestión de patrocinio? El estudiante será notificado.' :
+      '¿Rechazar la solicitud de gestión de patrocinio? El estudiante será notificado.'
+
+    if (!confirm(mensaje)) return
+
+    const comentarios = prompt('Comentarios adicionales (opcional):') || ''
+
+    try {
+      await axios.put(`${apiUrl}/api/admin/gestionar-patrocinio/${estudianteId}`, {
+        accion: accion,
+        comentarios: comentarios
+      })
+      
+      alert(`Solicitud ${decision === 'aceptado' ? 'aprobada' : 'rechazada'} correctamente. El estudiante ha sido notificado.`)
+      cargarDatos() // Recargar datos para actualizar la tabla
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
   const actualizarEstadoEstudiante = async (estudianteId, nuevoEstado) => {
     try {
       await axios.put(`${apiUrl}/api/admin/estudiantes/${estudianteId}/actualizar-estado`, null, {
@@ -597,6 +624,12 @@ function DashboardAdminExpandido({ onLogout }) {
           onClick={() => setActiveTab('documentos')}
         >
           📄 Documentos Generados
+        </button>
+        <button 
+          className={`tab ${activeTab === 'informacion-financiera' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('informacion-financiera')}
+        >
+          💸 Información Financiera
         </button>
         <button 
           className={`tab ${activeTab === 'servicios' ? 'tab-active' : ''}`}
@@ -1028,6 +1061,130 @@ function DashboardAdminExpandido({ onLogout }) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SECCIÓN: INFORMACIÓN FINANCIERA */}
+      {activeTab === 'informacion-financiera' && (
+        <div className="card">
+          <div className="section-header">
+            <h2>💸 Información Financiera</h2>
+            <div style={{fontSize: '14px', color: '#718096'}}>
+              Estudiantes que solicitaron gestión de patrocinio
+            </div>
+          </div>
+
+          {solicitudesFinancieras.length === 0 ? (
+            <div className="no-data">
+              <p>📭 No hay solicitudes de gestión de patrocinio</p>
+            </div>
+          ) : (
+            <div className="tabla-wrapper">
+              <table className="tabla-estudiantes">
+                <thead>
+                  <tr>
+                    <th>Estudiante</th>
+                    <th>Email</th>
+                    <th>Presupuesto</th>
+                    <th>Tiene Patrocinador</th>
+                    <th>Estado Solicitud</th>
+                    <th>Fecha Solicitud</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {solicitudesFinancieras.map((estudiante) => (
+                    <tr key={estudiante.id}>
+                      <td>
+                        <div style={{fontWeight: '600'}}>{estudiante.nombre}</div>
+                        <div style={{fontSize: '12px', color: '#666'}}>{estudiante.nacionalidad}</div>
+                      </td>
+                      <td>{estudiante.email}</td>
+                      <td>
+                        <div style={{fontWeight: '600'}}>
+                          {estudiante.fondos_disponibles} {estudiante.moneda_fondos || 'EUR'}
+                        </div>
+                        <div style={{fontSize: '12px', color: estudiante.fondos_suficientes ? '#10b981' : '#ef4444'}}>
+                          {estudiante.fondos_suficientes ? '✅ Suficiente' : '❌ Insuficiente'}
+                        </div>
+                      </td>
+                      <td>
+                        {estudiante.tiene_patrocinador ? (
+                          <div>
+                            <div style={{fontSize: '12px', fontWeight: '600', color: '#10b981'}}>✅ Sí tiene</div>
+                            <div style={{fontSize: '11px', color: '#666'}}>{estudiante.nombre_patrocinador}</div>
+                            <div style={{fontSize: '11px', color: '#666'}}>{estudiante.relacion_patrocinador}</div>
+                          </div>
+                        ) : (
+                          <span style={{color: '#ef4444'}}>❌ No tiene</span>
+                        )}
+                      </td>
+                      <td>
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor: 
+                            estudiante.estado_gestion_patrocinio === 'aceptado' ? '#d1fae5' :
+                            estudiante.estado_gestion_patrocinio === 'rechazado' ? '#fee2e2' : '#fef3c7',
+                          color:
+                            estudiante.estado_gestion_patrocinio === 'aceptado' ? '#065f46' :
+                            estudiante.estado_gestion_patrocinio === 'rechazado' ? '#dc2626' : '#92400e'
+                        }}>
+                          {estudiante.estado_gestion_patrocinio === 'aceptado' ? '✅ Aceptado' :
+                           estudiante.estado_gestion_patrocinio === 'rechazado' ? '❌ Rechazado' : '⏳ Pendiente'}
+                        </span>
+                      </td>
+                      <td>
+                        {new Date(estudiante.fecha_solicitud_patrocinio).toLocaleDateString('es-ES')}
+                      </td>
+                      <td>
+                        {estudiante.estado_gestion_patrocinio === 'pendiente' ? (
+                          <div style={{display: 'flex', gap: '8px'}}>
+                            <button
+                              onClick={() => gestionarPatrocinio(estudiante.id, 'aceptado')}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ✅ Aceptar
+                            </button>
+                            <button
+                              onClick={() => gestionarPatrocinio(estudiante.id, 'rechazado')}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ❌ Rechazar
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{fontSize: '12px', color: '#666'}}>
+                            {estudiante.estado_gestion_patrocinio === 'aceptado' ? '✅ Procesado' : '❌ Procesado'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

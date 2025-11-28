@@ -357,6 +357,18 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             💎 Referidos ({estadisticasReferidos.total_referidos})
           </button>
         )}
+        <button
+          onClick={() => navigate('/estudiante/informacion-financiera')}
+          className="btn"
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            color: 'white',
+            border: 'none',
+            fontWeight: '600'
+          }}
+        >
+          💸 Información Financiera
+        </button>
       </div>
 
       {/* TAB: Perfil */}
