@@ -532,45 +532,54 @@ function DashboardAdminExpandido({ onLogout }) {
           <h1>Panel de Administración</h1>
           <p className="bienvenida">Bienvenido, {localStorage.getItem('usuario')}</p>
         </div>
-        <button onClick={handleLogout} className="btn-logout">
-          Cerrar Sesión
-        </button>
-      </div>
-
-      {/* Alertas de Documentos */}
-      {alertasDocumentos.length > 0 && (
-        <div className="alertas-panel">
-          <div className="alertas-header" onClick={() => setMostrarAlertas(!mostrarAlertas)}>
-            <h3>⚠️ Alertas de Documentación ({alertasDocumentos.length})</h3>
-            <button className="btn-toggle">{mostrarAlertas ? '▼' : '▶'}</button>
-          </div>
-          {mostrarAlertas && (
-            <div className="alertas-content">
-              <div className="alertas-acciones">
-                <button onClick={enviarRecordatorios} className="btn-recordatorios">
-                  📧 Enviar Recordatorios Masivos
-                </button>
-              </div>
-              <div className="alertas-lista">
-                {alertasDocumentos.map(alerta => (
-                  <div key={alerta.estudiante_id} className={`alerta-item urgencia-${alerta.urgencia}`}>
-                    <div className="alerta-info">
-                      <strong>{alerta.nombre}</strong>
-                      <span className="alerta-estado">{alerta.estado}</span>
-                    </div>
-                    <div className="alerta-detalles">
-                      <span>📄 {alerta.docs_subidos}/3 docs subidos</span>
-                      <span>✓ {alerta.docs_generados}/4 docs generados</span>
-                      <span>🕐 {alerta.dias_desde_registro} días</span>
-                    </div>
-                    <span className={`badge-urgencia ${alerta.urgencia}`}>
-                      {alerta.urgencia.toUpperCase()}
-                    </span>
-                  </div>
-                ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {/* Campana de Alertas */}
+          {alertasDocumentos.length > 0 && (
+            <div className="notification-bell" onClick={() => setMostrarAlertas(!mostrarAlertas)}>
+              <div className="bell-icon">
+                🔔
+                <span className="notification-badge">{alertasDocumentos.length}</span>
               </div>
             </div>
           )}
+          <button onClick={handleLogout} className="btn-logout">
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+
+      {/* Panel de Alertas - Solo se muestra cuando se hace clic */}
+      {mostrarAlertas && alertasDocumentos.length > 0 && (
+        <div className="alertas-panel-floating">
+          <div className="alertas-header">
+            <h3>⚠️ Alertas de Documentación ({alertasDocumentos.length})</h3>
+            <button className="btn-close-alerts" onClick={() => setMostrarAlertas(false)}>✕</button>
+          </div>
+          <div className="alertas-content">
+            <div className="alertas-acciones">
+              <button onClick={enviarRecordatorios} className="btn-recordatorios">
+                📧 Enviar Recordatorios Masivos
+              </button>
+            </div>
+            <div className="alertas-lista">
+              {alertasDocumentos.map(alerta => (
+                <div key={alerta.estudiante_id} className={`alerta-item urgencia-${alerta.urgencia}`}>
+                  <div className="alerta-info">
+                    <strong>{alerta.nombre}</strong>
+                    <span className="alerta-estado">{alerta.estado}</span>
+                  </div>
+                  <div className="alerta-detalles">
+                    <span>📄 {alerta.docs_subidos}/3 docs subidos</span>
+                    <span>✓ {alerta.docs_generados}/4 docs generados</span>
+                    <span>🕐 {alerta.dias_desde_registro} días</span>
+                  </div>
+                  <span className={`badge-urgencia ${alerta.urgencia}`}>
+                    {alerta.urgencia.toUpperCase()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
