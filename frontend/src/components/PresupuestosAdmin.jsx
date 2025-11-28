@@ -243,7 +243,7 @@ function PresupuestosAdmin({ embedded = false }) {
                     <td style={{ padding: '12px' }}>
                       <div>
                         <div style={{ fontWeight: '600', color: '#2d3748' }}>
-                          {presupuesto.estudiante_nombre}
+                          {presupuesto.nombre_estudiante || 'Sin nombre'}
                         </div>
                         <div style={{ fontSize: '12px', color: '#718096' }}>
                           ID: {presupuesto.id}
@@ -252,8 +252,14 @@ function PresupuestosAdmin({ embedded = false }) {
                     </td>
                     <td style={{ padding: '12px' }}>
                       <div style={{ fontSize: '12px', color: '#4a5568' }}>
-                        {presupuesto.servicios_solicitados?.slice(0, 2).join(', ')}
-                        {presupuesto.servicios_solicitados?.length > 2 && '...'}
+                        {presupuesto.servicios_solicitados && Array.isArray(presupuesto.servicios_solicitados) ? (
+                          <>
+                            {presupuesto.servicios_solicitados.slice(0, 2).join(', ')}
+                            {presupuesto.servicios_solicitados.length > 2 && '...'}
+                          </>
+                        ) : (
+                          presupuesto.servicios || 'Sin servicios'
+                        )}
                       </div>
                     </td>
                     <td style={{ padding: '12px' }}>
@@ -280,9 +286,16 @@ function PresupuestosAdmin({ embedded = false }) {
                         </button>
                       )}
                       {presupuesto.estado === 'aceptado' && (
-                        <span style={{ fontSize: '12px', color: '#059669' }}>
-                          €{presupuesto.monto_total?.toFixed(2)}
-                        </span>
+                        <div style={{ fontSize: '12px' }}>
+                          <div style={{ fontWeight: '600', color: '#059669' }}>
+                            €{(
+                              (parseFloat(presupuesto.precio_al_empezar) || 0) +
+                              (parseFloat(presupuesto.precio_con_visa) || 0) +
+                              (parseFloat(presupuesto.precio_financiado) || 0)
+                            ).toFixed(2)}
+                          </div>
+                          <div style={{ color: '#6b7280', fontSize: '10px' }}>Total</div>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -328,7 +341,7 @@ function PresupuestosAdmin({ embedded = false }) {
             </h3>
             
             <p style={{ color: '#6b7280', marginBottom: '25px' }}>
-              Cliente: <strong>{presupuestoSeleccionado.estudiante_nombre}</strong>
+              Cliente: <strong>{presupuestoSeleccionado.nombre_estudiante || 'Sin nombre'}</strong>
             </p>
 
             {/* Servicios Solicitados por el Cliente */}
