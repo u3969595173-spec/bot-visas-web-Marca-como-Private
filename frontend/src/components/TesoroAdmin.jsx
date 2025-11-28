@@ -4,6 +4,7 @@ import axios from 'axios'
 
 function TesoroAdmin({ embedded = false }) {
   const [pagos, setPagos] = useState([])
+  const [estadisticas, setEstadisticas] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -22,9 +23,24 @@ function TesoroAdmin({ embedded = false }) {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
       const response = await axios.get(`${apiUrl}/api/admin/tesoro`)
-      setPagos(response.data)
+      console.log('[TESORO] Respuesta del API:', response.data)
+      
+      // El backend devuelve un objeto con pagos y estadisticas
+      if (response.data && response.data.pagos) {
+        setPagos(Array.isArray(response.data.pagos) ? response.data.pagos : [])
+        setEstadisticas(response.data.estadisticas || null)
+      } else if (Array.isArray(response.data)) {
+        // Por si acaso devuelve un array directo (backward compatibility)
+        setPagos(response.data)
+      } else {
+        console.error('[TESORO] Formato inesperado:', response.data)
+        setPagos([])
+        setError('Error: Los datos recibidos no tienen el formato correcto')
+      }
       setError('')
     } catch (err) {
+      console.error('[TESORO] Error:', err)
+      setPagos([])
       setError('Error al cargar pagos: ' + (err.response?.data?.detail || err.message))
     } finally {
       setLoading(false)
@@ -137,7 +153,7 @@ function TesoroAdmin({ embedded = false }) {
         </div>
         <div className="card" style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#3b82f6' }}>
-            €{pagos.filter(p => !p.pagado).reduce((sum, p) => sum + p.monto_total, 0).toFixed(2)}
+            €{pagos.filter(p => !p.pagado).reduce((sum, p) => sum + (p.monto_a_pagar || p.monto_total || 0), 0).toFixed(2)}
           </div>
           <div style={{ color: '#718096', marginTop: '5px' }}>
             Total Pendiente
@@ -195,7 +211,7 @@ function TesoroAdmin({ embedded = false }) {
                     <td style={{ padding: '12px' }}>
                       <div>
                         <div style={{ fontWeight: '600', color: '#2d3748' }}>
-                          {pago.estudiante_nombre}
+                          {pago.nombre_estudiante || pago.estudiante_nombre}
                         </div>
                         <div style={{ fontSize: '12px', color: '#718096' }}>
                           ID: {pago.presupuesto_id}
@@ -221,7 +237,7 @@ function TesoroAdmin({ embedded = false }) {
                     </td>
                     <td style={{ padding: '12px' }}>
                       <div style={{ fontWeight: '600', color: '#059669' }}>
-                        €{pago.monto_total.toFixed(2)}
+                        €{(pago.monto_a_pagar || pago.monto_total || 0).toFixed(2)}
                       </div>
                     </td>
                     <td style={{ padding: '12px', fontSize: '12px', color: '#4a5568' }}>
