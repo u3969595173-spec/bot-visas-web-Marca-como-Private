@@ -159,24 +159,6 @@ function DashboardAdmin({ onLogout }) {
         >
           💰 Tesoro de Pagos
         </button>
-        <button
-          onClick={() => navigate('/admin/presupuestos')}
-          className="btn"
-          style={{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-            color: 'white',
-            border: 'none',
-            fontWeight: '600',
-            padding: '15px 25px',
-            borderRadius: '10px',
-            fontSize: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          📋 Gestionar Presupuestos
-        </button>
       </div>
 
       {/* Estadísticas */}
