@@ -2363,7 +2363,7 @@ def generar_documentos_estudiante(
 ):
     """
     Genera documentos oficiales para un estudiante
-    tipos_documentos: ['carta_aceptacion', 'carta_motivacion', 'formulario_solicitud', 'certificado_matricula']
+    tipos_documentos: ['carta_motivacion', 'formulario_solicitud', 'declaracion_jurada_fondos', 'carta_patrocinio']
     """
     verificar_token(credentials.credentials)
     tipos_documentos = request.tipos_documentos
@@ -2395,18 +2395,18 @@ def generar_documentos_estudiante(
     for tipo in tipos_documentos:
         try:
             # Generar PDF según tipo
-            if tipo == 'carta_aceptacion':
-                pdf_buffer = GeneradorDocumentosOficiales.generar_carta_aceptacion(datos_estudiante)
-                nombre = f"Carta_Aceptacion_{estudiante.id}.pdf"
-            elif tipo == 'carta_motivacion':
+            if tipo == 'carta_motivacion':
                 pdf_buffer = GeneradorDocumentosOficiales.generar_carta_motivacion(datos_estudiante)
                 nombre = f"Carta_Motivacion_{estudiante.id}.pdf"
             elif tipo == 'formulario_solicitud':
                 pdf_buffer = GeneradorDocumentosOficiales.generar_formulario_solicitud(datos_estudiante)
                 nombre = f"Formulario_Solicitud_{estudiante.id}.pdf"
-            elif tipo == 'certificado_matricula':
-                pdf_buffer = GeneradorDocumentosOficiales.generar_certificado_matricula(datos_estudiante)
-                nombre = f"Certificado_Matricula_{estudiante.id}.pdf"
+            elif tipo == 'declaracion_jurada_fondos':
+                pdf_buffer = GeneradorDocumentosOficiales.generar_declaracion_jurada_fondos(datos_estudiante)
+                nombre = f"Declaracion_Jurada_Fondos_{estudiante.id}.pdf"
+            elif tipo == 'carta_patrocinio':
+                pdf_buffer = GeneradorDocumentosOficiales.generar_carta_patrocinio(datos_estudiante)
+                nombre = f"Carta_Patrocinio_{estudiante.id}.pdf"
             else:
                 continue
             

@@ -118,9 +118,9 @@ class GeneradorDocumentosOficiales:
         ))
     
     @staticmethod
-    def generar_carta_aceptacion(datos_estudiante):
+    def generar_declaracion_jurada_fondos(datos_estudiante):
         """
-        Genera carta de aceptación oficial
+        Genera declaración jurada de fondos económicos
         """
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4, 
@@ -131,78 +131,92 @@ class GeneradorDocumentosOficiales:
         styles = GeneradorDocumentosOficiales._get_estilos()
         
         # Encabezado
-        GeneradorDocumentosOficiales._crear_encabezado(elements, "CARTA DE ACEPTACIÓN")
+        GeneradorDocumentosOficiales._crear_encabezado(elements, "DECLARACIÓN JURADA DE FONDOS ECONÓMICOS")
         
         # Fecha y referencia
         fecha_actual = datetime.now().strftime("%d de %B de %Y")
+        nombre = datos_estudiante.get('nombre', 'ESTUDIANTE')
+        pasaporte = datos_estudiante.get('pasaporte', 'XXXXXXXXX')
+        nacionalidad = datos_estudiante.get('nacionalidad', 'PAÍS')
+        ciudad_origen = datos_estudiante.get('ciudad_origen', 'ciudad')
+        
         elements.append(Paragraph(
-            f"<b>Fecha:</b> {fecha_actual}<br/>"
-            f"<b>Referencia:</b> EST-{datos_estudiante.get('id', '000')}-2025<br/>"
-            f"<b>A quien corresponda:</b>",
+            f"<b>Lugar y Fecha:</b> {ciudad_origen}, {fecha_actual}<br/>"
+            f"<b>Referencia:</b> DECL-FONDOS-{datos_estudiante.get('id', '000')}-2025",
             styles['Normal']
         ))
         elements.append(Spacer(1, 0.8*cm))
         
-        # Cuerpo de la carta
-        nombre = datos_estudiante.get('nombre', 'ESTUDIANTE')
-        nacionalidad = datos_estudiante.get('nacionalidad', 'PAÍS')
-        pasaporte = datos_estudiante.get('pasaporte', 'XXXXXXXXX')
-        especialidad = datos_estudiante.get('especialidad', 'programa académico')
-        
-        texto_carta = f"""
-        Por medio de la presente, la <b>AGENCIA EDUCATIVA ESPAÑA</b>, con sede en Madrid, España, 
-        certifica que el/la señor/a <b>{nombre}</b>, de nacionalidad <b>{nacionalidad}</b>, 
-        con pasaporte número <b>{pasaporte}</b>, ha sido <b>ACEPTADO/A</b> para participar en 
-        nuestro programa de <b>{especialidad}</b>.
+        # Declaración
+        texto_declaracion = f"""
+        Yo, <b>{nombre}</b>, con pasaporte número <b>{pasaporte}</b>, de nacionalidad <b>{nacionalidad}</b>, 
+        declaro bajo juramento que:
         <br/><br/>
-        El período de estudios está programado para iniciar en el año académico 2025-2026, 
-        con una duración estimada según el plan de estudios correspondiente. El estudiante 
-        recibirá el apoyo necesario en todos los trámites de documentación, visado y 
-        asesoramiento durante su estancia en España.
+        <b>1. MEDIOS ECONÓMICOS SUFICIENTES:</b><br/>
+        Cuento con los medios económicos necesarios para cubrir todos los gastos derivados de mi estancia 
+        en España durante el período de estudios, incluyendo pero no limitándose a: matrícula universitaria, 
+        alojamiento, alimentación, transporte, seguro médico, y gastos personales.
         <br/><br/>
-        Este documento es emitido a solicitud del interesado para los fines que estime convenientes, 
-        especialmente para su presentación ante las autoridades consulares españolas en el 
-        proceso de solicitud de visa de estudiante.
+        <b>2. FUENTES DE FINANCIAMIENTO:</b><br/>
+        Los fondos provienen de fuentes lícitas y legítimas, incluyendo ahorros personales, apoyo familiar, 
+        becas, o combinación de las anteriores.
         <br/><br/>
-        La presente certificación incluye:
+        <b>3. SOLVENCIA ECONÓMICA:</b><br/>
+        Me comprometo a mantener la solvencia económica durante toda mi estancia en España y a no constituir 
+        una carga para el sistema de asistencia social español.
+        <br/><br/>
+        <b>4. DOCUMENTACIÓN RESPALDATORIA:</b><br/>
+        Adjunto a esta declaración los documentos que acreditan mi capacidad económica (extractos bancarios, 
+        cartas de patrocinio, certificados de ingresos, etc.).
         """
         
-        elements.append(Paragraph(texto_carta, styles['TextoJustificado']))
+        elements.append(Paragraph(texto_declaracion, styles['TextoJustificado']))
         elements.append(Spacer(1, 0.5*cm))
         
-        # Lista de beneficios
-        beneficios = [
-            ['✓', 'Aceptación oficial en programa educativo'],
-            ['✓', 'Soporte en trámites de visa y documentación'],
-            ['✓', 'Asesoramiento sobre alojamiento en España'],
-            ['✓', 'Orientación académica y cultural'],
-            ['✓', 'Asistencia durante toda la estancia'],
+        # Tabla de estimación de gastos mensuales
+        elements.append(Paragraph("<b>Estimación de Gastos Mensuales en España:</b>", styles['SubtituloDocumento']))
+        elements.append(Spacer(1, 0.3*cm))
+        
+        gastos = [
+            ['<b>Concepto</b>', '<b>Monto Estimado (EUR)</b>'],
+            ['Alojamiento', '400 - 700'],
+            ['Alimentación', '250 - 350'],
+            ['Transporte', '40 - 60'],
+            ['Seguro Médico', '50 - 100'],
+            ['Material de Estudio', '50 - 100'],
+            ['Gastos Personales', '100 - 200'],
+            ['<b>TOTAL MENSUAL</b>', '<b>890 - 1,510 EUR</b>'],
         ]
         
-        tabla_beneficios = Table(beneficios, colWidths=[1*cm, 16*cm])
-        tabla_beneficios.setStyle(TableStyle([
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#48bb78')),
-            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 11),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+        tabla_gastos = Table(gastos, colWidths=[10*cm, 7*cm])
+        tabla_gastos.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#667eea')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f7fafc')]),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#edf2f7')),
         ]))
-        elements.append(tabla_beneficios)
-        elements.append(Spacer(1, 0.8*cm))
+        elements.append(tabla_gastos)
+        elements.append(Spacer(1, 1*cm))
         
-        # Cierre
+        # Compromiso final
         elements.append(Paragraph(
-            "Sin otro particular, quedamos a su disposición para cualquier aclaración adicional.",
+            "Declaro que toda la información proporcionada es veraz y que asumo plena responsabilidad "
+            "sobre la misma. Estoy consciente de las implicaciones legales de proporcionar información falsa.",
             styles['TextoJustificado']
         ))
         elements.append(Spacer(1, 1.5*cm))
         
         # Firma
-        elements.append(Paragraph("Atentamente,", styles['Firma']))
-        elements.append(Spacer(1, 1*cm))
         elements.append(Paragraph("_________________________", styles['Firma']))
-        elements.append(Paragraph("<b>Director General</b>", styles['Firma']))
-        elements.append(Paragraph("Agencia Educativa España", styles['Firma']))
+        elements.append(Paragraph(f"<b>{nombre}</b>", styles['Firma']))
+        elements.append(Paragraph(f"Pasaporte: {pasaporte}", styles['Firma']))
         
         # Pie de página
         GeneradorDocumentosOficiales._crear_pie_pagina(elements)
@@ -355,9 +369,9 @@ class GeneradorDocumentosOficiales:
         return buffer
     
     @staticmethod
-    def generar_certificado_matricula(datos_estudiante):
+    def generar_carta_patrocinio(datos_estudiante):
         """
-        Genera certificado de matrícula
+        Genera carta de patrocinio económico
         """
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4,
@@ -368,68 +382,112 @@ class GeneradorDocumentosOficiales:
         styles = GeneradorDocumentosOficiales._get_estilos()
         
         # Encabezado
-        GeneradorDocumentosOficiales._crear_encabezado(elements, "CERTIFICADO DE MATRÍCULA")
+        GeneradorDocumentosOficiales._crear_encabezado(elements, "CARTA DE PATROCINIO ECONÓMICO")
         
-        # Número de certificado
+        # Fecha y referencia
         fecha_actual = datetime.now().strftime("%d de %B de %Y")
-        numero_cert = f"CERT-{datos_estudiante.get('id', '000')}-{datetime.now().year}"
+        numero_ref = f"PATR-{datos_estudiante.get('id', '000')}-{datetime.now().year}"
         
-        elements.append(Paragraph(
-            f"<b>Número de Certificado:</b> {numero_cert}<br/>"
-            f"<b>Fecha de Emisión:</b> {fecha_actual}",
-            styles['Normal']
-        ))
-        elements.append(Spacer(1, 1*cm))
-        
-        # Certificación
         nombre = datos_estudiante.get('nombre', 'ESTUDIANTE')
         pasaporte = datos_estudiante.get('pasaporte', 'XXXXXXXXX')
         nacionalidad = datos_estudiante.get('nacionalidad', 'PAÍS')
         especialidad = datos_estudiante.get('especialidad', 'programa')
+        ciudad_origen = datos_estudiante.get('ciudad_origen', 'ciudad')
         
-        texto_cert = f"""
-        <b>LA AGENCIA EDUCATIVA ESPAÑA</b> certifica que:
+        elements.append(Paragraph(
+            f"<b>Lugar y Fecha:</b> {ciudad_origen}, {fecha_actual}<br/>"
+            f"<b>Referencia:</b> {numero_ref}<br/>"
+            f"<b>A quien corresponda:</b>",
+            styles['Normal']
+        ))
+        elements.append(Spacer(1, 0.8*cm))
+        
+        # Carta de patrocinio
+        texto_patrocinio = f"""
+        Por medio de la presente, yo <b>[NOMBRE DEL PATROCINADOR]</b>, con documento de identidad 
+        número <b>[DOCUMENTO]</b>, residente en <b>[DIRECCIÓN COMPLETA]</b>, manifiesto que:
         <br/><br/>
-        El/La estudiante <b>{nombre}</b>, con pasaporte número <b>{pasaporte}</b>, 
-        de nacionalidad <b>{nacionalidad}</b>, se encuentra <b>MATRICULADO/A</b> en 
-        nuestro programa de <b>{especialidad}</b>.
+        <b>DECLARO:</b>
         <br/><br/>
-        El estudiante ha cumplido con todos los requisitos de admisión y se encuentra 
-        en pleno derecho de cursar los estudios correspondientes durante el período académico 
-        2025-2026.
+        <b>1. COMPROMISO DE PATROCINIO:</b><br/>
+        Me comprometo a patrocinar económicamente al/la estudiante <b>{nombre}</b>, con pasaporte 
+        número <b>{pasaporte}</b>, de nacionalidad <b>{nacionalidad}</b>, durante su estancia en 
+        España para cursar estudios de <b>{especialidad}</b>.
         <br/><br/>
-        Este certificado se expide a petición del interesado para los fines que estime convenientes, 
-        especialmente para presentación ante autoridades migratorias.
+        <b>2. COBERTURA ECONÓMICA:</b><br/>
+        Me comprometo a cubrir todos los gastos necesarios para la estancia del estudiante en España, 
+        incluyendo:
         """
         
-        elements.append(Paragraph(texto_cert, styles['TextoJustificado']))
-        elements.append(Spacer(1, 1.5*cm))
+        elements.append(Paragraph(texto_patrocinio, styles['TextoJustificado']))
+        elements.append(Spacer(1, 0.3*cm))
         
-        # Sello oficial (simulado con tabla)
-        sello_data = [['SELLO OFICIAL\nAGENCIA EDUCATIVA ESPAÑA\n' + datetime.now().strftime("%Y")]]
-        sello_table = Table(sello_data, colWidths=[6*cm], rowHeights=[3*cm])
-        sello_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#667eea')),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 12),
-            ('BOX', (0, 0), (-1, -1), 2, colors.HexColor('#667eea')),
+        # Lista de gastos cubiertos
+        gastos_cubiertos = [
+            ['✓', 'Matrícula universitaria y costos académicos'],
+            ['✓', 'Alojamiento durante toda la estancia'],
+            ['✓', 'Alimentación y gastos de manutención'],
+            ['✓', 'Seguro médico internacional'],
+            ['✓', 'Transporte y movilidad'],
+            ['✓', 'Gastos personales y emergencias'],
+        ]
+        
+        tabla_gastos = Table(gastos_cubiertos, colWidths=[1*cm, 16*cm])
+        tabla_gastos.setStyle(TableStyle([
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#48bb78')),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 11),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
         ]))
+        elements.append(tabla_gastos)
+        elements.append(Spacer(1, 0.5*cm))
         
-        # Tabla para firma y sello lado a lado
-        firma_sello = Table([
-            ['_________________________', sello_table],
-            ['Firma Autorizada', ''],
-            ['Director General', '']
-        ], colWidths=[9*cm, 8*cm])
-        firma_sello.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('FONTSIZE', (0, 1), (0, -1), 10),
-        ]))
+        # Continuación
+        texto_cont = """
+        <b>3. CAPACIDAD ECONÓMICA:</b><br/>
+        Cuento con la capacidad económica suficiente para cumplir con este compromiso, como lo 
+        demuestran los documentos adjuntos (extractos bancarios, certificados de ingresos, etc.).
+        <br/><br/>
+        <b>4. RELACIÓN CON EL ESTUDIANTE:</b><br/>
+        Mi relación con el/la estudiante es: <b>[ESPECIFICAR: Padre/Madre/Familiar/Otro]</b>.
+        <br/><br/>
+        <b>5. DATOS DE CONTACTO:</b><br/>
+        Teléfono: <b>[TELÉFONO DEL PATROCINADOR]</b><br/>
+        Email: <b>[EMAIL DEL PATROCINADOR]</b>
+        <br/><br/>
+        Esta carta se emite de manera voluntaria para respaldar la solicitud de visa de estudiante 
+        del beneficiario ante las autoridades consulares españolas.
+        """
         
-        elements.append(firma_sello)
+        elements.append(Paragraph(texto_cont, styles['TextoJustificado']))
+        elements.append(Spacer(1, 1*cm))
+        
+        # Nota importante
+        nota_style = ParagraphStyle(
+            'NotaStyle',
+            parent=styles['Normal'],
+            fontSize=9,
+            textColor=colors.HexColor('#e53e3e'),
+            borderColor=colors.HexColor('#e53e3e'),
+            borderWidth=1,
+            borderPadding=10,
+            spaceAfter=10
+        )
+        elements.append(Paragraph(
+            "<b>NOTA:</b> Esta carta debe ser completada con los datos reales del patrocinador, "
+            "firmada y acompañada de documentación que acredite la solvencia económica del mismo.",
+            nota_style
+        ))
+        elements.append(Spacer(1, 1*cm))
+        
+        # Firma del patrocinador
+        elements.append(Paragraph("Atentamente,", styles['Normal']))
+        elements.append(Spacer(1, 1*cm))
+        elements.append(Paragraph("_________________________", styles['Firma']))
+        elements.append(Paragraph("<b>[Nombre del Patrocinador]</b>", styles['Firma']))
+        elements.append(Paragraph("[Documento de Identidad]", styles['Firma']))
+        elements.append(Paragraph("[Firma]", styles['Firma']))
         
         # Pie de página
         GeneradorDocumentosOficiales._crear_pie_pagina(elements)

@@ -188,7 +188,7 @@ function DashboardAdminExpandido({ onLogout }) {
     setGenerandoDocs(true)
     try {
       await axios.post(`${apiUrl}/api/admin/estudiantes/${estudianteId}/generar-documentos`, {
-        tipos_documentos: ['carta_aceptacion', 'carta_motivacion', 'formulario_solicitud', 'certificado_matricula']
+        tipos_documentos: ['carta_motivacion', 'formulario_solicitud', 'declaracion_jurada_fondos', 'carta_patrocinio']
       })
       alert('✅ Documentos generados correctamente')
       setShowModalGenerarDocs(false)
