@@ -616,24 +616,28 @@ function DashboardAdminExpandido({ onLogout }) {
         <button 
           className={`tab ${activeTab === 'estudiantes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('estudiantes')}
+          style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: 'white', fontWeight: 'bold' }}
         >
           👥 Estudiantes
         </button>
         <button 
           className={`tab ${activeTab === 'documentos' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('documentos')}
+          style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white', fontWeight: 'bold' }}
         >
           📄 Documentos Generados
         </button>
         <button 
           className={`tab ${activeTab === 'informacion-financiera' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('informacion-financiera')}
+          style={{ background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', color: 'white', fontWeight: 'bold' }}
         >
           💸 Información Financiera
         </button>
         <button 
           className={`tab ${activeTab === 'servicios' ? 'tab-active' : ''}`}
           onClick={() => navigate('/admin/servicios')}
+          style={{ background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', color: 'white', fontWeight: 'bold' }}
         >
           💼 Servicios Solicitados
         </button>
@@ -654,24 +658,28 @@ function DashboardAdminExpandido({ onLogout }) {
         <button 
           className={`tab ${activeTab === 'alertas' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('alertas')}
+          style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', fontWeight: 'bold' }}
         >
           📅 Alertas de Fechas
         </button>
         <button 
           className={`tab ${activeTab === 'cursos' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('cursos')}
+          style={{ background: 'linear-gradient(135deg, #84cc16 0%, #65a30d 100%)', color: 'white', fontWeight: 'bold' }}
         >
           📚 Cursos
         </button>
         <button 
           className={`tab ${activeTab === 'alojamientos' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('alojamientos')}
+          style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)', color: 'white', fontWeight: 'bold' }}
         >
           🏠 Alojamientos
         </button>
         <button 
           className={`tab ${activeTab === 'partners' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('partners')}
+          style={{ background: 'linear-gradient(135deg, #6366f1 0%, #4338ca 100%)', color: 'white', fontWeight: 'bold' }}
         >
           🤝 Partnerships
         </button>
@@ -706,6 +714,7 @@ function DashboardAdminExpandido({ onLogout }) {
         <button 
           className={`tab ${activeTab === 'reportes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('reportes')}
+          style={{ background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)', color: 'white', fontWeight: 'bold' }}
         >
           📊 Reportes
         </button>
