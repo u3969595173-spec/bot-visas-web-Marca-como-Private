@@ -27,7 +27,7 @@ def main():
         
         # Lista de columnas a agregar
         columns_to_add = [
-            ("moneda_fondos", "VARCHAR(10) DEFAULT 'CUP'", "Moneda de los fondos disponibles"),
+            ("moneda_fondos", "VARCHAR(10) DEFAULT 'MLC'", "Moneda de los fondos disponibles"),
             ("patrocinador_nombre", "VARCHAR(255)", "Nombre del patrocinador"),
             ("patrocinador_relacion", "VARCHAR(100)", "Relación con el patrocinador"),
             ("patrocinio_solicitado", "BOOLEAN DEFAULT FALSE", "Si el estudiante solicita patrocinio"),

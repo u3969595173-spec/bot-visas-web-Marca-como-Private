@@ -8,7 +8,7 @@ const InformacionFinanciera = ({ estudianteId }) => {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     fondos_disponibles: '',
-    moneda_fondos: 'EUR',
+    moneda_fondos: 'MLC',
     patrocinador_nombre: '',
     patrocinador_relacion: '',
     patrocinio_solicitado: false
@@ -26,7 +26,7 @@ const InformacionFinanciera = ({ estudianteId }) => {
       setEstudiante(response.data);
       setFormData({
         fondos_disponibles: response.data.fondos_disponibles || '',
-        moneda_fondos: response.data.moneda_fondos || 'EUR',
+        moneda_fondos: response.data.moneda_fondos || 'MLC',
         patrocinador_nombre: response.data.patrocinador_nombre || '',
         patrocinador_relacion: response.data.patrocinador_relacion || '',
         patrocinio_solicitado: response.data.patrocinio_solicitado || false
@@ -223,7 +223,7 @@ const InformacionFinanciera = ({ estudianteId }) => {
                     <option value="EUR">EUR (Euro)</option>
                     <option value="USD">USD (Dólar)</option>
                     <option value="CUP">CUP (Peso Cubano)</option>
-                    <option value="MLP">MLP (Peso Mexicano)</option>
+                    <option value="MLC">MLC (Moneda Libremente Convertible)</option>
                   </select>
                 </>
               ) : (
