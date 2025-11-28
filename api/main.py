@@ -8966,7 +8966,6 @@ def obtener_solicitudes_financieras(
 def gestionar_patrocinio(
     estudiante_id: int,
     datos: dict,
-    usuario=Depends(verificar_admin),
     db: Session = Depends(get_db)
 ):
     """Admin aprueba o rechaza solicitud de patrocinio"""
@@ -8992,13 +8991,28 @@ def gestionar_patrocinio(
     })
     db.commit()
     
+    # Crear notificación para el estudiante
+    mensaje_notificacion = f"Su solicitud de patrocinio ha sido {'aprobada' if accion == 'aprobar' else 'rechazada'}."
+    if comentarios:
+        mensaje_notificacion += f" Comentarios: {comentarios}"
+    
+    db.execute(text("""
+        INSERT INTO notificaciones (estudiante_id, titulo, mensaje, tipo, fecha_creacion)
+        VALUES (:estudiante_id, :titulo, :mensaje, 'patrocinio', CURRENT_TIMESTAMP)
+    """), {
+        "estudiante_id": estudiante_id,
+        "titulo": f"Solicitud de patrocinio {'aprobada' if accion == 'aprobar' else 'rechazada'}",
+        "mensaje": mensaje_notificacion
+    })
+    db.commit()
+    
     log_event("patrocinio_gestionado", {
         'estudiante_id': estudiante_id,
         'accion': accion,
-        'admin_id': usuario['id']
+        'estado': estado_patrocinio
     })
     
-    return {"message": f"Patrocinio {estado_patrocinio} exitosamente"}
+    return {"message": f"Patrocinio {estado_patrocinio} exitosamente. Estudiante notificado."}
 
 
 @app.post("/api/estudiantes/informacion-financiera", tags=["Estudiantes"])

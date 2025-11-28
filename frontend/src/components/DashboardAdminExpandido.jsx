@@ -1106,14 +1106,14 @@ function DashboardAdminExpandido({ onLogout }) {
                           fontSize: '12px',
                           fontWeight: '600',
                           backgroundColor: 
-                            estudiante.estado_gestion_patrocinio === 'aceptado' ? '#d1fae5' :
-                            estudiante.estado_gestion_patrocinio === 'rechazado' ? '#fee2e2' : '#fef3c7',
+                            estudiante.estado_patrocinio === 'aprobado' ? '#d1fae5' :
+                            estudiante.estado_patrocinio === 'rechazado' ? '#fee2e2' : '#fef3c7',
                           color:
-                            estudiante.estado_gestion_patrocinio === 'aceptado' ? '#065f46' :
-                            estudiante.estado_gestion_patrocinio === 'rechazado' ? '#dc2626' : '#92400e'
+                            estudiante.estado_patrocinio === 'aprobado' ? '#065f46' :
+                            estudiante.estado_patrocinio === 'rechazado' ? '#dc2626' : '#92400e'
                         }}>
-                          {estudiante.estado_gestion_patrocinio === 'aceptado' ? '✅ Aceptado' :
-                           estudiante.estado_gestion_patrocinio === 'rechazado' ? '❌ Rechazado' : '⏳ Pendiente'}
+                          {estudiante.estado_patrocinio === 'aprobado' ? '✅ Aceptado' :
+                           estudiante.estado_patrocinio === 'rechazado' ? '❌ Rechazado' : '⏳ Pendiente'}
                         </span>
                       </td>
                       <td>
@@ -1123,7 +1123,7 @@ function DashboardAdminExpandido({ onLogout }) {
                         }
                       </td>
                       <td>
-                        {estudiante.estado_gestion_patrocinio === 'pendiente' ? (
+                        {(!estudiante.estado_patrocinio || estudiante.estado_patrocinio === 'pendiente') ? (
                           <div style={{display: 'flex', gap: '8px'}}>
                             <button
                               onClick={() => gestionarPatrocinio(estudiante.id, 'aceptado')}
@@ -1158,7 +1158,7 @@ function DashboardAdminExpandido({ onLogout }) {
                           </div>
                         ) : (
                           <span style={{fontSize: '12px', color: '#666'}}>
-                            {estudiante.estado_gestion_patrocinio === 'aceptado' ? '✅ Procesado' : '❌ Procesado'}
+                            {estudiante.estado_patrocinio === 'aprobado' ? '✅ Procesado' : '❌ Procesado'}
                           </span>
                         )}
                       </td>
