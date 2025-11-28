@@ -27,7 +27,24 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       localStorage.setItem('estudiante_id', estudianteId);
     }
     cargarDatos();
+    cargarPresupuestos();
   }, [estudianteId]);
+
+  const cargarPresupuestos = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.get(`${apiUrl}/api/presupuestos/estudiante/${estudianteId}`);
+      if (response.data && response.data.length > 0) {
+        // Obtener el presupuesto más reciente con oferta
+        const ultimoConOferta = response.data.find(p => p.estado === 'ofertado');
+        if (ultimoConOferta) {
+          setPresupuestoActual(ultimoConOferta);
+        }
+      }
+    } catch (err) {
+      console.error('Error cargando presupuestos:', err);
+    }
+  };
 
   const cargarDatos = async () => {
     try {
@@ -149,6 +166,102 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
           >
             📝 Completar Ahora
           </button>
+        </div>
+      )}
+
+      {/* Alerta de Contraoferta Recibida */}
+      {presupuestoActual && presupuestoActual.estado === 'ofertado' && (
+        <div style={{
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          color: 'white',
+          padding: '25px',
+          borderRadius: '10px',
+          marginBottom: '20px',
+          boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+        }}>
+          <h3 style={{ margin: '0 0 15px 0', fontSize: '20px' }}>
+            💰 ¡Tienes una Oferta Personalizada!
+          </h3>
+          
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.2)',
+            padding: '20px',
+            borderRadius: '8px',
+            marginBottom: '20px'
+          }}>
+            <div style={{marginBottom: '12px'}}>
+              <strong>Precio Ofertado:</strong> <span style={{fontSize: '28px', fontWeight: '700'}}>{presupuestoActual.precio_ofertado}€</span>
+            </div>
+            <div style={{marginBottom: '12px'}}>
+              <strong>Forma de Pago:</strong> {presupuestoActual.forma_pago}
+            </div>
+            {presupuestoActual.mensaje_admin && (
+              <div>
+                <strong>Mensaje del equipo:</strong>
+                <p style={{marginTop: '8px', opacity: 0.95}}>{presupuestoActual.mensaje_admin}</p>
+              </div>
+            )}
+          </div>
+
+          <div style={{display: 'flex', gap: '15px', flexWrap: 'wrap'}}>
+            <button
+              onClick={async () => {
+                if (!confirm('¿Estás seguro de aceptar esta oferta?')) return;
+                try {
+                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                  await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
+                    aceptar: true
+                  });
+                  alert('✅ ¡Perfecto! Oferta aceptada. Nos pondremos en contacto contigo pronto.');
+                  setPresupuestoActual(null);
+                  cargarPresupuestos();
+                } catch (err) {
+                  alert('❌ Error: ' + (err.response?.data?.detail || err.message));
+                }
+              }}
+              style={{
+                background: 'white',
+                color: '#10b981',
+                padding: '12px 25px',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+              }}
+            >
+              ✅ Aceptar Oferta
+            </button>
+            <button
+              onClick={async () => {
+                if (!confirm('¿Seguro que quieres rechazar esta oferta?')) return;
+                try {
+                  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                  await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
+                    aceptar: false
+                  });
+                  alert('Oferta rechazada. Puedes solicitar un nuevo presupuesto cuando quieras.');
+                  setPresupuestoActual(null);
+                  cargarPresupuestos();
+                } catch (err) {
+                  alert('❌ Error: ' + (err.response?.data?.detail || err.message));
+                }
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '12px 25px',
+                border: '2px solid white',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              ❌ Rechazar
+            </button>
+          </div>
         </div>
       )}
 
