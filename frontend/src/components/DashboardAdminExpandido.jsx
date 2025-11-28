@@ -6,6 +6,7 @@ import PartnersAdmin from './PartnersAdmin'
 import AlertasAdmin from './AlertasAdmin'
 import GuiaProceso from './GuiaProceso'
 import AdminChats from './AdminChats'
+import TesoroAdmin from './TesoroAdmin'
 
 function DashboardAdminExpandido({ onLogout }) {
   const [activeTab, setActiveTab] = useState('estudiantes')
@@ -782,6 +783,13 @@ function DashboardAdminExpandido({ onLogout }) {
           💰 Presupuestos
         </button>
         <button 
+          className={`tab ${activeTab === 'tesoro' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('tesoro')}
+          style={{ background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          💎 Tesoro
+        </button>
+        <button 
           className={`tab ${activeTab === 'trabajos' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('trabajos')}
           style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', fontWeight: 'bold' }}
@@ -1053,6 +1061,13 @@ function DashboardAdminExpandido({ onLogout }) {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* SECCIÓN: TESORO */}
+      {activeTab === 'tesoro' && (
+        <div style={{margin: '-20px'}}>
+          <TesoroAdmin />
         </div>
       )}
 
