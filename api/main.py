@@ -9047,15 +9047,24 @@ def ver_tesoro_pagos(
     pagos_pendientes = []
     for row in result:
         # Calcular monto según modalidad seleccionada
-        modalidad = row[2]
+        modalidad = row[2] or 'sin_seleccionar'
         monto_a_pagar = 0
         
-        if modalidad == 'al_empezar' and row[3]:
+        # Manejar diferentes formatos de modalidad
+        if modalidad in ['al_empezar', 'precio_al_empezar'] and row[3]:
             monto_a_pagar = float(row[3])
-        elif modalidad == 'con_visa' and row[4]:
+        elif modalidad in ['con_visa', 'precio_con_visa'] and row[4]:
             monto_a_pagar = float(row[4])
-        elif modalidad == 'financiado' and row[5]:
+        elif modalidad in ['financiado', 'precio_financiado'] and row[5]:
             monto_a_pagar = float(row[5])
+        else:
+            # Si no hay modalidad seleccionada, usar precio_al_empezar por defecto
+            if row[3]:
+                monto_a_pagar = float(row[3])
+            elif row[4]:
+                monto_a_pagar = float(row[4])
+            elif row[5]:
+                monto_a_pagar = float(row[5])
         
         pagos_pendientes.append({
             'presupuesto_id': row[0],

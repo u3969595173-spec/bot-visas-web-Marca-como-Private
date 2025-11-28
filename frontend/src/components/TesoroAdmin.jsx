@@ -71,13 +71,19 @@ function TesoroAdmin({ embedded = false }) {
   }
 
   const formatearModalidad = (modalidad) => {
+    if (!modalidad || modalidad === 'sin_seleccionar') {
+      return '⚠️ Sin seleccionar';
+    }
     const modalidades = {
       'precio_al_empezar': '💳 Pago al Empezar',
+      'al_empezar': '💳 Pago al Empezar',
       'precio_con_visa': '🎯 Pago con Visa',
-      'precio_financiado': '📅 Pago Financiado'
-    }
-    return modalidades[modalidad] || modalidad
-  }
+      'con_visa': '🎯 Pago con Visa',
+      'precio_financiado': '📅 Pago Financiado',
+      'financiado': '📅 Pago Financiado'
+    };
+    return modalidades[modalidad] || modalidad;
+  };
 
   if (loading) {
     return (

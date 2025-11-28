@@ -21,6 +21,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
   const [estadisticasReferidos, setEstadisticasReferidos] = useState(null);
   const [showReferidosModal, setShowReferidosModal] = useState(false);
   const [showOfertaModal, setShowOfertaModal] = useState(false);
+  const [modalidadSeleccionada, setModalidadSeleccionada] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -1147,12 +1148,37 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             {/* Modalidades de Pago */}
             <div style={{ display: 'grid', gap: '15px', marginBottom: '20px' }}>
               {presupuestoActual.precio_al_empezar && (
-                <div style={{
-                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '2px solid #fbbf24'
-                }}>
+                <div 
+                  onClick={() => presupuestoActual.estado === 'ofertado' && setModalidadSeleccionada('al_empezar')}
+                  style={{
+                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: modalidadSeleccionada === 'al_empezar' ? '4px solid #f59e0b' : '2px solid #fbbf24',
+                    cursor: presupuestoActual.estado === 'ofertado' ? 'pointer' : 'default',
+                    transform: modalidadSeleccionada === 'al_empezar' ? 'scale(1.02)' : 'scale(1)',
+                    transition: 'all 0.2s',
+                    position: 'relative'
+                  }}>
+                  {modalidadSeleccionada === 'al_empezar' && presupuestoActual.estado === 'ofertado' && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: '#10b981',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '30px',
+                      height: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}>
+                      ✓
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
                       <div style={{ fontWeight: '700', color: '#92400e', fontSize: '16px', marginBottom: '4px' }}>
@@ -1170,12 +1196,37 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               )}
               
               {presupuestoActual.precio_con_visa && (
-                <div style={{
-                  background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '2px solid #3b82f6'
-                }}>
+                <div
+                  onClick={() => presupuestoActual.estado === 'ofertado' && setModalidadSeleccionada('con_visa')}
+                  style={{
+                    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: modalidadSeleccionada === 'con_visa' ? '4px solid #2563eb' : '2px solid #3b82f6',
+                    cursor: presupuestoActual.estado === 'ofertado' ? 'pointer' : 'default',
+                    transform: modalidadSeleccionada === 'con_visa' ? 'scale(1.02)' : 'scale(1)',
+                    transition: 'all 0.2s',
+                    position: 'relative'
+                  }}>
+                  {modalidadSeleccionada === 'con_visa' && presupuestoActual.estado === 'ofertado' && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: '#10b981',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '30px',
+                      height: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}>
+                      ✓
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
                       <div style={{ fontWeight: '700', color: '#1e40af', fontSize: '16px', marginBottom: '4px' }}>
@@ -1193,12 +1244,37 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               )}
               
               {presupuestoActual.precio_financiado && (
-                <div style={{
-                  background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-                  padding: '20px',
-                  borderRadius: '12px',
-                  border: '2px solid #6366f1'
-                }}>
+                <div
+                  onClick={() => presupuestoActual.estado === 'ofertado' && setModalidadSeleccionada('financiado')}
+                  style={{
+                    background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+                    padding: '20px',
+                    borderRadius: '12px',
+                    border: modalidadSeleccionada === 'financiado' ? '4px solid #4f46e5' : '2px solid #6366f1',
+                    cursor: presupuestoActual.estado === 'ofertado' ? 'pointer' : 'default',
+                    transform: modalidadSeleccionada === 'financiado' ? 'scale(1.02)' : 'scale(1)',
+                    transition: 'all 0.2s',
+                    position: 'relative'
+                  }}>
+                  {modalidadSeleccionada === 'financiado' && presupuestoActual.estado === 'ofertado' && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: '#10b981',
+                      color: 'white',
+                      borderRadius: '50%',
+                      width: '30px',
+                      height: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      fontWeight: 'bold'
+                    }}>
+                      ✓
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
                       <div style={{ fontWeight: '700', color: '#4338ca', fontSize: '16px', marginBottom: '4px' }}>
@@ -1257,67 +1333,92 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
 
             {/* Botones de acción */}
             {presupuestoActual.estado === 'ofertado' ? (
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  onClick={async () => {
-                    if (!confirm('¿Estás seguro de aceptar esta oferta?')) return;
-                    try {
-                      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-                      await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
-                        aceptar: true
-                      });
-                      alert('✅ ¡Perfecto! Oferta aceptada.');
-                      setShowOfertaModal(false);
-                      setPresupuestoActual(null);
-                      cargarPresupuestos();
-                    } catch (err) {
-                      alert('❌ Error: ' + (err.response?.data?.detail || err.message));
-                    }
-                  }}
-                  style={{
-                    flex: 1,
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                    color: 'white',
-                    padding: '14px 24px',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {!modalidadSeleccionada && (
+                  <div style={{
+                    background: '#e0f2fe',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#0369a1',
+                    fontSize: '13px',
+                    fontWeight: '600'
+                  }}>
+                    👆 Haz clic en una modalidad de pago para continuar
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    onClick={async () => {
+                      if (!modalidadSeleccionada) {
+                        alert('⚠️ Por favor, selecciona una modalidad de pago primero');
+                        return;
+                      }
+                      if (!confirm('¿Estás seguro de aceptar esta oferta con la modalidad seleccionada?')) return;
+                      try {
+                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                        await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
+                          aceptar: true,
+                          modalidad_seleccionada: modalidadSeleccionada
+                        });
+                        alert('✅ ¡Perfecto! Oferta aceptada.');
+                        setShowOfertaModal(false);
+                        setModalidadSeleccionada(null);
+                        setPresupuestoActual(null);
+                        cargarPresupuestos();
+                      } catch (err) {
+                        alert('❌ Error: ' + (err.response?.data?.detail || err.message));
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      background: modalidadSeleccionada 
+                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                        : '#d1d5db',
+                      color: 'white',
+                      padding: '14px 24px',
+                      border: 'none',
+                      borderRadius: '10px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: modalidadSeleccionada ? 'pointer' : 'not-allowed',
+                      opacity: modalidadSeleccionada ? 1 : 0.6
+                    }}
                 >
                   ✅ Aceptar Oferta
                 </button>
-                <button
-                  onClick={async () => {
-                    if (!confirm('¿Seguro que quieres rechazar esta oferta?')) return;
-                    try {
-                      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-                      await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
-                        aceptar: false
-                      });
-                      alert('Oferta rechazada. Puedes solicitar un nuevo presupuesto.');
-                      setShowOfertaModal(false);
-                      setPresupuestoActual(null);
-                      cargarPresupuestos();
+                  <button
+                    onClick={async () => {
+                      if (!confirm('¿Seguro que quieres rechazar esta oferta?')) return;
+                      try {
+                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                        await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
+                          aceptar: false
+                        });
+                        alert('Oferta rechazada. Puedes solicitar un nuevo presupuesto.');
+                        setShowOfertaModal(false);
+                        setModalidadSeleccionada(null);
+                        setPresupuestoActual(null);
+                        cargarPresupuestos();
                     } catch (err) {
                       alert('❌ Error: ' + (err.response?.data?.detail || err.message));
                     }
                   }}
-                  style={{
-                    flex: 1,
-                    background: 'white',
-                    color: '#ef4444',
-                    padding: '14px 24px',
-                    border: '2px solid #ef4444',
-                    borderRadius: '10px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  ❌ Rechazar
-                </button>
+                    style={{
+                      flex: 1,
+                      background: 'white',
+                      color: '#ef4444',
+                      padding: '14px 24px',
+                      border: '2px solid #ef4444',
+                      borderRadius: '10px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ❌ Rechazar
+                  </button>
+                </div>
               </div>
             ) : (
               <button
