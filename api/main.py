@@ -2594,7 +2594,6 @@ def listar_documentos_generados(
 @app.get("/api/admin/documentos-generados/{documento_id}/descargar", tags=["Admin - Documentos"])
 def descargar_documento_generado(
     documento_id: int,
-    db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
     """Descarga un documento generado"""
@@ -2603,34 +2602,49 @@ def descargar_documento_generado(
     import os
     import psycopg2
     import base64
-    
-    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT nombre_archivo, contenido_pdf
-        FROM documentos_generados
-        WHERE id = %s
-    """, (documento_id,))
-    
-    row = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    
-    if not row:
-        raise HTTPException(status_code=404, detail="Documento no encontrado")
-    
-    nombre_archivo, contenido_base64 = row
-    pdf_content = base64.b64decode(contenido_base64)
-    
     from io import BytesIO
-    buffer = BytesIO(pdf_content)
     
-    return StreamingResponse(
-        buffer,
-        media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"}
-    )
+    # Usar conexión directa sin el dependency get_db para evitar conflictos
+    conn = None
+    cursor = None
+    
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT nombre_archivo, contenido_pdf
+            FROM documentos_generados
+            WHERE id = %s
+        """, (documento_id,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Documento no encontrado")
+        
+        nombre_archivo, contenido_base64 = row
+        
+        # Decodificar PDF
+        pdf_content = base64.b64decode(contenido_base64)
+        buffer = BytesIO(pdf_content)
+        
+        return StreamingResponse(
+            buffer,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={nombre_archivo}"}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error descargando documento {documento_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al descargar documento: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 @app.get("/api/admin/estudiantes/{estudiante_id}/descargar-expediente", tags=["Admin - Documentos"])
@@ -2873,6 +2887,135 @@ def aprobar_documento_generado(
         'mensaje': 'Documento aprobado correctamente',
         'enviado_estudiante': enviar_a_estudiante
     }
+
+
+@app.delete("/api/admin/documentos-generados/{documento_id}", tags=["Admin - Documentos"])
+def eliminar_documento_generado(
+    documento_id: int,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Elimina un documento generado"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = None
+    cursor = None
+    
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Verificar que existe
+        cursor.execute("""
+            SELECT id, tipo_documento, estudiante_id
+            FROM documentos_generados
+            WHERE id = %s
+        """, (documento_id,))
+        
+        row = cursor.fetchone()
+        
+        if not row:
+            raise HTTPException(status_code=404, detail="Documento no encontrado")
+        
+        # Eliminar
+        cursor.execute("""
+            DELETE FROM documentos_generados
+            WHERE id = %s
+        """, (documento_id,))
+        
+        conn.commit()
+        
+        logger.info(f"✅ Documento generado {documento_id} eliminado correctamente")
+        
+        return {
+            'mensaje': 'Documento eliminado correctamente',
+            'documento_id': documento_id,
+            'tipo_documento': row[1],
+            'estudiante_id': row[2]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error eliminando documento {documento_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al eliminar documento: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@app.delete("/api/admin/documentos-generados/duplicados/eliminar", tags=["Admin - Documentos"])
+def eliminar_documentos_duplicados(
+    estudiante_id: Optional[int] = None,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Elimina documentos duplicados, conservando solo el más reciente de cada tipo por estudiante"""
+    verificar_token(credentials.credentials)
+    
+    import os
+    import psycopg2
+    
+    conn = None
+    cursor = None
+    
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        # Construir query según filtro
+        where_clause = ""
+        params = []
+        
+        if estudiante_id:
+            where_clause = "AND estudiante_id = %s"
+            params.append(estudiante_id)
+        
+        # Encontrar duplicados (mantener solo el más reciente por tipo_documento y estudiante_id)
+        query = f"""
+            DELETE FROM documentos_generados
+            WHERE id NOT IN (
+                SELECT MAX(id)
+                FROM documentos_generados
+                WHERE 1=1 {where_clause}
+                GROUP BY estudiante_id, tipo_documento
+            )
+            {where_clause if where_clause else ''}
+            RETURNING id, tipo_documento, estudiante_id
+        """
+        
+        cursor.execute(query, params if estudiante_id else params * 2 if params else [])
+        
+        eliminados = cursor.fetchall()
+        conn.commit()
+        
+        count = len(eliminados)
+        logger.info(f"✅ {count} documentos duplicados eliminados")
+        
+        return {
+            'mensaje': f'{count} documento(s) duplicado(s) eliminado(s) correctamente',
+            'count': count,
+            'eliminados': [
+                {
+                    'id': doc[0],
+                    'tipo_documento': doc[1],
+                    'estudiante_id': doc[2]
+                }
+                for doc in eliminados
+            ]
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error eliminando duplicados: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al eliminar duplicados: {str(e)}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
 
 
 # ============================================================================

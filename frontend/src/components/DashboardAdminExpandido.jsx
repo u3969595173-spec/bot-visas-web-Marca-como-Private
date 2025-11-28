@@ -223,6 +223,38 @@ function DashboardAdminExpandido({ onLogout }) {
     window.open(`${apiUrl}/api/admin/documentos-generados/${docId}/descargar`, '_blank')
   }
 
+  const eliminarDocumento = async (docId, tipoDoc) => {
+    if (!confirm(`¿Eliminar documento "${tipoDoc}"?`)) return
+    
+    try {
+      await axios.delete(`${apiUrl}/api/admin/documentos-generados/${docId}`)
+      alert('✅ Documento eliminado correctamente')
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const eliminarDuplicados = async (estudianteId = null) => {
+    const mensaje = estudianteId 
+      ? '¿Eliminar documentos duplicados de este estudiante?' 
+      : '⚠️ ¿Eliminar TODOS los documentos duplicados del sistema? (Mantiene solo el más reciente de cada tipo)'
+    
+    if (!confirm(mensaje)) return
+    
+    try {
+      const url = estudianteId 
+        ? `${apiUrl}/api/admin/documentos-generados/duplicados/eliminar?estudiante_id=${estudianteId}`
+        : `${apiUrl}/api/admin/documentos-generados/duplicados/eliminar`
+      
+      const res = await axios.delete(url)
+      alert(`✅ ${res.data.mensaje}\n\nEliminados: ${res.data.count}`)
+      cargarDatos()
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
   const abrirModalMensaje = (estudiante) => {
     setEstudianteParaMensaje(estudiante)
     setNuevoMensaje({ 
@@ -660,7 +692,26 @@ function DashboardAdminExpandido({ onLogout }) {
       {/* SECCIÓN: DOCUMENTOS GENERADOS */}
       {activeTab === 'documentos' && (
         <div className="documentos-section">
-          <h2>Documentos Generados ({documentosGenerados.length})</h2>
+          <div className="section-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+            <h2>📄 Documentos Generados ({documentosGenerados.length})</h2>
+            <div className="header-actions">
+              <button 
+                onClick={abrirModalGenerarDocumentos} 
+                className="btn-generar"
+                style={{marginRight: '10px'}}
+              >
+                ➕ Generar Documentos
+              </button>
+              <button 
+                onClick={() => eliminarDuplicados()} 
+                className="btn-limpiar"
+                style={{backgroundColor: '#ef4444', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '5px', cursor: 'pointer'}}
+                title="Eliminar documentos duplicados (mantiene solo el más reciente de cada tipo)"
+              >
+                🗑️ Limpiar Duplicados
+              </button>
+            </div>
+          </div>
           
           <div className="documentos-info">
             <p>📄 Aquí puedes generar documentos oficiales para los estudiantes, revisarlos y aprobarlos.</p>
@@ -716,6 +767,13 @@ function DashboardAdminExpandido({ onLogout }) {
                               ✓
                             </button>
                           )}
+                          <button 
+                            onClick={() => eliminarDocumento(doc.id, doc.tipo_documento)}
+                            className="btn-eliminar"
+                            title="Eliminar documento"
+                          >
+                            🗑️
+                          </button>
                         </div>
                       </td>
                     </tr>

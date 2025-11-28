@@ -436,6 +436,49 @@
   transform: scale(1.1);
 }
 
+.btn-eliminar {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  background: #ef4444;
+  color: white;
+  transition: all 0.3s;
+}
+
+.btn-eliminar:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+.btn-limpiar {
+  background: #ef4444;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-limpiar:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 /* Sección documentos */
 .documentos-section {
   background: white;
