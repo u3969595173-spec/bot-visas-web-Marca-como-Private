@@ -13,7 +13,7 @@ function PresupuestosAdmin({ embedded = false }) {
     precio_al_empezar: '',
     precio_con_visa: '',
     precio_financiado: '',
-    comentarios_admin: ''
+    mensaje_admin: ''
   })
   const navigate = useNavigate()
 
@@ -45,7 +45,7 @@ function PresupuestosAdmin({ embedded = false }) {
       precio_al_empezar: '',
       precio_con_visa: '',
       precio_financiado: '',
-      comentarios_admin: ''
+      mensaje_admin: ''
     })
     setMostrarModal(true)
   }
@@ -73,7 +73,7 @@ function PresupuestosAdmin({ embedded = false }) {
         precio_al_empezar: '',
         precio_con_visa: '',
         precio_financiado: '',
-        comentarios_admin: ''
+        mensaje_admin: ''
       })
       cargarPresupuestos()
       setTimeout(() => setSuccess(''), 3000)
@@ -560,8 +560,8 @@ function PresupuestosAdmin({ embedded = false }) {
                 💬 Comentarios Adicionales (Opcional)
               </label>
               <textarea
-                value={modalidades.comentarios_admin}
-                onChange={(e) => setModalidades({...modalidades, comentarios_admin: e.target.value})}
+                value={modalidades.mensaje_admin}
+                onChange={(e) => setModalidades({...modalidades, mensaje_admin: e.target.value})}
                 rows="3"
                 style={{
                   width: '100%',
@@ -585,7 +585,7 @@ function PresupuestosAdmin({ embedded = false }) {
                     precio_al_empezar: '',
                     precio_con_visa: '',
                     precio_financiado: '',
-                    comentarios_admin: ''
+                    mensaje_admin: ''
                   })
                 }}
                 style={{
