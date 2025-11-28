@@ -36,10 +36,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
   const cargarEstadisticasReferidos = async () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${apiUrl}/api/referidos/estadisticas/${estudianteId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`${apiUrl}/api/referidos/estadisticas/${estudianteId}`);
       setEstadisticasReferidos(response.data);
     } catch (err) {
       console.error('Error cargando estadísticas de referidos:', err);

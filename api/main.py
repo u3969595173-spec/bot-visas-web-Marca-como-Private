@@ -8598,8 +8598,7 @@ async def validar_codigo_referido(codigo: str):
 
 @app.get("/api/referidos/estadisticas/{estudiante_id}")
 async def obtener_estadisticas_referidos(
-    estudiante_id: int, 
-    usuario=Depends(obtener_usuario_actual),
+    estudiante_id: int,
     db: Session = Depends(get_db)
 ):
     """Obtiene estadísticas de referidos de un estudiante"""
