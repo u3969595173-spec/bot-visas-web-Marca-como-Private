@@ -332,9 +332,11 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               onClick={() => setShowOfertaModal(true)}
               className="btn"
               style={{
-                background: presupuestoActual.estado === 'aceptado' 
-                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
-                  : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                background: presupuestoActual.pagado
+                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                  : (presupuestoActual.estado === 'aceptado' 
+                    ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' 
+                    : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'),
                 color: 'white',
                 border: 'none',
                 fontWeight: '600',
@@ -347,7 +349,9 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 gap: '8px'
               }}
             >
-              {presupuestoActual.estado === 'aceptado' ? '✅ Ver Presupuesto Aceptado' : '💰 Ver Oferta Recibida'}
+              {presupuestoActual.pagado ? '✅ Pago Confirmado' : 
+               (presupuestoActual.estado === 'aceptado' ? '⏳ Ver Presupuesto (Pendiente Pago)' : 
+                (presupuestoActual.estado === 'ofertado' ? '💰 Ver Oferta Recibida' : '✅ Ver Presupuesto'))}
             </button>
           )}
         </div>
@@ -1115,31 +1119,48 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               gap: '15px',
               marginBottom: '20px',
               padding: '15px',
-              background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+              background: presupuestoActual.pagado 
+                ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)' 
+                : (presupuestoActual.estado === 'aceptado' 
+                  ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
+                  : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'),
               borderRadius: '12px'
             }}>
               <div style={{
                 width: '50px',
                 height: '50px',
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                background: presupuestoActual.pagado
+                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                  : (presupuestoActual.estado === 'aceptado'
+                    ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)'),
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '24px'
               }}>
-                💰
+                {presupuestoActual.pagado ? '✅' : (presupuestoActual.estado === 'aceptado' ? '⏳' : '💰')}
               </div>
               <div>
-                <h2 style={{ margin: 0, color: '#065f46', fontSize: '20px', fontWeight: '700' }}>
-                  {presupuestoActual.estado === 'aceptado' ? 
-                    '✅ Presupuesto Aceptado' : 
-                    'Oferta Personalizada Recibida'}
+                <h2 style={{ 
+                  margin: 0, 
+                  color: presupuestoActual.pagado ? '#065f46' : (presupuestoActual.estado === 'aceptado' ? '#92400e' : '#065f46'), 
+                  fontSize: '20px', 
+                  fontWeight: '700' 
+                }}>
+                  {presupuestoActual.pagado ? '✅ Pago Recibido' : 
+                   (presupuestoActual.estado === 'aceptado' ? '⏳ Pendiente de Pago' : 
+                    (presupuestoActual.estado === 'ofertado' ? 'Oferta Personalizada Recibida' : '✅ Presupuesto Aceptado'))}
                 </h2>
-                <p style={{ margin: '5px 0 0 0', color: '#059669', fontSize: '14px' }}>
-                  {presupuestoActual.estado === 'aceptado' ? 
-                    'Trabajo en proceso' :
-                    'Revisa las modalidades de pago disponibles'}
+                <p style={{ 
+                  margin: '5px 0 0 0', 
+                  color: presupuestoActual.pagado ? '#059669' : (presupuestoActual.estado === 'aceptado' ? '#d97706' : '#059669'), 
+                  fontSize: '14px' 
+                }}>
+                  {presupuestoActual.pagado ? 'Tu pago ha sido confirmado' :
+                   (presupuestoActual.estado === 'aceptado' ? 'Esperando confirmación de pago' :
+                    (presupuestoActual.estado === 'ofertado' ? 'Revisa las modalidades de pago disponibles' : 'Trabajo en proceso'))}
                 </p>
               </div>
             </div>
