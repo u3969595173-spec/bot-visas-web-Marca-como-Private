@@ -1,0 +1,88 @@
+{
+  "id": 4,
+  "nombre": "onelvis reyes",
+  "email": "onelvisreyessanchez@gmail.com",
+  "telefono": "613959597",
+  "pasaporte": null,
+  "fecha_nacimiento": null,
+  "edad": null,
+  "nacionalidad": null,
+  "pais_origen": null,
+  "ciudad_origen": null,
+  "carrera_deseada": null,
+  "especialidad": null,
+  "nivel_espanol": "basico",
+  "tipo_visa": "estudiante",
+  "fondos_disponibles": 1009.0,
+  "fecha_inicio_estimada": null,
+  "archivo_titulo": null,
+  "archivo_pasaporte": null,
+  "archivo_extractos": null,
+  "consentimiento_gdpr": true,
+  "fecha_consentimiento": "2025-11-27T14:00:28.875114",
+  "estado": "aprobado",
+  "documentos_estado": "pendiente",
+  "notas": null,
+  "created_at": "2025-11-27T14:00:28.875114",
+  "updated_at": "2025-11-28T10:01:16.628022",
+  "perfil_completo": false,
+  "cursos_sugeridos": [
+    {
+      "nombre": "Curso Intensivo de Español (6 meses)",
+      "universidad": "Instituto Cervantes Madrid",
+      "duracion": "6 meses",
+      "costo_anual": 3600,
+      "nivel_espanol_requerido": "ninguno",
+      "match": 98,
+      "asequible": false
+    },
+    {
+      "nombre": "Grado en Ciencias Políticas",
+      "universidad": "Universidad Carlos III",
+      "duracion": "4 años",
+      "costo_anual": 1800,
+      "nivel_espanol_requerido": "intermedio",
+      "match": 75,
+      "asequible": false
+    },
+    {
+      "nombre": "Máster en Educación",
+      "universidad": "Universidad Autónoma de Barcelona",
+      "duracion": "1 año",
+      "costo_anual": 2800,
+      "nivel_espanol_requerido": "intermedio",
+      "match": 72,
+      "asequible": false
+    }
+  ],
+  "probabilidad_exito": {
+    "puntos": 20,
+    "max_puntos": 100,
+    "probabilidad": 20.0,
+    "categoria": "Baja",
+    "color": "danger",
+    "mensaje": "Tu perfil necesita trabajo significativo antes de aplicar.",
+    "factores": [
+      {
+        "factor": "Fondos muy bajos",
+        "puntos": 0,
+        "cumple": false
+      },
+      {
+        "factor": "Nivel de español: basico",
+        "puntos": 10,
+        "cumple": false
+      },
+      {
+        "factor": "Documentos incompletos (faltan: título académico, pasaporte, extractos bancarios)",
+        "puntos": 10,
+        "cumple": false
+      },
+      {
+        "factor": "Edad no válida",
+        "puntos": 0,
+        "cumple": false
+      }
+    ]
+  }
+}

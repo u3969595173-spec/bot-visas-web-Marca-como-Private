@@ -19,6 +19,9 @@ const InformacionAlojamiento = ({ estudianteId }) => {
 
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [estadoAlojamiento, setEstadoAlojamiento] = useState(null); // pendiente/aprobado/rechazado
+  const [comentariosAdmin, setComentariosAdmin] = useState('');
+  const [modoEdicion, setModoEdicion] = useState(false);
 
   const apiUrl = process.env.REACT_APP_API_URL || 'https://bot-visas-api.onrender.com';
 
@@ -29,6 +32,17 @@ const InformacionAlojamiento = ({ estudianteId }) => {
         try {
           const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}`);
           setEstudiante(response.data);
+          
+          // Cargar estado de la gestión por el admin
+          setEstadoAlojamiento(response.data.estado_alojamiento || 'pendiente');
+          setComentariosAdmin(response.data.comentarios_alojamiento || '');
+          
+          // Si ya fue procesado por el admin, no mostrar en modo edición por defecto
+          if (response.data.estado_alojamiento && response.data.estado_alojamiento !== 'pendiente') {
+            setModoEdicion(false);
+          } else {
+            setModoEdicion(true);
+          }
         } catch (error) {
           console.error('Error cargando estudiante:', error);
         }
@@ -69,6 +83,7 @@ const InformacionAlojamiento = ({ estudianteId }) => {
       
       alert('✅ Información de alojamiento guardada correctamente');
       setEditing(false);
+      setModoEdicion(false); // Salir del modo edición después de guardar
       
       // Refrescar datos del estudiante
       window.location.reload();
@@ -86,6 +101,10 @@ const InformacionAlojamiento = ({ estudianteId }) => {
       (formData.direccion_alojamiento && formData.tipo_alojamiento) : 
       formData.gestion_solicitada
     );
+
+  if (!estudiante) {
+    return <div>Cargando información del estudiante...</div>;
+  }
 
   return (
     <div style={{
@@ -111,385 +130,460 @@ const InformacionAlojamiento = ({ estudianteId }) => {
             border: 'none',
             fontSize: '24px',
             cursor: 'pointer',
-            marginRight: '15px',
-            color: '#6b7280'
+            marginRight: '15px'
           }}
         >
-          ←
+          ← 
         </button>
         <div>
-          <h2 style={{ margin: 0, color: '#1f2937', fontSize: '24px', fontWeight: '700' }}>
+          <h1 style={{
+            color: '#1f2937',
+            fontSize: '28px',
+            fontWeight: 'bold',
+            margin: '0 0 8px 0'
+          }}>
             🏠 Información de Alojamiento
-          </h2>
-          <p style={{ margin: '5px 0 0 0', color: '#6b7280', fontSize: '16px' }}>
+          </h1>
+          <p style={{
+            color: '#6b7280',
+            margin: 0,
+            fontSize: '16px'
+          }}>
             Gestiona tu situación de alojamiento para la estadía en España
           </p>
         </div>
       </div>
 
-      {/* Status Card */}
-      <div style={{
-        backgroundColor: tieneAlojamientoCompleto ? '#f0fdf4' : '#fef3c7',
-        border: `2px solid ${tieneAlojamientoCompleto ? '#10b981' : '#f59e0b'}`,
-        borderRadius: '12px',
-        padding: '20px',
-        marginBottom: '30px',
-        textAlign: 'center'
-      }}>
-        <div style={{
-          fontSize: '48px',
-          marginBottom: '10px'
-        }}>
-          {tieneAlojamientoCompleto ? '✅' : '⚠️'}
-        </div>
-        <h3 style={{
-          color: tieneAlojamientoCompleto ? '#065f46' : '#92400e',
-          margin: '0 0 8px 0',
-          fontSize: '20px',
-          fontWeight: '600'
-        }}>
-          {tieneAlojamientoCompleto ? 'Alojamiento Completado' : 'Información Pendiente'}
-        </h3>
-        <p style={{
-          color: tieneAlojamientoCompleto ? '#047857' : '#d97706',
-          margin: 0,
-          fontSize: '16px'
-        }}>
-          {tieneAlojamientoCompleto 
-            ? 'Tu información de alojamiento está completa'
-            : 'Completa tu información de alojamiento para continuar'
-          }
-        </p>
-      </div>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit}>
-        {/* ¿Tienes alojamiento? */}
-        <div style={{
-          marginBottom: '30px',
-          padding: '20px',
-          backgroundColor: '#f8fafc',
-          borderRadius: '10px',
-          border: '1px solid #e2e8f0'
-        }}>
-          <h3 style={{ color: '#374151', fontSize: '18px', fontWeight: '600', marginBottom: '15px' }}>
-            🏠 Situación de Alojamiento
-          </h3>
-          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '15px',
-              backgroundColor: formData.tiene_alojamiento === true ? '#dbeafe' : '#fff',
-              border: `2px solid ${formData.tiene_alojamiento === true ? '#2563eb' : '#d1d5db'}`,
-              borderRadius: '8px',
-              cursor: editing ? 'pointer' : 'default',
-              fontSize: '16px',
-              fontWeight: '500',
-              minWidth: '200px'
-            }}>
-              <input
-                type="radio"
-                name="tiene_alojamiento"
-                value="true"
-                checked={formData.tiene_alojamiento === true}
-                onChange={() => setFormData(prev => ({...prev, tiene_alojamiento: true, gestion_solicitada: false}))}
-                disabled={!editing}
-                style={{ marginRight: '10px' }}
-              />
-              🏡 Ya tengo alojamiento
-            </label>
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '15px',
-              backgroundColor: formData.tiene_alojamiento === false ? '#fef2f2' : '#fff',
-              border: `2px solid ${formData.tiene_alojamiento === false ? '#dc2626' : '#d1d5db'}`,
-              borderRadius: '8px',
-              cursor: editing ? 'pointer' : 'default',
-              fontSize: '16px',
-              fontWeight: '500',
-              minWidth: '200px'
-            }}>
-              <input
-                type="radio"
-                name="tiene_alojamiento"
-                value="false"
-                checked={formData.tiene_alojamiento === false}
-                onChange={() => setFormData(prev => ({...prev, tiene_alojamiento: false, gestion_solicitada: true}))}
-                disabled={!editing}
-                style={{ marginRight: '10px' }}
-              />
-              🏢 Necesito que me gestionen
-            </label>
-          </div>
-        </div>
-
-        {/* Datos del alojamiento (si ya tiene) */}
-        {formData.tiene_alojamiento === true && (
+      {/* Vista de estado procesado */}
+      {estadoAlojamiento && estadoAlojamiento !== 'pendiente' && !modoEdicion ? (
+        <div>
+          {/* Estado de la solicitud */}
           <div style={{
-            marginBottom: '30px',
-            padding: '20px',
-            backgroundColor: '#f0fdf4',
-            borderRadius: '10px',
-            border: '1px solid #bbf7d0'
+            padding: '30px',
+            backgroundColor: estadoAlojamiento === 'aprobado' ? '#d1fae5' : '#fee2e2',
+            border: `3px solid ${estadoAlojamiento === 'aprobado' ? '#10b981' : '#ef4444'}`,
+            borderRadius: '15px',
+            textAlign: 'center',
+            marginBottom: '25px'
           }}>
-            <h3 style={{ color: '#065f46', fontSize: '18px', fontWeight: '600', marginBottom: '20px' }}>
-              📋 Detalles del Alojamiento
-            </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-              <div>
-                <label style={{ display: 'block', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Tipo de Alojamiento *
-                </label>
-                <select
-                  value={formData.tipo_alojamiento}
-                  onChange={(e) => setFormData(prev => ({...prev, tipo_alojamiento: e.target.value}))}
-                  disabled={!editing}
-                  required
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    backgroundColor: editing ? '#fff' : '#f9fafb'
-                  }}
-                >
-                  <option value="">Seleccionar tipo</option>
-                  <option value="piso_compartido">Piso Compartido</option>
-                  <option value="habitacion_privada">Habitación Privada</option>
-                  <option value="apartamento_completo">Apartamento Completo</option>
-                  <option value="residencia_estudiantes">Residencia de Estudiantes</option>
-                  <option value="familia_anfitriona">Familia Anfitriona</option>
-                  <option value="hotel">Hotel/Hostal</option>
-                </select>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                    Precio Mensual
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="800"
-                    value={formData.precio_mensual}
-                    onChange={(e) => setFormData(prev => ({...prev, precio_mensual: e.target.value}))}
-                    disabled={!editing}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '16px',
-                      backgroundColor: editing ? '#fff' : '#f9fafb'
-                    }}
-                  />
-                </div>
-                <div style={{ width: '80px' }}>
-                  <label style={{ display: 'block', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                    Moneda
-                  </label>
-                  <select
-                    value={formData.moneda_alojamiento}
-                    onChange={(e) => setFormData(prev => ({...prev, moneda_alojamiento: e.target.value}))}
-                    disabled={!editing}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '16px',
-                      backgroundColor: editing ? '#fff' : '#f9fafb'
-                    }}
-                  >
-                    <option value="EUR">EUR</option>
-                    <option value="USD">USD</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Dirección Completa *
-              </label>
-              <input
-                type="text"
-                placeholder="Calle, número, código postal, ciudad"
-                value={formData.direccion_alojamiento}
-                onChange={(e) => setFormData(prev => ({...prev, direccion_alojamiento: e.target.value}))}
-                disabled={!editing}
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '16px',
-                  backgroundColor: editing ? '#fff' : '#f9fafb'
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-              <div>
-                <label style={{ display: 'block', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Contacto del Alojamiento
-                </label>
-                <input
-                  type="text"
-                  placeholder="Nombre del propietario/agencia"
-                  value={formData.contacto_alojamiento}
-                  onChange={(e) => setFormData(prev => ({...prev, contacto_alojamiento: e.target.value}))}
-                  disabled={!editing}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    backgroundColor: editing ? '#fff' : '#f9fafb'
-                  }}
-                />
-              </div>
-              
-              <div>
-                <label style={{ display: 'block', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                  Teléfono de Contacto
-                </label>
-                <input
-                  type="tel"
-                  placeholder="+34 XXX XXX XXX"
-                  value={formData.telefono_alojamiento}
-                  onChange={(e) => setFormData(prev => ({...prev, telefono_alojamiento: e.target.value}))}
-                  disabled={!editing}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    backgroundColor: editing ? '#fff' : '#f9fafb'
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Solicitar gestión (si necesita gestión) */}
-        {formData.tiene_alojamiento === false && (
-          <div style={{
-            marginBottom: '30px',
-            padding: '20px',
-            backgroundColor: '#fef2f2',
-            borderRadius: '10px',
-            border: '1px solid #fecaca'
-          }}>
-            <h3 style={{ color: '#dc2626', fontSize: '18px', fontWeight: '600', marginBottom: '15px' }}>
-              🏢 Solicitar Gestión de Alojamiento
-            </h3>
-            
-            <label style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '15px',
-              backgroundColor: '#fff',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              marginBottom: '20px',
-              cursor: editing ? 'pointer' : 'default'
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '15px'
             }}>
-              <input
-                type="checkbox"
-                name="gestion_solicitada"
-                checked={formData.gestion_solicitada}
-                onChange={(e) => setFormData(prev => ({...prev, gestion_solicitada: e.target.checked}))}
-                disabled={!editing}
-                style={{ marginRight: '12px' }}
-              />
-              <span style={{ fontWeight: '500', color: '#374151' }}>
-                Solicito que la empresa me gestione el alojamiento
-              </span>
-            </label>
-
-            <div>
-              <label style={{ display: 'block', fontWeight: '500', color: '#374151', marginBottom: '8px' }}>
-                Comentarios adicionales o preferencias
-              </label>
-              <textarea
-                placeholder="Describe tus preferencias: zona preferida, presupuesto máximo, tipo de alojamiento deseado..."
-                value={formData.comentarios_alojamiento}
-                onChange={(e) => setFormData(prev => ({...prev, comentarios_alojamiento: e.target.value}))}
-                disabled={!editing}
-                rows={4}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  fontSize: '16px',
-                  backgroundColor: editing ? '#fff' : '#f9fafb',
-                  resize: 'vertical'
-                }}
-              />
+              {estadoAlojamiento === 'aprobado' ? '✅' : '❌'}
             </div>
+            <h2 style={{
+              color: estadoAlojamiento === 'aprobado' ? '#065f46' : '#991b1b',
+              fontSize: '24px',
+              fontWeight: '700',
+              marginBottom: '10px'
+            }}>
+              Solicitud de Gestión de Alojamiento {estadoAlojamiento === 'aprobado' ? 'APROBADA' : 'RECHAZADA'}
+            </h2>
+            <p style={{
+              color: estadoAlojamiento === 'aprobado' ? '#047857' : '#dc2626',
+              fontSize: '16px',
+              margin: 0
+            }}>
+              {estadoAlojamiento === 'aprobado' 
+                ? 'Tu solicitud ha sido aprobada por nuestro equipo' 
+                : 'Tu solicitud ha sido rechazada por nuestro equipo'
+              }
+            </p>
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div style={{
-          display: 'flex',
-          gap: '15px',
-          justifyContent: 'flex-end',
-          paddingTop: '20px',
-          borderTop: '1px solid #e5e7eb'
-        }}>
-          {!editing ? (
+          {/* Comentarios del admin */}
+          {comentariosAdmin && (
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              border: '2px solid #e2e8f0',
+              borderRadius: '10px',
+              marginBottom: '25px'
+            }}>
+              <h3 style={{
+                color: '#374151',
+                fontSize: '16px',
+                fontWeight: '600',
+                marginBottom: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                💬 Comentarios del equipo
+              </h3>
+              <p style={{
+                color: '#6b7280',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                margin: 0
+              }}>
+                {comentariosAdmin}
+              </p>
+            </div>
+          )}
+
+          {/* Botón editar */}
+          <div style={{ textAlign: 'center' }}>
             <button
-              type="button"
-              onClick={() => setEditing(true)}
+              onClick={() => setModoEdicion(true)}
               style={{
-                padding: '12px 24px',
-                backgroundColor: '#2563eb',
-                color: '#fff',
+                backgroundColor: '#3b82f6',
+                color: 'white',
                 border: 'none',
+                padding: '12px 30px',
                 borderRadius: '8px',
                 fontSize: '16px',
                 fontWeight: '600',
                 cursor: 'pointer',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
               }}
             >
               ✏️ Editar Información
             </button>
-          ) : (
-            <>
+          </div>
+        </div>
+      ) : (
+        /* Formulario de edición */
+        <div>
+          {/* Si ya fue procesado, mostrar botón cancelar */}
+          {estadoAlojamiento && estadoAlojamiento !== 'pendiente' && (
+            <div style={{
+              marginBottom: '20px',
+              padding: '15px',
+              backgroundColor: '#fef3c7',
+              border: '2px solid #f59e0b',
+              borderRadius: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ color: '#92400e', fontWeight: '500' }}>
+                ⚠️ Editando solicitud ya procesada
+              </span>
               <button
                 type="button"
-                onClick={() => {
-                  setEditing(false);
-                  // Restaurar datos originales
-                  if (estudiante) {
-                    setFormData({
-                      tiene_alojamiento: estudiante.tiene_alojamiento,
-                      tipo_alojamiento: estudiante.tipo_alojamiento || '',
-                      direccion_alojamiento: estudiante.direccion_alojamiento || '',
-                      contacto_alojamiento: estudiante.contacto_alojamiento || '',
-                      telefono_alojamiento: estudiante.telefono_alojamiento || '',
-                      precio_mensual: estudiante.precio_mensual || '',
-                      moneda_alojamiento: estudiante.moneda_alojamiento || 'EUR',
-                      gestion_solicitada: estudiante.gestion_solicitada || false,
-                      comentarios_alojamiento: estudiante.comentarios_alojamiento || ''
-                    });
-                  }
+                onClick={() => setModoEdicion(false)}
+                style={{
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
                 }}
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          {/* Status Card */}
+          <div style={{
+            backgroundColor: tieneAlojamientoCompleto ? '#f0fdf4' : '#fef3c7',
+            border: `2px solid ${tieneAlojamientoCompleto ? '#10b981' : '#f59e0b'}`,
+            borderRadius: '12px',
+            padding: '20px',
+            marginBottom: '30px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '10px'
+            }}>
+              {tieneAlojamientoCompleto ? '✅' : '⚠️'}
+            </div>
+            <h3 style={{
+              color: tieneAlojamientoCompleto ? '#065f46' : '#92400e',
+              margin: '0 0 8px 0',
+              fontSize: '20px',
+              fontWeight: '600'
+            }}>
+              {tieneAlojamientoCompleto ? 'Alojamiento Completado' : 'Información Pendiente'}
+            </h3>
+            <p style={{
+              color: tieneAlojamientoCompleto ? '#047857' : '#d97706',
+              margin: 0,
+              fontSize: '16px'
+            }}>
+              {tieneAlojamientoCompleto 
+                ? 'Tu información de alojamiento está completa'
+                : 'Completa tu información de alojamiento para continuar'
+              }
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            {/* ¿Tienes alojamiento? */}
+            <div style={{
+              marginBottom: '30px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <h3 style={{ color: '#374151', fontSize: '18px', fontWeight: '600', marginBottom: '15px' }}>
+                🏠 ¿Tienes alojamiento en España?
+              </h3>
+              
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="tiene_alojamiento"
+                    value="true"
+                    checked={formData.tiene_alojamiento === true}
+                    onChange={() => setFormData({...formData, tiene_alojamiento: true, gestion_solicitada: false})}
+                    style={{ marginRight: '8px' }}
+                  />
+                  ✅ Sí, ya tengo alojamiento
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="tiene_alojamiento"
+                    value="false"
+                    checked={formData.tiene_alojamiento === false}
+                    onChange={() => setFormData({...formData, tiene_alojamiento: false, gestion_solicitada: true})}
+                    style={{ marginRight: '8px' }}
+                  />
+                  ❌ No, necesito ayuda para conseguir uno
+                </label>
+              </div>
+            </div>
+
+            {/* Si tiene alojamiento - mostrar detalles */}
+            {formData.tiene_alojamiento === true && (
+              <div style={{
+                marginBottom: '30px',
+                padding: '20px',
+                backgroundColor: '#f0fdf4',
+                borderRadius: '10px',
+                border: '1px solid #bbf7d0'
+              }}>
+                <h4 style={{ color: '#065f46', fontSize: '16px', fontWeight: '600', marginBottom: '15px' }}>
+                  Detalles de tu alojamiento actual
+                </h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151' }}>
+                      Tipo de alojamiento:
+                    </label>
+                    <select
+                      value={formData.tipo_alojamiento}
+                      onChange={(e) => setFormData({...formData, tipo_alojamiento: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value="">Selecciona...</option>
+                      <option value="piso_compartido">Piso compartido</option>
+                      <option value="residencia">Residencia universitaria</option>
+                      <option value="familia_anfitriona">Familia anfitriona</option>
+                      <option value="apartamento_privado">Apartamento privado</option>
+                      <option value="otros">Otros</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151' }}>
+                      Precio mensual:
+                    </label>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <input
+                        type="number"
+                        value={formData.precio_mensual}
+                        onChange={(e) => setFormData({...formData, precio_mensual: e.target.value})}
+                        placeholder="400"
+                        style={{
+                          flex: 1,
+                          padding: '10px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      <select
+                        value={formData.moneda_alojamiento}
+                        onChange={(e) => setFormData({...formData, moneda_alojamiento: e.target.value})}
+                        style={{
+                          padding: '10px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          width: '80px'
+                        }}
+                      >
+                        <option value="EUR">EUR</option>
+                        <option value="USD">USD</option>
+                        <option value="CUP">CUP</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151' }}>
+                    Dirección completa:
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.direccion_alojamiento}
+                    onChange={(e) => setFormData({...formData, direccion_alojamiento: e.target.value})}
+                    placeholder="Calle, número, ciudad, código postal"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151' }}>
+                      Contacto del alojamiento:
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.contacto_alojamiento}
+                      onChange={(e) => setFormData({...formData, contacto_alojamiento: e.target.value})}
+                      placeholder="Nombre del propietario o responsable"
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151' }}>
+                      Teléfono del alojamiento:
+                    </label>
+                    <input
+                      type="tel"
+                      value={formData.telefono_alojamiento}
+                      onChange={(e) => setFormData({...formData, telefono_alojamiento: e.target.value})}
+                      placeholder="+34 XXX XXX XXX"
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Si NO tiene alojamiento - mostrar mensaje de gestión */}
+            {formData.tiene_alojamiento === false && (
+              <div style={{
+                marginBottom: '30px',
+                padding: '20px',
+                backgroundColor: '#fffbeb',
+                borderRadius: '10px',
+                border: '1px solid #fbbf24'
+              }}>
+                <h4 style={{ color: '#92400e', fontSize: '16px', fontWeight: '600', marginBottom: '10px' }}>
+                  🏠 Gestión de Alojamiento
+                </h4>
+                <p style={{ color: '#78350f', fontSize: '14px', marginBottom: '15px' }}>
+                  Nuestro equipo te ayudará a encontrar el alojamiento más adecuado para tu estancia en España. 
+                  Te contactaremos con opciones que se ajusten a tu presupuesto y preferencias.
+                </p>
+                <div style={{ backgroundColor: '#f59e0b', color: 'white', padding: '10px', borderRadius: '6px', textAlign: 'center', fontWeight: '600' }}>
+                  ✅ Gestión de alojamiento solicitada
+                </div>
+              </div>
+            )}
+
+            {/* Comentarios adicionales */}
+            <div style={{
+              marginBottom: '30px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <label style={{ display: 'block', marginBottom: '10px', fontWeight: '500', color: '#374151' }}>
+                📝 Comentarios adicionales (opcional):
+              </label>
+              <textarea
+                value={formData.comentarios_alojamiento}
+                onChange={(e) => setFormData({...formData, comentarios_alojamiento: e.target.value})}
+                placeholder="Preferencias de ubicación, necesidades especiales, mascotas, etc."
+                rows="3"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            {/* Botones */}
+            {editing ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: '#6b7280',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    marginRight: '10px'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    padding: '12px 24px',
+                    backgroundColor: loading ? '#9ca3af' : '#10b981',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: loading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {loading ? 'Guardando...' : '💾 Guardar Información'}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
                 style={{
                   padding: '12px 24px',
-                  backgroundColor: '#6b7280',
+                  backgroundColor: '#3b82f6',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',
@@ -498,28 +592,12 @@ const InformacionAlojamiento = ({ estudianteId }) => {
                   cursor: 'pointer'
                 }}
               >
-                Cancelar
+                ✏️ Editar Información
               </button>
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: loading ? '#9ca3af' : '#10b981',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: loading ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {loading ? 'Guardando...' : '💾 Guardar Información'}
-              </button>
-            </>
-          )}
+            )}
+          </form>
         </div>
-      </form>
+      )}
     </div>
   );
 };

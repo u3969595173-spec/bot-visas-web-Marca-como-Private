@@ -874,7 +874,13 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
             archivo_titulo, archivo_pasaporte, archivo_extractos,
             consentimiento_gdpr, fecha_consentimiento,
             estado, documentos_estado, notas, 
-            created_at, updated_at, perfil_completo
+            created_at, updated_at, perfil_completo,
+            -- Campos de aprobación
+            estado_patrocinio, comentarios_patrocinio,
+            estado_alojamiento, comentarios_alojamiento,
+            estado_seguro_medico, comentarios_seguro_medico,
+            -- Campos de solicitudes
+            patrocinio_solicitado, gestion_alojamiento_solicitada, gestion_seguro_solicitada
         FROM estudiantes 
         WHERE id = :estudiante_id
     """)
@@ -911,7 +917,18 @@ def obtener_estudiante_publico(estudiante_id: int, db: Session = Depends(get_db)
         "notas": result[23],
         "created_at": result[24].isoformat() if result[24] else None,
         "updated_at": result[25].isoformat() if result[25] else None,
-        "perfil_completo": result[26] if result[26] is not None else False
+        "perfil_completo": result[26] if result[26] is not None else False,
+        # Estados de aprobación
+        "estado_patrocinio": result[27],
+        "comentarios_patrocinio": result[28],
+        "estado_alojamiento": result[29], 
+        "comentarios_alojamiento": result[30],
+        "estado_seguro_medico": result[31],
+        "comentarios_seguro_medico": result[32],
+        # Estados de solicitudes
+        "patrocinio_solicitado": result[33],
+        "gestion_alojamiento_solicitada": result[34],
+        "gestion_seguro_solicitada": result[35]
     }
     
     # Generar sugerencias de cursos
@@ -9006,6 +9023,17 @@ def gestionar_patrocinio(
     })
     db.commit()
     
+    # Enviar notificaciones automáticas (campanita + email)
+    try:
+        resultado_notif = NotificacionesAprobaciones.notificar_aprobacion_financiera(
+            estudiante_id=estudiante_id,
+            estado=estado_patrocinio,
+            comentarios_admin=comentarios
+        )
+        print(f"✅ Notificaciones enviadas - Web: {resultado_notif['notificacion_web']}, Email: {resultado_notif['email_enviado']}")
+    except Exception as e:
+        print(f"⚠️ Error enviando notificaciones automáticas: {e}")
+    
     log_event("patrocinio_gestionado", {
         'estudiante_id': estudiante_id,
         'accion': accion,
@@ -9226,6 +9254,28 @@ def gestionar_alojamiento(
     })
     db.commit()
     
+    # Enviar notificaciones automáticas (campanita + email)
+    try:
+        resultado_notif = NotificacionesAprobaciones.notificar_aprobacion_alojamiento(
+            estudiante_id=estudiante_id,
+            estado=estado_alojamiento, 
+            comentarios_admin=comentarios
+        )
+        print(f"✅ Notificaciones enviadas - Web: {resultado_notif['notificacion_web']}, Email: {resultado_notif['email_enviado']}")
+    except Exception as e:
+        print(f"⚠️ Error enviando notificaciones automáticas: {e}")
+    
+    # Enviar notificaciones automáticas (campanita + email)
+    try:
+        resultado_notif = NotificacionesAprobaciones.notificar_aprobacion_alojamiento(
+            estudiante_id=estudiante_id,
+            estado=estado_alojamiento, 
+            comentarios_admin=comentarios
+        )
+        print(f"✅ Notificaciones enviadas - Web: {resultado_notif['notificacion_web']}, Email: {resultado_notif['email_enviado']}")
+    except Exception as e:
+        print(f"⚠️ Error enviando notificaciones automáticas: {e}")
+    
     log_event("alojamiento_gestionado", {
         'estudiante_id': estudiante_id,
         'accion': accion,
@@ -9335,6 +9385,28 @@ async def gestionar_seguro_medico(
             "mensaje": mensaje_notificacion
         })
         db.commit()
+        
+        # Enviar notificaciones automáticas (campanita + email)
+        try:
+            resultado_notif = NotificacionesAprobaciones.notificar_aprobacion_seguro_medico(
+                estudiante_id=estudiante_id,
+                estado=estado_seguro,
+                comentarios_admin=comentarios
+            )
+            print(f"✅ Notificaciones enviadas - Web: {resultado_notif['notificacion_web']}, Email: {resultado_notif['email_enviado']}")
+        except Exception as e:
+            print(f"⚠️ Error enviando notificaciones automáticas: {e}")
+        
+        # Enviar notificaciones automáticas (campanita + email)
+        try:
+            resultado_notif = NotificacionesAprobaciones.notificar_aprobacion_seguro_medico(
+                estudiante_id=estudiante_id,
+                estado=estado_seguro,
+                comentarios_admin=comentarios
+            )
+            print(f"✅ Notificaciones enviadas - Web: {resultado_notif['notificacion_web']}, Email: {resultado_notif['email_enviado']}")
+        except Exception as e:
+            print(f"⚠️ Error enviando notificaciones automáticas: {e}")
         
         log_event("seguro_medico_gestionado", {
             'estudiante_id': estudiante_id,

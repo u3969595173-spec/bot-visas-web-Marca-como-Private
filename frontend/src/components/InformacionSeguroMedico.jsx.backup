@@ -65,9 +65,20 @@ function InformacionSeguroMedico() {
 
     try {
       const estudianteId = localStorage.getItem('estudiante_id')
-      const datosActualizacion = {
-        gestion_seguro_solicitada: gestionSolicitada,
-        comentarios_seguro_medico: comentarios
+      const datosActualizacion = {}
+
+      if (tieneSeguro === 'si') {
+        // Ya tiene seguro, no necesita gestión
+        datosActualizacion.gestion_seguro_solicitada = false
+        datosActualizacion.comentarios_seguro_medico = comentarios || null
+      } else if (tieneSeguro === 'no' && gestionSolicitada) {
+        // No tiene seguro y quiere que la empresa lo gestione
+        datosActualizacion.gestion_seguro_solicitada = true
+        datosActualizacion.comentarios_seguro_medico = comentarios || ''
+      } else {
+        // No tiene seguro pero no quiere gestión
+        datosActualizacion.gestion_seguro_solicitada = false
+        datosActualizacion.comentarios_seguro_medico = comentarios || null
       }
 
       await axios.put(`${API_URL}/api/estudiantes/${estudianteId}`, datosActualizacion)
@@ -214,235 +225,242 @@ function InformacionSeguroMedico() {
         </div>
       ) : (
         /* Formulario de edición */
-        <form onSubmit={manejarSubmit}>
-          {/* Si ya fue procesado, mostrar botón cancelar */}
-          {estadoSeguro && estadoSeguro !== 'pendiente' && (
-            <div style={{
-              marginBottom: '20px',
-              padding: '15px',
-              backgroundColor: '#fef3c7',
-              border: '2px solid #f59e0b',
-              borderRadius: '8px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <span style={{ color: '#92400e', fontWeight: '500' }}>
-                ⚠️ Editando solicitud ya procesada
-              </span>
-              <button
-                type="button"
-                onClick={() => setModoEdicion(false)}
-                style={{
-                  backgroundColor: '#6b7280',
-                  color: 'white',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-            </div>
-          )}
 
-          {/* Pregunta principal sobre seguro */}
+      <form onSubmit={manejarSubmit}>
+        {/* Pregunta principal sobre seguro */}
+        <div style={{
+          marginBottom: '30px',
+          padding: '25px',
+          backgroundColor: '#f7fafc',
+          borderRadius: '10px',
+          border: '2px solid #e2e8f0'
+        }}>
+          <label style={{
+            display: 'block',
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#2d3748',
+            marginBottom: '15px'
+          }}>
+            ¿Ya tienes seguro médico para tu estancia en España?
+          </label>
+          
+          <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              padding: '12px 20px',
+              backgroundColor: tieneSeguro === 'si' ? '#d1fae5' : '#ffffff',
+              border: `2px solid ${tieneSeguro === 'si' ? '#10b981' : '#d1d5db'}`,
+              borderRadius: '8px',
+              transition: 'all 0.2s'
+            }}>
+              <input
+                type="radio"
+                name="tieneSeguro"
+                value="si"
+                checked={tieneSeguro === 'si'}
+                onChange={(e) => {
+                  setTieneSeguro(e.target.value)
+                  setGestionSolicitada(false)
+                }}
+                style={{ marginRight: '10px', width: '18px', height: '18px' }}
+              />
+              <span style={{ fontWeight: '500', color: '#374151' }}>
+                ✅ Sí, ya tengo seguro
+              </span>
+            </label>
+
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              padding: '12px 20px',
+              backgroundColor: tieneSeguro === 'no' ? '#fef3c7' : '#ffffff',
+              border: `2px solid ${tieneSeguro === 'no' ? '#f59e0b' : '#d1d5db'}`,
+              borderRadius: '8px',
+              transition: 'all 0.2s'
+            }}>
+              <input
+                type="radio"
+                name="tieneSeguro"
+                value="no"
+                checked={tieneSeguro === 'no'}
+                onChange={(e) => setTieneSeguro(e.target.value)}
+                style={{ marginRight: '10px', width: '18px', height: '18px' }}
+              />
+              <span style={{ fontWeight: '500', color: '#374151' }}>
+                ❌ No, necesito seguro
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {/* Gestión por la empresa (solo si no tiene seguro) */}
+        {tieneSeguro === 'no' && (
           <div style={{
             marginBottom: '30px',
             padding: '25px',
-            backgroundColor: '#f0f9ff',
+            backgroundColor: '#fef9e7',
             borderRadius: '10px',
-            border: '2px solid #0ea5e9'
+            border: '2px solid #f59e0b'
           }}>
             <label style={{
               display: 'block',
               fontSize: '18px',
               fontWeight: '600',
-              color: '#075985',
-              marginBottom: '20px'
-            }}>
-              🏥 ¿Ya tienes seguro médico válido para España?
-            </label>
-            
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '20px' }}>
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-                padding: '12px 20px',
-                backgroundColor: tieneSeguro === 'si' ? '#d1fae5' : '#ffffff',
-                border: `2px solid ${tieneSeguro === 'si' ? '#10b981' : '#d1d5db'}`,
-                borderRadius: '8px',
-                transition: 'all 0.2s'
-              }}>
-                <input
-                  type="radio"
-                  name="tieneSeguro"
-                  value="si"
-                  checked={tieneSeguro === 'si'}
-                  onChange={(e) => {
-                    setTieneSeguro(e.target.value)
-                    setGestionSolicitada(false)
-                  }}
-                  style={{ marginRight: '10px', width: '18px', height: '18px' }}
-                />
-                <span style={{ fontWeight: '500', color: '#374151' }}>
-                  ✅ Sí, ya tengo seguro médico
-                </span>
-              </label>
-
-              <label style={{
-                display: 'flex',
-                alignItems: 'center',
-                cursor: 'pointer',
-                padding: '12px 20px',
-                backgroundColor: tieneSeguro === 'no' ? '#fef3c7' : '#ffffff',
-                border: `2px solid ${tieneSeguro === 'no' ? '#f59e0b' : '#d1d5db'}`,
-                borderRadius: '8px',
-                transition: 'all 0.2s'
-              }}>
-                <input
-                  type="radio"
-                  name="tieneSeguro"
-                  value="no"
-                  checked={tieneSeguro === 'no'}
-                  onChange={(e) => setTieneSeguro(e.target.value)}
-                  style={{ marginRight: '10px', width: '18px', height: '18px' }}
-                />
-                <span style={{ fontWeight: '500', color: '#374151' }}>
-                  ❌ No, necesito contratar uno
-                </span>
-              </label>
-            </div>
-          </div>
-
-          {/* Si no tiene seguro, mostrar opciones de gestión */}
-          {tieneSeguro === 'no' && (
-            <div style={{
-              marginBottom: '30px',
-              padding: '25px',
-              backgroundColor: '#fef9e7',
-              borderRadius: '10px',
-              border: '2px solid #f59e0b'
-            }}>
-              <label style={{
-                display: 'block',
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#92400e',
-                marginBottom: '20px'
-              }}>
-                🤝 ¿Quieres que nuestra empresa gestione tu seguro médico?
-              </label>
-              
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  padding: '12px 20px',
-                  backgroundColor: gestionSolicitada ? '#d1fae5' : '#ffffff',
-                  border: `2px solid ${gestionSolicitada ? '#10b981' : '#d1d5db'}`,
-                  borderRadius: '8px',
-                  transition: 'all 0.2s'
-                }}>
-                  <input
-                    type="radio"
-                    name="gestionSolicitada"
-                    value="si"
-                    checked={gestionSolicitada}
-                    onChange={() => setGestionSolicitada(true)}
-                    style={{ marginRight: '10px', width: '18px', height: '18px' }}
-                  />
-                  <span style={{ fontWeight: '500', color: '#374151' }}>
-                    👍 Sí, que la empresa me ayude
-                  </span>
-                </label>
-
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  padding: '12px 20px',
-                  backgroundColor: !gestionSolicitada ? '#fee2e2' : '#ffffff',
-                  border: `2px solid ${!gestionSolicitada ? '#ef4444' : '#d1d5db'}`,
-                  borderRadius: '8px',
-                  transition: 'all 0.2s'
-                }}>
-                  <input
-                    type="radio"
-                    name="gestionSolicitada"
-                    value="no"
-                    checked={!gestionSolicitada}
-                    onChange={() => setGestionSolicitada(false)}
-                    style={{ marginRight: '10px', width: '18px', height: '18px' }}
-                  />
-                  <span style={{ fontWeight: '500', color: '#374151' }}>
-                    🚫 No, lo buscaré yo mismo
-                  </span>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Información médica adicional */}
-          <div style={{
-            marginBottom: '30px',
-            padding: '25px',
-            backgroundColor: '#f7fafc',
-            borderRadius: '10px',
-            border: '2px solid #e2e8f0'
-          }}>
-            <label style={{
-              display: 'block',
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#374151',
+              color: '#92400e',
               marginBottom: '15px'
             }}>
-              🏥 Información médica adicional (opcional):
+              ¿Quieres que nuestra empresa gestione tu seguro médico?
             </label>
-            <textarea
-              value={comentarios}
-              onChange={(e) => setComentarios(e.target.value)}
-              placeholder="Menciona si tienes condiciones médicas preexistentes, alergias, medicamentos que tomas, preferencias de cobertura, etc."
-              rows="4"
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #d1d5db',
+            
+            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+                padding: '12px 20px',
+                backgroundColor: gestionSolicitada ? '#d1fae5' : '#ffffff',
+                border: `2px solid ${gestionSolicitada ? '#10b981' : '#d1d5db'}`,
                 borderRadius: '8px',
-                fontSize: '14px',
-                lineHeight: '1.6',
-                resize: 'vertical'
-              }}
-            />
-          </div>
+                transition: 'all 0.2s'
+              }}>
+                <input
+                  type="radio"
+                  name="gestionSolicitada"
+                  value="si"
+                  checked={gestionSolicitada}
+                  onChange={() => setGestionSolicitada(true)}
+                  style={{ marginRight: '10px', width: '18px', height: '18px' }}
+                />
+                <span style={{ fontWeight: '500', color: '#374151' }}>
+                  👍 Sí, que la empresa me lo gestione
+                </span>
+              </label>
 
-          {/* Botón de envío */}
-          <div style={{ textAlign: 'center' }}>
-            <button
-              type="submit"
-              disabled={loading || !tieneSeguro}
-              style={{
-                backgroundColor: loading ? '#9ca3af' : '#7c3aed',
-                color: 'white',
-                border: 'none',
-                padding: '15px 40px',
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+                padding: '12px 20px',
+                backgroundColor: !gestionSolicitada ? '#fee2e2' : '#ffffff',
+                border: `2px solid ${!gestionSolicitada ? '#ef4444' : '#d1d5db'}`,
                 borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: loading || !tieneSeguro ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.2)'
-              }}
-            >
-              {loading ? '🔄 Guardando...' : guardado ? '✅ Actualizar Información' : '📝 Guardar Información'}
-            </button>
+                transition: 'all 0.2s'
+              }}>
+                <input
+                  type="radio"
+                  name="gestionSolicitada"
+                  value="no"
+                  checked={!gestionSolicitada}
+                  onChange={() => setGestionSolicitada(false)}
+                  style={{ marginRight: '10px', width: '18px', height: '18px' }}
+                />
+                <span style={{ fontWeight: '500', color: '#374151' }}>
+                  🚫 No, lo buscaré yo mismo
+                </span>
+              </label>
+            </div>
           </div>
-        </form>
+        )}
+
+        {/* Información médica adicional */}
+        <div style={{
+          marginBottom: '30px',
+          padding: '25px',
+          backgroundColor: '#f0f9ff',
+          borderRadius: '10px',
+          border: '2px solid #0ea5e9'
+        }}>
+          <label style={{
+            display: 'block',
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#075985',
+            marginBottom: '15px'
+          }}>
+            Información médica adicional (opcional)
+          </label>
+          <p style={{
+            fontSize: '14px',
+            color: '#64748b',
+            marginBottom: '10px'
+          }}>
+            Incluye condiciones médicas, medicamentos que tomas, alergias, o cualquier información relevante para el seguro.
+          </p>
+          <textarea
+            value={comentarios}
+            onChange={(e) => setComentarios(e.target.value)}
+            placeholder="Ej: Tomo medicación para la diabetes, alergia a la penicilina, etc."
+            rows="4"
+            style={{
+              width: '100%',
+              padding: '12px',
+              border: '2px solid #cbd5e1',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontFamily: 'inherit',
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        {/* Botón de envío */}
+        <div style={{ textAlign: 'center' }}>
+          <button
+            type="submit"
+            disabled={loading || !tieneSeguro}
+            style={{
+              backgroundColor: loading ? '#9ca3af' : '#7c3aed',
+              color: 'white',
+              border: 'none',
+              padding: '15px 40px',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '600',
+              cursor: loading || !tieneSeguro ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 12px rgba(124, 58, 237, 0.2)'
+            }}
+          >
+            {loading ? '🔄 Guardando...' : guardado ? '✅ Actualizar Información' : '📝 Guardar Información'}
+          </button>
+        </div>
+      </form>
+
+      {/* Aviso si está editando una solicitud procesada */}
+      {estadoSeguro && estadoSeguro !== 'pendiente' && (
+        <div style={{
+          marginTop: '20px',
+          padding: '15px',
+          backgroundColor: '#fef3c7',
+          border: '2px solid #f59e0b',
+          borderRadius: '8px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span style={{ color: '#92400e', fontWeight: '500' }}>
+            ⚠️ Editando solicitud ya procesada
+          </span>
+          <button
+            type="button"
+            onClick={() => setModoEdicion(false)}
+            style={{
+              backgroundColor: '#6b7280',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '6px',
+              fontSize: '14px',
+              cursor: 'pointer'
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
       )}
 
       {/* Información importante */}
