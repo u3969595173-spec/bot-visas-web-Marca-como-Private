@@ -251,15 +251,36 @@ function PresupuestosAdmin({ embedded = false }) {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontSize: '12px', color: '#4a5568' }}>
+                    <td style={{ padding: '12px', maxWidth: '250px' }}>
+                      <div style={{ fontSize: '11px', color: '#4a5568', lineHeight: '1.6' }}>
                         {presupuesto.servicios_solicitados && Array.isArray(presupuesto.servicios_solicitados) ? (
-                          <>
-                            {presupuesto.servicios_solicitados.slice(0, 2).join(', ')}
-                            {presupuesto.servicios_solicitados.length > 2 && '...'}
-                          </>
+                          <div>
+                            {presupuesto.servicios_solicitados.slice(0, 3).map((servicio, idx) => (
+                              <div key={idx} style={{ 
+                                marginBottom: '3px',
+                                padding: '2px 6px',
+                                background: '#f0f9ff',
+                                borderRadius: '4px',
+                                border: '1px solid #bfdbfe'
+                              }}>
+                                • {servicio}
+                              </div>
+                            ))}
+                            {presupuesto.servicios_solicitados.length > 3 && (
+                              <div style={{ 
+                                marginTop: '4px',
+                                color: '#3b82f6',
+                                fontWeight: '600',
+                                fontSize: '10px'
+                              }}>
+                                +{presupuesto.servicios_solicitados.length - 3} más
+                              </div>
+                            )}
+                          </div>
                         ) : (
-                          presupuesto.servicios || 'Sin servicios'
+                          <div style={{ color: '#9ca3af' }}>
+                            {presupuesto.servicios || 'Sin servicios'}
+                          </div>
                         )}
                       </div>
                     </td>
