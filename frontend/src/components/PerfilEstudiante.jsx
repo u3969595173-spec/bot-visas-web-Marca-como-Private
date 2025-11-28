@@ -44,12 +44,16 @@ const PerfilEstudiante = ({ estudianteId }) => {
   const cargarDocumentosOficiales = async () => {
     setCargandoDocumentosOficiales(true);
     try {
-      // Obtener código de acceso del localStorage o solicitar al usuario
-      const codigoAcceso = localStorage.getItem(`codigo_acceso_${estudianteId}`) || prompt('Ingresa tu código de acceso:');
+      // Obtener código de acceso del localStorage (primero sin ID, luego con ID)
+      let codigoAcceso = localStorage.getItem('codigo_acceso') || 
+                         localStorage.getItem(`codigo_acceso_${estudianteId}`);
       
       if (!codigoAcceso) {
-        setCargandoDocumentosOficiales(false);
-        return;
+        codigoAcceso = prompt('Ingresa tu código de acceso:');
+        if (!codigoAcceso) {
+          setCargandoDocumentosOficiales(false);
+          return;
+        }
       }
 
       // Guardar código para futuras consultas

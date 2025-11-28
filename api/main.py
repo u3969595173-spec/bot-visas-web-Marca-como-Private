@@ -2467,10 +2467,16 @@ def generar_documentos_estudiante(
 @app.get("/api/estudiantes/{estudiante_id}/documentos-generados", tags=["Estudiantes"])
 def obtener_documentos_generados_estudiante(
     estudiante_id: int,
-    codigo_acceso: str,
+    codigo_acceso: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Obtiene documentos generados de un estudiante (requiere código de acceso)"""
+    
+    if not codigo_acceso or codigo_acceso == "null":
+        raise HTTPException(
+            status_code=401, 
+            detail="Se requiere código de acceso. Por favor inicia sesión."
+        )
     
     # Verificar estudiante y código de acceso
     result = db.execute(
@@ -2481,7 +2487,7 @@ def obtener_documentos_generados_estudiante(
     if not result:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
-    if result[1] != codigo_acceso:
+    if result[1] != codigo_acceso.upper():
         raise HTTPException(status_code=403, detail="Código de acceso inválido")
     
     # Obtener documentos generados
