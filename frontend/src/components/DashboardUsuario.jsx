@@ -330,69 +330,148 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             {tab === 'mensajes' && '💬 Mensajes'}
           </button>
         ))}
-        <button
-          onClick={() => setShowPresupuestoModal(true)}
-          className="btn"
-          style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            color: 'white',
-            border: 'none',
-            fontWeight: '600',
-            marginLeft: 'auto'
-          }}
-        >
-          💰 Solicitar Presupuesto
-        </button>
-        {estadisticasReferidos && estadisticasReferidos.codigo_referido && (
+      </div>
+
+      {/* Sección de Acciones Principales */}
+      <div style={{
+        background: 'white',
+        borderRadius: '15px',
+        padding: '25px',
+        marginBottom: '30px',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+      }}>
+        <h3 style={{
+          margin: '0 0 20px 0',
+          color: '#2d3748',
+          fontSize: '18px',
+          fontWeight: '600'
+        }}>
+          🎯 Acciones Rápidas
+        </h3>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '15px',
+          marginBottom: '20px'
+        }}>
           <button
-            onClick={() => setShowReferidosModal(true)}
+            onClick={() => setShowPresupuestoModal(true)}
             className="btn"
             style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               color: 'white',
               border: 'none',
-              fontWeight: '600'
+              fontWeight: '600',
+              padding: '15px 20px',
+              borderRadius: '10px',
+              fontSize: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
             }}
           >
-            💎 Referidos ({estadisticasReferidos.total_referidos})
+            💰 Solicitar Presupuesto
           </button>
-        )}
-        <button
-          onClick={() => navigate('/estudiante/informacion-financiera')}
-          className="btn"
-          style={{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-            color: 'white',
-            border: 'none',
-            fontWeight: '600'
-          }}
-        >
-          💸 Información Financiera
-        </button>
-        <button
-          onClick={() => navigate('/estudiante/informacion-alojamiento')}
-          className="btn"
-          style={{
-            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-            color: 'white',
-            border: 'none',
-            fontWeight: '600'
-          }}
-        >
-          🏠 Información de Alojamiento
-        </button>
-        <button
-          onClick={() => navigate('/estudiante/informacion-seguro-medico')}
-          className="btn"
-          style={{
-            background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-            color: 'white',
-            border: 'none',
-            fontWeight: '600'
-          }}
-        >
-          🏥 Seguro Médico
-        </button>
+          
+          {estadisticasReferidos && estadisticasReferidos.codigo_referido && (
+            <button
+              onClick={() => setShowReferidosModal(true)}
+              className="btn"
+              style={{
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                color: 'white',
+                border: 'none',
+                fontWeight: '600',
+                padding: '15px 20px',
+                borderRadius: '10px',
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              💎 Referidos ({estadisticasReferidos.total_referidos})
+            </button>
+          )}
+        </div>
+        
+        <h4 style={{
+          margin: '25px 0 15px 0',
+          color: '#4a5568',
+          fontSize: '16px',
+          fontWeight: '600'
+        }}>
+          📋 Gestionar Mi Información
+        </h4>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '15px'
+        }}>
+          <button
+            onClick={() => navigate('/estudiante/informacion-financiera')}
+            className="btn"
+            style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              color: 'white',
+              border: 'none',
+              fontWeight: '600',
+              padding: '15px 20px',
+              borderRadius: '10px',
+              fontSize: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            💸 Información Financiera
+          </button>
+          
+          <button
+            onClick={() => navigate('/estudiante/informacion-alojamiento')}
+            className="btn"
+            style={{
+              background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+              color: 'white',
+              border: 'none',
+              fontWeight: '600',
+              padding: '15px 20px',
+              borderRadius: '10px',
+              fontSize: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            🏠 Información de Alojamiento
+          </button>
+          
+          <button
+            onClick={() => navigate('/estudiante/informacion-seguro-medico')}
+            className="btn"
+            style={{
+              background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+              color: 'white',
+              border: 'none',
+              fontWeight: '600',
+              padding: '15px 20px',
+              borderRadius: '10px',
+              fontSize: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            🏥 Seguro Médico
+          </button>
+        </div>
       </div>
 
       {/* TAB: Perfil */}
