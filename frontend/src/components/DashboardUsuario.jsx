@@ -21,7 +21,6 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
   const [estadisticasReferidos, setEstadisticasReferidos] = useState(null);
   const [showReferidosModal, setShowReferidosModal] = useState(false);
   const [showOfertaModal, setShowOfertaModal] = useState(false);
-  const [modalidadSeleccionada, setModalidadSeleccionada] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -1148,41 +1147,16 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             {/* Modalidades de Pago */}
             <div style={{ display: 'grid', gap: '15px', marginBottom: '20px' }}>
               {presupuestoActual.precio_al_empezar && (
-                <div 
-                  onClick={() => presupuestoActual.estado === 'ofertado' && setModalidadSeleccionada('al_empezar')}
-                  style={{
-                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: modalidadSeleccionada === 'al_empezar' ? '4px solid #f59e0b' : '2px solid #fbbf24',
-                    cursor: presupuestoActual.estado === 'ofertado' ? 'pointer' : 'default',
-                    transform: modalidadSeleccionada === 'al_empezar' ? 'scale(1.02)' : 'scale(1)',
-                    transition: 'all 0.2s',
-                    position: 'relative'
-                  }}>
-                  {modalidadSeleccionada === 'al_empezar' && presupuestoActual.estado === 'ofertado' && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      background: '#10b981',
-                      color: 'white',
-                      borderRadius: '50%',
-                      width: '30px',
-                      height: '30px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}>
-                      ✓
-                    </div>
-                  )}
+                <div style={{
+                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '2px solid #fbbf24'
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
                       <div style={{ fontWeight: '700', color: '#92400e', fontSize: '16px', marginBottom: '4px' }}>
-                        🚀 Pago al Empezar
+                        🚀 Pago Inicial
                       </div>
                       <div style={{ fontSize: '13px', color: '#78350f' }}>
                         Pago completo al iniciar el proceso
@@ -1196,41 +1170,16 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               )}
               
               {presupuestoActual.precio_con_visa && (
-                <div
-                  onClick={() => presupuestoActual.estado === 'ofertado' && setModalidadSeleccionada('con_visa')}
-                  style={{
-                    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: modalidadSeleccionada === 'con_visa' ? '4px solid #2563eb' : '2px solid #3b82f6',
-                    cursor: presupuestoActual.estado === 'ofertado' ? 'pointer' : 'default',
-                    transform: modalidadSeleccionada === 'con_visa' ? 'scale(1.02)' : 'scale(1)',
-                    transition: 'all 0.2s',
-                    position: 'relative'
-                  }}>
-                  {modalidadSeleccionada === 'con_visa' && presupuestoActual.estado === 'ofertado' && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      background: '#10b981',
-                      color: 'white',
-                      borderRadius: '50%',
-                      width: '30px',
-                      height: '30px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}>
-                      ✓
-                    </div>
-                  )}
+                <div style={{
+                  background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '2px solid #3b82f6'
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
                       <div style={{ fontWeight: '700', color: '#1e40af', fontSize: '16px', marginBottom: '4px' }}>
-                        🎯 Pago con Visa
+                        🎯 Pago Después de Cita
                       </div>
                       <div style={{ fontSize: '13px', color: '#1e40af' }}>
                         Pago al recibir visa aprobada
@@ -1244,41 +1193,16 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               )}
               
               {presupuestoActual.precio_financiado && (
-                <div
-                  onClick={() => presupuestoActual.estado === 'ofertado' && setModalidadSeleccionada('financiado')}
-                  style={{
-                    background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: modalidadSeleccionada === 'financiado' ? '4px solid #4f46e5' : '2px solid #6366f1',
-                    cursor: presupuestoActual.estado === 'ofertado' ? 'pointer' : 'default',
-                    transform: modalidadSeleccionada === 'financiado' ? 'scale(1.02)' : 'scale(1)',
-                    transition: 'all 0.2s',
-                    position: 'relative'
-                  }}>
-                  {modalidadSeleccionada === 'financiado' && presupuestoActual.estado === 'ofertado' && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      background: '#10b981',
-                      color: 'white',
-                      borderRadius: '50%',
-                      width: '30px',
-                      height: '30px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px',
-                      fontWeight: 'bold'
-                    }}>
-                      ✓
-                    </div>
-                  )}
+                <div style={{
+                  background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '2px solid #6366f1'
+                }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
                       <div style={{ fontWeight: '700', color: '#4338ca', fontSize: '16px', marginBottom: '4px' }}>
-                        📅 Financiado 12 Meses
+                        📅 Pago Financiado
                       </div>
                       <div style={{ fontSize: '13px', color: '#4338ca' }}>
                         €{(presupuestoActual.precio_financiado / 12).toFixed(2)}/mes x 12 meses
@@ -1290,6 +1214,33 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   </div>
                 </div>
               )}
+              
+              {/* Precio Total */}
+              <div style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                padding: '20px',
+                borderRadius: '12px',
+                border: '3px solid #065f46',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontWeight: '700', color: 'white', fontSize: '18px', marginBottom: '4px' }}>
+                      💰 PRECIO TOTAL
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)' }}>
+                      Suma de todos los pagos
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '32px', fontWeight: '700', color: 'white' }}>
+                    €{(
+                      (parseFloat(presupuestoActual.precio_al_empezar) || 0) + 
+                      (parseFloat(presupuestoActual.precio_con_visa) || 0) + 
+                      (parseFloat(presupuestoActual.precio_financiado) || 0)
+                    ).toFixed(2)}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {presupuestoActual.mensaje_admin && (
@@ -1326,99 +1277,79 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               }}>
                 <span style={{ fontSize: '16px', marginTop: '-2px' }}>💡</span>
                 <span>
-                  <strong>Nota:</strong> Si esta oferta no se ajusta a tus necesidades, puedes rechazarla y solicitar un nuevo presupuesto ajustando los servicios que requieres. Estamos aquí para encontrar la mejor solución para ti.
+                  <strong>Nota:</strong> El precio total incluye 3 pagos: inicial, después de la cita, y financiado. Si esta oferta no se ajusta a tu presupuesto, puedes rechazarla y solicitar un nuevo presupuesto ajustando los servicios. Estamos aquí para encontrar la mejor solución para ti.
                 </span>
               </p>
             </div>
 
             {/* Botones de acción */}
             {presupuestoActual.estado === 'ofertado' ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {!modalidadSeleccionada && (
-                  <div style={{
-                    background: '#e0f2fe',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    textAlign: 'center',
-                    color: '#0369a1',
-                    fontSize: '13px',
-                    fontWeight: '600'
-                  }}>
-                    👆 Haz clic en una modalidad de pago para continuar
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button
-                    onClick={async () => {
-                      if (!modalidadSeleccionada) {
-                        alert('⚠️ Por favor, selecciona una modalidad de pago primero');
-                        return;
-                      }
-                      if (!confirm('¿Estás seguro de aceptar esta oferta con la modalidad seleccionada?')) return;
-                      try {
-                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-                        await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
-                          aceptar: true,
-                          modalidad_seleccionada: modalidadSeleccionada
-                        });
-                        alert('✅ ¡Perfecto! Oferta aceptada.');
-                        setShowOfertaModal(false);
-                        setModalidadSeleccionada(null);
-                        setPresupuestoActual(null);
-                        cargarPresupuestos();
-                      } catch (err) {
-                        alert('❌ Error: ' + (err.response?.data?.detail || err.message));
-                      }
-                    }}
-                    style={{
-                      flex: 1,
-                      background: modalidadSeleccionada 
-                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                        : '#d1d5db',
-                      color: 'white',
-                      padding: '14px 24px',
-                      border: 'none',
-                      borderRadius: '10px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: modalidadSeleccionada ? 'pointer' : 'not-allowed',
-                      opacity: modalidadSeleccionada ? 1 : 0.6
-                    }}
-                >
-                  ✅ Aceptar Oferta
-                </button>
-                  <button
-                    onClick={async () => {
-                      if (!confirm('¿Seguro que quieres rechazar esta oferta?')) return;
-                      try {
-                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-                        await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
-                          aceptar: false
-                        });
-                        alert('Oferta rechazada. Puedes solicitar un nuevo presupuesto.');
-                        setShowOfertaModal(false);
-                        setModalidadSeleccionada(null);
-                        setPresupuestoActual(null);
-                        cargarPresupuestos();
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button
+                  onClick={async () => {
+                    const precioTotal = (
+                      (parseFloat(presupuestoActual.precio_al_empezar) || 0) + 
+                      (parseFloat(presupuestoActual.precio_con_visa) || 0) + 
+                      (parseFloat(presupuestoActual.precio_financiado) || 0)
+                    ).toFixed(2);
+                    if (!confirm(`¿Estás seguro de aceptar esta oferta por un total de €${precioTotal}?`)) return;
+                    try {
+                      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                      await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
+                        aceptar: true
+                      });
+                      alert('✅ ¡Perfecto! Oferta aceptada.');
+                      setShowOfertaModal(false);
+                      setPresupuestoActual(null);
+                      cargarPresupuestos();
                     } catch (err) {
                       alert('❌ Error: ' + (err.response?.data?.detail || err.message));
                     }
                   }}
-                    style={{
-                      flex: 1,
-                      background: 'white',
-                      color: '#ef4444',
-                      padding: '14px 24px',
-                      border: '2px solid #ef4444',
-                      borderRadius: '10px',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ❌ Rechazar
-                  </button>
-                </div>
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: 'white',
+                    padding: '14px 24px',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ✅ Aceptar Oferta
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!confirm('¿Seguro que quieres rechazar esta oferta?')) return;
+                    try {
+                      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                      await axios.put(`${apiUrl}/api/presupuestos/${presupuestoActual.id}/respuesta`, {
+                        aceptar: false
+                      });
+                      alert('Oferta rechazada. Puedes solicitar un nuevo presupuesto.');
+                      setShowOfertaModal(false);
+                      setPresupuestoActual(null);
+                      cargarPresupuestos();
+                    } catch (err) {
+                      alert('❌ Error: ' + (err.response?.data?.detail || err.message));
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    background: 'white',
+                    color: '#ef4444',
+                    padding: '14px 24px',
+                    border: '2px solid #ef4444',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ❌ Rechazar
+                </button>
               </div>
             ) : (
               <button

@@ -195,10 +195,10 @@ function TesoroAdmin({ embedded = false }) {
                     Servicios
                   </th>
                   <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                    Modalidad
+                    Desglose de Pagos
                   </th>
                   <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                    Monto
+                    Monto Total
                   </th>
                   <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
                     Fecha Aceptación
@@ -231,19 +231,24 @@ function TesoroAdmin({ embedded = false }) {
                       </div>
                     </td>
                     <td style={{ padding: '12px' }}>
-                      <span style={{
-                        fontSize: '12px',
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        backgroundColor: '#e0f2fe',
-                        color: '#0369a1'
-                      }}>
-                        {formatearModalidad(pago.modalidad_seleccionada)}
-                      </span>
+                      <div style={{ fontSize: '11px', lineHeight: '1.6' }}>
+                        {pago.precio_al_empezar > 0 && (
+                          <div>🚀 Inicial: €{pago.precio_al_empezar.toFixed(2)}</div>
+                        )}
+                        {pago.precio_con_visa > 0 && (
+                          <div>🎯 Post-cita: €{pago.precio_con_visa.toFixed(2)}</div>
+                        )}
+                        {pago.precio_financiado > 0 && (
+                          <div>📅 Financiado: €{pago.precio_financiado.toFixed(2)}</div>
+                        )}
+                      </div>
                     </td>
                     <td style={{ padding: '12px' }}>
-                      <div style={{ fontWeight: '600', color: '#059669' }}>
+                      <div style={{ fontWeight: '600', color: '#059669', fontSize: '15px' }}>
                         €{(pago.monto_a_pagar || pago.monto_total || 0).toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#718096' }}>
+                        Total
                       </div>
                     </td>
                     <td style={{ padding: '12px', fontSize: '12px', color: '#4a5568' }}>
