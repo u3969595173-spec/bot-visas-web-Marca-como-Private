@@ -9118,105 +9118,63 @@ def marcar_como_pagado(
 @app.put("/api/presupuestos/{presupuesto_id}/respuesta", tags=["Presupuestos"])
 def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depends(get_db)):
     """Estudiante acepta o rechaza oferta con modalidades de pago"""
-    aceptar = datos.get('aceptar')
-    modalidad_seleccionada = datos.get('modalidad_seleccionada')  # 'al_empezar', 'con_visa', 'financiado'
-    
-    if aceptar is None:
-        raise HTTPException(status_code=400, detail="Campo 'aceptar' es requerido")
-    
-    if aceptar:
-        if not modalidad_seleccionada:
-            raise HTTPException(
-                status_code=400, 
-                detail="Debe seleccionar una modalidad de pago al aceptar"
-            )
+    try:
+        aceptar = datos.get('aceptar')
+        modalidad_seleccionada = datos.get('modalidad_seleccionada')  # 'al_empezar', 'con_visa', 'financiado'
         
-        # Aceptar con modalidad seleccionada
-        db.execute(text("""
-            UPDATE presupuestos
-            SET estado = 'aceptado',
-                modalidad_seleccionada = :modalidad,
-                fecha_aceptacion = CURRENT_TIMESTAMP,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = :id
-        """), {
-            "id": presupuesto_id,
-            "modalidad": modalidad_seleccionada
-        })
+        if aceptar is None:
+            raise HTTPException(status_code=400, detail="Campo 'aceptar' es requerido")
         
-        mensaje = f"Oferta aceptada con modalidad: {modalidad_seleccionada}"
-        log_event("oferta_aceptada", {
-            'presupuesto_id': presupuesto_id,
-            'modalidad_seleccionada': modalidad_seleccionada
-        })
-    else:
-        # Rechazar - Permitir que el estudiante haga nuevas solicitudes
-        db.execute(text("""
-            UPDATE presupuestos
-            SET estado = 'rechazado',
-                comentarios_estudiante = COALESCE(comentarios_estudiante, '') || ' - Rechazado por el estudiante',
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = :id
-        """), {"id": presupuesto_id})
-        
-        mensaje = "Oferta rechazada. Puedes hacer una nueva solicitud de presupuesto cuando quieras."
-        log_event("oferta_rechazada", {
-            'presupuesto_id': presupuesto_id,
-            'puede_rehacer_solicitud': True
-        })
-    
-    db.commit()
-    
-    return {"message": mensaje}
-    aceptar = datos.get('aceptar', False)
-    estado = 'aceptado' if aceptar else 'rechazado'
-    
-    db.execute(text("""
-        UPDATE presupuestos
-        SET estado = :estado,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = :id
-    """), {"id": presupuesto_id, "estado": estado})
-    db.commit()
-    
-    # Si se acepta, calcular comisión del 10% para el referidor
-    if estado == 'aceptado':
-        try:
-            # Obtener datos del presupuesto y estudiante
-            presupuesto = db.execute(text("""
-                SELECT p.precio_ofertado, e.referido_por_id
-                FROM presupuestos p
-                JOIN estudiantes e ON p.estudiante_id = e.id
-                WHERE p.id = :id
-            """), {"id": presupuesto_id}).fetchone()
+        if aceptar:
+            # Por ahora aceptar sin requerir modalidad (se puede mejorar más adelante)
+            # Aceptar con modalidad seleccionada (opcional por ahora)
+            db.execute(text("""
+                UPDATE presupuestos
+                SET estado = 'aceptado',
+                    modalidad_seleccionada = :modalidad,
+                    fecha_aceptacion = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = :id
+            """), {
+                "id": presupuesto_id,
+                "modalidad": modalidad_seleccionada
+            })
             
-            if presupuesto and presupuesto[1]:  # Si tiene referidor
-                precio = float(presupuesto[0])
-                referidor_id = presupuesto[1]
-                comision = precio * 0.10  # 10% del presupuesto
-                
-                # Agregar crédito al referidor
-                db.execute(text("""
-                    UPDATE estudiantes
-                    SET credito_disponible = credito_disponible + :comision
-                    WHERE id = :referidor_id
-                """), {"comision": comision, "referidor_id": referidor_id})
-                db.commit()
-                
-                log_event("comision_referido", {
-                    'referidor_id': referidor_id,
-                    'presupuesto_id': presupuesto_id,
-                    'comision': comision
-                })
-        except Exception as e:
-            print(f"Error calculando comisión: {e}")
+            mensaje = "Oferta aceptada"
+            if modalidad_seleccionada:
+                mensaje += f" con modalidad: {modalidad_seleccionada}"
+            
+            log_event("oferta_aceptada", {
+                'presupuesto_id': presupuesto_id,
+                'modalidad_seleccionada': modalidad_seleccionada
+            })
+        else:
+            # Rechazar - Permitir que el estudiante haga nuevas solicitudes
+            db.execute(text("""
+                UPDATE presupuestos
+                SET estado = 'rechazado',
+                    comentarios_estudiante = COALESCE(comentarios_estudiante, '') || ' - Rechazado por el estudiante',
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = :id
+            """), {"id": presupuesto_id})
+            
+            mensaje = "Oferta rechazada. Puedes hacer una nueva solicitud de presupuesto cuando quieras."
+            log_event("oferta_rechazada", {
+                'presupuesto_id': presupuesto_id,
+                'puede_rehacer_solicitud': True
+            })
+        
+        db.commit()
+        return {"message": mensaje}
     
-    log_event("presupuesto_respondido", {
-        'presupuesto_id': presupuesto_id,
-        'estado': estado
-    })
-    
-    return {"message": f"Presupuesto {estado}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Error en responder_presupuesto: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error al procesar respuesta: {str(e)}")
 
 
 @app.get("/api/admin/solicitudes-financieras", tags=["Admin"])
