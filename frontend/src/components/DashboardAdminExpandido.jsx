@@ -1068,8 +1068,8 @@ function DashboardAdminExpandido({ onLogout }) {
                   <tr>
                     <th>Estudiante</th>
                     <th>Email</th>
-                    <th>Presupuesto</th>
-                    <th>Tiene Patrocinador</th>
+                    <th>Fondos Disponibles</th>
+                    <th>Patrocinador</th>
                     <th>Estado Solicitud</th>
                     <th>Fecha Solicitud</th>
                     <th>Acciones</th>
@@ -1084,11 +1084,8 @@ function DashboardAdminExpandido({ onLogout }) {
                       </td>
                       <td>{estudiante.email}</td>
                       <td>
-                        <div style={{fontWeight: '600'}}>
+                        <div style={{fontWeight: '600', color: '#1f2937'}}>
                           {estudiante.fondos_disponibles} {estudiante.moneda_fondos || 'EUR'}
-                        </div>
-                        <div style={{fontSize: '12px', color: estudiante.fondos_suficientes ? '#10b981' : '#ef4444'}}>
-                          {estudiante.fondos_suficientes ? '✅ Suficiente' : '❌ Insuficiente'}
                         </div>
                       </td>
                       <td>
@@ -1120,7 +1117,10 @@ function DashboardAdminExpandido({ onLogout }) {
                         </span>
                       </td>
                       <td>
-                        {new Date(estudiante.fecha_solicitud_patrocinio).toLocaleDateString('es-ES')}
+                        {estudiante.fecha_solicitud && estudiante.fecha_solicitud !== 'Invalid Date' ? 
+                          new Date(estudiante.fecha_solicitud).toLocaleDateString('es-ES') : 
+                          'Fecha no disponible'
+                        }
                       </td>
                       <td>
                         {estudiante.estado_gestion_patrocinio === 'pendiente' ? (
