@@ -9063,6 +9063,178 @@ def guardar_informacion_financiera(
     return {"message": "Información financiera guardada exitosamente"}
 
 
+@app.post("/api/estudiantes/informacion-alojamiento", tags=["Estudiantes"])
+def guardar_informacion_alojamiento(
+    datos: dict,
+    db: Session = Depends(get_db)
+):
+    """Guardar información de alojamiento del estudiante"""
+    # Obtener el ID del estudiante desde los datos
+    estudiante_id = datos.get('estudiante_id')
+    
+    if not estudiante_id:
+        raise HTTPException(status_code=400, detail="estudiante_id es requerido")
+    
+    # Extraer datos del formulario
+    tiene_alojamiento = datos.get('tiene_alojamiento')
+    tipo_alojamiento = datos.get('tipo_alojamiento', '')
+    direccion_alojamiento = datos.get('direccion_alojamiento', '')
+    contacto_alojamiento = datos.get('contacto_alojamiento', '')
+    telefono_alojamiento = datos.get('telefono_alojamiento', '')
+    precio_mensual = datos.get('precio_mensual')
+    moneda_alojamiento = datos.get('moneda_alojamiento', 'EUR')
+    gestion_solicitada = datos.get('gestion_solicitada', False)
+    comentarios_alojamiento = datos.get('comentarios_alojamiento', '')
+
+    try:
+        # Actualizar información de alojamiento en la base de datos
+        db.execute(text("""
+            UPDATE estudiantes 
+            SET tiene_alojamiento = :tiene_alojamiento,
+                tipo_alojamiento = :tipo_alojamiento,
+                direccion_alojamiento = :direccion_alojamiento,
+                contacto_alojamiento = :contacto_alojamiento,
+                telefono_alojamiento = :telefono_alojamiento,
+                precio_mensual = :precio_mensual,
+                moneda_alojamiento = :moneda_alojamiento,
+                gestion_solicitada = :gestion_solicitada,
+                comentarios_alojamiento = :comentarios_alojamiento,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id
+        """), {
+            "id": estudiante_id,
+            "tiene_alojamiento": tiene_alojamiento,
+            "tipo_alojamiento": tipo_alojamiento,
+            "direccion_alojamiento": direccion_alojamiento,
+            "contacto_alojamiento": contacto_alojamiento,
+            "telefono_alojamiento": telefono_alojamiento,
+            "precio_mensual": float(precio_mensual) if precio_mensual else None,
+            "moneda_alojamiento": moneda_alojamiento,
+            "gestion_solicitada": gestion_solicitada,
+            "comentarios_alojamiento": comentarios_alojamiento
+        })
+        db.commit()
+        
+        log_event("informacion_alojamiento_guardada", {
+            'estudiante_id': estudiante_id,
+            'tiene_alojamiento': tiene_alojamiento,
+            'gestion_solicitada': gestion_solicitada
+        })
+        
+        return {"message": "Información de alojamiento guardada exitosamente"}
+        
+    except Exception as e:
+        logger.error(f"Error guardando información de alojamiento: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
+
+
+@app.get("/api/admin/solicitudes-alojamiento", tags=["Admin"])
+def obtener_solicitudes_alojamiento(
+    db: Session = Depends(get_db)
+):
+    """Obtener todas las solicitudes de gestión de alojamiento de estudiantes"""
+    try:
+        result = db.execute(text("""
+            SELECT 
+                e.id,
+                e.nombre,
+                e.email,
+                e.telefono,
+                e.tiene_alojamiento,
+                e.tipo_alojamiento,
+                e.direccion_alojamiento,
+                e.contacto_alojamiento,
+                e.telefono_alojamiento,
+                e.precio_mensual,
+                e.moneda_alojamiento,
+                e.gestion_solicitada,
+                e.estado_alojamiento,
+                e.comentarios_alojamiento,
+                e.created_at
+            FROM estudiantes e
+            WHERE e.gestion_solicitada = true
+            ORDER BY e.created_at DESC
+        """))
+        solicitudes = []
+        
+        for row in result:
+            solicitudes.append({
+                'id': row[0],
+                'nombre': row[1],
+                'email': row[2],
+                'telefono': row[3],
+                'tiene_alojamiento': row[4],
+                'tipo_alojamiento': row[5],
+                'direccion_alojamiento': row[6],
+                'contacto_alojamiento': row[7],
+                'telefono_alojamiento': row[8],
+                'precio_mensual': row[9],
+                'moneda_alojamiento': row[10],
+                'gestion_solicitada': row[11],
+                'estado_alojamiento': row[12] or 'pendiente',
+                'comentarios_alojamiento': row[13],
+                'fecha_solicitud': row[14].isoformat() if row[14] else None
+            })
+        
+        return solicitudes
+    except Exception as e:
+        logger.error(f"❌ Error obteniendo solicitudes alojamiento: {str(e)}")
+        raise HTTPException(status_code=503, detail="Error al obtener solicitudes de alojamiento")
+
+
+@app.put("/api/admin/gestionar-alojamiento/{estudiante_id}", tags=["Admin"])
+def gestionar_alojamiento(
+    estudiante_id: int,
+    datos: dict,
+    db: Session = Depends(get_db)
+):
+    """Admin aprueba o rechaza solicitud de gestión de alojamiento"""
+    accion = datos.get('accion')  # 'aprobar' o 'rechazar'
+    comentarios = datos.get('comentarios', '')
+    
+    if accion not in ['aprobar', 'rechazar']:
+        raise HTTPException(status_code=400, detail="Acción debe ser 'aprobar' o 'rechazar'")
+    
+    estado_alojamiento = 'aprobado' if accion == 'aprobar' else 'rechazado'
+    
+    # Actualizar estado del estudiante
+    db.execute(text("""
+        UPDATE estudiantes
+        SET estado_alojamiento = :estado,
+            comentarios_alojamiento = :comentarios,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :id
+    """), {
+        "id": estudiante_id,
+        "estado": estado_alojamiento,
+        "comentarios": comentarios
+    })
+    db.commit()
+    
+    # Crear notificación para el estudiante
+    mensaje_notificacion = f"Su solicitud de gestión de alojamiento ha sido {'aprobada' if accion == 'aprobar' else 'rechazada'}."
+    if comentarios:
+        mensaje_notificacion += f" Comentarios: {comentarios}"
+    
+    db.execute(text("""
+        INSERT INTO notificaciones (estudiante_id, titulo, mensaje, tipo, fecha_creacion)
+        VALUES (:estudiante_id, :titulo, :mensaje, 'alojamiento', CURRENT_TIMESTAMP)
+    """), {
+        "estudiante_id": estudiante_id,
+        "titulo": f"Gestión de alojamiento {'aprobada' if accion == 'aprobar' else 'rechazada'}",
+        "mensaje": mensaje_notificacion
+    })
+    db.commit()
+    
+    log_event("alojamiento_gestionado", {
+        'estudiante_id': estudiante_id,
+        'accion': accion,
+        'estado': estado_alojamiento
+    })
+    
+    return {"message": f"Gestión de alojamiento {estado_alojamiento} exitosamente. Estudiante notificado."}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

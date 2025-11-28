@@ -47,6 +47,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [ajusteCredito, setAjusteCredito] = useState({ credito: 0, tipo_recompensa: 'dinero' })
   const [solicitudesCredito, setSolicitudesCredito] = useState([])
   const [solicitudesFinancieras, setSolicitudesFinancieras] = useState([])
+  const [solicitudesAlojamiento, setSolicitudesAlojamiento] = useState([])
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -112,6 +113,9 @@ function DashboardAdminExpandido({ onLogout }) {
       } else if (activeTab === 'informacion-financiera') {
         const response = await axios.get(`${apiUrl}/api/admin/solicitudes-financieras`)
         setSolicitudesFinancieras(response.data)
+      } else if (activeTab === 'informacion-alojamiento') {
+        const response = await axios.get(`${apiUrl}/api/admin/solicitudes-alojamiento`)
+        setSolicitudesAlojamiento(response.data)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -477,6 +481,29 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
+  const gestionarAlojamiento = async (estudianteId, decision) => {
+    const accion = decision === 'aceptado' ? 'aprobar' : 'rechazar'
+    const mensaje = decision === 'aceptado' ? 
+      '¿Aprobar la solicitud de gestión de alojamiento? El estudiante será notificado.' :
+      '¿Rechazar la solicitud de gestión de alojamiento? El estudiante será notificado.'
+
+    if (!confirm(mensaje)) return
+
+    const comentarios = prompt('Comentarios adicionales (opcional):') || ''
+
+    try {
+      await axios.put(`${apiUrl}/api/admin/gestionar-alojamiento/${estudianteId}`, {
+        accion: accion,
+        comentarios: comentarios
+      })
+      
+      alert(`Solicitud ${decision === 'aceptado' ? 'aprobada' : 'rechazada'} correctamente. El estudiante ha sido notificado.`)
+      cargarDatos() // Recargar datos para actualizar la tabla
+    } catch (err) {
+      alert('Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
   const actualizarEstadoEstudiante = async (estudianteId, nuevoEstado) => {
     try {
       await axios.put(`${apiUrl}/api/admin/estudiantes/${estudianteId}/actualizar-estado`, null, {
@@ -605,6 +632,20 @@ function DashboardAdminExpandido({ onLogout }) {
           style={{ background: 'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', color: 'white', fontWeight: 'bold' }}
         >
           💸 Información Financiera
+        </button>
+        <button 
+          className={`tab ${activeTab === 'informacion-alojamiento' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('informacion-alojamiento')}
+          style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          🏠 Gestión de Alojamiento
+        </button>
+        <button 
+          className={`tab ${activeTab === 'informacion-alojamiento' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('informacion-alojamiento')}
+          style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          🏠 Gestión de Alojamiento
         </button>
         <button 
           className={`tab ${activeTab === 'servicios' ? 'tab-active' : ''}`}
@@ -1159,6 +1200,138 @@ function DashboardAdminExpandido({ onLogout }) {
                         ) : (
                           <span style={{fontSize: '12px', color: '#666'}}>
                             {estudiante.estado_patrocinio === 'aprobado' ? '✅ Procesado' : '❌ Procesado'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SECCIÓN: INFORMACIÓN DE ALOJAMIENTO */}
+      {activeTab === 'informacion-alojamiento' && (
+        <div className="card">
+          <div className="section-header">
+            <h2>🏠 Gestión de Alojamiento</h2>
+            <div style={{fontSize: '14px', color: '#718096'}}>
+              Solicitudes de gestión de alojamiento de estudiantes
+            </div>
+          </div>
+          
+          {solicitudesAlojamiento.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              color: '#666'
+            }}>
+              <div style={{fontSize: '48px', marginBottom: '16px'}}>🏠</div>
+              <h3 style={{color: '#374151', marginBottom: '8px'}}>No hay solicitudes de gestión de alojamiento</h3>
+              <p style={{color: '#6b7280'}}>Aquí aparecerán las solicitudes cuando los estudiantes requieran gestión de alojamiento</p>
+            </div>
+          ) : (
+            <div style={{overflowX: 'auto'}}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                backgroundColor: '#fff',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+              }}>
+                <thead>
+                  <tr style={{backgroundColor: '#f8fafc'}}>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estudiante</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Email</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Preferencias</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estado Solicitud</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Fecha Solicitud</th>
+                    <th style={{padding: '16px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {solicitudesAlojamiento.map((estudiante) => (
+                    <tr key={estudiante.id} style={{borderBottom: '1px solid #e5e7eb'}}>
+                      <td style={{padding: '16px'}}>
+                        <div style={{fontWeight: '600', color: '#1f2937'}}>{estudiante.nombre}</div>
+                        <div style={{fontSize: '12px', color: '#666'}}>{estudiante.nacionalidad}</div>
+                      </td>
+                      <td style={{padding: '16px'}}>{estudiante.email}</td>
+                      <td style={{padding: '16px'}}>
+                        {estudiante.comentarios_alojamiento ? (
+                          <div style={{maxWidth: '200px'}}>
+                            <div style={{fontSize: '12px', color: '#374151', fontWeight: '500'}}>
+                              {estudiante.comentarios_alojamiento.substring(0, 100)}
+                              {estudiante.comentarios_alojamiento.length > 100 && '...'}
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{color: '#9ca3af', fontSize: '12px'}}>Sin preferencias especificadas</span>
+                        )}
+                      </td>
+                      <td style={{padding: '16px'}}>
+                        <span style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor: 
+                            estudiante.estado_alojamiento === 'aprobado' ? '#d1fae5' :
+                            estudiante.estado_alojamiento === 'rechazado' ? '#fee2e2' : '#fef3c7',
+                          color:
+                            estudiante.estado_alojamiento === 'aprobado' ? '#065f46' :
+                            estudiante.estado_alojamiento === 'rechazado' ? '#dc2626' : '#92400e'
+                        }}>
+                          {estudiante.estado_alojamiento === 'aprobado' ? '✅ Aceptado' :
+                           estudiante.estado_alojamiento === 'rechazado' ? '❌ Rechazado' : '⏳ Pendiente'}
+                        </span>
+                      </td>
+                      <td style={{padding: '16px'}}>
+                        {estudiante.fecha_solicitud && estudiante.fecha_solicitud !== 'Invalid Date' ? 
+                          new Date(estudiante.fecha_solicitud).toLocaleDateString('es-ES') : 
+                          'Fecha no disponible'
+                        }
+                      </td>
+                      <td style={{padding: '16px'}}>
+                        {(!estudiante.estado_alojamiento || estudiante.estado_alojamiento === 'pendiente') ? (
+                          <div style={{display: 'flex', gap: '8px'}}>
+                            <button
+                              onClick={() => gestionarAlojamiento(estudiante.id, 'aceptado')}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ✅ Aceptar
+                            </button>
+                            <button
+                              onClick={() => gestionarAlojamiento(estudiante.id, 'rechazado')}
+                              style={{
+                                padding: '6px 12px',
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ❌ Rechazar
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{fontSize: '12px', color: '#666'}}>
+                            {estudiante.estado_alojamiento === 'aprobado' ? '✅ Procesado' : '❌ Procesado'}
                           </span>
                         )}
                       </td>

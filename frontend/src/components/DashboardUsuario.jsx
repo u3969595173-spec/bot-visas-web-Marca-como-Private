@@ -369,6 +369,18 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         >
           💸 Información Financiera
         </button>
+        <button
+          onClick={() => navigate('/estudiante/informacion-alojamiento')}
+          className="btn"
+          style={{
+            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+            color: 'white',
+            border: 'none',
+            fontWeight: '600'
+          }}
+        >
+          🏠 Información de Alojamiento
+        </button>
       </div>
 
       {/* TAB: Perfil */}

@@ -30,6 +30,7 @@ import AdminServicios from './components/AdminServicios'
 import ContactarUniversidades from './components/ContactarUniversidades'
 import PanelProcesoAdmin from './components/PanelProcesoAdmin'
 import InformacionFinanciera from './components/InformacionFinanciera'
+import InformacionAlojamiento from './components/InformacionAlojamiento'
 import Home from './components/Home'
 
 function App() {
@@ -250,6 +251,16 @@ function App() {
             element={
               estudianteId ? (
                 <InformacionFinanciera estudianteId={estudianteId} />
+              ) : (
+                <Navigate to="/portal" />
+              )
+            }
+          />
+          <Route
+            path="/estudiante/informacion-alojamiento"
+            element={
+              estudianteId ? (
+                <InformacionAlojamiento estudianteId={estudianteId} />
               ) : (
                 <Navigate to="/portal" />
               )
