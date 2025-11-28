@@ -619,6 +619,13 @@ function DashboardAdminExpandido({ onLogout }) {
           💰 Presupuestos
         </button>
         <button 
+          className={`tab ${activeTab === 'trabajos' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('trabajos')}
+          style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          🎯 Trabajos Activos
+        </button>
+        <button 
           className={`tab ${activeTab === 'reportes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('reportes')}
         >
@@ -775,6 +782,207 @@ function DashboardAdminExpandido({ onLogout }) {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SECCIÓN: TRABAJOS ACTIVOS (Presupuestos Aceptados) */}
+      {activeTab === 'trabajos' && (
+        <div className="card">
+          <h2 style={{marginBottom: '20px', color: '#1f2937'}}>🎯 Trabajos Activos - Presupuestos Aceptados</h2>
+          
+          {presupuestos.filter(p => p.estado === 'aceptado').length === 0 ? (
+            <div style={{textAlign: 'center', padding: '60px', color: '#6b7280'}}>
+              <div style={{fontSize: '48px', marginBottom: '15px'}}>📭</div>
+              <p style={{fontSize: '18px'}}>No hay trabajos activos</p>
+              <p style={{fontSize: '14px'}}>Los presupuestos aceptados aparecerán aquí</p>
+            </div>
+          ) : (
+            <div style={{display: 'grid', gap: '20px'}}>
+              {presupuestos.filter(p => p.estado === 'aceptado').map(trabajo => (
+                <div key={trabajo.id} style={{
+                  backgroundColor: '#ffffff',
+                  border: '2px solid #f59e0b',
+                  borderRadius: '10px',
+                  padding: '25px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
+                  {/* Header del trabajo */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '20px',
+                    paddingBottom: '15px',
+                    borderBottom: '2px solid #fef3c7'
+                  }}>
+                    <div>
+                      <h3 style={{margin: '0 0 8px 0', color: '#1f2937', fontSize: '20px'}}>
+                        {trabajo.nombre_estudiante}
+                      </h3>
+                      <div style={{display: 'flex', gap: '15px', fontSize: '14px', color: '#6b7280'}}>
+                        <span>📧 {trabajo.email_estudiante}</span>
+                        {trabajo.telefono_estudiante && <span>📱 {trabajo.telefono_estudiante}</span>}
+                      </div>
+                    </div>
+                    <div style={{textAlign: 'right'}}>
+                      <div style={{fontSize: '32px', fontWeight: '700', color: '#f59e0b'}}>
+                        {trabajo.precio_ofertado}€
+                      </div>
+                      <div style={{fontSize: '13px', color: '#6b7280'}}>
+                        {trabajo.forma_pago}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Servicios contratados */}
+                  <div style={{marginBottom: '20px'}}>
+                    <h4 style={{margin: '0 0 12px 0', color: '#1f2937', fontSize: '16px'}}>
+                      📦 Servicios Contratados:
+                    </h4>
+                    <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px'}}>
+                      {Array.isArray(trabajo.servicios) && trabajo.servicios.map((servicio, idx) => {
+                        const nombres = {
+                          'gestion_visa': 'Gestión completa de visa',
+                          'busqueda_universidad': 'Búsqueda de universidad',
+                          'carta_aceptacion': 'Gestión carta aceptación',
+                          'seguro_medico': 'Seguro médico',
+                          'busqueda_vivienda': 'Búsqueda de vivienda',
+                          'traduccion_documentos': 'Traducción documentos',
+                          'apostilla': 'Apostilla documentos',
+                          'asesoria_bancaria': 'Asesoría bancaria',
+                          'preparacion_entrevista': 'Preparación entrevista',
+                          'tramite_urgente': 'Trámite urgente'
+                        };
+                        return (
+                          <div key={idx} style={{
+                            backgroundColor: '#fef3c7',
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            color: '#92400e',
+                            border: '1px solid #fde68a'
+                          }}>
+                            ✓ {nombres[servicio] || servicio}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Checklist de tareas */}
+                  <div style={{
+                    backgroundColor: '#f9fafb',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb'
+                  }}>
+                    <h4 style={{margin: '0 0 15px 0', color: '#1f2937', fontSize: '16px'}}>
+                      ✅ Tareas Pendientes:
+                    </h4>
+                    <div style={{display: 'grid', gap: '10px'}}>
+                      {trabajo.servicios.includes('gestion_visa') && (
+                        <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                          <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                          <span style={{fontSize: '14px'}}>Revisar documentación del estudiante</span>
+                        </label>
+                      )}
+                      {trabajo.servicios.includes('gestion_visa') && (
+                        <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                          <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                          <span style={{fontSize: '14px'}}>Preparar formularios de visa</span>
+                        </label>
+                      )}
+                      {trabajo.servicios.includes('busqueda_universidad') && (
+                        <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                          <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                          <span style={{fontSize: '14px'}}>Buscar universidades según perfil</span>
+                        </label>
+                      )}
+                      {trabajo.servicios.includes('busqueda_universidad') && (
+                        <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                          <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                          <span style={{fontSize: '14px'}}>Enviar opciones al estudiante</span>
+                        </label>
+                      )}
+                      {trabajo.servicios.includes('seguro_medico') && (
+                        <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                          <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                          <span style={{fontSize: '14px'}}>Cotizar seguro médico</span>
+                        </label>
+                      )}
+                      {trabajo.servicios.includes('busqueda_vivienda') && (
+                        <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                          <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                          <span style={{fontSize: '14px'}}>Buscar opciones de alojamiento</span>
+                        </label>
+                      )}
+                      {trabajo.servicios.includes('traduccion_documentos') && (
+                        <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                          <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                          <span style={{fontSize: '14px'}}>Gestionar traducción oficial</span>
+                        </label>
+                      )}
+                      {trabajo.servicios.includes('apostilla') && (
+                        <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                          <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                          <span style={{fontSize: '14px'}}>Tramitar apostilla de documentos</span>
+                        </label>
+                      )}
+                      <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                        <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                        <span style={{fontSize: '14px'}}>Contactar al estudiante para siguiente paso</span>
+                      </label>
+                      <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer', padding: '8px', backgroundColor: 'white', borderRadius: '5px'}}>
+                        <input type="checkbox" style={{marginRight: '10px', width: '18px', height: '18px'}} />
+                        <span style={{fontSize: '14px'}}>Enviar actualización de progreso</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Botón de ver perfil completo */}
+                  <div style={{marginTop: '20px', display: 'flex', gap: '10px'}}>
+                    <button
+                      onClick={() => {
+                        setActiveTab('estudiantes');
+                        // Aquí podrías hacer scroll al estudiante específico
+                      }}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      👤 Ver Perfil Completo
+                    </button>
+                    <button
+                      onClick={() => {
+                        alert(`Trabajo marcado como completado para ${trabajo.nombre_estudiante}`);
+                        // Aquí podrías agregar lógica para cambiar el estado
+                      }}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      ✅ Marcar como Completado
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
