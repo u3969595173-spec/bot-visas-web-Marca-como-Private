@@ -9152,7 +9152,7 @@ def obtener_solicitudes_alojamiento(
                 e.comentarios_alojamiento,
                 e.created_at
             FROM estudiantes e
-            WHERE (e.tiene_alojamiento IS NOT NULL OR e.gestion_solicitada = true)
+            WHERE e.gestion_solicitada = true
             ORDER BY e.created_at DESC
         """))
         solicitudes = []
