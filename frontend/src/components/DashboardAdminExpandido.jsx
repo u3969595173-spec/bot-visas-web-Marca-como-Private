@@ -537,43 +537,6 @@ function DashboardAdminExpandido({ onLogout }) {
         </button>
       </div>
 
-      {/* Estadísticas */}
-      {estadisticas && (
-        <div className="estadisticas-grid">
-          <div className="stat-card stat-total">
-            <div className="stat-icon">👥</div>
-            <div className="stat-info">
-              <h3>{estadisticas.total}</h3>
-              <p>Total Estudiantes</p>
-            </div>
-          </div>
-          
-          <div className="stat-card stat-aprobados">
-            <div className="stat-icon">✅</div>
-            <div className="stat-info">
-              <h3>{estadisticas.aprobados}</h3>
-              <p>Aprobados</p>
-            </div>
-          </div>
-          
-          <div className="stat-card stat-pendientes">
-            <div className="stat-icon">⏳</div>
-            <div className="stat-info">
-              <h3>{estadisticas.pendientes}</h3>
-              <p>Pendientes</p>
-            </div>
-          </div>
-          
-          <div className="stat-card stat-rechazados">
-            <div className="stat-icon">❌</div>
-            <div className="stat-info">
-              <h3>{estadisticas.rechazados}</h3>
-              <p>Rechazados</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Alertas de Documentos */}
       {alertasDocumentos.length > 0 && (
         <div className="alertas-panel">
