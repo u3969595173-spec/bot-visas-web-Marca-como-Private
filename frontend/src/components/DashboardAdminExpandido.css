@@ -367,7 +367,8 @@
 /* Tabs */
 .tabs-container {
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 20px;
   background: white;
   padding: 15px;
@@ -376,7 +377,7 @@
 }
 
 .tab {
-  padding: 12px 30px;
+  padding: 10px 16px;
   border: none;
   background: transparent;
   color: #4a5568;
@@ -384,6 +385,9 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
+  font-size: 14px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab:hover {
@@ -393,6 +397,21 @@
 .tab-active {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
+}
+
+/* Responsive para tabs en móvil */
+@media (max-width: 768px) {
+  .tabs-container {
+    padding: 10px;
+    gap: 6px;
+  }
+  
+  .tab {
+    padding: 8px 12px;
+    font-size: 12px;
+    flex: 1 1 auto;
+    min-width: fit-content;
+  }
 }
 
 /* Botón generar documentos */
@@ -567,12 +586,47 @@
   }
 
   .tabla-estudiantes {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .tabla-estudiantes th,
   .tabla-estudiantes td {
-    padding: 8px;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+  
+  .acciones {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .btn-aprobar, 
+  .btn-rechazar,
+  .btn-generar-docs,
+  .btn-descargar,
+  .btn-eliminar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  
+  .modal-content {
+    width: 95%;
+    padding: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .btn-logout,
+  .btn-limpiar,
+  .btn-add,
+  .btn-sync {
+    width: 100%;
   }
 }
 
