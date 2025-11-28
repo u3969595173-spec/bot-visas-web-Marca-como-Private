@@ -97,6 +97,7 @@ function PresupuestosAdmin({ embedded = false }) {
   const getEstadoBadge = (estado) => {
     const estados = {
       'pendiente': { color: '#f59e0b', bg: '#fef3c7', text: '⏳ Pendiente' },
+      'ofertado': { color: '#3b82f6', bg: '#dbeafe', text: '📤 Oferta Enviada' },
       'oferta_enviada': { color: '#3b82f6', bg: '#dbeafe', text: '📤 Oferta Enviada' },
       'aceptado': { color: '#10b981', bg: '#d1fae5', text: '✅ Aceptado' },
       'rechazado': { color: '#ef4444', bg: '#fee2e2', text: '❌ Rechazado' }
@@ -183,7 +184,7 @@ function PresupuestosAdmin({ embedded = false }) {
         </div>
         <div className="card" style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#3b82f6' }}>
-            {presupuestos.filter(p => p.estado === 'oferta_enviada').length}
+            {presupuestos.filter(p => p.estado === 'ofertado' || p.estado === 'oferta_enviada').length}
           </div>
           <div style={{ color: '#718096', marginTop: '5px' }}>
             Ofertas Enviadas
@@ -285,8 +286,30 @@ function PresupuestosAdmin({ embedded = false }) {
                           💰 Crear Oferta
                         </button>
                       )}
+                      {(presupuesto.estado === 'ofertado' || presupuesto.estado === 'oferta_enviada') && (
+                        <div style={{ fontSize: '12px' }}>
+                          <div style={{ fontWeight: '600', color: '#3b82f6', marginBottom: '4px' }}>
+                            Oferta Enviada
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                            {presupuesto.precio_al_empezar && `Inicial: €${parseFloat(presupuesto.precio_al_empezar).toFixed(2)}`}
+                            {presupuesto.precio_con_visa && ` | Cita: €${parseFloat(presupuesto.precio_con_visa).toFixed(2)}`}
+                            {presupuesto.precio_financiado && ` | Fin: €${parseFloat(presupuesto.precio_financiado).toFixed(2)}`}
+                          </div>
+                          <div style={{ fontWeight: '600', color: '#059669', marginTop: '4px' }}>
+                            Total: €{(
+                              (parseFloat(presupuesto.precio_al_empezar) || 0) +
+                              (parseFloat(presupuesto.precio_con_visa) || 0) +
+                              (parseFloat(presupuesto.precio_financiado) || 0)
+                            ).toFixed(2)}
+                          </div>
+                        </div>
+                      )}
                       {presupuesto.estado === 'aceptado' && (
                         <div style={{ fontSize: '12px' }}>
+                          <div style={{ fontWeight: '600', color: '#10b981', marginBottom: '4px' }}>
+                            ✅ Aceptado
+                          </div>
                           <div style={{ fontWeight: '600', color: '#059669' }}>
                             €{(
                               (parseFloat(presupuesto.precio_al_empezar) || 0) +
