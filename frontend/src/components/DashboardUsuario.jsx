@@ -325,13 +325,13 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 <div style={{fontSize: '36px', fontWeight: '700'}}>
                   {estadisticasReferidos.total_referidos}
                 </div>
-                <div style={{fontSize: '14px', opacity: 0.9'}}>Referidos</div>
+                <div style={{fontSize: '14px', opacity: 0.9}}>Referidos</div>
               </div>
               <div>
                 <div style={{fontSize: '36px', fontWeight: '700'}}>
                   {estadisticasReferidos.credito_disponible.toFixed(2)}€
                 </div>
-                <div style={{fontSize: '14px', opacity: 0.9'}}>Crédito</div>
+                <div style={{fontSize: '14px', opacity: 0.9}}>Crédito</div>
               </div>
             </div>
           </div>
