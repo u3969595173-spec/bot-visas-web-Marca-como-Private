@@ -699,25 +699,49 @@ async def registrar_estudiante(
                 break
             codigo_acceso = generar_codigo_acceso()
         
+        # Verificar código de referido si se proporcionó
+        referido_por_id = None
+        if hasattr(datos, 'codigo_referido') and datos.codigo_referido:
+            referidor = db.execute(text("""
+                SELECT id FROM estudiantes WHERE codigo_referido = :codigo
+            """), {"codigo": datos.codigo_referido.upper()}).fetchone()
+            
+            if referidor:
+                referido_por_id = referidor[0]
+        
+        # Generar código de referido único para el nuevo estudiante
+        codigo_referido = generar_codigo_acceso()
+        while True:
+            check = db.execute(text("""
+                SELECT id FROM estudiantes WHERE codigo_referido = :codigo
+            """), {"codigo": codigo_referido}).fetchone()
+            if not check:
+                break
+            codigo_referido = generar_codigo_acceso()
+        
         # Insertar nuevo estudiante con SQL directo - SOLO CAMPOS BÁSICOS
         result = db.execute(text("""
             INSERT INTO estudiantes (
                 nombre, email, telefono,
                 consentimiento_gdpr, fecha_consentimiento,
-                estado, documentos_estado, codigo_acceso, created_at,
-                perfil_completo
+                estado, documentos_estado, codigo_acceso, codigo_referido,
+                referido_por_id, credito_disponible, tipo_recompensa,
+                created_at, perfil_completo
             ) VALUES (
                 :nombre, :email, :telefono,
                 :consentimiento_gdpr, NOW(),
-                'pendiente', 'pendiente', :codigo_acceso, NOW(),
-                FALSE
+                'pendiente', 'pendiente', :codigo_acceso, :codigo_referido,
+                :referido_por_id, 0.00, 'dinero',
+                NOW(), FALSE
             ) RETURNING id, codigo_acceso
         """), {
             "nombre": datos.nombre,
             "email": datos.email,
             "telefono": datos.telefono,
             "consentimiento_gdpr": datos.consentimiento_gdpr,
-            "codigo_acceso": codigo_acceso
+            "codigo_acceso": codigo_acceso,
+            "codigo_referido": codigo_referido,
+            "referido_por_id": referido_por_id
         })
         
         row = result.fetchone()
@@ -8505,12 +8529,187 @@ def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depend
     """), {"id": presupuesto_id, "estado": estado})
     db.commit()
     
+    # Si se acepta, calcular comisión del 10% para el referidor
+    if estado == 'aceptado':
+        try:
+            # Obtener datos del presupuesto y estudiante
+            presupuesto = db.execute(text("""
+                SELECT p.precio_ofertado, e.referido_por_id
+                FROM presupuestos p
+                JOIN estudiantes e ON p.estudiante_id = e.id
+                WHERE p.id = :id
+            """), {"id": presupuesto_id}).fetchone()
+            
+            if presupuesto and presupuesto[1]:  # Si tiene referidor
+                precio = float(presupuesto[0])
+                referidor_id = presupuesto[1]
+                comision = precio * 0.10  # 10% del presupuesto
+                
+                # Agregar crédito al referidor
+                db.execute(text("""
+                    UPDATE estudiantes
+                    SET credito_disponible = credito_disponible + :comision
+                    WHERE id = :referidor_id
+                """), {"comision": comision, "referidor_id": referidor_id})
+                db.commit()
+                
+                log_event("comision_referido", {
+                    'referidor_id': referidor_id,
+                    'presupuesto_id': presupuesto_id,
+                    'comision': comision
+                })
+        except Exception as e:
+            print(f"Error calculando comisión: {e}")
+    
     log_event("presupuesto_respondido", {
         'presupuesto_id': presupuesto_id,
         'estado': estado
     })
     
     return {"message": f"Presupuesto {estado}"}
+
+
+# =====================================================
+# ENDPOINTS: SISTEMA DE REFERIDOS
+# =====================================================
+
+@app.get("/api/referidos/validar/{codigo}")
+async def validar_codigo_referido(codigo: str):
+    """Valida si un código de referido existe"""
+    db = next(get_db())
+    
+    result = db.execute(text("""
+        SELECT id, nombre, email FROM estudiantes 
+        WHERE codigo_referido = :codigo
+    """), {"codigo": codigo.upper()}).fetchone()
+    
+    if result:
+        return {
+            "valido": True,
+            "referidor": {
+                "id": result[0],
+                "nombre": result[1],
+                "email": result[2]
+            }
+        }
+    
+    return {"valido": False}
+
+
+@app.get("/api/referidos/estadisticas/{estudiante_id}")
+async def obtener_estadisticas_referidos(estudiante_id: int, token: str = Depends(oauth2_scheme)):
+    """Obtiene estadísticas de referidos de un estudiante"""
+    db = next(get_db())
+    
+    # Obtener datos del estudiante
+    estudiante = db.execute(text("""
+        SELECT codigo_referido, credito_disponible, tipo_recompensa
+        FROM estudiantes WHERE id = :id
+    """), {"id": estudiante_id}).fetchone()
+    
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Contar referidos
+    referidos = db.execute(text("""
+        SELECT id, nombre, email, created_at
+        FROM estudiantes 
+        WHERE referido_por_id = :id
+        ORDER BY created_at DESC
+    """), {"id": estudiante_id}).fetchall()
+    
+    # Calcular total ganado de presupuestos aceptados
+    total_ganado = db.execute(text("""
+        SELECT COALESCE(SUM(p.precio_ofertado * 0.10), 0) as total
+        FROM presupuestos p
+        JOIN estudiantes e ON p.estudiante_id = e.id
+        WHERE e.referido_por_id = :id AND p.estado = 'aceptado'
+    """), {"id": estudiante_id}).fetchone()[0]
+    
+    return {
+        "codigo_referido": estudiante[0],
+        "credito_disponible": float(estudiante[1]),
+        "tipo_recompensa": estudiante[2],
+        "total_referidos": len(referidos),
+        "total_ganado": float(total_ganado),
+        "referidos": [
+            {
+                "id": r[0],
+                "nombre": r[1],
+                "email": r[2],
+                "fecha_registro": r[3].isoformat() if r[3] else None
+            }
+            for r in referidos
+        ]
+    }
+
+
+@app.get("/api/admin/referidos")
+async def admin_obtener_referidos(token: str = Depends(oauth2_scheme)):
+    """Admin: Obtiene lista completa de referidos y créditos"""
+    verificar_admin(token)
+    db = next(get_db())
+    
+    result = db.execute(text("""
+        SELECT 
+            e.id,
+            e.nombre,
+            e.email,
+            e.codigo_referido,
+            e.credito_disponible,
+            e.tipo_recompensa,
+            COUNT(DISTINCT r.id) as total_referidos,
+            COALESCE(SUM(CASE WHEN p.estado = 'aceptado' THEN p.precio_ofertado * 0.10 ELSE 0 END), 0) as comision_total
+        FROM estudiantes e
+        LEFT JOIN estudiantes r ON r.referido_por_id = e.id
+        LEFT JOIN presupuestos p ON p.estudiante_id = r.id
+        GROUP BY e.id, e.nombre, e.email, e.codigo_referido, e.credito_disponible, e.tipo_recompensa
+        ORDER BY total_referidos DESC, comision_total DESC
+    """)).fetchall()
+    
+    return [
+        {
+            "id": row[0],
+            "nombre": row[1],
+            "email": row[2],
+            "codigo_referido": row[3],
+            "credito_disponible": float(row[4]),
+            "tipo_recompensa": row[5],
+            "total_referidos": row[6],
+            "comision_total": float(row[7])
+        }
+        for row in result
+    ]
+
+
+@app.put("/api/admin/referidos/{estudiante_id}/credito")
+async def admin_ajustar_credito(
+    estudiante_id: int,
+    data: dict,
+    token: str = Depends(oauth2_scheme)
+):
+    """Admin: Ajusta manualmente el crédito de un estudiante"""
+    verificar_admin(token)
+    db = next(get_db())
+    
+    nuevo_credito = data.get('credito', 0)
+    tipo_recompensa = data.get('tipo_recompensa', 'dinero')
+    
+    db.execute(text("""
+        UPDATE estudiantes
+        SET credito_disponible = :credito,
+            tipo_recompensa = :tipo
+        WHERE id = :id
+    """), {"credito": nuevo_credito, "tipo": tipo_recompensa, "id": estudiante_id})
+    db.commit()
+    
+    log_event("credito_ajustado", {
+        'estudiante_id': estudiante_id,
+        'nuevo_credito': nuevo_credito,
+        'tipo_recompensa': tipo_recompensa
+    })
+    
+    return {"message": "Crédito actualizado"}
 
 
 if __name__ == "__main__":

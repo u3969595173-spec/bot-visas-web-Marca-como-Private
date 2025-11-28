@@ -18,6 +18,8 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
   const [showPresupuestoModal, setShowPresupuestoModal] = useState(false);
   const [serviciosSeleccionados, setServiciosSeleccionados] = useState({});
   const [presupuestoActual, setPresupuestoActual] = useState(null);
+  const [estadisticasReferidos, setEstadisticasReferidos] = useState(null);
+  const [showReferidosModal, setShowReferidosModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,7 +30,21 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
     }
     cargarDatos();
     cargarPresupuestos();
+    cargarEstadisticasReferidos();
   }, [estudianteId]);
+
+  const cargarEstadisticasReferidos = async () => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${apiUrl}/api/referidos/estadisticas/${estudianteId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEstadisticasReferidos(response.data);
+    } catch (err) {
+      console.error('Error cargando estadísticas de referidos:', err);
+    }
+  };
 
   const cargarPresupuestos = async () => {
     try {
@@ -260,6 +276,97 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               }}
             >
               ❌ Rechazar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tarjeta de Referidos */}
+      {estadisticasReferidos && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+          color: 'white',
+          padding: '25px',
+          borderRadius: '10px',
+          marginBottom: '20px',
+          boxShadow: '0 4px 15px rgba(240, 147, 251, 0.3)'
+        }}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px'}}>
+            <div>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '20px' }}>
+                💎 Programa de Referidos
+              </h3>
+              <p style={{margin: '0 0 15px 0', opacity: 0.9}}>
+                Comparte tu código y gana 10% de cada presupuesto aceptado
+              </p>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                padding: '15px',
+                borderRadius: '8px',
+                display: 'inline-block'
+              }}>
+                <strong style={{fontSize: '14px'}}>Tu Código:</strong>
+                <div style={{
+                  fontSize: '32px',
+                  fontWeight: '700',
+                  letterSpacing: '3px',
+                  marginTop: '5px'
+                }}>
+                  {estadisticasReferidos.codigo_referido}
+                </div>
+              </div>
+            </div>
+            
+            <div style={{display: 'flex', gap: '20px', textAlign: 'center'}}>
+              <div>
+                <div style={{fontSize: '36px', fontWeight: '700'}}>
+                  {estadisticasReferidos.total_referidos}
+                </div>
+                <div style={{fontSize: '14px', opacity: 0.9'}}>Referidos</div>
+              </div>
+              <div>
+                <div style={{fontSize: '36px', fontWeight: '700'}}>
+                  {estadisticasReferidos.credito_disponible.toFixed(2)}€
+                </div>
+                <div style={{fontSize: '14px', opacity: 0.9'}}>Crédito</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{marginTop: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+            <button
+              onClick={() => setShowReferidosModal(true)}
+              style={{
+                background: 'white',
+                color: '#f5576c',
+                padding: '12px 25px',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              📊 Ver Mis Referidos
+            </button>
+            <button
+              onClick={() => {
+                const enlace = `${window.location.origin}/registro?ref=${estadisticasReferidos.codigo_referido}`;
+                navigator.clipboard.writeText(enlace);
+                alert('✅ Enlace de referido copiado al portapapeles');
+              }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '12px 25px',
+                border: '2px solid white',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              📋 Copiar Enlace
             </button>
           </div>
         </div>
@@ -555,6 +662,145 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 📤 Enviar Solicitud
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Lista de Referidos */}
+      {showReferidosModal && estadisticasReferidos && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '15px',
+            padding: '30px',
+            maxWidth: '700px',
+            width: '100%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <h2 style={{margin: '0 0 20px 0', color: '#2d3748'}}>
+              💎 Mis Referidos
+            </h2>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+              gap: '15px',
+              marginBottom: '25px'
+            }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '10px',
+                textAlign: 'center'
+              }}>
+                <div style={{fontSize: '36px', fontWeight: '700'}}>
+                  {estadisticasReferidos.total_referidos}
+                </div>
+                <div style={{fontSize: '14px', opacity: 0.9}}>Total Referidos</div>
+              </div>
+              <div style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '10px',
+                textAlign: 'center'
+              }}>
+                <div style={{fontSize: '36px', fontWeight: '700'}}>
+                  {estadisticasReferidos.credito_disponible.toFixed(2)}€
+                </div>
+                <div style={{fontSize: '14px', opacity: 0.9}}>Crédito Disponible</div>
+              </div>
+              <div style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '10px',
+                textAlign: 'center'
+              }}>
+                <div style={{fontSize: '36px', fontWeight: '700'}}>
+                  {estadisticasReferidos.total_ganado.toFixed(2)}€
+                </div>
+                <div style={{fontSize: '14px', opacity: 0.9}}>Total Ganado</div>
+              </div>
+            </div>
+
+            {estadisticasReferidos.referidos.length > 0 ? (
+              <div>
+                <h3 style={{fontSize: '18px', color: '#2d3748', marginBottom: '15px'}}>
+                  Lista de Personas Referidas:
+                </h3>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                  {estadisticasReferidos.referidos.map((referido, index) => (
+                    <div key={index} style={{
+                      backgroundColor: '#f7fafc',
+                      padding: '15px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <div>
+                          <div style={{fontWeight: '600', color: '#2d3748', marginBottom: '5px'}}>
+                            {referido.nombre}
+                          </div>
+                          <div style={{fontSize: '13px', color: '#718096'}}>
+                            {referido.email}
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#718096',
+                          textAlign: 'right'
+                        }}>
+                          {new Date(referido.fecha_registro).toLocaleDateString('es-ES')}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '40px',
+                color: '#a0aec0'
+              }}>
+                <div style={{fontSize: '48px', marginBottom: '10px'}}>👥</div>
+                <p>Aún no tienes referidos</p>
+                <p style={{fontSize: '14px'}}>Comparte tu código para empezar a ganar crédito</p>
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowReferidosModal(false)}
+              style={{
+                marginTop: '20px',
+                width: '100%',
+                padding: '12px',
+                backgroundColor: '#e2e8f0',
+                color: '#2d3748',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              Cerrar
+            </button>
           </div>
         </div>
       )}

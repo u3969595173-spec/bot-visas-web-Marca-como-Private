@@ -41,6 +41,10 @@ function DashboardAdminExpandido({ onLogout }) {
   const [showContraofertaModal, setShowContraofertaModal] = useState(false)
   const [presupuestoSeleccionado, setPresupuestoSeleccionado] = useState(null)
   const [contraoferta, setContraoferta] = useState({ precio_ofertado: '', forma_pago: '', mensaje_admin: '' })
+  const [referidos, setReferidos] = useState([])
+  const [showAjustarCreditoModal, setShowAjustarCreditoModal] = useState(false)
+  const [estudianteReferido, setEstudianteReferido] = useState(null)
+  const [ajusteCredito, setAjusteCredito] = useState({ credito: 0, tipo_recompensa: 'dinero' })
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -93,6 +97,12 @@ function DashboardAdminExpandido({ onLogout }) {
       } else if (activeTab === 'presupuestos') {
         const presRes = await axios.get(`${apiUrl}/api/admin/presupuestos`)
         setPresupuestos(presRes.data)
+      } else if (activeTab === 'trabajos') {
+        const presRes = await axios.get(`${apiUrl}/api/admin/presupuestos`)
+        setPresupuestos(presRes.data)
+      } else if (activeTab === 'referidos') {
+        const refRes = await axios.get(`${apiUrl}/api/admin/referidos`)
+        setReferidos(refRes.data)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -626,6 +636,13 @@ function DashboardAdminExpandido({ onLogout }) {
           🎯 Trabajos Activos
         </button>
         <button 
+          className={`tab ${activeTab === 'referidos' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('referidos')}
+          style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          💎 Referidos
+        </button>
+        <button 
           className={`tab ${activeTab === 'reportes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('reportes')}
         >
@@ -983,6 +1000,114 @@ function DashboardAdminExpandido({ onLogout }) {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SECCIÓN: REFERIDOS */}
+      {activeTab === 'referidos' && (
+        <div className="card">
+          <div className="section-header">
+            <h2>💎 Sistema de Referidos</h2>
+            <div style={{fontSize: '14px', color: '#718096'}}>
+              Comisión automática: 10% del presupuesto aceptado
+            </div>
+          </div>
+
+          {referidos.length === 0 ? (
+            <div className="no-data">
+              <p>📭 No hay datos de referidos aún</p>
+            </div>
+          ) : (
+            <div className="tabla-wrapper">
+              <table className="tabla-estudiantes">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Código Referido</th>
+                    <th>Total Referidos</th>
+                    <th>Comisión Total</th>
+                    <th>Crédito Disponible</th>
+                    <th>Tipo Recompensa</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {referidos.map((ref) => (
+                    <tr key={ref.id}>
+                      <td>
+                        <div style={{fontWeight: '600'}}>{ref.nombre}</div>
+                        <div style={{fontSize: '13px', color: '#718096'}}>{ref.email}</div>
+                      </td>
+                      <td>
+                        <div style={{
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          color: 'white',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          display: 'inline-block',
+                          fontWeight: '700',
+                          letterSpacing: '1px'
+                        }}>
+                          {ref.codigo_referido}
+                        </div>
+                      </td>
+                      <td>
+                        <span style={{
+                          background: '#e0e7ff',
+                          color: '#5b21b6',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontWeight: '600',
+                          fontSize: '14px'
+                        }}>
+                          {ref.total_referidos}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{fontSize: '16px', fontWeight: '700', color: '#10b981'}}>
+                          {ref.comision_total.toFixed(2)}€
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{fontSize: '16px', fontWeight: '700', color: '#f59e0b'}}>
+                          {ref.credito_disponible.toFixed(2)}€
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`badge ${ref.tipo_recompensa === 'dinero' ? 'badge-success' : 'badge-danger'}`}>
+                          {ref.tipo_recompensa === 'dinero' ? '💰 Dinero' : '🎟️ Descuento'}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => {
+                            setEstudianteReferido(ref);
+                            setAjusteCredito({
+                              credito: ref.credito_disponible,
+                              tipo_recompensa: ref.tipo_recompensa
+                            });
+                            setShowAjustarCreditoModal(true);
+                          }}
+                          style={{
+                            background: '#4299e1',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                          }}
+                        >
+                          ⚙️ Ajustar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -2242,6 +2367,134 @@ function DashboardAdminExpandido({ onLogout }) {
                 }}
               >
                 📤 Enviar Contraoferta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Ajustar Crédito de Referido */}
+      {showAjustarCreditoModal && estudianteReferido && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            <h3 style={{margin: '0 0 20px 0', color: '#2d3748'}}>
+              ⚙️ Ajustar Crédito: {estudianteReferido.nombre}
+            </h3>
+
+            <div style={{marginBottom: '20px'}}>
+              <label style={{display: 'block', marginBottom: '8px', fontWeight: '600', color: '#4a5568'}}>
+                Crédito Disponible (€)
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                value={ajusteCredito.credito}
+                onChange={(e) => setAjusteCredito({...ajusteCredito, credito: parseFloat(e.target.value)})}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '16px'
+                }}
+              />
+            </div>
+
+            <div style={{marginBottom: '25px'}}>
+              <label style={{display: 'block', marginBottom: '8px', fontWeight: '600', color: '#4a5568'}}>
+                Tipo de Recompensa
+              </label>
+              <select
+                value={ajusteCredito.tipo_recompensa}
+                onChange={(e) => setAjusteCredito({...ajusteCredito, tipo_recompensa: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '16px'
+                }}
+              >
+                <option value="dinero">💰 Dinero</option>
+                <option value="descuento">🎟️ Descuento</option>
+              </select>
+            </div>
+
+            <div style={{
+              background: '#fef3c7',
+              padding: '15px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              border: '1px solid #fde68a'
+            }}>
+              <p style={{margin: 0, fontSize: '14px', color: '#92400e'}}>
+                ℹ️ <strong>Info:</strong> Los cambios se aplicarán inmediatamente y el estudiante podrá ver su nuevo crédito.
+              </p>
+            </div>
+
+            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+              <button
+                onClick={() => {
+                  setShowAjustarCreditoModal(false);
+                  setEstudianteReferido(null);
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#e2e8f0',
+                  color: '#2d3748',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await axios.put(`${apiUrl}/api/admin/referidos/${estudianteReferido.id}/credito`, {
+                      credito: ajusteCredito.credito,
+                      tipo_recompensa: ajusteCredito.tipo_recompensa
+                    });
+                    alert('✅ Crédito actualizado exitosamente');
+                    setShowAjustarCreditoModal(false);
+                    setEstudianteReferido(null);
+                    cargarDatos();
+                  } catch (err) {
+                    alert('❌ Error al actualizar crédito: ' + (err.response?.data?.detail || err.message));
+                  }
+                }}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                💾 Guardar Cambios
               </button>
             </div>
           </div>

@@ -9,6 +9,7 @@ const RegistroEstudiante = () => {
     nombre: '',
     email: '',
     telefono: '',
+    codigo_referido: '',
     consentimiento_gdpr: false
   });
   const [loading, setLoading] = useState(false);
@@ -16,6 +17,8 @@ const RegistroEstudiante = () => {
   const [success, setSuccess] = useState(false);
   const [estudianteId, setEstudianteId] = useState(null);
   const [codigoAcceso, setCodigoAcceso] = useState(null);
+  const [referidoValido, setReferidoValido] = useState(null);
+  const [validandoReferido, setValidandoReferido] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -23,6 +26,36 @@ const RegistroEstudiante = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    
+    // Validar código de referido cuando cambia
+    if (name === 'codigo_referido' && value.length >= 6) {
+      validarCodigoReferido(value);
+    } else if (name === 'codigo_referido' && value.length < 6) {
+      setReferidoValido(null);
+    }
+  };
+
+  const validarCodigoReferido = async (codigo) => {
+    if (!codigo || codigo.length < 6) return;
+    
+    setValidandoReferido(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.get(`${apiUrl}/api/referidos/validar/${codigo}`);
+      
+      if (response.data.valido) {
+        setReferidoValido({
+          valido: true,
+          nombre: response.data.referidor.nombre
+        });
+      } else {
+        setReferidoValido({ valido: false });
+      }
+    } catch (err) {
+      setReferidoValido({ valido: false });
+    } finally {
+      setValidandoReferido(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -215,6 +248,34 @@ const RegistroEstudiante = () => {
                 required
                 placeholder="+34 600 000 000"
               />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="codigo_referido">
+                Código de Referido (Opcional)
+                {validandoReferido && <span style={{marginLeft: '10px', color: '#667eea'}}>⏳ Validando...</span>}
+                {referidoValido?.valido === true && (
+                  <span style={{marginLeft: '10px', color: '#48bb78'}}>✓ Referido por: {referidoValido.nombre}</span>
+                )}
+                {referidoValido?.valido === false && (
+                  <span style={{marginLeft: '10px', color: '#f56565'}}>✗ Código inválido</span>
+                )}
+              </label>
+              <input
+                type="text"
+                id="codigo_referido"
+                name="codigo_referido"
+                value={formData.codigo_referido}
+                onChange={handleChange}
+                placeholder="Ej: ABC12345"
+                style={{
+                  textTransform: 'uppercase',
+                  borderColor: referidoValido?.valido === true ? '#48bb78' : referidoValido?.valido === false ? '#f56565' : '#e2e8f0'
+                }}
+              />
+              <small style={{color: '#718096', fontSize: '12px'}}>
+                Si un amigo te recomendó, ingresa su código para obtener beneficios
+              </small>
             </div>
           </div>
 
