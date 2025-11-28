@@ -8,7 +8,7 @@ const InformacionFinanciera = ({ estudianteId }) => {
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({
     fondos_disponibles: '',
-    moneda_fondos: 'MLC',
+    moneda_fondos: 'EUR',
     patrocinador_nombre: '',
     patrocinador_relacion: '',
     patrocinio_solicitado: false
@@ -26,7 +26,7 @@ const InformacionFinanciera = ({ estudianteId }) => {
       setEstudiante(response.data);
       setFormData({
         fondos_disponibles: response.data.fondos_disponibles || '',
-        moneda_fondos: response.data.moneda_fondos || 'MLC',
+        moneda_fondos: response.data.moneda_fondos || 'EUR',
         patrocinador_nombre: response.data.patrocinador_nombre || '',
         patrocinador_relacion: response.data.patrocinador_relacion || '',
         patrocinio_solicitado: response.data.patrocinio_solicitado || false

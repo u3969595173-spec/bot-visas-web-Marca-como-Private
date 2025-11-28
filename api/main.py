@@ -9010,7 +9010,7 @@ def guardar_informacion_financiera(
     
     # Extraer datos del formulario
     fondos_disponibles = datos.get('fondos_disponibles', 0)
-    moneda_fondos = datos.get('moneda_fondos', 'MLC')
+    moneda_fondos = datos.get('moneda_fondos', 'EUR')
     patrocinador_nombre = datos.get('patrocinador_nombre', '')
     patrocinador_relacion = datos.get('patrocinador_relacion', '')
     patrocinio_solicitado = datos.get('patrocinio_solicitado', False)
