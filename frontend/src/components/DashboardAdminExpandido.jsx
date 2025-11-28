@@ -591,6 +591,23 @@ function DashboardAdminExpandido({ onLogout }) {
               </div>
             </div>
           )}
+          
+          {/* Botón Chat con contador */}
+          <div 
+            className="notification-bell" 
+            onClick={() => {setActiveTab('chat'); cargarContadorMensajes()}}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="bell-icon">
+              💬
+              {mensajesNoLeidos > 0 && (
+                <span className="notification-badge">
+                  {mensajesNoLeidos > 99 ? '99+' : mensajesNoLeidos}
+                </span>
+              )}
+            </div>
+          </div>
+          
           <button onClick={handleLogout} className="btn-logout">
             Cerrar Sesión
           </button>
@@ -689,33 +706,6 @@ function DashboardAdminExpandido({ onLogout }) {
           style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', fontWeight: 'bold' }}
         >
           📅 Alertas de Fechas
-        </button>
-        <button 
-          className={`tab ${activeTab === 'chat' ? 'tab-active' : ''}`}
-          onClick={() => {setActiveTab('chat'); cargarContadorMensajes()}}
-          style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', fontWeight: 'bold', position: 'relative' }}
-        >
-          💬 Chat Estudiantes
-          {mensajesNoLeidos > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: '-8px',
-              right: '-8px',
-              backgroundColor: '#ef4444',
-              color: 'white',
-              borderRadius: '50%',
-              width: '24px',
-              height: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '12px',
-              fontWeight: 'bold',
-              border: '2px solid white'
-            }}>
-              {mensajesNoLeidos > 99 ? '99+' : mensajesNoLeidos}
-            </span>
-          )}
         </button>
         <button 
           className={`tab ${activeTab === 'cursos' ? 'tab-active' : ''}`}
