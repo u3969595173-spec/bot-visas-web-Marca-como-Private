@@ -45,6 +45,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [showAjustarCreditoModal, setShowAjustarCreditoModal] = useState(false)
   const [estudianteReferido, setEstudianteReferido] = useState(null)
   const [ajusteCredito, setAjusteCredito] = useState({ credito: 0, tipo_recompensa: 'dinero' })
+  const [solicitudesCredito, setSolicitudesCredito] = useState([])
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -101,8 +102,12 @@ function DashboardAdminExpandido({ onLogout }) {
         const presRes = await axios.get(`${apiUrl}/api/admin/presupuestos`)
         setPresupuestos(presRes.data)
       } else if (activeTab === 'referidos') {
-        const refRes = await axios.get(`${apiUrl}/api/admin/referidos`)
+        const [refRes, solRes] = await Promise.all([
+          axios.get(`${apiUrl}/api/admin/referidos`),
+          axios.get(`${apiUrl}/api/admin/solicitudes-credito`)
+        ])
         setReferidos(refRes.data)
+        setSolicitudesCredito(solRes.data)
       }
     } catch (err) {
       console.error('Error:', err)
@@ -185,6 +190,29 @@ function DashboardAdminExpandido({ onLogout }) {
       cargarDatos()
     } catch (err) {
       alert('Error al rechazar estudiante: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const responderSolicitudCredito = async (solicitudId, accion) => {
+    const solicitud = solicitudesCredito.find(s => s.id === solicitudId)
+    if (!solicitud) return
+
+    const textoAccion = accion === 'aprobar' ? 'APROBAR' : 'RECHAZAR'
+    const textoTipo = solicitud.tipo === 'retiro' ? 'retiro de dinero' : 'descuento en trámite'
+    
+    if (!confirm(`¿${textoAccion} solicitud de ${textoTipo} por ${solicitud.monto.toFixed(2)}€ de ${solicitud.nombre}?`)) {
+      return
+    }
+
+    try {
+      await axios.put(`${apiUrl}/api/admin/solicitudes-credito/${solicitudId}/responder`, {
+        accion: accion
+      })
+      
+      alert(`✅ Solicitud ${accion === 'aprobar' ? 'APROBADA' : 'RECHAZADA'} exitosamente`)
+      cargarDatos()
+    } catch (err) {
+      alert('❌ Error: ' + (err.response?.data?.detail || err.message))
     }
   }
 
@@ -1110,6 +1138,144 @@ function DashboardAdminExpandido({ onLogout }) {
               </table>
             </div>
           )}
+
+          {/* Solicitudes de Uso de Crédito */}
+          <div style={{marginTop: '40px'}}>
+            <h3 style={{marginBottom: '20px', fontSize: '20px', fontWeight: '700', color: '#1f2937'}}>
+              📋 Solicitudes de Uso de Crédito ({solicitudesCredito.length})
+            </h3>
+
+            {solicitudesCredito.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '40px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '10px',
+                color: '#6b7280'
+              }}>
+                No hay solicitudes de crédito
+              </div>
+            ) : (
+              <div style={{overflowX: 'auto'}}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  backgroundColor: 'white',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                  <thead>
+                    <tr style={{backgroundColor: '#f3f4f6'}}>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estudiante</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Tipo</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Monto</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Crédito Actual</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estado</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Fecha</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {solicitudesCredito.map((sol) => (
+                      <tr key={sol.id} style={{borderBottom: '1px solid #e5e7eb'}}>
+                        <td style={{padding: '12px'}}>
+                          <div>
+                            <div style={{fontWeight: '600', color: '#1f2937'}}>{sol.nombre}</div>
+                            <div style={{fontSize: '12px', color: '#6b7280'}}>{sol.email}</div>
+                          </div>
+                        </td>
+                        <td style={{padding: '12px'}}>
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '9999px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            backgroundColor: sol.tipo === 'retiro' ? '#dbeafe' : '#fef3c7',
+                            color: sol.tipo === 'retiro' ? '#1e40af' : '#92400e'
+                          }}>
+                            {sol.tipo === 'retiro' ? '💸 Retiro' : '🎫 Descuento'}
+                          </span>
+                        </td>
+                        <td style={{padding: '12px', fontWeight: '700', fontSize: '16px', color: '#059669'}}>
+                          {sol.monto.toFixed(2)}€
+                        </td>
+                        <td style={{padding: '12px', fontWeight: '600', color: '#6b7280'}}>
+                          {sol.credito_disponible.toFixed(2)}€
+                        </td>
+                        <td style={{padding: '12px'}}>
+                          <span style={{
+                            padding: '4px 12px',
+                            borderRadius: '9999px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            backgroundColor: 
+                              sol.estado === 'pendiente' ? '#fef3c7' :
+                              sol.estado === 'aprobada' ? '#d1fae5' : '#fee2e2',
+                            color: 
+                              sol.estado === 'pendiente' ? '#92400e' :
+                              sol.estado === 'aprobada' ? '#065f46' : '#991b1b'
+                          }}>
+                            {sol.estado === 'pendiente' ? '⏳ Pendiente' :
+                             sol.estado === 'aprobada' ? '✅ Aprobada' : '❌ Rechazada'}
+                          </span>
+                        </td>
+                        <td style={{padding: '12px', fontSize: '14px', color: '#6b7280'}}>
+                          {new Date(sol.fecha_solicitud).toLocaleDateString('es-ES', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </td>
+                        <td style={{padding: '12px'}}>
+                          {sol.estado === 'pendiente' ? (
+                            <div style={{display: 'flex', gap: '8px'}}>
+                              <button
+                                onClick={() => responderSolicitudCredito(sol.id, 'aprobar')}
+                                style={{
+                                  background: '#10b981',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  fontWeight: '600'
+                                }}
+                              >
+                                ✅ Aprobar
+                              </button>
+                              <button
+                                onClick={() => responderSolicitudCredito(sol.id, 'rechazar')}
+                                style={{
+                                  background: '#ef4444',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '6px 12px',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  fontSize: '13px',
+                                  fontWeight: '600'
+                                }}
+                              >
+                                ❌ Rechazar
+                              </button>
+                            </div>
+                          ) : (
+                            <span style={{fontSize: '12px', color: '#9ca3af', fontStyle: 'italic'}}>
+                              {sol.estado === 'aprobada' ? 'Procesada ✓' : 'Rechazada ✗'}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

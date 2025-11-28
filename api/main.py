@@ -7751,6 +7751,180 @@ async def admin_ajustar_credito(
     return {"message": "Crédito ajustado exitosamente"}
 
 
+# =====================================================
+# ENDPOINTS: SOLICITUDES DE USO DE CRÉDITO
+# =====================================================
+
+@app.post("/api/referidos/solicitar-uso", tags=["Referidos"])
+async def solicitar_uso_credito(
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """Estudiante solicita usar su crédito (retiro o descuento)"""
+    
+    estudiante_id = data.get('estudiante_id')
+    tipo = data.get('tipo')  # 'retiro' o 'descuento'
+    monto = data.get('monto')
+    
+    if not estudiante_id or not tipo or not monto:
+        raise HTTPException(status_code=400, detail="Faltan datos requeridos")
+    
+    if tipo not in ['retiro', 'descuento']:
+        raise HTTPException(status_code=400, detail="Tipo inválido")
+    
+    # Verificar que el estudiante tenga suficiente crédito
+    estudiante = db.execute(text("""
+        SELECT credito_disponible FROM estudiantes WHERE id = :id
+    """), {"id": estudiante_id}).fetchone()
+    
+    if not estudiante or estudiante[0] < monto:
+        raise HTTPException(status_code=400, detail="Crédito insuficiente")
+    
+    # Crear solicitud
+    db.execute(text("""
+        INSERT INTO solicitudes_credito (estudiante_id, tipo, monto, estado)
+        VALUES (:estudiante_id, :tipo, :monto, 'pendiente')
+    """), {"estudiante_id": estudiante_id, "tipo": tipo, "monto": monto})
+    db.commit()
+    
+    return {"message": "Solicitud enviada al administrador"}
+
+
+@app.get("/api/admin/solicitudes-credito", tags=["Admin - Referidos"])
+async def admin_obtener_solicitudes_credito(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Obtiene todas las solicitudes de uso de crédito"""
+    
+    result = db.execute(text("""
+        SELECT 
+            sc.id,
+            sc.estudiante_id,
+            e.nombre,
+            e.email,
+            sc.tipo,
+            sc.monto,
+            sc.estado,
+            sc.fecha_solicitud,
+            sc.fecha_respuesta,
+            sc.notas,
+            e.credito_disponible
+        FROM solicitudes_credito sc
+        JOIN estudiantes e ON sc.estudiante_id = e.id
+        ORDER BY 
+            CASE sc.estado 
+                WHEN 'pendiente' THEN 1
+                WHEN 'aprobada' THEN 2
+                WHEN 'rechazada' THEN 3
+            END,
+            sc.fecha_solicitud DESC
+    """)).fetchall()
+    
+    return [
+        {
+            "id": row[0],
+            "estudiante_id": row[1],
+            "nombre_estudiante": row[2],
+            "email_estudiante": row[3],
+            "tipo": row[4],
+            "monto": float(row[5]),
+            "estado": row[6],
+            "fecha_solicitud": row[7].isoformat() if row[7] else None,
+            "fecha_respuesta": row[8].isoformat() if row[8] else None,
+            "notas": row[9],
+            "credito_disponible": float(row[10])
+        }
+        for row in result
+    ]
+
+
+@app.put("/api/admin/solicitudes-credito/{solicitud_id}/responder", tags=["Admin - Referidos"])
+async def admin_responder_solicitud_credito(
+    solicitud_id: int,
+    data: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Aprueba o rechaza una solicitud de uso de crédito"""
+    
+    accion = data.get('accion')  # 'aprobar' o 'rechazar'
+    notas = data.get('notas', '')
+    
+    if accion not in ['aprobar', 'rechazar']:
+        raise HTTPException(status_code=400, detail="Acción inválida")
+    
+    # Obtener solicitud
+    solicitud = db.execute(text("""
+        SELECT estudiante_id, tipo, monto, estado 
+        FROM solicitudes_credito 
+        WHERE id = :id
+    """), {"id": solicitud_id}).fetchone()
+    
+    if not solicitud:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    
+    if solicitud[3] != 'pendiente':
+        raise HTTPException(status_code=400, detail="La solicitud ya fue procesada")
+    
+    estudiante_id = solicitud[0]
+    tipo = solicitud[1]
+    monto = solicitud[2]
+    
+    if accion == 'aprobar':
+        if tipo == 'retiro':
+            # Retiro: Poner crédito en 0
+            db.execute(text("""
+                UPDATE estudiantes 
+                SET credito_disponible = credito_disponible - :monto
+                WHERE id = :id
+            """), {"monto": monto, "id": estudiante_id})
+            
+        elif tipo == 'descuento':
+            # Descuento: Restar del presupuesto aceptado actual
+            presupuesto = db.execute(text("""
+                SELECT id, precio_ofertado 
+                FROM presupuestos 
+                WHERE estudiante_id = :id AND estado = 'aceptado'
+                ORDER BY fecha_respuesta DESC
+                LIMIT 1
+            """), {"id": estudiante_id}).fetchone()
+            
+            if presupuesto:
+                nuevo_precio = max(0, presupuesto[1] - monto)
+                db.execute(text("""
+                    UPDATE presupuestos 
+                    SET precio_ofertado = :nuevo_precio
+                    WHERE id = :id
+                """), {"nuevo_precio": nuevo_precio, "id": presupuesto[0]})
+                
+                # Reducir crédito usado
+                db.execute(text("""
+                    UPDATE estudiantes 
+                    SET credito_disponible = credito_disponible - :monto
+                    WHERE id = :id
+                """), {"monto": monto, "id": estudiante_id})
+            else:
+                raise HTTPException(status_code=400, detail="No hay presupuesto aceptado para aplicar el descuento")
+        
+        estado_final = 'aprobada'
+    else:
+        estado_final = 'rechazada'
+    
+    # Actualizar solicitud
+    db.execute(text("""
+        UPDATE solicitudes_credito
+        SET estado = :estado,
+            fecha_respuesta = CURRENT_TIMESTAMP,
+            notas = :notas
+        WHERE id = :id
+    """), {"estado": estado_final, "notas": notas, "id": solicitud_id})
+    
+    db.commit()
+    
+    return {"message": f"Solicitud {estado_final}"}
+
+
 # ============================================================================
 # MENSAJERÍA ADMIN - ESTUDIANTE MEJORADA
 # ============================================================================

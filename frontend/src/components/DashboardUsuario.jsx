@@ -727,9 +727,20 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 </p>
                 <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (confirm(`¿Solicitar retiro de ${estadisticasReferidos.credito_disponible.toFixed(2)}€?\n\nEl administrador procesará tu solicitud y te contactará.`)) {
-                        alert('✅ Solicitud enviada. El administrador te contactará pronto.');
+                        try {
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                          await axios.post(`${apiUrl}/api/referidos/solicitar-uso`, {
+                            estudiante_id: estudianteId,
+                            tipo: 'retiro',
+                            monto: estadisticasReferidos.credito_disponible
+                          });
+                          alert('✅ Solicitud de retiro enviada. El administrador te contactará pronto.');
+                          setShowReferidosModal(false);
+                        } catch (err) {
+                          alert('❌ Error al enviar solicitud: ' + (err.response?.data?.detail || err.message));
+                        }
                       }
                     }}
                     style={{
@@ -747,9 +758,20 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                     💸 Retirar Dinero
                   </button>
                   <button
-                    onClick={() => {
-                      if (confirm(`¿Usar ${estadisticasReferidos.credito_disponible.toFixed(2)}€ como descuento en tu próximo trámite?`)) {
-                        alert('✅ Crédito reservado para descuento. Se aplicará automáticamente en tu próximo presupuesto.');
+                    onClick={async () => {
+                      if (confirm(`¿Usar ${estadisticasReferidos.credito_disponible.toFixed(2)}€ como descuento en tu presupuesto aceptado?\n\nSe descontará del precio total.`)) {
+                        try {
+                          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+                          await axios.post(`${apiUrl}/api/referidos/solicitar-uso`, {
+                            estudiante_id: estudianteId,
+                            tipo: 'descuento',
+                            monto: estadisticasReferidos.credito_disponible
+                          });
+                          alert('✅ Solicitud de descuento enviada. El administrador la aprobará.');
+                          setShowReferidosModal(false);
+                        } catch (err) {
+                          alert('❌ Error al enviar solicitud: ' + (err.response?.data?.detail || err.message));
+                        }
                       }
                     }}
                     style={{
