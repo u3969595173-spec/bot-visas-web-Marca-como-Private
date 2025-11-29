@@ -9371,7 +9371,7 @@ def eliminar_presupuestos_estudiante(
         count = result.scalar()
         
         if count == 0:
-            return {"message": "No hay presupuestos para eliminar", "eliminados": 0}
+            return {"message": "No hay presupuestos para eliminar", "presupuestos_eliminados": 0}
         
         # Eliminar presupuestos
         db.execute(text("""
@@ -9387,12 +9387,50 @@ def eliminar_presupuestos_estudiante(
         
         return {
             "message": f"✅ {count} presupuesto(s) eliminado(s) exitosamente",
-            "eliminados": count
+            "presupuestos_eliminados": count
         }
     
     except Exception as e:
         db.rollback()
         logger.error(f"❌ Error eliminando presupuestos: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/admin/presupuestos/limpiar-aceptados", tags=["Admin"])
+def limpiar_presupuestos_aceptados(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin elimina TODOS los presupuestos aceptados (panel de Servicios) para empezar de cero"""
+    try:
+        # Contar presupuestos aceptados
+        result = db.execute(text("""
+            SELECT COUNT(*) FROM presupuestos WHERE estado = 'aceptado'
+        """))
+        count = result.scalar()
+        
+        if count == 0:
+            return {"message": "No hay presupuestos aceptados para eliminar", "presupuestos_eliminados": 0}
+        
+        # Eliminar todos los presupuestos aceptados
+        db.execute(text("""
+            DELETE FROM presupuestos WHERE estado = 'aceptado'
+        """))
+        
+        db.commit()
+        
+        log_event("presupuestos_aceptados_limpiados", {
+            'cantidad': count
+        })
+        
+        return {
+            "message": f"✅ {count} presupuesto(s) aceptado(s) eliminado(s) exitosamente. Panel limpio para probar desde cero.",
+            "presupuestos_eliminados": count
+        }
+    
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Error limpiando presupuestos aceptados: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         db.rollback()
