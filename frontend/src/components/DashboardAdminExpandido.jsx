@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import './DashboardAdminExpandido.css'
@@ -11,6 +11,7 @@ import PresupuestosAdmin from './PresupuestosAdmin'
 
 function DashboardAdminExpandido({ onLogout }) {
   const [activeTab, setActiveTab] = useState('estudiantes')
+  const activeTabRef = useRef('estudiantes') // Referencia para mantener valor actualizado
   const [estudiantes, setEstudiantes] = useState([])
   const [documentosGenerados, setDocumentosGenerados] = useState([])
   const [cursos, setCursos] = useState([])
@@ -63,6 +64,11 @@ function DashboardAdminExpandido({ onLogout }) {
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+  // Sincronizar activeTab con ref
+  useEffect(() => {
+    activeTabRef.current = activeTab
+  }, [activeTab])
+
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
@@ -83,8 +89,8 @@ function DashboardAdminExpandido({ onLogout }) {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.success) {
-        // Solo actualizar si NO estamos viendo el chat
-        if (activeTab !== 'chat') {
+        // Usar ref para obtener valor actual, no el capturado en closure
+        if (activeTabRef.current !== 'chat') {
           setMensajesNoLeidos(response.data.total_no_leidos || 0)
         }
       }
