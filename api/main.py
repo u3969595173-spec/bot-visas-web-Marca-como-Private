@@ -8846,6 +8846,9 @@ def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
     # Campo legacy 'servicios' - también debe ser JSONB (array con un elemento para compatibilidad)
     servicios_legacy_json = json.dumps([servicios_solicitados[0]] if servicios_solicitados else ['servicios_personalizados'])
     
+    # Precio solicitado por defecto 0 (el admin lo actualiza después)
+    precio_solicitado = datos.get('precio_solicitado', 0.00)
+    
     # Usar SQL directo con psycopg2 para manejar JSONB correctamente
     import os
     import psycopg2
@@ -8854,12 +8857,13 @@ def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
     
     cursor.execute("""
         INSERT INTO presupuestos (
-            estudiante_id, servicios, servicios_solicitados, comentarios_estudiante, 
-            estado, created_at, updated_at
+            estudiante_id, servicios, servicios_solicitados, precio_solicitado,
+            comentarios_estudiante, estado, created_at, updated_at
         )
-        VALUES (%s, %s::jsonb, %s::jsonb, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        VALUES (%s, %s::jsonb, %s::jsonb, %s, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
-    """, (estudiante_id, servicios_legacy_json, servicios_json, comentarios_estudiante, estado))
+    """, (estudiante_id, servicios_legacy_json, servicios_json, precio_solicitado, 
+          comentarios_estudiante, estado))
     
     presupuesto_id = cursor.fetchone()[0]
     conn.commit()
