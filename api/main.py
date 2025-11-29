@@ -9068,8 +9068,15 @@ def ver_tesoro_pagos(
         
         monto_total = precio_al_empezar + precio_con_visa + precio_financiado
         
-        # Parsear servicios_solicitados
+        # Parsear servicios_solicitados desde JSONB
         servicios = row[15] if row[15] else []
+        # Si viene como string, parsearlo
+        if isinstance(servicios, str):
+            import json
+            try:
+                servicios = json.loads(servicios)
+            except:
+                servicios = []
         
         pagos_pendientes.append({
             'presupuesto_id': row[0],
