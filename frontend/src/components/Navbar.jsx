@@ -73,6 +73,21 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
             </>
           )}
 
+          {/* Menú admin cuando está autenticado como admin */}
+          {isAuthenticated && (
+            <>
+              <Link to="/admin/chats" className={`nav-link ${isActive('/admin/chats')}`}>
+                Chats
+              </Link>
+              <Link to="/admin/analytics" className={`nav-link ${isActive('/admin/analytics')}`}>
+                Analytics
+              </Link>
+              <Link to="/admin/documentos" className={`nav-link ${isActive('/admin/documentos')}`}>
+                Documentos
+              </Link>
+            </>
+          )}
+
           {/* Botón Cerrar Sesión al final */}
           {estudianteId && (
             <button
@@ -93,21 +108,6 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
             >
               Cerrar Sesión
             </button>
-          )}
-
-          {/* Menú admin cuando está autenticado como admin */}
-          {isAuthenticated && (
-            <>
-              <Link to="/admin/chats" className={`nav-link ${isActive('/admin/chats')}`}>
-                Chats
-              </Link>
-              <Link to="/admin/analytics" className={`nav-link ${isActive('/admin/analytics')}`}>
-                Analytics
-              </Link>
-              <Link to="/admin/documentos" className={`nav-link ${isActive('/admin/documentos')}`}>
-                Documentos
-              </Link>
-            </>
           )}
         </nav>
 
