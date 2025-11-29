@@ -8851,7 +8851,7 @@ def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
             estado, created_at, updated_at
         )
         VALUES (
-            :estudiante_id, :servicios, :servicios_solicitados, :comentarios_estudiante,
+            :estudiante_id, :servicios, CAST(:servicios_solicitados AS JSONB), :comentarios_estudiante,
             :estado, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
         )
         RETURNING id
