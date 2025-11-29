@@ -5,10 +5,6 @@ import './AdminServicios.css'
 function AdminServicios() {
   const [servicios, setServicios] = useState([])
   const [loading, setLoading] = useState(true)
-  const [editando, setEditando] = useState(null)
-  const [precio, setPrecio] = useState('')
-  const [notas, setNotas] = useState('')
-  const [estado, setEstado] = useState('pendiente')
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
   const token = localStorage.getItem('token')
@@ -45,29 +41,6 @@ function AdminServicios() {
     } catch (err) {
       console.error('Error limpiando presupuestos:', err)
       alert('❌ Error al limpiar presupuestos: ' + (err.response?.data?.detail || err.message))
-    }
-  }
-
-  const abrirEdicion = (servicio) => {
-    setEditando(servicio.id)
-    setPrecio(servicio.precio || '')
-    setNotas(servicio.notas || '')
-    setEstado(servicio.estado)
-  }
-
-  const guardarCambios = async (servicioId) => {
-    try {
-      await axios.put(
-        `${apiUrl}/api/admin/servicios-solicitados/${servicioId}`,
-        { estado, precio: parseFloat(precio) || null, notas },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      alert('✅ Servicio actualizado')
-      setEditando(null)
-      cargarServicios()
-    } catch (err) {
-      console.error('Error actualizando:', err)
-      alert('Error al actualizar servicio')
     }
   }
 
@@ -161,6 +134,17 @@ function AdminServicios() {
                       {servicio.pagado_financiado ? '✅' : '⏳'} Pago Financiado
                     </div>
                   </div>
+                  <div style={{ marginTop: '15px', padding: '12px', backgroundColor: '#f0f9ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                    <p style={{ fontSize: '12px', color: '#1e40af', margin: 0 }}>
+                      ℹ️ <strong>El estado cambia automáticamente:</strong>
+                      <br />
+                      • <strong>Pendiente</strong>: Cuando acepta el presupuesto
+                      <br />
+                      • <strong>En Proceso</strong>: Al marcar el primer pago en Presupuestos
+                      <br />
+                      • <strong>Completado</strong>: Al completar 100% del Proceso de Visa
+                    </p>
+                  </div>
                 </div>
                 <div className={`estado-badge badge-${servicio.estado}`}>
                   {servicio.estado === 'pendiente' && '⏳ Pendiente'}
@@ -169,43 +153,9 @@ function AdminServicios() {
                 </div>
               </div>
 
-              {editando === servicio.id ? (
-                <div className="servicio-edicion">
-                  <div className="form-group">
-                    <label>Estado del Servicio</label>
-                    <select value={estado} onChange={(e) => setEstado(e.target.value)}>
-                      <option value="pendiente">⏳ Pendiente (No ha pagado inicial)</option>
-                      <option value="en_proceso">🔄 En Proceso (Pagó inicial, trabajando)</option>
-                      <option value="completado">✅ Completado (Proceso de visa terminado)</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Monto Total</label>
-                    <input
-                      type="text"
-                      value={`€${servicio.monto_total}`}
-                      disabled
-                      style={{ background: '#f3f4f6', cursor: 'not-allowed' }}
-                    />
-                    <small style={{ color: '#6b7280' }}>El monto no se puede editar aquí</small>
-                  </div>
-                  <div className="form-actions">
-                    <button className="btn-guardar" onClick={() => guardarCambios(servicio.id)}>
-                      💾 Actualizar Estado
-                    </button>
-                    <button className="btn-cancelar" onClick={() => setEditando(null)}>
-                      ✖️ Cancelar
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="servicio-detalles">
-                  <p className="servicio-precio">💰 Monto Total: <strong>€{servicio.monto_total.toFixed(2)}</strong></p>
-                  <button className="btn-editar" onClick={() => abrirEdicion(servicio)}>
-                    ✏️ Cambiar Estado
-                  </button>
-                </div>
-              )}
+              <div className="servicio-detalles">
+                <p className="servicio-precio">💰 Monto Total: <strong>€{servicio.monto_total.toFixed(2)}</strong></p>
+              </div>
             </div>
           ))}
         </div>
