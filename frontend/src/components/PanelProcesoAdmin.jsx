@@ -141,6 +141,25 @@ function PanelProcesoAdmin() {
   const seleccionarEstudiante = (estudiante) => {
     setEstudianteSeleccionado(estudiante)
     cargarProceso(estudiante.id)
+    cargarServiciosEstudiante(estudiante.id)
+  }
+
+  const cargarServiciosEstudiante = async (estudianteId) => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await axios.get(
+        `${apiUrl}/api/presupuestos/estudiante/${estudianteId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      // Filtrar presupuestos aceptados
+      const aceptados = res.data.filter(p => p.estado === 'aceptado')
+      setEstudianteSeleccionado(prev => ({
+        ...prev,
+        servicios: aceptados.length > 0 ? aceptados[0].servicios_solicitados : []
+      }))
+    } catch (err) {
+      console.error('Error cargando servicios:', err)
+    }
   }
 
   const togglePaso = async (pasoKey, valorActual) => {
@@ -258,6 +277,48 @@ function PanelProcesoAdmin() {
                   })()}
                 </div>
               </div>
+
+              {/* Servicios solicitados por el estudiante */}
+              {estudianteSeleccionado.servicios && estudianteSeleccionado.servicios.length > 0 && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  marginBottom: '20px',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}>
+                  <h3 style={{ 
+                    color: 'white', 
+                    margin: '0 0 15px 0',
+                    fontSize: '18px',
+                    fontWeight: '600'
+                  }}>
+                    💼 Servicios Contratados
+                  </h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {estudianteSeleccionado.servicios.map((servicio, idx) => (
+                      <div key={idx} style={{
+                        background: 'rgba(255,255,255,0.95)',
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        color: '#2d3748',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                      }}>
+                        <span style={{ 
+                          fontSize: '18px',
+                          minWidth: '24px'
+                        }}>✅</span>
+                        <span>{servicio}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Campo de notas globales */}
               <div className="notas-section">
