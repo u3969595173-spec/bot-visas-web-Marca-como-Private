@@ -1,70 +1,151 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import './Home.css'
-
-// Placeholder SVG icons as data URIs
-const graduationIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%230d9488'%3E%3Cpath d='M100 40l60 30v40c0 20-20 40-60 50-40-10-60-30-60-50V70z'/%3E%3Cpath d='M100 90c-11 0-20-9-20-20s9-20 20-20 20 9 20 20-9 20-20 20z' fill='%2314b8a6'/%3E%3C/g%3E%3C/svg%3E";
-const passportIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%230d9488'%3E%3Crect x='50' y='30' width='100' height='140' rx='10' fill='%2314b8a6'/%3E%3Ccircle cx='100' cy='80' r='20' fill='%23fff'/%3E%3Cpath d='M80 120h40M80 135h40M80 150h40' stroke='%23fff' stroke-width='4'/%3E%3C/g%3E%3C/svg%3E";
-const buildingIcon = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cg fill='%230d9488'%3E%3Crect x='60' y='40' width='80' height='120' fill='%2314b8a6'/%3E%3Crect x='75' y='60' width='15' height='15' fill='%23fff'/%3E%3Crect x='110' y='60' width='15' height='15' fill='%23fff'/%3E%3Crect x='75' y='90' width='15' height='15' fill='%23fff'/%3E%3Crect x='110' y='90' width='15' height='15' fill='%23fff'/%3E%3Crect x='85' y='130' width='30' height='30' fill='%23fff'/%3E%3C/g%3E%3C/svg%3E";
 
 function Home() {
   const navigate = useNavigate()
 
   return (
     <div className="home-container">
-      <div className="hero-section">
-        <div className="hero-content">
-          <h1 className="hero-title">Tu Puerta de Entrada a Europa</h1>
-          <p className="hero-subtitle">
-            Expertos en visas de estudio y admisión universitaria en España
-          </p>
+      {/* Hero Section */}
+      <section className="hero-section">
+        {/* Background Image */}
+        <img
+          src="/assets/hero-bg.png"
+          alt="Campus"
+          className="hero-bg-img"
+        />
 
-          <div className="hero-cta">
-            <button
-              className="btn-primary"
-              onClick={() => navigate('/registro')}
-            >
-              Comenzar Trámite
-            </button>
-            <button
-              className="btn-secondary"
-              onClick={() => navigate('/portal')}
-            >
-              Más Información
-            </button>
+        {/* Dark Overlay */}
+        <div className="hero-overlay"></div>
+
+        {/* Content */}
+        <div className="hero-content-wrapper">
+          <div className="hero-content-inner">
+            {/* Semi-transparent container */}
+            <div className="glass-card">
+              <h1 className="hero-title">
+                Tu Puerta de
+                <br />
+                Entrada a Europa
+              </h1>
+
+              <p className="hero-subtitle">
+                Expertos en visas de estudio y admisión
+                <br />
+                universitaria en España
+              </p>
+
+              {/* Buttons */}
+              <div className="hero-buttons">
+                <button
+                  className="btn-primary"
+                  onClick={() => navigate('/registro')}
+                >
+                  Comenzar Trámite
+                </button>
+                <button
+                  className="btn-secondary"
+                  onClick={() => navigate('/portal')}
+                >
+                  Más Información
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="features-section">
-        <div className="features-grid">
-          <div className="feature-card">
-            <div className="feature-icon">
-              <img src={graduationIcon} alt="Graduation" />
+      {/* Services Section */}
+      <section className="services-section">
+        <div className="services-container">
+          <div className="services-grid">
+            {/* Service Card 1 */}
+            <div className="service-card">
+              <div className="icon-box">
+                <div className="icon-text">🎓</div>
+              </div>
+              <h3 className="service-title">Admisión Garantizada</h3>
+              <p className="service-desc">Aseguramos tu plaza en universidades de prestigio.</p>
             </div>
-            <h3>Admisión Garantizada</h3>
-            <p>Aseguramos tu plaza en universidades de prestigio.</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">
-              <img src={passportIcon} alt="Passport" />
+
+            {/* Service Card 2 */}
+            <div className="service-card">
+              <div className="icon-box">
+                <div className="icon-text">📱</div>
+              </div>
+              <h3 className="service-title">Visa Express</h3>
+              <p className="service-desc">Agilizamos tus trámites para un proceso sin estrés.</p>
             </div>
-            <h3>Visa Express</h3>
-            <p>Agilizamos tus trámites para un proceso sin estrés.</p>
-          </div>
-          <div className="feature-card">
-            <div className="feature-icon">
-              <img src={buildingIcon} alt="Building" />
+
+            {/* Service Card 3 */}
+            <div className="service-card">
+              <div className="icon-box">
+                <div className="icon-text">🏢</div>
+              </div>
+              <h3 className="service-title">Alojamiento Premium</h3>
+              <p className="service-desc">
+                Opciones de vivienda seguras y confortables para estudiantes.
+              </p>
             </div>
-            <h3>Alojamiento Premium</h3>
-            <p>Opciones de vivienda seguras y confortables para estudiantes.</p>
           </div>
         </div>
+      </section>
 
-        <div className="disclaimer-banner">
-          ⚖️ <strong>Nota Legal:</strong> Gestionamos tu expediente con los más altos estándares de calidad para maximizar tus probabilidades de éxito (tasa 90%). La decisión final depende del Consulado.
+      {/* Footer */}
+      <footer className="footer">
+        <div className="footer-container">
+          {/* Footer Content */}
+          <div className="footer-top">
+            {/* Links */}
+            <nav className="footer-nav">
+              <Link to="/" className="footer-link">
+                Inicio
+              </Link>
+              <Link to="/servicios" className="footer-link">
+                Servicios
+              </Link>
+              <Link to="/universidades" className="footer-link">
+                Universidades
+              </Link>
+              <Link to="/blog" className="footer-link">
+                Blog
+              </Link>
+              <Link to="/contacto" className="footer-link">
+                Contacto
+              </Link>
+            </nav>
+
+            {/* Social Icons */}
+            <div className="social-icons">
+              <a href="#" className="social-btn">
+                <span className="text-white">f</span>
+              </a>
+              <a href="#" className="social-btn">
+                <span className="text-white">𝕏</span>
+              </a>
+              <a href="#" className="social-btn">
+                <span className="text-white">📷</span>
+              </a>
+              <a href="#" className="social-btn">
+                <span className="text-white">▶</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Contact Info */}
+          <div className="footer-contact">
+            <div className="contact-item">
+              <span className="text-gray-400">📞</span>
+              <span className="contact-text">+34654034110</span>
+            </div>
+            <div className="contact-item">
+              <span className="text-gray-400">✉</span>
+              <span className="contact-text">estudiovisaespana@gmail.com</span>
+            </div>
+          </div>
         </div>
-      </div>
+      </footer>
     </div>
   )
 }
