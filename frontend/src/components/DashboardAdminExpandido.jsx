@@ -18,6 +18,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [estadisticas, setEstadisticas] = useState(null)
   const [reporteEstudiantes, setReporteEstudiantes] = useState(null)
   const [alertasDocumentos, setAlertasDocumentos] = useState([])
+  const [alertasNoVistas, setAlertasNoVistas] = useState(0)
   const [mostrarAlertas, setMostrarAlertas] = useState(false)
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('todos')
@@ -104,7 +105,12 @@ function DashboardAdminExpandido({ onLogout }) {
         // Cargar alertas de documentos
         try {
           const alertasRes = await axios.get(`${apiUrl}/api/admin/alertas-documentos`)
-          setAlertasDocumentos(alertasRes.data.alertas || [])
+          const alertas = alertasRes.data.alertas || []
+          setAlertasDocumentos(alertas)
+          // Solo actualizar contador si no están viendo las alertas actualmente
+          if (!mostrarAlertas) {
+            setAlertasNoVistas(alertas.length)
+          }
         } catch (err) {
           console.error('Error cargando alertas:', err)
         }
@@ -618,10 +624,18 @@ function DashboardAdminExpandido({ onLogout }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           {/* Campana de Alertas */}
           {alertasDocumentos.length > 0 && (
-            <div className="notification-bell" onClick={() => setMostrarAlertas(!mostrarAlertas)}>
+            <div className="notification-bell" onClick={() => {
+              setMostrarAlertas(!mostrarAlertas)
+              // Marcar como vistas al abrir el panel
+              if (!mostrarAlertas) {
+                setAlertasNoVistas(0)
+              }
+            }}>
               <div className="bell-icon">
                 🔔
-                <span className="notification-badge">{alertasDocumentos.length}</span>
+                {alertasNoVistas > 0 && (
+                  <span className="notification-badge">{alertasNoVistas}</span>
+                )}
               </div>
             </div>
           )}
@@ -629,7 +643,11 @@ function DashboardAdminExpandido({ onLogout }) {
           {/* Botón Chat con contador */}
           <div 
             className="notification-bell" 
-            onClick={() => {setActiveTab('chat'); cargarContadorMensajes()}}
+            onClick={() => {
+              setActiveTab('chat')
+              setMensajesNoLeidos(0) // Resetear contador al abrir el chat
+              cargarContadorMensajes()
+            }}
             style={{ cursor: 'pointer' }}
           >
             <div className="bell-icon">
