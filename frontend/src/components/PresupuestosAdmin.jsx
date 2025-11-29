@@ -9,6 +9,7 @@ function PresupuestosAdmin({ embedded = false }) {
   const [success, setSuccess] = useState('')
   const [presupuestoSeleccionado, setPresupuestoSeleccionado] = useState(null)
   const [mostrarModal, setMostrarModal] = useState(false)
+  const [serviciosExpandidos, setServiciosExpandidos] = useState({}) // Para controlar qué presupuestos están expandidos
   const [modalidades, setModalidades] = useState({
     precio_al_empezar: '',
     precio_con_visa: '',
@@ -251,30 +252,65 @@ function PresupuestosAdmin({ embedded = false }) {
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px', maxWidth: '250px' }}>
-                      <div style={{ fontSize: '11px', color: '#4a5568', lineHeight: '1.6' }}>
+                    <td style={{ padding: '12px', maxWidth: '300px' }}>
+                      <div style={{ fontSize: '12px', color: '#4a5568', lineHeight: '1.6' }}>
                         {presupuesto.servicios_solicitados && Array.isArray(presupuesto.servicios_solicitados) ? (
                           <div>
-                            {presupuesto.servicios_solicitados.slice(0, 3).map((servicio, idx) => (
-                              <div key={idx} style={{ 
-                                marginBottom: '3px',
-                                padding: '2px 6px',
+                            {/* Siempre mostrar solo el primer servicio */}
+                            {presupuesto.servicios_solicitados.length > 0 && (
+                              <div style={{ 
+                                marginBottom: '5px',
+                                padding: '6px 10px',
                                 background: '#f0f9ff',
-                                borderRadius: '4px',
-                                border: '1px solid #bfdbfe'
+                                borderRadius: '6px',
+                                border: '1px solid #bfdbfe',
+                                fontSize: '11px'
+                              }}>
+                                • {presupuesto.servicios_solicitados[0]}
+                              </div>
+                            )}
+                            
+                            {/* Mostrar servicios expandidos si se hizo clic en "Ver más" */}
+                            {serviciosExpandidos[presupuesto.id] && presupuesto.servicios_solicitados.slice(1).map((servicio, idx) => (
+                              <div key={idx} style={{ 
+                                marginBottom: '5px',
+                                padding: '6px 10px',
+                                background: '#f0f9ff',
+                                borderRadius: '6px',
+                                border: '1px solid #bfdbfe',
+                                fontSize: '11px'
                               }}>
                                 • {servicio}
                               </div>
                             ))}
-                            {presupuesto.servicios_solicitados.length > 3 && (
-                              <div style={{ 
-                                marginTop: '4px',
-                                color: '#3b82f6',
-                                fontWeight: '600',
-                                fontSize: '10px'
-                              }}>
-                                +{presupuesto.servicios_solicitados.length - 3} más
-                              </div>
+                            
+                            {/* Botón "Ver más" / "Ver menos" */}
+                            {presupuesto.servicios_solicitados.length > 1 && (
+                              <button
+                                onClick={() => setServiciosExpandidos({
+                                  ...serviciosExpandidos,
+                                  [presupuesto.id]: !serviciosExpandidos[presupuesto.id]
+                                })}
+                                style={{ 
+                                  marginTop: '6px',
+                                  color: '#3b82f6',
+                                  fontWeight: '600',
+                                  fontSize: '11px',
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={(e) => e.target.style.background = '#dbeafe'}
+                                onMouseLeave={(e) => e.target.style.background = 'none'}
+                              >
+                                {serviciosExpandidos[presupuesto.id] 
+                                  ? '▲ Ver menos' 
+                                  : `▼ Ver ${presupuesto.servicios_solicitados.length - 1} más`
+                                }
+                              </button>
                             )}
                           </div>
                         ) : (
