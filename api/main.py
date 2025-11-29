@@ -8841,30 +8841,35 @@ def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
     # Insertar presupuesto con nueva estructura
+    import psycopg2.extras
     servicios_json = json.dumps(servicios_solicitados)
     # Campo legacy 'servicios' - usar primer servicio o 'multiple' por compatibilidad
     servicios_legacy = servicios_solicitados[0] if servicios_solicitados else 'servicios_personalizados'
     
-    result = db.execute(text("""
+    # Usar SQL directo con psycopg2 para manejar JSONB correctamente
+    import os
+    import psycopg2
+    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor = conn.cursor()
+    
+    cursor.execute("""
         INSERT INTO presupuestos (
             estudiante_id, servicios, servicios_solicitados, comentarios_estudiante, 
             estado, created_at, updated_at
         )
-        VALUES (
-            :estudiante_id, :servicios, CAST(:servicios_solicitados AS JSONB), :comentarios_estudiante,
-            :estado, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-        )
+        VALUES (%s, %s, %s::jsonb, %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         RETURNING id
-    """), {
-        "estudiante_id": estudiante_id,
-        "servicios": servicios_legacy,
-        "servicios_solicitados": servicios_json,
-        "comentarios_estudiante": comentarios_estudiante,
-        "estado": estado
-    })
-    db.commit()
+    """, (estudiante_id, servicios_legacy, servicios_json, comentarios_estudiante, estado))
     
-    presupuesto_id = result.fetchone()[0]
+    presupuesto_id = cursor.fetchone()[0]
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    presupuesto_id = cursor.fetchone()[0]
+    conn.commit()
+    cursor.close()
+    conn.close()
     
     log_event("presupuesto_solicitado", {
         'presupuesto_id': presupuesto_id,
