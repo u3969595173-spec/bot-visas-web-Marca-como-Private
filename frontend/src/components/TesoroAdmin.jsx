@@ -203,235 +203,293 @@ function TesoroAdmin({ embedded = false }) {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ backgroundColor: '#f8fafc' }}>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                    Cliente
+                <tr style={{ backgroundColor: '#667eea', color: 'white' }}>
+                  <th style={{ padding: '14px', textAlign: 'left', fontWeight: '600', fontSize: '13px' }}>
+                    👤 CLIENTE
                   </th>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                    Servicios
+                  <th style={{ padding: '14px', textAlign: 'left', fontWeight: '600', fontSize: '13px' }}>
+                    📋 SERVICIOS
                   </th>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                    Desglose de Pagos
+                  <th style={{ padding: '14px', textAlign: 'left', fontWeight: '600', fontSize: '13px', minWidth: '300px' }}>
+                    💳 DESGLOSE DE PAGOS
                   </th>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                    Monto Total
+                  <th style={{ padding: '14px', textAlign: 'center', fontWeight: '600', fontSize: '13px' }}>
+                    💰 MONTO TOTAL
                   </th>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                    Fecha Aceptación
+                  <th style={{ padding: '14px', textAlign: 'center', fontWeight: '600', fontSize: '13px' }}>
+                    📅 FECHA
                   </th>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                    Estado
-                  </th>
-                  <th style={{ padding: '12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
-                    Acciones
+                  <th style={{ padding: '14px', textAlign: 'center', fontWeight: '600', fontSize: '13px' }}>
+                    ⚡ ESTADO
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {pagos.map((pago) => (
-                  <tr key={pago.presupuesto_id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px' }}>
+                {pagos.map((pago, index) => (
+                  <tr 
+                    key={pago.presupuesto_id} 
+                    style={{ 
+                      borderBottom: '1px solid #e2e8f0',
+                      backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8fafc',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f1f5f9'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = index % 2 === 0 ? '#ffffff' : '#f8fafc'}
+                  >
+                    {/* Cliente */}
+                    <td style={{ padding: '16px', verticalAlign: 'top' }}>
                       <div>
-                        <div style={{ fontWeight: '600', color: '#2d3748' }}>
+                        <div style={{ fontWeight: '600', color: '#1e293b', fontSize: '14px', marginBottom: '4px' }}>
                           {pago.nombre_estudiante || pago.estudiante_nombre}
                         </div>
-                        <div style={{ fontSize: '12px', color: '#718096' }}>
-                          ID: {pago.presupuesto_id}
+                        <div style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'monospace' }}>
+                          #{pago.presupuesto_id}
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontSize: '12px', color: '#4a5568' }}>
-                        {pago.servicios_solicitados?.slice(0, 2).join(', ')}
-                        {pago.servicios_solicitados?.length > 2 && '...'}
+
+                    {/* Servicios */}
+                    <td style={{ padding: '16px', verticalAlign: 'top' }}>
+                      <div style={{ fontSize: '12px', color: '#475569', lineHeight: '1.6' }}>
+                        {pago.servicios_solicitados && pago.servicios_solicitados.length > 0 ? (
+                          <>
+                            {pago.servicios_solicitados.slice(0, 2).map((servicio, idx) => (
+                              <div key={idx} style={{ marginBottom: '3px' }}>
+                                • {servicio}
+                              </div>
+                            ))}
+                            {pago.servicios_solicitados.length > 2 && (
+                              <div style={{ 
+                                fontSize: '11px', 
+                                color: '#667eea', 
+                                fontWeight: '600',
+                                marginTop: '5px'
+                              }}>
+                                +{pago.servicios_solicitados.length - 2} más
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Sin servicios</span>
+                        )}
                       </div>
                     </td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontSize: '12px', lineHeight: '1.8' }}>
+
+                    {/* Desglose de Pagos */}
+                    <td style={{ padding: '16px', verticalAlign: 'top' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {/* Pago Inicial */}
                         {pago.precio_al_empezar > 0 && (
-                          <div style={{ 
+                          <label style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
-                            gap: '8px',
-                            marginBottom: '6px',
-                            padding: '6px 10px',
-                            backgroundColor: pago.pagado_al_empezar ? '#d1fae5' : '#fef3c7',
-                            borderRadius: '6px',
-                            border: `2px solid ${pago.pagado_al_empezar ? '#10b981' : '#f59e0b'}`
+                            gap: '10px',
+                            padding: '10px 14px',
+                            backgroundColor: pago.pagado_al_empezar ? '#ecfdf5' : '#fffbeb',
+                            borderRadius: '8px',
+                            border: `2px solid ${pago.pagado_al_empezar ? '#10b981' : '#fbbf24'}`,
+                            cursor: pago.pagado ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.2s',
+                            opacity: pago.pagado ? 0.6 : 1
                           }}>
                             <input
                               type="checkbox"
                               checked={pago.pagado_al_empezar || false}
                               onChange={(e) => marcarPagoIndividual(pago.presupuesto_id, 'al_empezar', e.target.checked)}
                               style={{ 
-                                cursor: 'pointer',
-                                width: '16px',
-                                height: '16px'
+                                cursor: pago.pagado ? 'not-allowed' : 'pointer',
+                                width: '18px',
+                                height: '18px',
+                                accentColor: '#10b981'
                               }}
                               disabled={pago.pagado}
                             />
-                            <span style={{ 
-                              fontWeight: '500',
-                              color: pago.pagado_al_empezar ? '#065f46' : '#92400e'
-                            }}>
-                              🚀 Inicial: €{pago.precio_al_empezar.toFixed(2)}
-                            </span>
-                            {pago.fecha_pago_al_empezar && (
-                              <span style={{ fontSize: '10px', color: '#6b7280' }}>
-                                ({new Date(pago.fecha_pago_al_empezar).toLocaleDateString('es-ES')})
-                              </span>
-                            )}
-                          </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ 
+                                fontWeight: '600',
+                                color: pago.pagado_al_empezar ? '#065f46' : '#92400e',
+                                fontSize: '13px'
+                              }}>
+                                🚀 Pago Inicial
+                              </div>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: pago.pagado_al_empezar ? '#047857' : '#b45309', marginTop: '2px' }}>
+                                €{pago.precio_al_empezar.toFixed(2)}
+                              </div>
+                              {pago.fecha_pago_al_empezar && (
+                                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
+                                  ✓ {new Date(pago.fecha_pago_al_empezar).toLocaleDateString('es-ES')}
+                                </div>
+                              )}
+                            </div>
+                          </label>
                         )}
                         
                         {/* Pago con Visa */}
                         {pago.precio_con_visa > 0 && (
-                          <div style={{ 
+                          <label style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
-                            gap: '8px',
-                            marginBottom: '6px',
-                            padding: '6px 10px',
-                            backgroundColor: pago.pagado_con_visa ? '#d1fae5' : '#dbeafe',
-                            borderRadius: '6px',
-                            border: `2px solid ${pago.pagado_con_visa ? '#10b981' : '#3b82f6'}`
+                            gap: '10px',
+                            padding: '10px 14px',
+                            backgroundColor: pago.pagado_con_visa ? '#ecfdf5' : '#eff6ff',
+                            borderRadius: '8px',
+                            border: `2px solid ${pago.pagado_con_visa ? '#10b981' : '#60a5fa'}`,
+                            cursor: pago.pagado ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.2s',
+                            opacity: pago.pagado ? 0.6 : 1
                           }}>
                             <input
                               type="checkbox"
                               checked={pago.pagado_con_visa || false}
                               onChange={(e) => marcarPagoIndividual(pago.presupuesto_id, 'con_visa', e.target.checked)}
                               style={{ 
-                                cursor: 'pointer',
-                                width: '16px',
-                                height: '16px'
+                                cursor: pago.pagado ? 'not-allowed' : 'pointer',
+                                width: '18px',
+                                height: '18px',
+                                accentColor: '#10b981'
                               }}
                               disabled={pago.pagado}
                             />
-                            <span style={{ 
-                              fontWeight: '500',
-                              color: pago.pagado_con_visa ? '#065f46' : '#1e40af'
-                            }}>
-                              🎯 Con Visa: €{pago.precio_con_visa.toFixed(2)}
-                            </span>
-                            {pago.fecha_pago_con_visa && (
-                              <span style={{ fontSize: '10px', color: '#6b7280' }}>
-                                ({new Date(pago.fecha_pago_con_visa).toLocaleDateString('es-ES')})
-                              </span>
-                            )}
-                          </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ 
+                                fontWeight: '600',
+                                color: pago.pagado_con_visa ? '#065f46' : '#1e40af',
+                                fontSize: '13px'
+                              }}>
+                                🎯 Con Visa
+                              </div>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: pago.pagado_con_visa ? '#047857' : '#2563eb', marginTop: '2px' }}>
+                                €{pago.precio_con_visa.toFixed(2)}
+                              </div>
+                              {pago.fecha_pago_con_visa && (
+                                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
+                                  ✓ {new Date(pago.fecha_pago_con_visa).toLocaleDateString('es-ES')}
+                                </div>
+                              )}
+                            </div>
+                          </label>
                         )}
                         
                         {/* Pago Financiado */}
                         {pago.precio_financiado > 0 && (
-                          <div style={{ 
+                          <label style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
-                            gap: '8px',
-                            padding: '6px 10px',
-                            backgroundColor: pago.pagado_financiado ? '#d1fae5' : '#e0e7ff',
-                            borderRadius: '6px',
-                            border: `2px solid ${pago.pagado_financiado ? '#10b981' : '#6366f1'}`
+                            gap: '10px',
+                            padding: '10px 14px',
+                            backgroundColor: pago.pagado_financiado ? '#ecfdf5' : '#f5f3ff',
+                            borderRadius: '8px',
+                            border: `2px solid ${pago.pagado_financiado ? '#10b981' : '#a78bfa'}`,
+                            cursor: pago.pagado ? 'not-allowed' : 'pointer',
+                            transition: 'all 0.2s',
+                            opacity: pago.pagado ? 0.6 : 1
                           }}>
                             <input
                               type="checkbox"
                               checked={pago.pagado_financiado || false}
                               onChange={(e) => marcarPagoIndividual(pago.presupuesto_id, 'financiado', e.target.checked)}
                               style={{ 
-                                cursor: 'pointer',
-                                width: '16px',
-                                height: '16px'
+                                cursor: pago.pagado ? 'not-allowed' : 'pointer',
+                                width: '18px',
+                                height: '18px',
+                                accentColor: '#10b981'
                               }}
                               disabled={pago.pagado}
                             />
-                            <span style={{ 
-                              fontWeight: '500',
-                              color: pago.pagado_financiado ? '#065f46' : '#4338ca'
-                            }}>
-                              📅 Financiado: €{pago.precio_financiado.toFixed(2)}
-                            </span>
-                            {pago.fecha_pago_financiado && (
-                              <span style={{ fontSize: '10px', color: '#6b7280' }}>
-                                ({new Date(pago.fecha_pago_financiado).toLocaleDateString('es-ES')})
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        
-                        {/* Mensaje si todo está pagado */}
-                        {pago.pagado && (
-                          <div style={{
-                            marginTop: '8px',
-                            padding: '4px 8px',
-                            backgroundColor: '#d1fae5',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            color: '#065f46',
-                            fontWeight: '600',
-                            textAlign: 'center'
-                          }}>
-                            ✅ Completamente Pagado
-                          </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ 
+                                fontWeight: '600',
+                                color: pago.pagado_financiado ? '#065f46' : '#5b21b6',
+                                fontSize: '13px'
+                              }}>
+                                📅 Financiado
+                              </div>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: pago.pagado_financiado ? '#047857' : '#7c3aed', marginTop: '2px' }}>
+                                €{pago.precio_financiado.toFixed(2)}
+                              </div>
+                              {pago.fecha_pago_financiado && (
+                                <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>
+                                  ✓ {new Date(pago.fecha_pago_financiado).toLocaleDateString('es-ES')}
+                                </div>
+                              )}
+                            </div>
+                          </label>
                         )}
                       </div>
                     </td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ fontWeight: '600', color: '#059669', fontSize: '15px' }}>
+
+                    {/* Monto Total */}
+                    <td style={{ padding: '16px', textAlign: 'center', verticalAlign: 'top' }}>
+                      <div style={{ 
+                        fontWeight: '700', 
+                        color: '#059669', 
+                        fontSize: '18px',
+                        marginBottom: '4px'
+                      }}>
                         €{(pago.monto_a_pagar || pago.monto_total || 0).toFixed(2)}
                       </div>
-                      <div style={{ fontSize: '10px', color: '#718096' }}>
+                      <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         Total
                       </div>
                     </td>
-                    <td style={{ padding: '12px', fontSize: '12px', color: '#4a5568' }}>
-                      {formatearFecha(pago.fecha_aceptacion)}
+
+                    {/* Fecha */}
+                    <td style={{ padding: '16px', textAlign: 'center', verticalAlign: 'top' }}>
+                      <div style={{ fontSize: '12px', color: '#475569' }}>
+                        {pago.fecha_aceptacion ? (
+                          <>
+                            <div style={{ fontWeight: '600' }}>
+                              {new Date(pago.fecha_aceptacion).toLocaleDateString('es-ES')}
+                            </div>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>
+                              {new Date(pago.fecha_aceptacion).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                          </>
+                        ) : (
+                          <span style={{ color: '#cbd5e1' }}>—</span>
+                        )}
+                      </div>
                     </td>
-                    <td style={{ padding: '12px' }}>
+
+                    {/* Estado */}
+                    <td style={{ padding: '16px', textAlign: 'center', verticalAlign: 'top' }}>
                       {pago.pagado ? (
-                        <span style={{
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          backgroundColor: '#d1fae5',
-                          color: '#065f46',
-                          fontSize: '12px',
-                          fontWeight: '600'
-                        }}>
-                          ✅ Pagado
-                        </span>
-                      ) : (
-                        <span style={{
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          backgroundColor: '#fef3c7',
-                          color: '#92400e',
-                          fontSize: '12px',
-                          fontWeight: '600'
-                        }}>
-                          ⏳ Pendiente
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      {pago.pagado ? (
-                        <div style={{
-                          padding: '8px 12px',
-                          backgroundColor: '#d1fae5',
-                          color: '#065f46',
-                          borderRadius: '6px',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          textAlign: 'center'
-                        }}>
-                          ✅ Todo Pagado
+                        <div>
+                          <div style={{
+                            display: 'inline-block',
+                            padding: '8px 16px',
+                            borderRadius: '20px',
+                            backgroundColor: '#d1fae5',
+                            color: '#065f46',
+                            fontSize: '13px',
+                            fontWeight: '700',
+                            border: '2px solid #10b981'
+                          }}>
+                            ✅ COMPLETADO
+                          </div>
                           {pago.fecha_pago && (
-                            <div style={{ fontSize: '10px', marginTop: '4px', fontWeight: 'normal' }}>
-                              {formatearFecha(pago.fecha_pago)}
+                            <div style={{ fontSize: '10px', color: '#64748b', marginTop: '6px' }}>
+                              {new Date(pago.fecha_pago).toLocaleDateString('es-ES')}
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center' }}>
-                          Marcar pagos ← con checkboxes
+                        <div>
+                          <div style={{
+                            display: 'inline-block',
+                            padding: '8px 16px',
+                            borderRadius: '20px',
+                            backgroundColor: '#fef3c7',
+                            color: '#92400e',
+                            fontSize: '13px',
+                            fontWeight: '700',
+                            border: '2px solid #fbbf24'
+                          }}>
+                            ⏳ PENDIENTE
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '6px', fontStyle: 'italic' }}>
+                            Marcar arriba ↑
+                          </div>
                         </div>
                       )}
                     </td>
