@@ -83,11 +83,14 @@ function DashboardAdminExpandido({ onLogout }) {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.data.success) {
-        setMensajesNoLeidos(response.data.total_no_leidos || 0)
+        // Solo actualizar si NO estamos viendo el chat
+        if (activeTab !== 'chat') {
+          setMensajesNoLeidos(response.data.total_no_leidos || 0)
+        }
       }
     } catch (error) {
       console.error('Error cargando contador de mensajes:', error)
-      setMensajesNoLeidos(0)
+      // No resetear a 0 si hay error, mantener el valor actual
     }
   }
 
@@ -644,9 +647,8 @@ function DashboardAdminExpandido({ onLogout }) {
           <div 
             className="notification-bell" 
             onClick={() => {
+              setMensajesNoLeidos(0) // Resetear contador ANTES de cambiar tab
               setActiveTab('chat')
-              setMensajesNoLeidos(0) // Resetear contador al abrir el chat
-              cargarContadorMensajes()
             }}
             style={{ cursor: 'pointer' }}
           >
