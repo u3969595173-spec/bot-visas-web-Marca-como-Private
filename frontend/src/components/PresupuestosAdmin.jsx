@@ -18,6 +18,14 @@ function PresupuestosAdmin({ embedded = false }) {
   })
   const navigate = useNavigate()
 
+  // Función para toggle de servicios expandidos
+  const toggleServiciosExpandidos = (presupuestoId) => {
+    setServiciosExpandidos(prev => ({
+      ...prev,
+      [presupuestoId]: !prev[presupuestoId]
+    }))
+  }
+
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
@@ -287,10 +295,11 @@ function PresupuestosAdmin({ embedded = false }) {
                             {/* Botón "Ver más" / "Ver menos" */}
                             {presupuesto.servicios_solicitados.length > 1 && (
                               <button
-                                onClick={() => setServiciosExpandidos({
-                                  ...serviciosExpandidos,
-                                  [presupuesto.id]: !serviciosExpandidos[presupuesto.id]
-                                })}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  toggleServiciosExpandidos(presupuesto.id)
+                                }}
                                 style={{ 
                                   marginTop: '6px',
                                   color: '#3b82f6',
