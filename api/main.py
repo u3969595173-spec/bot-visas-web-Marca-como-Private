@@ -9045,6 +9045,10 @@ def ver_tesoro_pagos(
             p.id, p.estudiante_id, p.modalidad_seleccionada,
             p.precio_al_empezar, p.precio_con_visa, p.precio_financiado,
             p.fecha_aceptacion, p.fecha_pago, p.pagado,
+            p.pagado_al_empezar, p.fecha_pago_al_empezar,
+            p.pagado_con_visa, p.fecha_pago_con_visa,
+            p.pagado_financiado, p.fecha_pago_financiado,
+            p.servicios_solicitados,
             e.nombre, e.email, e.telefono
         FROM presupuestos p
         JOIN estudiantes e ON p.estudiante_id = e.id
@@ -9064,6 +9068,9 @@ def ver_tesoro_pagos(
         
         monto_total = precio_al_empezar + precio_con_visa + precio_financiado
         
+        # Parsear servicios_solicitados
+        servicios = row[15] if row[15] else []
+        
         pagos_pendientes.append({
             'presupuesto_id': row[0],
             'estudiante_id': row[1],
@@ -9071,14 +9078,21 @@ def ver_tesoro_pagos(
             'precio_al_empezar': precio_al_empezar,
             'precio_con_visa': precio_con_visa,
             'precio_financiado': precio_financiado,
+            'pagado_al_empezar': bool(row[9]) if row[9] is not None else False,
+            'fecha_pago_al_empezar': row[10].isoformat() if row[10] else None,
+            'pagado_con_visa': bool(row[11]) if row[11] is not None else False,
+            'fecha_pago_con_visa': row[12].isoformat() if row[12] else None,
+            'pagado_financiado': bool(row[13]) if row[13] is not None else False,
+            'fecha_pago_financiado': row[14].isoformat() if row[14] else None,
+            'servicios_solicitados': servicios,
             'monto_a_pagar': monto_total,
             'monto_total': monto_total,
             'fecha_aceptacion': row[6].isoformat() if row[6] else None,
             'fecha_pago': row[7].isoformat() if row[7] else None,
             'pagado': bool(row[8]) if row[8] is not None else False,
-            'nombre_estudiante': row[9],
-            'email_estudiante': row[10],
-            'telefono_estudiante': row[11]
+            'nombre_estudiante': row[16],
+            'email_estudiante': row[17],
+            'telefono_estudiante': row[18]
         })
     
     # Estadísticas del tesoro
@@ -9124,6 +9138,105 @@ def marcar_como_pagado(
     })
     
     return {"message": "Pago marcado exitosamente"}
+
+
+@app.put("/api/admin/tesoro/{presupuesto_id}/marcar-pago-individual", tags=["Admin"])
+def marcar_pago_individual(
+    presupuesto_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin marca un pago individual por modalidad (al_empezar, con_visa, financiado)"""
+    modalidad = datos.get('modalidad')  # 'al_empezar', 'con_visa', 'financiado'
+    pagado = datos.get('pagado', True)  # True para marcar como pagado, False para desmarcar
+    
+    if not modalidad or modalidad not in ['al_empezar', 'con_visa', 'financiado']:
+        raise HTTPException(status_code=400, detail="Modalidad inválida. Debe ser: al_empezar, con_visa o financiado")
+    
+    # Mapear nombre de modalidad a columnas de BD
+    campo_pagado = f"pagado_{modalidad}"
+    campo_fecha = f"fecha_pago_{modalidad}"
+    
+    if pagado:
+        # Marcar como pagado
+        result = db.execute(text(f"""
+            UPDATE presupuestos
+            SET {campo_pagado} = true,
+                {campo_fecha} = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id AND estado = 'aceptado'
+        """), {"id": presupuesto_id})
+    else:
+        # Desmarcar como pagado
+        result = db.execute(text(f"""
+            UPDATE presupuestos
+            SET {campo_pagado} = false,
+                {campo_fecha} = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id AND estado = 'aceptado'
+        """), {"id": presupuesto_id})
+    
+    if result.rowcount == 0:
+        raise HTTPException(
+            status_code=404, 
+            detail="Presupuesto no encontrado o no está en estado aceptado"
+        )
+    
+    # Verificar si TODAS las modalidades están pagadas para actualizar el campo general 'pagado'
+    check = db.execute(text("""
+        SELECT 
+            precio_al_empezar, pagado_al_empezar,
+            precio_con_visa, pagado_con_visa,
+            precio_financiado, pagado_financiado
+        FROM presupuestos
+        WHERE id = :id
+    """), {"id": presupuesto_id}).fetchone()
+    
+    if check:
+        # Verificar cuáles modalidades aplican (tienen precio > 0)
+        todas_pagadas = True
+        
+        if check[0] and check[0] > 0:  # Si hay precio_al_empezar
+            if not check[1]:  # Y no está pagado
+                todas_pagadas = False
+        
+        if check[2] and check[2] > 0:  # Si hay precio_con_visa
+            if not check[3]:  # Y no está pagado
+                todas_pagadas = False
+        
+        if check[4] and check[4] > 0:  # Si hay precio_financiado
+            if not check[5]:  # Y no está pagado
+                todas_pagadas = False
+        
+        # Actualizar campo general 'pagado' automáticamente
+        if todas_pagadas:
+            db.execute(text("""
+                UPDATE presupuestos
+                SET pagado = true,
+                    fecha_pago = CURRENT_TIMESTAMP
+                WHERE id = :id
+            """), {"id": presupuesto_id})
+        else:
+            db.execute(text("""
+                UPDATE presupuestos
+                SET pagado = false,
+                    fecha_pago = NULL
+                WHERE id = :id
+            """), {"id": presupuesto_id})
+    
+    db.commit()
+    
+    log_event("pago_individual_marcado", {
+        'presupuesto_id': presupuesto_id,
+        'modalidad': modalidad,
+        'pagado': pagado
+    })
+    
+    return {
+        "message": f"Pago de modalidad '{modalidad}' {'marcado' if pagado else 'desmarcado'} exitosamente",
+        "todas_pagadas": todas_pagadas if check else False
+    }
 
 
 @app.put("/api/presupuestos/{presupuesto_id}/respuesta", tags=["Presupuestos"])

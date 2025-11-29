@@ -59,6 +59,22 @@ function TesoroAdmin({ embedded = false }) {
     }
   }
 
+  const marcarPagoIndividual = async (presupuestoId, modalidad, pagado) => {
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      await axios.put(`${apiUrl}/api/admin/tesoro/${presupuestoId}/marcar-pago-individual`, {
+        modalidad,
+        pagado
+      })
+      setSuccess(`✅ Pago ${modalidad} ${pagado ? 'marcado' : 'desmarcado'}`)
+      cargarPagos()
+      setTimeout(() => setSuccess(''), 2000)
+    } catch (err) {
+      setError('Error al actualizar pago: ' + (err.response?.data?.detail || err.message))
+      setTimeout(() => setError(''), 3000)
+    }
+  }
+
   const formatearFecha = (fecha) => {
     if (!fecha) return 'No registrada'
     return new Date(fecha).toLocaleDateString('es-ES', {
@@ -231,15 +247,131 @@ function TesoroAdmin({ embedded = false }) {
                       </div>
                     </td>
                     <td style={{ padding: '12px' }}>
-                      <div style={{ fontSize: '11px', lineHeight: '1.6' }}>
+                      <div style={{ fontSize: '12px', lineHeight: '1.8' }}>
+                        {/* Pago Inicial */}
                         {pago.precio_al_empezar > 0 && (
-                          <div>🚀 Inicial: €{pago.precio_al_empezar.toFixed(2)}</div>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px',
+                            marginBottom: '6px',
+                            padding: '6px 10px',
+                            backgroundColor: pago.pagado_al_empezar ? '#d1fae5' : '#fef3c7',
+                            borderRadius: '6px',
+                            border: `2px solid ${pago.pagado_al_empezar ? '#10b981' : '#f59e0b'}`
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={pago.pagado_al_empezar || false}
+                              onChange={(e) => marcarPagoIndividual(pago.presupuesto_id, 'al_empezar', e.target.checked)}
+                              style={{ 
+                                cursor: 'pointer',
+                                width: '16px',
+                                height: '16px'
+                              }}
+                              disabled={pago.pagado}
+                            />
+                            <span style={{ 
+                              fontWeight: '500',
+                              color: pago.pagado_al_empezar ? '#065f46' : '#92400e'
+                            }}>
+                              🚀 Inicial: €{pago.precio_al_empezar.toFixed(2)}
+                            </span>
+                            {pago.fecha_pago_al_empezar && (
+                              <span style={{ fontSize: '10px', color: '#6b7280' }}>
+                                ({new Date(pago.fecha_pago_al_empezar).toLocaleDateString('es-ES')})
+                              </span>
+                            )}
+                          </div>
                         )}
+                        
+                        {/* Pago con Visa */}
                         {pago.precio_con_visa > 0 && (
-                          <div>🎯 Post-cita: €{pago.precio_con_visa.toFixed(2)}</div>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px',
+                            marginBottom: '6px',
+                            padding: '6px 10px',
+                            backgroundColor: pago.pagado_con_visa ? '#d1fae5' : '#dbeafe',
+                            borderRadius: '6px',
+                            border: `2px solid ${pago.pagado_con_visa ? '#10b981' : '#3b82f6'}`
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={pago.pagado_con_visa || false}
+                              onChange={(e) => marcarPagoIndividual(pago.presupuesto_id, 'con_visa', e.target.checked)}
+                              style={{ 
+                                cursor: 'pointer',
+                                width: '16px',
+                                height: '16px'
+                              }}
+                              disabled={pago.pagado}
+                            />
+                            <span style={{ 
+                              fontWeight: '500',
+                              color: pago.pagado_con_visa ? '#065f46' : '#1e40af'
+                            }}>
+                              🎯 Con Visa: €{pago.precio_con_visa.toFixed(2)}
+                            </span>
+                            {pago.fecha_pago_con_visa && (
+                              <span style={{ fontSize: '10px', color: '#6b7280' }}>
+                                ({new Date(pago.fecha_pago_con_visa).toLocaleDateString('es-ES')})
+                              </span>
+                            )}
+                          </div>
                         )}
+                        
+                        {/* Pago Financiado */}
                         {pago.precio_financiado > 0 && (
-                          <div>📅 Financiado: €{pago.precio_financiado.toFixed(2)}</div>
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px',
+                            padding: '6px 10px',
+                            backgroundColor: pago.pagado_financiado ? '#d1fae5' : '#e0e7ff',
+                            borderRadius: '6px',
+                            border: `2px solid ${pago.pagado_financiado ? '#10b981' : '#6366f1'}`
+                          }}>
+                            <input
+                              type="checkbox"
+                              checked={pago.pagado_financiado || false}
+                              onChange={(e) => marcarPagoIndividual(pago.presupuesto_id, 'financiado', e.target.checked)}
+                              style={{ 
+                                cursor: 'pointer',
+                                width: '16px',
+                                height: '16px'
+                              }}
+                              disabled={pago.pagado}
+                            />
+                            <span style={{ 
+                              fontWeight: '500',
+                              color: pago.pagado_financiado ? '#065f46' : '#4338ca'
+                            }}>
+                              📅 Financiado: €{pago.precio_financiado.toFixed(2)}
+                            </span>
+                            {pago.fecha_pago_financiado && (
+                              <span style={{ fontSize: '10px', color: '#6b7280' }}>
+                                ({new Date(pago.fecha_pago_financiado).toLocaleDateString('es-ES')})
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Mensaje si todo está pagado */}
+                        {pago.pagado && (
+                          <div style={{
+                            marginTop: '8px',
+                            padding: '4px 8px',
+                            backgroundColor: '#d1fae5',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            color: '#065f46',
+                            fontWeight: '600',
+                            textAlign: 'center'
+                          }}>
+                            ✅ Completamente Pagado
+                          </div>
                         )}
                       </div>
                     </td>
@@ -280,21 +412,27 @@ function TesoroAdmin({ embedded = false }) {
                       )}
                     </td>
                     <td style={{ padding: '12px' }}>
-                      {!pago.pagado && (
-                        <button
-                          onClick={() => marcarComoPagado(pago.presupuesto_id)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          💳 Marcar Pagado
-                        </button>
+                      {pago.pagado ? (
+                        <div style={{
+                          padding: '8px 12px',
+                          backgroundColor: '#d1fae5',
+                          color: '#065f46',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          textAlign: 'center'
+                        }}>
+                          ✅ Todo Pagado
+                          {pago.fecha_pago && (
+                            <div style={{ fontSize: '10px', marginTop: '4px', fontWeight: 'normal' }}>
+                              {formatearFecha(pago.fecha_pago)}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '11px', color: '#6b7280', textAlign: 'center' }}>
+                          Marcar pagos ← con checkboxes
+                        </div>
                       )}
                     </td>
                   </tr>
