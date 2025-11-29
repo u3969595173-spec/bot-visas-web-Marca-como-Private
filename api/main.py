@@ -9103,7 +9103,7 @@ def marcar_como_pagado(
     db: Session = Depends(get_db)
 ):
     """Admin marca un presupuesto como pagado"""
-    db.execute(text("""
+    result = db.execute(text("""
         UPDATE presupuestos
         SET pagado = true,
             fecha_pago = CURRENT_TIMESTAMP,
@@ -9111,7 +9111,7 @@ def marcar_como_pagado(
         WHERE id = :id AND estado = 'aceptado'
     """), {"id": presupuesto_id})
     
-    if db.rowcount == 0:
+    if result.rowcount == 0:
         raise HTTPException(
             status_code=404, 
             detail="Presupuesto no encontrado o no está en estado aceptado"
