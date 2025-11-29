@@ -9432,6 +9432,44 @@ def limpiar_presupuestos_aceptados(
         db.rollback()
         logger.error(f"❌ Error limpiando presupuestos aceptados: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/admin/proceso-visa/limpiar-todos", tags=["Admin"])
+def limpiar_todos_procesos_visa(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin resetea TODOS los registros de proceso_visa para empezar pruebas desde cero"""
+    try:
+        # Contar registros
+        result = db.execute(text("""
+            SELECT COUNT(*) FROM proceso_visa
+        """))
+        count = result.scalar()
+        
+        if count == 0:
+            return {"message": "No hay procesos de visa para limpiar", "registros_eliminados": 0}
+        
+        # Eliminar todos los registros de proceso_visa
+        db.execute(text("""
+            DELETE FROM proceso_visa
+        """))
+        
+        db.commit()
+        
+        log_event("procesos_visa_limpiados", {
+            'cantidad': count
+        })
+        
+        return {
+            "message": f"✅ {count} proceso(s) de visa eliminado(s). Panel limpio para probar desde cero.",
+            "registros_eliminados": count
+        }
+    
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Error limpiando procesos de visa: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         db.rollback()
         logger.error(f"❌ Error en responder_presupuesto: {str(e)}")

@@ -119,6 +119,26 @@ function PanelProcesoAdmin() {
     }
   }
 
+  const limpiarTodosProcesos = async () => {
+    if (!confirm('⚠️ ¿ELIMINAR TODOS los registros de proceso de visa?\n\nEsto borrará TODO el seguimiento de todos los estudiantes.\nÚsalo solo para empezar pruebas desde cero.\n\n¿Continuar?')) {
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('token')
+      const res = await axios.delete(`${apiUrl}/api/admin/proceso-visa/limpiar-todos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      alert(`✅ ${res.data.message}`)
+      setEstudianteSeleccionado(null)
+      setProceso(null)
+      cargarEstudiantes()
+    } catch (err) {
+      console.error('Error limpiando procesos:', err)
+      alert('❌ Error al limpiar procesos: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
   const cargarProceso = async (estudianteId) => {
     try {
       const token = localStorage.getItem('token')
@@ -228,8 +248,31 @@ function PanelProcesoAdmin() {
   return (
     <div className="panel-proceso-admin">
       <div className="admin-header">
-        <h1>📊 Panel de Seguimiento de Proceso de Visa</h1>
-        <p>Administra el proceso completo de cada estudiante desde inscripción hasta visa otorgada</p>
+        <div>
+          <h1>📊 Panel de Seguimiento de Proceso de Visa</h1>
+          <p>Administra el proceso completo de cada estudiante desde inscripción hasta visa otorgada</p>
+        </div>
+        <button
+          onClick={limpiarTodosProcesos}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#ef4444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            whiteSpace: 'nowrap'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
+        >
+          🗑️ Limpiar Todo (Pruebas)
+        </button>
       </div>
 
       <div className="admin-layout">
