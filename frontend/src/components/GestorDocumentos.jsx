@@ -55,8 +55,8 @@ const GestorDocumentos = ({ estudianteId }) => {
         formData.append('archivos', file);
       });
       
-      // Agregar categorías como string separado por comas
-      const categoriasStr = acceptedFiles.map(() => categoriaSeleccionada).join(',');
+      // Todos los documentos van a categoría "otros" por defecto
+      const categoriasStr = acceptedFiles.map(() => 'otros').join(',');
       formData.append('categorias', categoriasStr);
       
       const response = await fetch(`${API_BASE_URL}/api/documentos/${estudianteId}/subir`, {
@@ -206,27 +206,40 @@ const GestorDocumentos = ({ estudianteId }) => {
         </p>
       </div>
 
-      {/* Selector de categoría */}
-      <div className="categoria-selector">
-        <h3>Selecciona la categoría del documento:</h3>
-        <div className="categorias-grid">
-          {CATEGORIAS.map(cat => (
-            <div
-              key={cat.id}
-              className={`categoria-card ${categoriaSeleccionada === cat.id ? 'activa' : ''}`}
-              onClick={() => setCategoriaSeleccionada(cat.id)}
-            >
-              <div className="categoria-icono">{cat.icono}</div>
-              <div className="categoria-info">
-                <h4>{cat.nombre}</h4>
-                <p>{cat.descripcion}</p>
-                <span className="categoria-count">
-                  {documentosPorCategoria(cat.id).length} archivo(s)
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Cartel informativo */}
+      <div style={{
+        backgroundColor: '#eff6ff',
+        border: '2px solid #3b82f6',
+        borderRadius: '12px',
+        padding: '24px',
+        margin: '20px 0',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: '48px', marginBottom: '12px' }}>💬</div>
+        <h3 style={{ color: '#1e40af', marginBottom: '12px', fontSize: '20px' }}>
+          ¿No sabes qué documentos subir?
+        </h3>
+        <p style={{ color: '#1e3a8a', fontSize: '16px', marginBottom: '16px', lineHeight: '1.6' }}>
+          <strong>Contacta con el administrador por chat</strong> para que te indique exactamente qué documentos necesitas subir según tu caso.
+        </p>
+        <button 
+          onClick={() => window.location.href = '/estudiante#mensajes'}
+          style={{
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            padding: '12px 32px',
+            fontSize: '16px',
+            fontWeight: '600',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.3s'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
+        >
+          💬 Ir al Chat
+        </button>
       </div>
 
       {/* Zona de subida */}
@@ -245,10 +258,7 @@ const GestorDocumentos = ({ estudianteId }) => {
         ) : (
           <div className="dropzone-content">
             <div className="dropzone-icono">☁️</div>
-            <p><strong>Arrastra archivos aquí</strong> o haz clic para seleccionar</p>
-            <span className="dropzone-info">
-              Categoría: <strong>{CATEGORIAS.find(c => c.id === categoriaSeleccionada)?.nombre}</strong>
-            </span>
+            <p><strong>Arrastra tus documentos aquí</strong> o haz clic para seleccionar</p>
             <span className="dropzone-tipos">PDF, JPG, PNG, DOC, DOCX (máx. 10MB)</span>
           </div>
         )}
@@ -270,13 +280,15 @@ const GestorDocumentos = ({ estudianteId }) => {
               <div key={doc.id} className="documento-card">
                 <div className="documento-header">
                   <div className="documento-icono">
-                    {doc.mime_type.includes('pdf') ? '📄' : '🖼️'}
+                    {doc.mime_type?.includes('pdf') ? '📄' : doc.origen === 'generado' ? '✨' : '🖼️'}
                   </div>
                   <div className="documento-info">
                     <h4>{doc.nombre}</h4>
-                    <span className="documento-categoria">
-                      {CATEGORIAS.find(c => c.id === doc.categoria)?.icono} {CATEGORIAS.find(c => c.id === doc.categoria)?.nombre}
-                    </span>
+                    {doc.origen === 'generado' && (
+                      <span className="documento-categoria" style={{ color: '#10b981', fontWeight: 'bold' }}>
+                        ✨ Generado por Admin
+                      </span>
+                    )}
                   </div>
                 </div>
                 
