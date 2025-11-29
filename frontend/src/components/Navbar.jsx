@@ -70,19 +70,8 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
               <Link to="/portal" className={`nav-link ${isActive('/portal')}`}>
                 Consultar Estado
               </Link>
-              <Link to="/admin/login" className={`nav-link ${isActive('/admin/login')}`}>
-                Admin
-              </Link>
             </>
           )}
-
-          {/* Enlaces comunes siempre visibles */}
-          <Link to="/blog" className={`nav-link ${isActive('/blog')}`}>
-            Blog
-          </Link>
-          <Link to="/testimonios" className={`nav-link ${isActive('/testimonios')}`}>
-            Testimonios
-          </Link>
 
           {/* Botón Cerrar Sesión al final */}
           {estudianteId && (
@@ -109,18 +98,6 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
           {/* Menú admin cuando está autenticado como admin */}
           {isAuthenticated && (
             <>
-              <Link to="/admin/universidades" className={`nav-link ${isActive('/admin/universidades')}`}>
-                Universidades
-              </Link>
-              <Link to="/admin/programas" className={`nav-link ${isActive('/admin/programas')}`}>
-                Programas
-              </Link>
-              <Link to="/admin/blog" className={`nav-link ${isActive('/admin/blog')}`}>
-                Blog
-              </Link>
-              <Link to="/admin/testimonios" className={`nav-link ${isActive('/admin/testimonios')}`}>
-                Testimonios
-              </Link>
               <Link to="/admin/chats" className={`nav-link ${isActive('/admin/chats')}`}>
                 Chats
               </Link>

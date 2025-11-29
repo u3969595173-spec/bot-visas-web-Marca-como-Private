@@ -102,17 +102,14 @@ function Home() {
               <Link to="/" className="footer-link">
                 Inicio
               </Link>
-              <Link to="/servicios" className="footer-link">
-                Servicios
-              </Link>
-              <Link to="/universidades" className="footer-link">
-                Universidades
-              </Link>
               <Link to="/blog" className="footer-link">
                 Blog
               </Link>
-              <Link to="/contacto" className="footer-link">
-                Contacto
+              <Link to="/testimonios" className="footer-link">
+                Testimonios
+              </Link>
+              <Link to="/admin/login" className="footer-link">
+                Acceso Admin
               </Link>
             </nav>
 
