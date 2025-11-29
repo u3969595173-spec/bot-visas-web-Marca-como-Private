@@ -8833,6 +8833,48 @@ async def actualizar_paso_proceso(
     cursor.close()
     conn.close()
     
+    # Verificar si todos los pasos están completos para cambiar estado_servicio a 'completado'
+    conn2 = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+    cursor2 = conn2.cursor()
+    
+    # Obtener todos los pasos del estudiante
+    cursor2.execute("""
+        SELECT paso_inscripcion, paso_pago_inicial, paso_documentos_personales,
+               paso_seleccion_universidad, paso_solicitud_universidad, paso_carta_aceptacion,
+               paso_antecedentes_solicitados, paso_antecedentes_recibidos, paso_apostilla_haya,
+               paso_traduccion_documentos, paso_seguro_medico, paso_comprobante_fondos,
+               paso_carta_banco, paso_formulario_visa, paso_fotos_biometricas,
+               paso_pago_tasa_visa, paso_cita_agendada, paso_documentos_revisados,
+               paso_simulacro_entrevista, paso_entrevista_completada, paso_pasaporte_recogido,
+               paso_visa_otorgada
+        FROM proceso_visa_pasos
+        WHERE estudiante_id = %s
+    """, (estudiante_id,))
+    
+    resultado = cursor2.fetchone()
+    
+    if resultado:
+        # Verificar si todos los pasos son True
+        todos_completos = all(resultado)
+        
+        if todos_completos:
+            # Actualizar presupuestos del estudiante a 'completado'
+            cursor2.execute("""
+                UPDATE presupuestos
+                SET estado_servicio = 'completado'
+                WHERE estudiante_id = %s AND estado = 'aceptado'
+            """, (estudiante_id,))
+            
+            conn2.commit()
+            
+            log_event("proceso_visa_completado_100", {
+                'estudiante_id': estudiante_id,
+                'estado_servicio_actualizado': 'completado'
+            })
+    
+    cursor2.close()
+    conn2.close()
+    
     log_event("proceso_visa_actualizado", {
         'estudiante_id': estudiante_id,
         'paso': paso,
