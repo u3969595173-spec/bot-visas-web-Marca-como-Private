@@ -8,6 +8,35 @@ function ProcesoVisa({ estudianteId }) {
   const [loading, setLoading] = useState(true)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+  // Mapeo de servicios a fases del proceso
+  const mapeoServiciosFases = {
+    'Búsqueda de Universidad': [1, 2], // Inscripción y Universidad
+    'Gestión de Matrícula': [2], // Universidad
+    'Asesoría de Visa': [3, 4, 5, 6, 7, 8], // Todas las fases de visa
+    'Traducción de Documentos': [3], // Documentos Legales
+    'Apostilla de Documentos': [3], // Documentos Legales
+    'Seguro Médico': [4], // Seguro y Fondos
+    'Búsqueda de Alojamiento': [1], // Solo inscripción
+    'Gestión de Documentos': [3], // Documentos Legales
+    'Preparación para Entrevista': [6, 7], // Cita y Entrevista
+    'Seguimiento Post-Visa': [8] // Visa Otorgada
+  }
+
+  const obtenerFasesRelevantes = () => {
+    if (servicios.length === 0) {
+      // Si no hay servicios, mostrar todas las fases
+      return [1, 2, 3, 4, 5, 6, 7, 8]
+    }
+    
+    const fasesSet = new Set()
+    servicios.forEach(servicio => {
+      const fases = mapeoServiciosFases[servicio] || [1, 2, 3, 4, 5, 6, 7, 8]
+      fases.forEach(fase => fasesSet.add(fase))
+    })
+    
+    return Array.from(fasesSet).sort((a, b) => a - b)
+  }
+
   const fases = [
     {
       id: 1,
@@ -131,21 +160,26 @@ function ProcesoVisa({ estudianteId }) {
 
   const calcularProgreso = () => {
     if (!proceso) return 0
-    const totalPasos = fases.reduce((sum, fase) => sum + fase.pasos.length, 0)
-    const pasosCompletados = fases.reduce((sum, fase) => {
+    const fasesRelevantes = obtenerFasesRelevantes()
+    const fasesFiltradasData = fases.filter(f => fasesRelevantes.includes(f.id))
+    const totalPasos = fasesFiltradasData.reduce((sum, fase) => sum + fase.pasos.length, 0)
+    const pasosCompletados = fasesFiltradasData.reduce((sum, fase) => {
       return sum + fase.pasos.filter(p => proceso[p.key] === true).length
     }, 0)
-    return Math.round((pasosCompletados / totalPasos) * 100)
+    return totalPasos > 0 ? Math.round((pasosCompletados / totalPasos) * 100) : 0
   }
 
   const obtenerFaseActual = () => {
     if (!proceso) return 1
-    for (let i = 0; i < fases.length; i++) {
-      const fase = fases[i]
+    const fasesRelevantes = obtenerFasesRelevantes()
+    const fasesFiltradasData = fases.filter(f => fasesRelevantes.includes(f.id))
+    
+    for (let i = 0; i < fasesFiltradasData.length; i++) {
+      const fase = fasesFiltradasData[i]
       const todosCompletos = fase.pasos.every(p => proceso[p.key] === true)
       if (!todosCompletos) return fase.id
     }
-    return fases.length
+    return fasesFiltradasData.length > 0 ? fasesFiltradasData[fasesFiltradasData.length - 1].id : 1
   }
 
   const formatearFecha = (fecha) => {
@@ -252,7 +286,7 @@ function ProcesoVisa({ estudianteId }) {
 
       {/* Timeline de fases */}
       <div className="fases-timeline">
-        {fases.map((fase, index) => {
+        {fases.filter(fase => obtenerFasesRelevantes().includes(fase.id)).map((fase, index) => {
           const todosCompletos = fase.pasos.every(p => proceso[p.key] === true)
           const algunoCompleto = fase.pasos.some(p => proceso[p.key] === true)
           const esActual = fase.id === faseActual

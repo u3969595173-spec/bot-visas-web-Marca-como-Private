@@ -14,6 +14,35 @@ function PanelProcesoAdmin() {
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+  // Mapeo de servicios a fases del proceso
+  const mapeoServiciosFases = {
+    'Búsqueda de Universidad': [1, 2], // Inscripción y Universidad
+    'Gestión de Matrícula': [2], // Universidad
+    'Asesoría de Visa': [3, 4, 5, 6, 7, 8], // Todas las fases de visa
+    'Traducción de Documentos': [3], // Documentos Legales
+    'Apostilla de Documentos': [3], // Documentos Legales
+    'Seguro Médico': [4], // Seguro y Fondos
+    'Búsqueda de Alojamiento': [1], // Solo inscripción
+    'Gestión de Documentos': [3], // Documentos Legales
+    'Preparación para Entrevista': [6, 7], // Cita y Entrevista
+    'Seguimiento Post-Visa': [8] // Visa Otorgada
+  }
+
+  const obtenerFasesRelevantes = (servicios) => {
+    if (!servicios || servicios.length === 0) {
+      // Si no hay servicios, mostrar todas las fases
+      return [1, 2, 3, 4, 5, 6, 7, 8]
+    }
+    
+    const fasesSet = new Set()
+    servicios.forEach(servicio => {
+      const fases = mapeoServiciosFases[servicio] || [1, 2, 3, 4, 5, 6, 7, 8]
+      fases.forEach(fase => fasesSet.add(fase))
+    })
+    
+    return Array.from(fasesSet).sort((a, b) => a - b)
+  }
+
   const fases = [
     {
       id: 1,
@@ -311,11 +340,13 @@ function PanelProcesoAdmin() {
                 <p>{estudianteSeleccionado.email}</p>
                 <div className="progreso-badge">
                   {(() => {
-                    const totalPasos = fases.reduce((sum, fase) => sum + fase.pasos.length, 0)
-                    const completados = fases.reduce((sum, fase) => {
+                    const fasesRelevantes = obtenerFasesRelevantes(estudianteSeleccionado.servicios)
+                    const fasesFiltradasData = fases.filter(f => fasesRelevantes.includes(f.id))
+                    const totalPasos = fasesFiltradasData.reduce((sum, fase) => sum + fase.pasos.length, 0)
+                    const completados = fasesFiltradasData.reduce((sum, fase) => {
                       return sum + fase.pasos.filter(p => proceso[p.key] === true).length
                     }, 0)
-                    const porcentaje = Math.round((completados / totalPasos) * 100)
+                    const porcentaje = totalPasos > 0 ? Math.round((completados / totalPasos) * 100) : 0
                     return `${porcentaje}% Completado (${completados}/${totalPasos} pasos)`
                   })()}
                 </div>
@@ -375,7 +406,7 @@ function PanelProcesoAdmin() {
               </div>
 
               {/* Fases y pasos */}
-              {fases.map(fase => (
+              {fases.filter(fase => obtenerFasesRelevantes(estudianteSeleccionado.servicios).includes(fase.id)).map(fase => (
                 <div key={fase.id} className="fase-admin">
                   <div className="fase-admin-header">
                     <span className="fase-icon">{fase.icon}</span>
