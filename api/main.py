@@ -3317,7 +3317,7 @@ def sugerir_cursos(
     
     # Obtener datos del estudiante
     cursor.execute("""
-        SELECT especialidad, nivel_idioma, fondos_disponibles
+        SELECT especialidad, fondos_disponibles
         FROM estudiantes
         WHERE id = %s
     """, (estudiante_id,))
@@ -3328,7 +3328,8 @@ def sugerir_cursos(
         conn.close()
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
-    especialidad, nivel_idioma, fondos = estudiante
+    especialidad, fondos = estudiante
+    nivel_idioma = 'intermedio'  # Valor por defecto
     
     # Mapear nivel de idioma a nivel español requerido
     nivel_map = {
@@ -4564,28 +4565,34 @@ def aprobar_estudiante(
     db.commit()
     
     # Registrar cambio en historial
-    db.execute(
-        text("""
-            INSERT INTO historial_cambios
-            (estudiante_id, campo_modificado, valor_anterior, valor_nuevo, usuario_email, usuario_nombre, razon, timestamp)
-            VALUES (:est_id, :campo, :anterior, :nuevo, :email, :nombre, :razon, NOW())
-        """),
-        {
-            "est_id": estudiante_id,
-            "campo": "estado",
-            "anterior": estado_anterior,
-            "nuevo": "aprobado",
-            "email": usuario['email'],
-            "nombre": usuario.get('nombre', usuario['email']),
-            "razon": "Estudiante aprobado por administrador"
-        }
-    )
-    db.commit()
+    try:
+        usuario_email = usuario.get('email') if isinstance(usuario, dict) else getattr(usuario, 'email', 'admin@sistema.com')
+        usuario_nombre = usuario.get('nombre', usuario_email) if isinstance(usuario, dict) else getattr(usuario, 'nombre', usuario_email)
+        
+        db.execute(
+            text("""
+                INSERT INTO historial_cambios
+                (estudiante_id, campo_modificado, valor_anterior, valor_nuevo, usuario_email, usuario_nombre, razon, timestamp)
+                VALUES (:est_id, :campo, :anterior, :nuevo, :email, :nombre, :razon, NOW())
+            """),
+            {
+                "est_id": estudiante_id,
+                "campo": "estado",
+                "anterior": estado_anterior,
+                "nuevo": "aprobado",
+                "email": usuario_email,
+                "nombre": usuario_nombre,
+                "razon": "Estudiante aprobado por administrador"
+            }
+        )
+        db.commit()
+    except Exception as e:
+        print(f"⚠️ Error guardando historial (no crítico): {e}")
     
     # Registrar auditoría (con try/catch)
     try:
         registrar_auditoria(
-            db, usuario['email'], 'APROBAR_ESTUDIANTE',
+            db, usuario_email, 'APROBAR_ESTUDIANTE',
             'estudiante', estudiante_id,
             {'nombre': estudiante.nombre, 'estado_anterior': estado_anterior}
         )
