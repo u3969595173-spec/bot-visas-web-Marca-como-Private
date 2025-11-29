@@ -9353,6 +9353,52 @@ def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depend
         logger.error(f"❌ Error en responder_presupuesto: {str(e)}")
         import traceback
         traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/admin/presupuestos/estudiante/{estudiante_id}", tags=["Admin"])
+def eliminar_presupuestos_estudiante(
+    estudiante_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin elimina TODOS los presupuestos de un estudiante (para reiniciar proceso)"""
+    try:
+        # Contar presupuestos
+        result = db.execute(text("""
+            SELECT COUNT(*) FROM presupuestos WHERE estudiante_id = :id
+        """), {"id": estudiante_id})
+        count = result.scalar()
+        
+        if count == 0:
+            return {"message": "No hay presupuestos para eliminar", "eliminados": 0}
+        
+        # Eliminar presupuestos
+        db.execute(text("""
+            DELETE FROM presupuestos WHERE estudiante_id = :id
+        """), {"id": estudiante_id})
+        
+        db.commit()
+        
+        log_event("presupuestos_eliminados", {
+            'estudiante_id': estudiante_id,
+            'cantidad': count
+        })
+        
+        return {
+            "message": f"✅ {count} presupuesto(s) eliminado(s) exitosamente",
+            "eliminados": count
+        }
+    
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Error eliminando presupuestos: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Error en responder_presupuesto: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error al procesar respuesta: {str(e)}")
 
 
