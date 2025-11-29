@@ -25,6 +25,9 @@ import sys
 sys.path.append('..')
 from utils.logger import logger, log_event, log_error
 
+# Sistema de notificaciones automáticas
+from modules.sistema_notificaciones_automaticas import notificar
+
 from database.models import get_db
 from modules.estudiantes import Estudiante
 from modules.admin_panel import PanelAdministrativo
@@ -1091,6 +1094,12 @@ async def completar_perfil_estudiante(
         conn.commit()
         cursor.close()
         conn.close()
+        
+        # Enviar notificación automática
+        try:
+            notificar('perfil_completado', estudiante_id)
+        except Exception as e:
+            logger.error(f"Error enviando notificación de perfil completado: {e}")
         
         return {
             "mensaje": "Perfil completado exitosamente",
@@ -8871,6 +8880,12 @@ async def actualizar_paso_proceso(
                 'estudiante_id': estudiante_id,
                 'estado_servicio_actualizado': 'completado'
             })
+            
+            # Enviar notificación de proceso completado
+            try:
+                notificar('proceso_completado', estudiante_id)
+            except Exception as e:
+                logger.error(f"Error enviando notificación de proceso completado: {e}")
     
     cursor2.close()
     conn2.close()
@@ -8881,6 +8896,67 @@ async def actualizar_paso_proceso(
         'completado': completado,
         'admin_id': usuario.get('id')
     })
+    
+    # Enviar notificación cuando se completa un paso individual
+    if completado:
+        try:
+            # Mapeo de pasos a nombres legibles
+            nombres_pasos = {
+                'paso_inscripcion': 'Inscripción Completada',
+                'paso_pago_inicial': 'Pago Inicial',
+                'paso_documentos_personales': 'Documentos Personales',
+                'paso_seleccion_universidad': 'Selección de Universidad',
+                'paso_solicitud_universidad': 'Solicitud Enviada',
+                'paso_carta_aceptacion': 'Carta de Aceptación',
+                'paso_antecedentes_solicitados': 'Antecedentes Solicitados',
+                'paso_antecedentes_recibidos': 'Antecedentes Recibidos',
+                'paso_apostilla_haya': 'Apostilla de La Haya',
+                'paso_traduccion_documentos': 'Traducción Jurada',
+                'paso_seguro_medico': 'Seguro Médico',
+                'paso_comprobante_fondos': 'Comprobante de Fondos',
+                'paso_carta_banco': 'Carta del Banco',
+                'paso_formulario_visa': 'Formulario de Visa',
+                'paso_fotos_biometricas': 'Fotos Biométricas',
+                'paso_pago_tasa_visa': 'Pago Tasa Consular',
+                'paso_cita_agendada': 'Cita Agendada',
+                'paso_documentos_revisados': 'Documentos Revisados',
+                'paso_simulacro_entrevista': 'Simulacro de Entrevista',
+                'paso_entrevista_completada': 'Entrevista Realizada',
+                'paso_pasaporte_recogido': 'Pasaporte Recogido',
+                'paso_visa_otorgada': 'Visa Aprobada'
+            }
+            
+            # Mapeo de pasos a fases
+            fases_pasos = {
+                'paso_inscripcion': 'INSCRIPCIÓN',
+                'paso_pago_inicial': 'INSCRIPCIÓN',
+                'paso_documentos_personales': 'INSCRIPCIÓN',
+                'paso_seleccion_universidad': 'UNIVERSIDAD',
+                'paso_solicitud_universidad': 'UNIVERSIDAD',
+                'paso_carta_aceptacion': 'UNIVERSIDAD',
+                'paso_antecedentes_solicitados': 'DOCUMENTOS LEGALES',
+                'paso_antecedentes_recibidos': 'DOCUMENTOS LEGALES',
+                'paso_apostilla_haya': 'DOCUMENTOS LEGALES',
+                'paso_traduccion_documentos': 'DOCUMENTOS LEGALES',
+                'paso_seguro_medico': 'SEGURO Y FONDOS',
+                'paso_comprobante_fondos': 'SEGURO Y FONDOS',
+                'paso_carta_banco': 'SEGURO Y FONDOS',
+                'paso_formulario_visa': 'FORMULARIOS',
+                'paso_fotos_biometricas': 'FORMULARIOS',
+                'paso_pago_tasa_visa': 'FORMULARIOS',
+                'paso_cita_agendada': 'CITA EMBAJADA',
+                'paso_documentos_revisados': 'CITA EMBAJADA',
+                'paso_simulacro_entrevista': 'CITA EMBAJADA',
+                'paso_entrevista_completada': 'ENTREVISTA',
+                'paso_pasaporte_recogido': 'VISA OTORGADA',
+                'paso_visa_otorgada': 'VISA OTORGADA'
+            }
+            
+            nombre_paso = nombres_pasos.get(paso, paso)
+            fase = fases_pasos.get(paso, '')
+            notificar('paso_completado', estudiante_id, nombre_paso=nombre_paso, fase=fase)
+        except Exception as e:
+            logger.error(f"Error enviando notificación de paso completado: {e}")
     
     return {'success': True, 'mensaje': f'Paso {paso} actualizado'}
 
@@ -9123,6 +9199,22 @@ def ofertar_modalidades_pago(
         'modalidades_ofrecidas': len([m for m in modalidades_presentes if m is not None])
     })
     
+    # Enviar notificación automática
+    try:
+        # Obtener estudiante_id y monto total
+        resultado = db.execute(text("""
+            SELECT estudiante_id, 
+                   COALESCE(precio_al_empezar, precio_con_visa, precio_financiado, 0) as monto
+            FROM presupuestos 
+            WHERE id = :id
+        """), {"id": presupuesto_id}).fetchone()
+        
+        if resultado:
+            est_id, monto = resultado
+            notificar('presupuesto_ofertado', est_id, monto_total=float(monto))
+    except Exception as e:
+        logger.error(f"Error enviando notificación de presupuesto ofertado: {e}")
+    
     return {"message": "Oferta con modalidades enviada exitosamente"}
 
 
@@ -9344,6 +9436,24 @@ def marcar_pago_individual(
         'pagado': pagado
     })
     
+    # Enviar notificación automática cuando se confirma un pago
+    if pagado:
+        try:
+            resultado = db.execute(text("""
+                SELECT estudiante_id FROM presupuestos WHERE id = :id
+            """), {"id": presupuesto_id}).fetchone()
+            
+            if resultado:
+                est_id = resultado[0]
+                tipo_pago_map = {
+                    'al_empezar': 'Pago Inicial',
+                    'con_visa': 'Pago con Visa',
+                    'financiado': 'Pago Financiado'
+                }
+                notificar('pago_confirmado', est_id, tipo_pago=tipo_pago_map.get(modalidad, modalidad))
+        except Exception as e:
+            logger.error(f"Error enviando notificación de pago confirmado: {e}")
+    
     return {
         "message": f"Pago de modalidad '{modalidad}' {'marcado' if pagado else 'desmarcado'} exitosamente",
         "todas_pagadas": todas_pagadas if check else False
@@ -9405,6 +9515,13 @@ def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depend
                 'modalidad_seleccionada': modalidad_seleccionada,
                 'proceso_visa_creado': True
             })
+            
+            # Enviar notificación automática
+            try:
+                if estudiante_id and modalidad_seleccionada:
+                    notificar('presupuesto_aceptado', estudiante_id, modalidad_elegida=modalidad_seleccionada)
+            except Exception as e:
+                logger.error(f"Error enviando notificación de presupuesto aceptado: {e}")
         else:
             # Rechazar - Permitir que el estudiante haga nuevas solicitudes
             db.execute(text("""
