@@ -4,6 +4,7 @@ import './ProcesoVisa.css'
 
 function ProcesoVisa({ estudianteId }) {
   const [proceso, setProceso] = useState(null)
+  const [servicios, setServicios] = useState([])
   const [loading, setLoading] = useState(true)
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -92,6 +93,7 @@ function ProcesoVisa({ estudianteId }) {
 
   useEffect(() => {
     cargarProceso()
+    cargarServicios()
   }, [])
 
   const cargarProceso = async () => {
@@ -108,6 +110,22 @@ function ProcesoVisa({ estudianteId }) {
       setProceso({})
     } finally {
       setLoading(false)
+    }
+  }
+
+  const cargarServicios = async () => {
+    try {
+      const codigo = localStorage.getItem('codigo_acceso')
+      const res = await axios.get(
+        `${apiUrl}/api/presupuestos/estudiante/${estudianteId}?codigo_acceso=${codigo}`
+      )
+      // Filtrar presupuestos aceptados y obtener servicios
+      const aceptados = res.data.filter(p => p.estado === 'aceptado')
+      if (aceptados.length > 0 && aceptados[0].servicios_solicitados) {
+        setServicios(aceptados[0].servicios_solicitados)
+      }
+    } catch (err) {
+      console.error('Error cargando servicios:', err)
     }
   }
 
@@ -185,6 +203,52 @@ function ProcesoVisa({ estudianteId }) {
           </div>
         </div>
       </div>
+
+      {/* Servicios contratados */}
+      {servicios.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          padding: '20px',
+          borderRadius: '12px',
+          marginBottom: '30px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+        }}>
+          <h3 style={{ 
+            color: 'white', 
+            margin: '0 0 15px 0',
+            fontSize: '18px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span style={{fontSize: '24px'}}>💼</span>
+            Tus Servicios Contratados
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '10px' }}>
+            {servicios.map((servicio, idx) => (
+              <div key={idx} style={{
+                background: 'rgba(255,255,255,0.95)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                color: '#2d3748',
+                fontSize: '14px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+              }}>
+                <span style={{ 
+                  fontSize: '18px',
+                  minWidth: '24px'
+                }}>✅</span>
+                <span>{servicio}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Timeline de fases */}
       <div className="fases-timeline">
