@@ -1,134 +1,66 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import './Home.css'
 
 function Home() {
   const navigate = useNavigate()
 
   return (
-    <div className="container">
-      <div style={styles.hero}>
-        <h1 style={styles.title}>🎓 Bienvenido a Estudia en España</h1>
-        <p style={styles.subtitle}>
-          Tu agencia educativa para estudiar en España
-        </p>
-        <p style={styles.description}>
-          Tramitamos tu visa de estudiante, te ayudamos a encontrar el curso
-          perfecto, te preparamos para todo y gestionamos todo el proceso de manera profesional.
-        </p>
-        <p style={styles.disclaimer}>
-          ⚖️ <strong>Disclaimer:</strong> Aunque no garantizamos la aprobación al 100% (decisión del Consulado), un trámite impecable tiene más de 90% de éxito. Nosotros nos encargamos de que tu expediente esté perfecto.
-        </p>
+    <div className="home-container">
+      <div className="hero-section">
+        <div className="hero-content">
+          <h1 className="hero-title">Bienvenido a Estudia en España</h1>
+          <p className="hero-subtitle">
+            Tu agencia educativa para estudiar en España
+          </p>
+          <p className="hero-description">
+            Tramitamos tu visa de estudiante, te ayudamos a encontrar el curso
+            perfecto, te preparamos para todo y gestionamos todo el proceso de manera profesional.
+          </p>
 
-        <div style={styles.features}>
-          <div style={styles.feature}>
-            <div style={styles.featureIcon}>📚</div>
-            <h3>Cursos Verificados</h3>
-            <p>Accede a cientos de cursos en universidades españolas</p>
-          </div>
-          <div style={styles.feature}>
-            <div style={styles.featureIcon}>✅</div>
-            <h3>Proceso Simplificado</h3>
-            <p>Te guiamos paso a paso en todo el trámite de visa</p>
-          </div>
-          <div style={styles.feature}>
-            <div style={styles.featureIcon}>🏠</div>
-            <h3>Alojamiento</h3>
-            <p>Te ayudamos a encontrar alojamiento en España</p>
+          <div className="hero-cta">
+            <button
+              className="btn-primary"
+              onClick={() => navigate('/registro')}
+            >
+              Registrarme Ahora
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => navigate('/portal')}
+            >
+              Ver Mi Estado
+            </button>
           </div>
         </div>
+      </div>
 
-        <div style={styles.cta}>
-          <button
-            className="btn btn-primary"
-            style={styles.ctaButton}
-            onClick={() => navigate('/registro')}
-          >
-            Registrarme Ahora
-          </button>
-          <button
-            className="btn"
-            style={styles.ctaButtonSecondary}
-            onClick={() => navigate('/portal')}
-          >
-            Ver Mi Estado
-          </button>
+      <div className="disclaimer-banner">
+        ⚖️ <strong>Disclaimer:</strong> Aunque no garantizamos la aprobación al 100% (decisión del Consulado), un trámite impecable tiene más de 90% de éxito. Nosotros nos encargamos de que tu expediente esté perfecto.
+      </div>
+
+      <div className="features-section">
+        <div className="features-grid">
+          <div className="feature-card">
+            <div className="feature-icon">📚</div>
+            <h3>Cursos Verificados</h3>
+            <p>Accede a cientos de cursos en universidades españolas verificados y aprobados.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">✅</div>
+            <h3>Proceso Simplificado</h3>
+            <p>Te guiamos paso a paso en todo el trámite de visa con expertos legales.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">🏠</div>
+            <h3>Alojamiento</h3>
+            <p>Te ayudamos a encontrar el alojamiento ideal para tu estancia en España.</p>
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
-const styles = {
-  hero: {
-    textAlign: 'center',
-    padding: '60px 20px',
-  },
-  title: {
-    fontSize: '48px',
-    color: '#111827',
-    marginBottom: '20px',
-    fontWeight: 'bold',
-    textShadow: '1px 1px 2px rgba(0,0,0,0.1)',
-  },
-  subtitle: {
-    fontSize: '24px',
-    color: '#1f2937',
-    marginBottom: '15px',
-    fontWeight: '600',
-  },
-  description: {
-    fontSize: '18px',
-    color: '#374151',
-    marginBottom: '50px',
-    maxWidth: '700px',
-    margin: '0 auto 50px',
-    fontWeight: '500',
-  },
-  disclaimer: {
-    fontSize: '15px',
-    color: '#1f2937',
-    marginBottom: '40px',
-    maxWidth: '700px',
-    margin: '0 auto 40px',
-    padding: '20px 25px',
-    background: '#fef3c7',
-    borderRadius: '8px',
-    borderLeft: '4px solid #f59e0b',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    lineHeight: '1.6',
-  },
-  features: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '30px',
-    marginBottom: '50px',
-  },
-  feature: {
-    background: 'white',
-    padding: '30px',
-    borderRadius: '10px',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-  },
-  featureIcon: {
-    fontSize: '48px',
-    marginBottom: '15px',
-  },
-  cta: {
-    display: 'flex',
-    gap: '20px',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  ctaButton: {
-    fontSize: '18px',
-    padding: '15px 40px',
-  },
-  ctaButtonSecondary: {
-    fontSize: '18px',
-    padding: '15px 40px',
-    background: 'white',
-    color: '#667eea',
-  },
-}
-
 export default Home
+
