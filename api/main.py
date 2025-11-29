@@ -8890,7 +8890,10 @@ def obtener_presupuestos_estudiante(estudiante_id: int, db: Session = Depends(ge
             p.servicios_solicitados, p.precio_al_empezar, p.precio_con_visa,
             p.precio_financiado, p.modalidad_seleccionada, p.comentarios_estudiante,
             p.fecha_aceptacion, p.fecha_pago, p.pagado,
-            e.nombre, e.email
+            e.nombre, e.email,
+            p.pagado_al_empezar, p.fecha_pago_al_empezar,
+            p.pagado_con_visa, p.fecha_pago_con_visa,
+            p.pagado_financiado, p.fecha_pago_financiado
         FROM presupuestos p
         JOIN estudiantes e ON p.estudiante_id = e.id
         WHERE p.estudiante_id = :estudiante_id
@@ -8920,7 +8923,13 @@ def obtener_presupuestos_estudiante(estudiante_id: int, db: Session = Depends(ge
             'fecha_pago': row[17].isoformat() if row[17] else None,
             'pagado': bool(row[18]) if row[18] is not None else False,
             'nombre_estudiante': row[19],
-            'email_estudiante': row[20]
+            'email_estudiante': row[20],
+            'pagado_al_empezar': bool(row[21]) if row[21] is not None else False,
+            'fecha_pago_al_empezar': row[22].isoformat() if row[22] else None,
+            'pagado_con_visa': bool(row[23]) if row[23] is not None else False,
+            'fecha_pago_con_visa': row[24].isoformat() if row[24] else None,
+            'pagado_financiado': bool(row[25]) if row[25] is not None else False,
+            'fecha_pago_financiado': row[26].isoformat() if row[26] else None
         })
     
     return presupuestos

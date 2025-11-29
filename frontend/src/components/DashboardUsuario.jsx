@@ -1169,21 +1169,56 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             <div style={{ display: 'grid', gap: '15px', marginBottom: '20px' }}>
               {presupuestoActual.precio_al_empezar && (
                 <div style={{
-                  background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                  background: presupuestoActual.pagado_al_empezar 
+                    ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'
+                    : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
                   padding: '20px',
                   borderRadius: '12px',
-                  border: '2px solid #fbbf24'
+                  border: presupuestoActual.pagado_al_empezar 
+                    ? '3px solid #10b981' 
+                    : '2px solid #fbbf24',
+                  position: 'relative'
                 }}>
+                  {presupuestoActual.pagado_al_empezar && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: '#10b981',
+                      color: 'white',
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                    }}>
+                      ✅ PAGADO
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
-                      <div style={{ fontWeight: '700', color: '#92400e', fontSize: '16px', marginBottom: '4px' }}>
-                        🚀 Pago Inicial
+                      <div style={{ 
+                        fontWeight: '700', 
+                        color: presupuestoActual.pagado_al_empezar ? '#065f46' : '#92400e', 
+                        fontSize: '16px', 
+                        marginBottom: '4px' 
+                      }}>
+                        {presupuestoActual.pagado_al_empezar ? '✅' : '🚀'} Pago Inicial
                       </div>
-                      <div style={{ fontSize: '13px', color: '#78350f' }}>
+                      <div style={{ fontSize: '13px', color: presupuestoActual.pagado_al_empezar ? '#059669' : '#78350f' }}>
                         Pago completo al iniciar el proceso
                       </div>
+                      {presupuestoActual.pagado_al_empezar && presupuestoActual.fecha_pago_al_empezar && (
+                        <div style={{ fontSize: '11px', color: '#047857', marginTop: '6px', fontWeight: '600' }}>
+                          📅 Pagado: {new Date(presupuestoActual.fecha_pago_al_empezar).toLocaleDateString('es-ES')}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: '28px', fontWeight: '700', color: '#92400e' }}>
+                    <div style={{ 
+                      fontSize: '28px', 
+                      fontWeight: '700', 
+                      color: presupuestoActual.pagado_al_empezar ? '#047857' : '#92400e' 
+                    }}>
                       €{presupuestoActual.precio_al_empezar}
                     </div>
                   </div>
@@ -1192,21 +1227,56 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               
               {presupuestoActual.precio_con_visa && (
                 <div style={{
-                  background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                  background: presupuestoActual.pagado_con_visa
+                    ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'
+                    : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
                   padding: '20px',
                   borderRadius: '12px',
-                  border: '2px solid #3b82f6'
+                  border: presupuestoActual.pagado_con_visa
+                    ? '3px solid #10b981'
+                    : '2px solid #3b82f6',
+                  position: 'relative'
                 }}>
+                  {presupuestoActual.pagado_con_visa && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: '#10b981',
+                      color: 'white',
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                    }}>
+                      ✅ PAGADO
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
-                      <div style={{ fontWeight: '700', color: '#1e40af', fontSize: '16px', marginBottom: '4px' }}>
-                        🎯 Pago Después de Cita
+                      <div style={{ 
+                        fontWeight: '700', 
+                        color: presupuestoActual.pagado_con_visa ? '#065f46' : '#1e40af', 
+                        fontSize: '16px', 
+                        marginBottom: '4px' 
+                      }}>
+                        {presupuestoActual.pagado_con_visa ? '✅' : '🎯'} Pago Después de Cita
                       </div>
-                      <div style={{ fontSize: '13px', color: '#1e40af' }}>
+                      <div style={{ fontSize: '13px', color: presupuestoActual.pagado_con_visa ? '#059669' : '#1e40af' }}>
                         Pago al recibir visa aprobada
                       </div>
+                      {presupuestoActual.pagado_con_visa && presupuestoActual.fecha_pago_con_visa && (
+                        <div style={{ fontSize: '11px', color: '#047857', marginTop: '6px', fontWeight: '600' }}>
+                          📅 Pagado: {new Date(presupuestoActual.fecha_pago_con_visa).toLocaleDateString('es-ES')}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: '28px', fontWeight: '700', color: '#1e40af' }}>
+                    <div style={{ 
+                      fontSize: '28px', 
+                      fontWeight: '700', 
+                      color: presupuestoActual.pagado_con_visa ? '#047857' : '#1e40af' 
+                    }}>
                       €{presupuestoActual.precio_con_visa}
                     </div>
                   </div>
@@ -1215,21 +1285,56 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               
               {presupuestoActual.precio_financiado && (
                 <div style={{
-                  background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
+                  background: presupuestoActual.pagado_financiado
+                    ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'
+                    : 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
                   padding: '20px',
                   borderRadius: '12px',
-                  border: '2px solid #6366f1'
+                  border: presupuestoActual.pagado_financiado
+                    ? '3px solid #10b981'
+                    : '2px solid #6366f1',
+                  position: 'relative'
                 }}>
+                  {presupuestoActual.pagado_financiado && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '12px',
+                      right: '12px',
+                      background: '#10b981',
+                      color: 'white',
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)'
+                    }}>
+                      ✅ PAGADO
+                    </div>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
-                      <div style={{ fontWeight: '700', color: '#4338ca', fontSize: '16px', marginBottom: '4px' }}>
-                        📅 Pago Financiado
+                      <div style={{ 
+                        fontWeight: '700', 
+                        color: presupuestoActual.pagado_financiado ? '#065f46' : '#4338ca', 
+                        fontSize: '16px', 
+                        marginBottom: '4px' 
+                      }}>
+                        {presupuestoActual.pagado_financiado ? '✅' : '📅'} Pago Financiado
                       </div>
-                      <div style={{ fontSize: '13px', color: '#4338ca' }}>
+                      <div style={{ fontSize: '13px', color: presupuestoActual.pagado_financiado ? '#059669' : '#4338ca' }}>
                         €{(presupuestoActual.precio_financiado / 12).toFixed(2)}/mes x 12 meses
                       </div>
+                      {presupuestoActual.pagado_financiado && presupuestoActual.fecha_pago_financiado && (
+                        <div style={{ fontSize: '11px', color: '#047857', marginTop: '6px', fontWeight: '600' }}>
+                          📅 Pagado: {new Date(presupuestoActual.fecha_pago_financiado).toLocaleDateString('es-ES')}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: '28px', fontWeight: '700', color: '#4338ca' }}>
+                    <div style={{ 
+                      fontSize: '28px', 
+                      fontWeight: '700', 
+                      color: presupuestoActual.pagado_financiado ? '#047857' : '#4338ca' 
+                    }}>
                       €{presupuestoActual.precio_financiado}
                     </div>
                   </div>
