@@ -139,7 +139,20 @@ function PanelProcesoAdmin() {
       })
       
       console.log('[PanelProcesoAdmin] Response:', res.data)
-      setEstudiantes(res.data.estudiantes || res.data || [])
+      const todosEstudiantes = res.data.estudiantes || res.data || []
+      
+      // Obtener presupuestos aceptados para filtrar estudiantes
+      const presupuestosRes = await axios.get(`${apiUrl}/api/admin/presupuestos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      const presupuestosAceptados = presupuestosRes.data.filter(p => p.estado === 'aceptado')
+      const idsConServicios = new Set(presupuestosAceptados.map(p => p.estudiante_id))
+      
+      // Filtrar solo estudiantes con presupuestos aceptados
+      const estudiantesConServicios = todosEstudiantes.filter(est => idsConServicios.has(est.id))
+      
+      setEstudiantes(estudiantesConServicios)
     } catch (err) {
       console.error('[PanelProcesoAdmin] Error cargando estudiantes:', err)
       console.error('[PanelProcesoAdmin] Error details:', err.response?.data)
