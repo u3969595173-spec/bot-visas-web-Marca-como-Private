@@ -9319,13 +9319,33 @@ def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depend
                 "modalidad": modalidad_seleccionada
             })
             
+            # Obtener estudiante_id del presupuesto
+            result = db.execute(text("""
+                SELECT estudiante_id FROM presupuestos WHERE id = :id
+            """), {"id": presupuesto_id})
+            estudiante_id = result.scalar()
+            
+            # Crear registro de proceso_visa si no existe
+            if estudiante_id:
+                existe = db.execute(text("""
+                    SELECT id FROM proceso_visa WHERE estudiante_id = :estudiante_id
+                """), {"estudiante_id": estudiante_id}).scalar()
+                
+                if not existe:
+                    db.execute(text("""
+                        INSERT INTO proceso_visa (estudiante_id, created_at)
+                        VALUES (:estudiante_id, CURRENT_TIMESTAMP)
+                    """), {"estudiante_id": estudiante_id})
+                    logger.info(f"✅ Proceso de visa creado para estudiante {estudiante_id}")
+            
             mensaje = "Oferta aceptada"
             if modalidad_seleccionada:
                 mensaje += f" con modalidad: {modalidad_seleccionada}"
             
             log_event("oferta_aceptada", {
                 'presupuesto_id': presupuesto_id,
-                'modalidad_seleccionada': modalidad_seleccionada
+                'modalidad_seleccionada': modalidad_seleccionada,
+                'proceso_visa_creado': True
             })
         else:
             # Rechazar - Permitir que el estudiante haga nuevas solicitudes
