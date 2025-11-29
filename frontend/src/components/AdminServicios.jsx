@@ -86,7 +86,7 @@ function AdminServicios() {
 
       {servicios.length === 0 ? (
         <div className="no-servicios">
-          <p>📭 No hay solicitudes de servicios todavía</p>
+          <p>📭 No hay presupuestos aceptados todavía</p>
         </div>
       ) : (
         <div className="servicios-lista">
@@ -94,17 +94,35 @@ function AdminServicios() {
             <div key={servicio.id} className={`servicio-card estado-${servicio.estado}`}>
               <div className="servicio-header">
                 <div className="servicio-icon">
-                  {servicio.servicio_id === 'antecedentes' ? '📋' : '🏛️'}
+                  💼
                 </div>
                 <div className="servicio-info">
-                  <h3>{servicio.servicio_nombre}</h3>
+                  <h3>Presupuesto #{servicio.id}</h3>
                   <p className="estudiante-nombre">
                     👤 {servicio.estudiante_nombre}
                     <span className="estudiante-email"> ({servicio.estudiante_email})</span>
                   </p>
                   <p className="fecha-solicitud">
-                    📅 Solicitado: {new Date(servicio.fecha_solicitud).toLocaleString('es-ES')}
+                    📅 Aceptado: {new Date(servicio.fecha_solicitud).toLocaleString('es-ES')}
                   </p>
+                  <div style={{ marginTop: '10px' }}>
+                    <strong>Servicios solicitados:</strong>
+                    <ul style={{ marginLeft: '20px', marginTop: '5px' }}>
+                      {servicio.servicios_solicitados && Array.isArray(servicio.servicios_solicitados) && servicio.servicios_solicitados.map((s, idx) => (
+                        <li key={idx} style={{ fontSize: '12px', color: '#6b7280' }}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div style={{ marginTop: '10px', fontSize: '12px', color: '#4b5563' }}>
+                    <strong>Estado de pagos:</strong>
+                    <div style={{ marginLeft: '10px', marginTop: '5px' }}>
+                      {servicio.pagado_al_empezar ? '✅' : '⏳'} Pago Inicial
+                      <br />
+                      {servicio.pagado_con_visa ? '✅' : '⏳'} Pago con Visa
+                      <br />
+                      {servicio.pagado_financiado ? '✅' : '⏳'} Pago Financiado
+                    </div>
+                  </div>
                 </div>
                 <div className={`estado-badge badge-${servicio.estado}`}>
                   {servicio.estado === 'pendiente' && '⏳ Pendiente'}
@@ -116,35 +134,26 @@ function AdminServicios() {
               {editando === servicio.id ? (
                 <div className="servicio-edicion">
                   <div className="form-group">
-                    <label>Estado</label>
+                    <label>Estado del Servicio</label>
                     <select value={estado} onChange={(e) => setEstado(e.target.value)}>
-                      <option value="pendiente">⏳ Pendiente</option>
-                      <option value="en_proceso">🔄 En Proceso</option>
-                      <option value="completado">✅ Completado</option>
+                      <option value="pendiente">⏳ Pendiente (No ha pagado inicial)</option>
+                      <option value="en_proceso">🔄 En Proceso (Pagó inicial, trabajando)</option>
+                      <option value="completado">✅ Completado (Proceso de visa terminado)</option>
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Precio (€)</label>
+                    <label>Monto Total</label>
                     <input
-                      type="number"
-                      step="0.01"
-                      value={precio}
-                      onChange={(e) => setPrecio(e.target.value)}
-                      placeholder="Ej: 150.00"
+                      type="text"
+                      value={`€${servicio.monto_total}`}
+                      disabled
+                      style={{ background: '#f3f4f6', cursor: 'not-allowed' }}
                     />
-                  </div>
-                  <div className="form-group">
-                    <label>Notas para el estudiante</label>
-                    <textarea
-                      value={notas}
-                      onChange={(e) => setNotas(e.target.value)}
-                      placeholder="Información adicional, instrucciones, etc."
-                      rows="3"
-                    />
+                    <small style={{ color: '#6b7280' }}>El monto no se puede editar aquí</small>
                   </div>
                   <div className="form-actions">
                     <button className="btn-guardar" onClick={() => guardarCambios(servicio.id)}>
-                      💾 Guardar
+                      💾 Actualizar Estado
                     </button>
                     <button className="btn-cancelar" onClick={() => setEditando(null)}>
                       ✖️ Cancelar
@@ -153,14 +162,9 @@ function AdminServicios() {
                 </div>
               ) : (
                 <div className="servicio-detalles">
-                  {servicio.precio && (
-                    <p className="servicio-precio">💰 Precio: <strong>{servicio.precio}€</strong></p>
-                  )}
-                  {servicio.notas && (
-                    <p className="servicio-notas">📝 Notas: {servicio.notas}</p>
-                  )}
+                  <p className="servicio-precio">💰 Monto Total: <strong>€{servicio.monto_total.toFixed(2)}</strong></p>
                   <button className="btn-editar" onClick={() => abrirEdicion(servicio)}>
-                    ✏️ Editar
+                    ✏️ Cambiar Estado
                   </button>
                 </div>
               )}

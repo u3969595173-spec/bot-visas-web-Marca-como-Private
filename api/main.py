@@ -7049,48 +7049,58 @@ def obtener_todos_servicios_solicitados(
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
-    """Admin obtiene todas las solicitudes de servicios de todos los estudiantes"""
+    """Admin obtiene estadísticas de presupuestos por estado_servicio (pendiente/en_proceso/completado)"""
     verificar_token(credentials.credentials)
     
     try:
-        import os
-        import psycopg2
+        # Contar presupuestos por estado_servicio
+        result = db.execute(text("""
+            SELECT 
+                p.id, p.estudiante_id, e.nombre, e.email,
+                p.servicios_solicitados, p.estado_servicio,
+                p.precio_al_empezar, p.precio_con_visa, p.precio_financiado,
+                p.pagado_al_empezar, p.pagado_con_visa, p.pagado_financiado,
+                p.fecha_aceptacion, p.updated_at
+            FROM presupuestos p
+            JOIN estudiantes e ON p.estudiante_id = e.id
+            WHERE p.estado = 'aceptado'
+            ORDER BY p.updated_at DESC
+        """))
         
-        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT s.id, s.estudiante_id, e.nombre as estudiante_nombre, e.email,
-                   s.servicio_id, s.servicio_nombre, s.estado, s.precio, s.notas, 
-                   s.fecha_solicitud, s.fecha_respuesta
-            FROM servicios_solicitados s
-            JOIN estudiantes e ON s.estudiante_id = e.id
-            ORDER BY s.fecha_solicitud DESC
-        """)
-        
-        servicios = []
-        for row in cursor.fetchall():
-            servicios.append({
+        presupuestos = []
+        for row in result:
+            servicios = row[4] if row[4] else []
+            # Si viene como string, parsearlo
+            if isinstance(servicios, str):
+                import json
+                try:
+                    servicios = json.loads(servicios)
+                except:
+                    servicios = []
+            
+            monto_total = (float(row[6]) if row[6] else 0) + (float(row[7]) if row[7] else 0) + (float(row[8]) if row[8] else 0)
+            
+            presupuestos.append({
                 'id': row[0],
                 'estudiante_id': row[1],
                 'estudiante_nombre': row[2],
                 'estudiante_email': row[3],
-                'servicio_id': row[4],
-                'servicio_nombre': row[5],
-                'estado': row[6],
-                'precio': float(row[7]) if row[7] else None,
-                'notas': row[8],
-                'fecha_solicitud': row[9].isoformat() if row[9] else None,
-                'fecha_respuesta': row[10].isoformat() if row[10] else None
+                'servicios_solicitados': servicios,
+                'estado': row[5] or 'pendiente',  # estado_servicio
+                'monto_total': monto_total,
+                'pagado_al_empezar': bool(row[9]) if row[9] is not None else False,
+                'pagado_con_visa': bool(row[10]) if row[10] is not None else False,
+                'pagado_financiado': bool(row[11]) if row[11] is not None else False,
+                'fecha_solicitud': row[12].isoformat() if row[12] else None,
+                'fecha_actualizacion': row[13].isoformat() if row[13] else None
             })
         
-        cursor.close()
-        conn.close()
-        
-        return {'servicios': servicios, 'total': len(servicios)}
+        return {'servicios': presupuestos, 'total': len(presupuestos)}
         
     except Exception as e:
         print(f"Error obteniendo servicios admin: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -7101,28 +7111,33 @@ def actualizar_servicio_solicitado(
     db: Session = Depends(get_db),
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
-    """Admin actualiza estado, precio y notas de un servicio solicitado"""
+    """Admin actualiza estado_servicio de un presupuesto (pendiente/en_proceso/completado)"""
     verificar_token(credentials.credentials)
     
     try:
-        import os
-        import psycopg2
+        nuevo_estado = datos.get('estado')
+        notas = datos.get('notas')
         
-        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
-        cursor = conn.cursor()
+        if nuevo_estado not in ['pendiente', 'en_proceso', 'completado']:
+            raise HTTPException(status_code=400, detail="Estado inválido")
         
-        cursor.execute("""
-            UPDATE servicios_solicitados
-            SET estado = %s, precio = %s, notas = %s, fecha_respuesta = CURRENT_TIMESTAMP
-            WHERE id = %s
-        """, (datos.get('estado'), datos.get('precio'), datos.get('notas'), servicio_id))
+        db.execute(text("""
+            UPDATE presupuestos
+            SET estado_servicio = :estado,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id
+        """), {"estado": nuevo_estado, "id": servicio_id})
         
-        conn.commit()
-        cursor.close()
-        conn.close()
+        db.commit()
         
-        return {'success': True, 'mensaje': 'Servicio actualizado'}
+        return {'success': True, 'mensaje': f'Presupuesto marcado como {nuevo_estado}'}
         
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error actualizando estado servicio: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         print(f"Error actualizando servicio: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -9176,20 +9191,32 @@ def marcar_pago_individual(
     
     if pagado:
         # Marcar como pagado
+        # Si es pago inicial (al_empezar) → cambiar estado_servicio a 'en_proceso'
+        extra_update = ""
+        if modalidad == 'al_empezar':
+            extra_update = ", estado_servicio = 'en_proceso'"
+        
         result = db.execute(text(f"""
             UPDATE presupuestos
             SET {campo_pagado} = true,
                 {campo_fecha} = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP
+                {extra_update}
             WHERE id = :id AND estado = 'aceptado'
         """), {"id": presupuesto_id})
     else:
         # Desmarcar como pagado
+        # Si es pago inicial y se desmarca → volver a 'pendiente'
+        extra_update = ""
+        if modalidad == 'al_empezar':
+            extra_update = ", estado_servicio = 'pendiente'"
+        
         result = db.execute(text(f"""
             UPDATE presupuestos
             SET {campo_pagado} = false,
                 {campo_fecha} = NULL,
                 updated_at = CURRENT_TIMESTAMP
+                {extra_update}
             WHERE id = :id AND estado = 'aceptado'
         """), {"id": presupuesto_id})
     
@@ -9268,10 +9295,12 @@ def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depend
         if aceptar:
             # Por ahora aceptar sin requerir modalidad (se puede mejorar más adelante)
             # Aceptar con modalidad seleccionada (opcional por ahora)
+            # Al aceptar oferta → estado_servicio = 'pendiente' (esperando pago inicial)
             db.execute(text("""
                 UPDATE presupuestos
                 SET estado = 'aceptado',
                     modalidad_seleccionada = :modalidad,
+                    estado_servicio = 'pendiente',
                     fecha_aceptacion = CURRENT_TIMESTAMP,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = :id
