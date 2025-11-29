@@ -48,6 +48,24 @@ function PresupuestosAdmin({ embedded = false }) {
     }
   }
 
+  const eliminarPresupuestosEstudiante = async (estudianteId, nombreEstudiante) => {
+    if (!confirm(`⚠️ ¿Estás seguro de eliminar TODOS los presupuestos de ${nombreEstudiante}?\n\nEsta acción NO se puede deshacer.`)) {
+      return
+    }
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      const response = await axios.delete(`${apiUrl}/api/admin/presupuestos/estudiante/${estudianteId}`)
+      
+      setSuccess(`✅ ${response.data.message} (${response.data.presupuestos_eliminados} presupuestos eliminados)`)
+      cargarPresupuestos()
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (err) {
+      setError('❌ Error al eliminar presupuestos: ' + (err.response?.data?.detail || err.message))
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
   const abrirModalOferta = (presupuesto) => {
     setPresupuestoSeleccionado(presupuesto)
     setModalidades({
@@ -336,56 +354,77 @@ function PresupuestosAdmin({ embedded = false }) {
                       {formatearFecha(presupuesto.created_at)}
                     </td>
                     <td style={{ padding: '12px' }}>
-                      {presupuesto.estado === 'pendiente' && (
+                      <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                        {presupuesto.estado === 'pendiente' && (
+                          <button
+                            onClick={() => abrirModalOferta(presupuesto)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#3b82f6',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            💰 Crear Oferta
+                          </button>
+                        )}
+                        {(presupuesto.estado === 'ofertado' || presupuesto.estado === 'oferta_enviada') && (
+                          <div style={{ fontSize: '12px' }}>
+                            <div style={{ fontWeight: '600', color: '#3b82f6', marginBottom: '4px' }}>
+                              Oferta Enviada
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+                              {presupuesto.precio_al_empezar && `Inicial: €${parseFloat(presupuesto.precio_al_empezar).toFixed(2)}`}
+                              {presupuesto.precio_con_visa && ` | Cita: €${parseFloat(presupuesto.precio_con_visa).toFixed(2)}`}
+                              {presupuesto.precio_financiado && ` | Fin: €${parseFloat(presupuesto.precio_financiado).toFixed(2)}`}
+                            </div>
+                            <div style={{ fontWeight: '600', color: '#059669', marginTop: '4px' }}>
+                              Total: €{(
+                                (parseFloat(presupuesto.precio_al_empezar) || 0) +
+                                (parseFloat(presupuesto.precio_con_visa) || 0) +
+                                (parseFloat(presupuesto.precio_financiado) || 0)
+                              ).toFixed(2)}
+                            </div>
+                          </div>
+                        )}
+                        {presupuesto.estado === 'aceptado' && (
+                          <div style={{ fontSize: '12px' }}>
+                            <div style={{ fontWeight: '600', color: '#10b981', marginBottom: '4px' }}>
+                              ✅ Aceptado
+                            </div>
+                            <div style={{ fontWeight: '600', color: '#059669' }}>
+                              €{(
+                                (parseFloat(presupuesto.precio_al_empezar) || 0) +
+                                (parseFloat(presupuesto.precio_con_visa) || 0) +
+                                (parseFloat(presupuesto.precio_financiado) || 0)
+                              ).toFixed(2)}
+                            </div>
+                            <div style={{ color: '#6b7280', fontSize: '10px' }}>Total</div>
+                          </div>
+                        )}
+                        
+                        {/* Botón Eliminar Presupuestos */}
                         <button
-                          onClick={() => abrirModalOferta(presupuesto)}
+                          onClick={() => eliminarPresupuestosEstudiante(presupuesto.estudiante_id, presupuesto.nombre_estudiante)}
                           style={{
                             padding: '6px 12px',
-                            backgroundColor: '#3b82f6',
+                            backgroundColor: '#ef4444',
                             color: 'white',
                             border: 'none',
                             borderRadius: '4px',
-                            fontSize: '12px',
-                            cursor: 'pointer'
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            marginTop: '4px'
                           }}
+                          onMouseEnter={(e) => e.target.style.backgroundColor = '#dc2626'}
+                          onMouseLeave={(e) => e.target.style.backgroundColor = '#ef4444'}
                         >
-                          💰 Crear Oferta
+                          🗑️ Eliminar Todos
                         </button>
-                      )}
-                      {(presupuesto.estado === 'ofertado' || presupuesto.estado === 'oferta_enviada') && (
-                        <div style={{ fontSize: '12px' }}>
-                          <div style={{ fontWeight: '600', color: '#3b82f6', marginBottom: '4px' }}>
-                            Oferta Enviada
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                            {presupuesto.precio_al_empezar && `Inicial: €${parseFloat(presupuesto.precio_al_empezar).toFixed(2)}`}
-                            {presupuesto.precio_con_visa && ` | Cita: €${parseFloat(presupuesto.precio_con_visa).toFixed(2)}`}
-                            {presupuesto.precio_financiado && ` | Fin: €${parseFloat(presupuesto.precio_financiado).toFixed(2)}`}
-                          </div>
-                          <div style={{ fontWeight: '600', color: '#059669', marginTop: '4px' }}>
-                            Total: €{(
-                              (parseFloat(presupuesto.precio_al_empezar) || 0) +
-                              (parseFloat(presupuesto.precio_con_visa) || 0) +
-                              (parseFloat(presupuesto.precio_financiado) || 0)
-                            ).toFixed(2)}
-                          </div>
-                        </div>
-                      )}
-                      {presupuesto.estado === 'aceptado' && (
-                        <div style={{ fontSize: '12px' }}>
-                          <div style={{ fontWeight: '600', color: '#10b981', marginBottom: '4px' }}>
-                            ✅ Aceptado
-                          </div>
-                          <div style={{ fontWeight: '600', color: '#059669' }}>
-                            €{(
-                              (parseFloat(presupuesto.precio_al_empezar) || 0) +
-                              (parseFloat(presupuesto.precio_con_visa) || 0) +
-                              (parseFloat(presupuesto.precio_financiado) || 0)
-                            ).toFixed(2)}
-                          </div>
-                          <div style={{ color: '#6b7280', fontSize: '10px' }}>Total</div>
-                        </div>
-                      )}
+                      </div>
                     </td>
                   </tr>
                 ))}
