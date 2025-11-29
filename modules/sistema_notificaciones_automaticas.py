@@ -512,6 +512,47 @@ class SistemaNotificaciones:
         SistemaNotificaciones._crear_notificacion_interna(estudiante_id, 'error', titulo, mensaje)
         SistemaNotificaciones._enviar_email(email, titulo, html)
     
+    @staticmethod
+    def notificar_documento_generado(estudiante_id, documentos):
+        """Cuando el admin genera documentos automáticamente"""
+        email, nombre = SistemaNotificaciones._obtener_email_estudiante(estudiante_id)
+        if not email:
+            return
+        
+        titulo = "📄 Nuevos documentos listos para descargar"
+        mensaje = f"Hemos generado {len(documentos)} documento(s) para ti. Descárgalos desde tu panel."
+        
+        docs_html = "".join([f"<li>{doc}</li>" for doc in documentos])
+        
+        html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2 style="color: #10b981;">📄 Documentos Listos</h2>
+            <p>Hola {nombre},</p>
+            <p>Hemos generado los siguientes documentos oficiales para ti:</p>
+            
+            <div style="background-color: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <ul style="list-style-type: none; padding: 0;">
+                    {docs_html}
+                </ul>
+            </div>
+            
+            <p>Estos documentos están listos para descargar desde tu panel de estudiante.</p>
+            <p><strong>💡 Importante:</strong> Revísalos cuidadosamente antes de usarlos en tu proceso.</p>
+            
+            <p style="margin-top: 20px;">
+                <a href="{os.getenv('FRONTEND_URL')}/estudiante/documentos" 
+                   style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                    Ver Mis Documentos
+                </a>
+            </p>
+        </body>
+        </html>
+        """
+        
+        SistemaNotificaciones._crear_notificacion_interna(estudiante_id, 'success', titulo, mensaje)
+        SistemaNotificaciones._enviar_email(email, titulo, html)
+    
     # ============================================
     # NOTIFICACIONES DE MENSAJES
     # ============================================
@@ -613,6 +654,9 @@ def notificar(tipo_evento, estudiante_id, **kwargs):
             kwargs.get('nombre_documento', ''),
             kwargs.get('motivo', '')
         )
+    
+    elif tipo_evento == 'documento_generado':
+        sistema.notificar_documento_generado(estudiante_id, kwargs.get('documentos', []))
     
     elif tipo_evento == 'mensaje_recibido':
         sistema.notificar_mensaje_recibido(estudiante_id, kwargs.get('asunto', ''))

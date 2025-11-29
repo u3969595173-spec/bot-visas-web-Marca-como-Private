@@ -2501,8 +2501,8 @@ def generar_documentos_estudiante(
             
             cursor.execute("""
                 INSERT INTO documentos_generados 
-                (estudiante_id, tipo_documento, nombre_archivo, contenido_pdf, estado, generado_por)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                (estudiante_id, tipo_documento, nombre_archivo, contenido_pdf, estado, generado_por, enviado_estudiante)
+                VALUES (%s, %s, %s, %s, %s, %s, TRUE)
                 RETURNING id
             """, (estudiante_id, tipo, nombre, pdf_base64, 'generado', 'admin'))
             
@@ -2535,6 +2535,14 @@ def generar_documentos_estudiante(
             icono='📄',
             prioridad='alta'
         )
+        
+        # Enviar notificación automática con correo
+        try:
+            # Obtener nombres de los documentos
+            nombres_docs = [doc['tipo'].replace('_', ' ').title() for doc in documentos_generados]
+            notificar('documento_generado', estudiante_id, documentos=nombres_docs)
+        except Exception as e:
+            logger.error(f"Error enviando notificación de documentos generados: {e}")
     
     return {
         'estudiante_id': estudiante_id,
@@ -5766,7 +5774,8 @@ async def subir_documentos_multi(
 
 @app.get("/api/documentos/{estudiante_id}/listar", tags=["Documentos"])
 def listar_documentos_estudiante(estudiante_id: int):
-    """Listar documentos del estudiante (usado por GestorDocumentos.jsx)"""
+    """Listar documentos del estudiante (usado por GestorDocumentos.jsx)
+    Incluye documentos subidos por el estudiante Y documentos generados por el admin"""
     import os
     import psycopg2
     
@@ -5774,12 +5783,13 @@ def listar_documentos_estudiante(estudiante_id: int):
     cursor = conn.cursor()
     
     try:
+        # Obtener documentos subidos por el estudiante
         cursor.execute("""
             SELECT id, nombre_archivo, categoria, tamano_archivo, mime_type, 
-                   estado_revision, comentario_admin, created_at, updated_at
+                   estado_revision, comentario_admin, created_at, updated_at,
+                   'subido' as origen
             FROM documentos
             WHERE estudiante_id = %s
-            ORDER BY created_at DESC
         """, (estudiante_id,))
         
         documentos = []
@@ -5793,8 +5803,45 @@ def listar_documentos_estudiante(estudiante_id: int):
                 'estado_revision': row[5],
                 'comentario_admin': row[6],
                 'created_at': row[7].isoformat() if row[7] else None,
-                'updated_at': row[8].isoformat() if row[8] else None
+                'updated_at': row[8].isoformat() if row[8] else None,
+                'origen': row[9]
             })
+        
+        # Obtener documentos generados por el admin
+        cursor.execute("""
+            SELECT id, nombre_archivo, tipo_documento, fecha_generacion, estado, 
+                   enviado_estudiante, notas
+            FROM documentos_generados
+            WHERE estudiante_id = %s AND enviado_estudiante = TRUE
+            ORDER BY fecha_generacion DESC
+        """, (estudiante_id,))
+        
+        for row in cursor.fetchall():
+            # Mapear tipo_documento a categoría
+            tipo_a_categoria = {
+                'carta_motivacion': 'visa',
+                'formulario_solicitud': 'visa',
+                'declaracion_jurada_fondos': 'financieros',
+                'carta_patrocinio': 'financieros'
+            }
+            
+            documentos.append({
+                'id': f"gen_{row[0]}",  # Prefijo para diferenciar de documentos subidos
+                'nombre': row[1],
+                'categoria': tipo_a_categoria.get(row[2], 'otros'),
+                'tamano': 0,  # Los generados no tienen tamaño calculado
+                'mime_type': 'application/pdf',
+                'estado_revision': 'aprobado',  # Los generados por admin están pre-aprobados
+                'comentario_admin': row[6] if row[6] else 'Documento generado automáticamente',
+                'created_at': row[3].isoformat() if row[3] else None,
+                'updated_at': row[3].isoformat() if row[3] else None,
+                'origen': 'generado',
+                'tipo_documento': row[2],
+                'doc_generado_id': row[0]  # ID real en documentos_generados
+            })
+        
+        # Ordenar por fecha
+        documentos.sort(key=lambda x: x['created_at'] if x['created_at'] else '', reverse=True)
         
         # Calcular progreso
         categorias_validas = ['pasaporte', 'visa', 'academicos', 'financieros', 'otros']
@@ -5819,8 +5866,9 @@ def listar_documentos_estudiante(estudiante_id: int):
 
 
 @app.get("/api/documentos/{documento_id}/descargar", tags=["Documentos"])
-def descargar_documento(documento_id: int):
-    """Descargar documento por ID (usado por GestorDocumentos.jsx)"""
+def descargar_documento(documento_id: str):
+    """Descargar documento por ID (usado por GestorDocumentos.jsx)
+    Soporta documentos subidos (ID numérico) y generados (ID con prefijo 'gen_')"""
     import os
     import psycopg2
     import base64
@@ -5830,20 +5878,61 @@ def descargar_documento(documento_id: int):
     cursor = conn.cursor()
     
     try:
-        cursor.execute("""
-            SELECT nombre_archivo, contenido_base64, mime_type
-            FROM documentos
-            WHERE id = %s
-        """, (documento_id,))
+        # Verificar si es documento generado
+        if str(documento_id).startswith('gen_'):
+            # Documento generado por admin
+            doc_id_real = str(documento_id).replace('gen_', '')
+            
+            cursor.execute("""
+                SELECT nombre_archivo, contenido_pdf
+                FROM documentos_generados
+                WHERE id = %s
+            """, (doc_id_real,))
+            
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not row:
+                raise HTTPException(status_code=404, detail="Documento generado no encontrado")
+            
+            nombre, contenido_b64 = row
+            mime_type = 'application/pdf'
+            
+        else:
+            # Documento subido por estudiante
+            cursor.execute("""
+                SELECT nombre_archivo, contenido_base64, mime_type
+                FROM documentos
+                WHERE id = %s
+            """, (documento_id,))
+            
+            row = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not row:
+                raise HTTPException(status_code=404, detail="Documento no encontrado")
+            
+            nombre, contenido_b64, mime_type = row
         
-        row = cursor.fetchone()
-        cursor.close()
-        conn.close()
+        # Decodificar base64
+        contenido = base64.b64decode(contenido_b64)
         
-        if not row:
-            raise HTTPException(status_code=404, detail="Documento no encontrado")
+        # Retornar como streaming
+        return StreamingResponse(
+            BytesIO(contenido),
+            media_type=mime_type,
+            headers={
+                'Content-Disposition': f'attachment; filename="{nombre}"'
+            }
+        )
         
-        nombre, contenido_b64, mime_type = row
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error descargando documento: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
         
         # Decodificar base64
         contenido = base64.b64decode(contenido_b64)
