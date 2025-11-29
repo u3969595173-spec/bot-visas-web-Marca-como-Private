@@ -9367,15 +9367,15 @@ def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depend
             """), {"id": presupuesto_id})
             estudiante_id = result.scalar()
             
-            # Crear registro de proceso_visa si no existe
+            # Crear registro de proceso_visa_pasos si no existe
             if estudiante_id:
                 existe = db.execute(text("""
-                    SELECT id FROM proceso_visa WHERE estudiante_id = :estudiante_id
+                    SELECT estudiante_id FROM proceso_visa_pasos WHERE estudiante_id = :estudiante_id
                 """), {"estudiante_id": estudiante_id}).scalar()
                 
                 if not existe:
                     db.execute(text("""
-                        INSERT INTO proceso_visa (estudiante_id, created_at)
+                        INSERT INTO proceso_visa_pasos (estudiante_id, ultima_actualizacion)
                         VALUES (:estudiante_id, CURRENT_TIMESTAMP)
                     """), {"estudiante_id": estudiante_id})
                     logger.info(f"✅ Proceso de visa creado para estudiante {estudiante_id}")
@@ -9505,16 +9505,16 @@ def limpiar_todos_procesos_visa(
     try:
         # Contar registros
         result = db.execute(text("""
-            SELECT COUNT(*) FROM proceso_visa
+            SELECT COUNT(*) FROM proceso_visa_pasos
         """))
         count = result.scalar()
         
         if count == 0:
             return {"message": "No hay procesos de visa para limpiar", "registros_eliminados": 0}
         
-        # Eliminar todos los registros de proceso_visa
+        # Eliminar todos los registros de proceso_visa_pasos
         db.execute(text("""
-            DELETE FROM proceso_visa
+            DELETE FROM proceso_visa_pasos
         """))
         
         db.commit()
