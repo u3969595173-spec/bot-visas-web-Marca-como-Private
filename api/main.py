@@ -476,6 +476,16 @@ async def startup_event():
         except Exception as idx_error:
             print(f"⚠️ Error creando índices: {idx_error}")
         
+        # Agregar columna estado_servicio si no existe
+        try:
+            cursor.execute("""
+                ALTER TABLE presupuestos 
+                ADD COLUMN IF NOT EXISTS estado_servicio VARCHAR(50) DEFAULT 'pendiente';
+            """)
+            print("✅ Columna estado_servicio verificada")
+        except Exception as col_error:
+            print(f"⚠️ Error agregando columna estado_servicio: {col_error}")
+        
         conn.commit()
         cursor.close()
         conn.close()
