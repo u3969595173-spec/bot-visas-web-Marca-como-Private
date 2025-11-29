@@ -9072,9 +9072,25 @@ def ofertar_modalidades_pago(
     precio_financiado = datos.get('precio_financiado')
     mensaje_admin = datos.get('mensaje_admin', '')
     
+    # Convertir strings vacíos a None (NULL en DB)
+    if precio_al_empezar == '' or precio_al_empezar is None:
+        precio_al_empezar = None
+    else:
+        precio_al_empezar = float(precio_al_empezar)
+    
+    if precio_con_visa == '' or precio_con_visa is None:
+        precio_con_visa = None
+    else:
+        precio_con_visa = float(precio_con_visa)
+    
+    if precio_financiado == '' or precio_financiado is None:
+        precio_financiado = None
+    else:
+        precio_financiado = float(precio_financiado)
+    
     # Validar que al menos una modalidad esté presente
     modalidades_presentes = [precio_al_empezar, precio_con_visa, precio_financiado]
-    if not any(modalidades_presentes):
+    if not any(m is not None for m in modalidades_presentes):
         raise HTTPException(
             status_code=400, 
             detail="Debe especificar al menos una modalidad de pago"
