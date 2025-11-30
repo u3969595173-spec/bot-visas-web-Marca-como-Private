@@ -7,6 +7,7 @@ import './Navbar.css';
 const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('estudiante_id');
@@ -17,6 +18,10 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
 
   const isActive = (path) => {
     return location.pathname === path ? 'active' : 'inactive';
+  };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -30,7 +35,7 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
           <span className="logo-text-full">Agencia Educativa España</span>
         </Link>
 
-        {/* Navigation Links */}
+        {/* Navigation Links - Desktop */}
         <nav className="navbar-links">
           {estudianteId && <Notificaciones estudianteId={estudianteId} />}
 
@@ -46,14 +51,8 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
               <Link to="/estudiante/calculadora-fondos" className={`nav-link ${isActive('/estudiante/calculadora-fondos')}`}>
                 Calculadora
               </Link>
-              <Link to="/estudiante/alertas" className={`nav-link ${isActive('/estudiante/alertas')}`}>
-                Alertas
-              </Link>
               <Link to="/estudiante/documentos" className={`nav-link ${isActive('/estudiante/documentos')}`}>
                 Documentos
-              </Link>
-              <Link to="/estudiante/universidades" className={`nav-link ${isActive('/estudiante/universidades')}`}>
-                Universidades
               </Link>
             </>
           )}
@@ -62,28 +61,10 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
           {!estudianteId && (
             <>
               <Link to="/estudiante/login" className={`nav-link ${isActive('/estudiante/login')}`}>
-                Acceso Estudiantes
+                Acceso
               </Link>
               <Link to="/registro" className={`nav-link ${isActive('/registro')}`}>
-                Registrarse
-              </Link>
-              <Link to="/portal" className={`nav-link ${isActive('/portal')}`}>
-                Consultar Estado
-              </Link>
-            </>
-          )}
-
-          {/* Menú admin cuando está autenticado como admin */}
-          {isAuthenticated && (
-            <>
-              <Link to="/admin/chats" className={`nav-link ${isActive('/admin/chats')}`}>
-                Chats
-              </Link>
-              <Link to="/admin/analytics" className={`nav-link ${isActive('/admin/analytics')}`}>
-                Analytics
-              </Link>
-              <Link to="/admin/documentos" className={`nav-link ${isActive('/admin/documentos')}`}>
-                Documentos
+                Registro
               </Link>
             </>
           )}
@@ -92,32 +73,84 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
           {estudianteId && (
             <button
               onClick={handleLogout}
-              className="nav-link"
-              style={{
-                background: '#ef4444',
-                color: 'white',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
+              className="logout-btn"
             >
-              Cerrar Sesión
+              Salir
             </button>
           )}
         </nav>
 
-        {/* Mobile Menu Button (Visible only on small screens via CSS) */}
+        {/* Mobile Menu Button */}
         <div className="navbar-actions">
-          <button className="icon-btn mobile-menu-btn">
+          <button 
+            className="icon-btn mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
             <Menu size={20} />
           </button>
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="mobile-menu">
+          <div className="mobile-menu-content">
+            {estudianteId && (
+              <>
+                <Link to="/estudiante/dashboard" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Mi Portal
+                </Link>
+                <Link to="/estudiante/simulador" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Simulador
+                </Link>
+                <Link to="/estudiante/calculadora-fondos" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Calculadora
+                </Link>
+                <Link to="/estudiante/alertas" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Alertas
+                </Link>
+                <Link to="/estudiante/documentos" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Documentos
+                </Link>
+                <Link to="/estudiante/universidades" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Universidades
+                </Link>
+                <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">
+                  Cerrar Sesión
+                </button>
+              </>
+            )}
+
+            {!estudianteId && (
+              <>
+                <Link to="/estudiante/login" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Acceso Estudiantes
+                </Link>
+                <Link to="/registro" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Registrarse
+                </Link>
+                <Link to="/portal" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Consultar Estado
+                </Link>
+              </>
+            )}
+
+            {isAuthenticated && (
+              <>
+                <Link to="/admin/chats" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Chats
+                </Link>
+                <Link to="/admin/analytics" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Analytics
+                </Link>
+                <Link to="/admin/documentos" className="mobile-menu-link" onClick={closeMobileMenu}>
+                  Documentos
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 };
