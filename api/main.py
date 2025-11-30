@@ -7897,7 +7897,7 @@ async def obtener_estadisticas_referidos(
     
     # Calcular total ganado de presupuestos aceptados
     total_ganado = db.execute(text("""
-        SELECT COALESCE(SUM(p.precio_ofertado * 0.10), 0) as total
+        SELECT COALESCE(SUM(p.precio_ofertado * 0.05), 0) as total
         FROM presupuestos p
         JOIN estudiantes e ON p.estudiante_id = e.id
         WHERE e.referido_por_id = :id AND p.estado = 'aceptado'
@@ -7960,7 +7960,7 @@ async def admin_obtener_referidos(
             e.credito_disponible,
             e.tipo_recompensa,
             COUNT(DISTINCT r.id) as total_referidos,
-            COALESCE(SUM(CASE WHEN p.estado = 'aceptado' THEN p.precio_ofertado * 0.10 ELSE 0 END), 0) as comision_total
+            COALESCE(SUM(CASE WHEN p.estado = 'aceptado' THEN p.precio_ofertado * 0.05 ELSE 0 END), 0) as comision_total
         FROM estudiantes e
         LEFT JOIN estudiantes r ON r.referido_por_id = e.id
         LEFT JOIN presupuestos p ON p.estudiante_id = r.id
