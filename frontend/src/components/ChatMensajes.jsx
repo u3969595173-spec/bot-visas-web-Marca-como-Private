@@ -12,9 +12,18 @@ const ChatMensajes = ({ estudianteId, remitente = 'estudiante' }) => {
 
   useEffect(() => {
     cargarMensajes();
+    marcarComoLeidos(); // Marcar como leídos al cargar el componente
     const interval = setInterval(cargarMensajes, 10000); // Actualizar cada 10 segundos
     return () => clearInterval(interval);
   }, [estudianteId]);
+
+  const marcarComoLeidos = async () => {
+    try {
+      await axios.post(`${apiUrl}/api/estudiante/chat/${estudianteId}/marcar-leidos`);
+    } catch (err) {
+      console.error('Error marcando como leídos:', err);
+    }
+  };
 
   useEffect(() => {
     scrollToBottom();

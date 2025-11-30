@@ -52,12 +52,27 @@ function AdminChats() {
     }
   }
 
+  const marcarComoLeidos = async (estudianteId) => {
+    try {
+      const token = localStorage.getItem('token')
+      await axios.post(`${API_URL}/api/admin/chat/${estudianteId}/marcar-leidos`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      // Actualizar contador de conversaciones después de marcar como leído
+      cargarConversaciones()
+    } catch (error) {
+      console.error('Error marcando como leídos:', error)
+    }
+  }
+
   const cargarMensajes = async (estudianteId) => {
     setLoading(true)
     try {
       const response = await axios.get(`${API_URL}/api/chat/${estudianteId}/mensajes`)
       if (response.data.success) {
         setMensajes(response.data.mensajes)
+        // Marcar como leídos cuando se cargan los mensajes
+        marcarComoLeidos(estudianteId)
       }
     } catch (error) {
       console.error('Error cargando mensajes:', error)

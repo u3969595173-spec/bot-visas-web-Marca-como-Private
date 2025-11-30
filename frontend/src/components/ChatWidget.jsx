@@ -18,6 +18,8 @@ function ChatWidget({ estudianteId }) {
     if (abierto && estudianteId) {
       cargarHistorial()
       conectarWebSocket()
+      // Marcar como leídos al abrir el chat
+      marcarComoLeido()
     }
     return () => {
       if (wsRef.current) {
@@ -152,10 +154,24 @@ function ChatWidget({ estudianteId }) {
     }
   }
 
+  const marcarComoLeido = async () => {
+    try {
+      await fetch(`${API_URL}/api/chat/${estudianteId}/marcar-leidos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ remitente: 'estudiante' })
+      })
+      setNoLeidos(0)
+    } catch (error) {
+      console.error('Error marcando como leído:', error)
+    }
+  }
+
   const toggleChat = () => {
     setAbierto(!abierto)
     if (!abierto) {
-      setNoLeidos(0)
+      // Marcar mensajes como leídos cuando se abre el chat
+      marcarComoLeido()
     }
   }
 
