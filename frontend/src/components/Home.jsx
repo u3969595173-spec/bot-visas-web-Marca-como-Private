@@ -63,29 +63,29 @@ function Home() {
             {/* Service Card 1 */}
             <div className="service-card">
               <div className="icon-box">
-                <div className="icon-text">🎓</div>
+                <div className="icon-text">📋</div>
               </div>
-              <h3 className="service-title">Admisión Garantizada</h3>
-              <p className="service-desc">Aseguramos tu plaza en universidades de prestigio.</p>
+              <h3 className="service-title">Asesoría Personalizada</h3>
+              <p className="service-desc">Evaluamos tu perfil y te guiamos paso a paso en tu proceso de visa de estudiante.</p>
             </div>
 
             {/* Service Card 2 */}
             <div className="service-card">
               <div className="icon-box">
-                <div className="icon-text">📱</div>
+                <div className="icon-text">📄</div>
               </div>
-              <h3 className="service-title">Visa Express</h3>
-              <p className="service-desc">Agilizamos tus trámites para un proceso sin estrés.</p>
+              <h3 className="service-title">Documentos Oficiales y Legalizaciones Express</h3>
+              <p className="service-desc">Generamos automáticamente todos los documentos necesarios para tu solicitud.</p>
             </div>
 
             {/* Service Card 3 */}
             <div className="service-card">
               <div className="icon-box">
-                <div className="icon-text">🏢</div>
+                <div className="icon-text">🎯</div>
               </div>
-              <h3 className="service-title">Alojamiento Premium</h3>
+              <h3 className="service-title">Seguimiento Completo</h3>
               <p className="service-desc">
-                Opciones de vivienda seguras y confortables para estudiantes.
+                Monitoreo en tiempo real de tu expediente con notificaciones automáticas.
               </p>
             </div>
           </div>
