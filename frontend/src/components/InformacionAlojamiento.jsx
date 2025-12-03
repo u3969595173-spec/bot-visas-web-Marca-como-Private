@@ -23,11 +23,15 @@ const InformacionAlojamiento = ({ estudianteId }) => {
   const [comentariosAdmin, setComentariosAdmin] = useState('');
   const [modoEdicion, setModoEdicion] = useState(false);
 
-  const apiUrl = process.env.REACT_APP_API_URL || 'https://bot-visas-api.onrender.com';
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://bot-visas-api.onrender.com';
 
   useEffect(() => {
     // Cargar datos del estudiante
     const cargarEstudiante = async () => {
+      if (!estudianteId) {
+        navigate('/estudiante/login');
+        return;
+      }
       if (estudianteId) {
         try {
           const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}`);
@@ -104,8 +108,30 @@ const InformacionAlojamiento = ({ estudianteId }) => {
       formData.gestion_solicitada
     );
 
+  if (!estudiante && !estudianteId) {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <p style={{ color: '#dc2626', marginBottom: '20px' }}>No se pudo identificar el estudiante</p>
+        <button
+          onClick={() => window.location.href = '/estudiante/dashboard'}
+          style={{
+            padding: '10px 20px',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          ← Volver al Dashboard
+        </button>
+      </div>
+    );
+  }
+
   if (!estudiante) {
-    return <div>Cargando información del estudiante...</div>;
+    return <div style={{ textAlign: 'center', padding: '50px' }}>Cargando información del estudiante...</div>;
   }
 
   return (

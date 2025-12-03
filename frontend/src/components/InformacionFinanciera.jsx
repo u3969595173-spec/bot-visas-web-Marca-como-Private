@@ -19,11 +19,17 @@ const InformacionFinanciera = ({ estudianteId }) => {
   const [comentariosAdmin, setComentariosAdmin] = useState('');
 
   useEffect(() => {
-    cargarDatos();
+    if (estudianteId) {
+      cargarDatos();
+    } else {
+      setLoading(false);
+      setError('No se pudo identificar el estudiante. Por favor, inicia sesión nuevamente.');
+    }
   }, [estudianteId]);
 
   const cargarDatos = async () => {
     try {
+      setLoading(true);
       const response = await axios.get(`${apiUrl}/api/estudiantes/${estudianteId}`);
       setEstudiante(response.data);
       setFormData({
@@ -91,6 +97,28 @@ const InformacionFinanciera = ({ estudianteId }) => {
     );
   }
 
+  if (error && !estudiante) {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <p style={{ color: '#dc2626', marginBottom: '20px' }}>{error}</p>
+        <button
+          onClick={() => window.location.href = '/estudiante/dashboard'}
+          style={{
+            padding: '10px 20px',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          ← Volver al Dashboard
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div style={{
       maxWidth: '800px',
@@ -106,7 +134,20 @@ const InformacionFinanciera = ({ estudianteId }) => {
         justifyContent: 'space-between',
         marginBottom: '30px'
       }}>
-        <h2 style={{ margin: 0, color: '#2d3748' }}>
+        <button
+          onClick={() => window.location.href = '/estudiante/dashboard'}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            color: '#2d3748'
+          }}
+          title="Volver al Dashboard"
+        >
+          ←
+        </button>
+        <h2 style={{ margin: 0, color: '#2d3748', flex: 1, marginLeft: '15px' }}>
           💸 Información Financiera
         </h2>
         {!editing ? (

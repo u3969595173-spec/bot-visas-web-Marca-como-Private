@@ -4,7 +4,7 @@ import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://bot-visas-api.onrender.com'
 
-function InformacionSeguroMedico() {
+function InformacionSeguroMedico({ estudianteId }) {
   const [tieneSeguro, setTieneSeguro] = useState(null)
   const [gestionSolicitada, setGestionSolicitada] = useState(false)
   const [comentarios, setComentarios] = useState('')
@@ -16,19 +16,18 @@ function InformacionSeguroMedico() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Verificar autenticación
-    const estudianteId = localStorage.getItem('estudiante_id')
     if (!estudianteId) {
       navigate('/estudiante/login')
       return
     }
     
     cargarDatos()
-  }, [])
+  }, [estudianteId])
 
   const cargarDatos = async () => {
+    if (!estudianteId) return
+    
     try {
-      const estudianteId = localStorage.getItem('estudiante_id')
       const response = await axios.get(`${API_URL}/api/estudiantes/${estudianteId}`)
       
       if (response.data) {
@@ -64,7 +63,6 @@ function InformacionSeguroMedico() {
     setLoading(true)
 
     try {
-      const estudianteId = localStorage.getItem('estudiante_id')
       const datosActualizacion = {
         gestion_seguro_solicitada: gestionSolicitada,
         comentarios_seguro_medico: comentarios
