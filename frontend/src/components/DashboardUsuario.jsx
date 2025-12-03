@@ -372,8 +372,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         }}>
           <button
             onClick={() => {
-              localStorage.setItem('estudiante_id', estudianteId);
-              navigate('/estudiante/informacion-financiera');
+              window.location.href = '/estudiante/informacion-financiera';
             }}
             className="btn"
             style={{
@@ -396,8 +395,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
           
           <button
             onClick={() => {
-              localStorage.setItem('estudiante_id', estudianteId);
-              navigate('/estudiante/informacion-alojamiento');
+              window.location.href = '/estudiante/informacion-alojamiento';
             }}
             className="btn"
             style={{
@@ -420,8 +418,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
           
           <button
             onClick={() => {
-              localStorage.setItem('estudiante_id', estudianteId);
-              navigate('/estudiante/informacion-seguro-medico');
+              window.location.href = '/estudiante/informacion-seguro-medico';
             }}
             className="btn"
             style={{

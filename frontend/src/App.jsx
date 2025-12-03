@@ -167,7 +167,7 @@ function App() {
             path="/estudiante/informacion-seguro-medico"
             element={
               estudianteId ? (
-                <InformacionSeguroMedico />
+                <InformacionSeguroMedico estudianteId={estudianteId} />
               ) : (
                 <Navigate to="/portal" />
               )
