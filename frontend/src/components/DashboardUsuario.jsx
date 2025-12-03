@@ -561,20 +561,20 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   nombre: 'Gestión de Alojamiento',
                   descripcion: 'Esto es solo para llevar a la cita consular como comprobante de alojamiento planificado. Búsqueda y reserva temporal de accommodation.',
                   esParaCita: true,
-                  navegarA: '/informacion-alojamiento'
+                  navegarA: '/estudiante/informacion-alojamiento'
                 },
                 {
                   id: 'seguro_medico_real', 
                   nombre: 'Seguro Médico Internacional',
                   descripcion: 'Este seguro sí te va a servir allí. Contratación de seguro médico internacional válido para estudios, con cobertura completa y reconocimiento oficial.',
-                  navegarA: '/informacion-seguro-medico'
+                  navegarA: '/estudiante/informacion-seguro-medico'
                 },
                 {
                   id: 'financiacion_cita', 
                   nombre: 'Demostración Financiera',
                   descripcion: 'Esto es solo para llevar a la cita consular. Preparación de documentos bancarios, certificaciones de solvencia y comprobantes financieros requeridos.',
                   esParaCita: true,
-                  navegarA: '/informacion-financiera'
+                  navegarA: '/estudiante/informacion-financiera'
                 }
               ].map(servicio => (
                 <div key={servicio.id} style={{
@@ -591,7 +591,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   // Si es un servicio que navega a otro componente
                   if (servicio.navegarA) {
                     if (confirm(`Este servicio requiere completar información adicional. ¿Quieres ir a rellenar la solicitud ahora?`)) {
-                      navigate(`${servicio.navegarA}/${estudianteId}`);
+                      window.location.href = servicio.navegarA;
                       return;
                     }
                   }
