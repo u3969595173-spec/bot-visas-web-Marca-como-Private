@@ -76,6 +76,11 @@ function InformacionSeguroMedico() {
       setModoEdicion(false) // Salir del modo edición después de guardar
       alert('✅ Información de seguro médico actualizada correctamente')
       
+      // Redirigir al dashboard
+      setTimeout(() => {
+        window.location.href = '/estudiante/dashboard'
+      }, 500)
+      
     } catch (error) {
       console.error('Error guardando:', error)
       alert('❌ Error al guardar la información: ' + (error.response?.data?.detail || error.message))

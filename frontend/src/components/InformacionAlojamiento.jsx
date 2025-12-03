@@ -85,8 +85,10 @@ const InformacionAlojamiento = ({ estudianteId }) => {
       setEditing(false);
       setModoEdicion(false); // Salir del modo edición después de guardar
       
-      // Refrescar datos del estudiante
-      window.location.reload();
+      // Redirigir al dashboard
+      setTimeout(() => {
+        window.location.href = '/estudiante/dashboard';
+      }, 500);
       
     } catch (error) {
       console.error('Error guardando información de alojamiento:', error);

@@ -73,6 +73,11 @@ const InformacionFinanciera = ({ estudianteId }) => {
       setSuccess('✅ Información financiera guardada correctamente');
       setEditing(false);
       cargarDatos();
+      
+      // Redirigir al dashboard después de 1 segundo
+      setTimeout(() => {
+        window.location.href = '/estudiante/dashboard';
+      }, 1000);
     } catch (err) {
       setError('Error al guardar información financiera: ' + (err.response?.data?.detail || err.message));
     }
