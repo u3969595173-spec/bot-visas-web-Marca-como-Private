@@ -371,7 +371,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
           gap: '15px'
         }}>
           <button
-            onClick={() => navigate('/estudiante/informacion-financiera')}
+            onClick={() => {
+              localStorage.setItem('estudiante_id', estudianteId);
+              navigate('/estudiante/informacion-financiera');
+            }}
             className="btn"
             style={{
               background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
@@ -384,14 +387,18 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px'
+              gap: '8px',
+              cursor: 'pointer'
             }}
           >
             💸 Información Financiera
           </button>
           
           <button
-            onClick={() => navigate('/estudiante/informacion-alojamiento')}
+            onClick={() => {
+              localStorage.setItem('estudiante_id', estudianteId);
+              navigate('/estudiante/informacion-alojamiento');
+            }}
             className="btn"
             style={{
               background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
@@ -404,14 +411,18 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px'
+              gap: '8px',
+              cursor: 'pointer'
             }}
           >
             🏠 Información de Alojamiento
           </button>
           
           <button
-            onClick={() => navigate('/estudiante/informacion-seguro-medico')}
+            onClick={() => {
+              localStorage.setItem('estudiante_id', estudianteId);
+              navigate('/estudiante/informacion-seguro-medico');
+            }}
             className="btn"
             style={{
               background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
@@ -424,7 +435,8 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '8px'
+              gap: '8px',
+              cursor: 'pointer'
             }}
           >
             🏥 Seguro Médico
