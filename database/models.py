@@ -293,14 +293,20 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
     raise ValueError("❌ DATABASE_URL no encontrada en .env")
 
-# Configurar engine con configuración simplificada
+# Configurar engine con configuración optimizada para plan de pago
 engine = create_engine(
     DATABASE_URL,
-    pool_size=5,  # Reducido para evitar problemas
-    max_overflow=10,  
-    pool_timeout=30,  
-    pool_recycle=1800,  # 30 minutos
-    pool_pre_ping=True
+    pool_size=10,  # Más conexiones disponibles
+    max_overflow=20,  
+    pool_timeout=60,  # Timeout más largo
+    pool_recycle=3600,  # 1 hora (más tiempo antes de reciclar)
+    pool_pre_ping=True,  # Verificar conexión antes de usar
+    connect_args={
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+    }
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
