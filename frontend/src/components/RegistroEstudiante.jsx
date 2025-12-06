@@ -73,7 +73,10 @@ const RegistroEstudiante = () => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       
-      const response = await axios.post(`${apiUrl}/api/estudiantes`, formData);
+      // Configurar timeout más largo para dar tiempo a que la BD despierte
+      const response = await axios.post(`${apiUrl}/api/estudiantes`, formData, {
+        timeout: 60000  // 60 segundos
+      });
       
       console.log('Respuesta del servidor:', response.data);
       const id = response.data.estudiante_id || response.data.id;
@@ -317,6 +320,11 @@ const RegistroEstudiante = () => {
             <div className="error-message">
               <span className="error-icon">⚠</span>
               {error}
+              {error.includes('base de datos está iniciando') && (
+                <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+                  💡 Tip: La base de datos gratuita se "duerme" por inactividad. Espera 10 segundos e intenta de nuevo.
+                </div>
+              )}
             </div>
           )}
 
@@ -325,7 +333,13 @@ const RegistroEstudiante = () => {
             className="submit-button"
             disabled={loading}
           >
-            {loading ? 'Creando cuenta...' : '🚀 Crear Cuenta'}
+            {loading ? (
+              <span>
+                <span className="spinner">⏳</span> Creando cuenta... (puede tardar hasta 30s)
+              </span>
+            ) : (
+              '🚀 Crear Cuenta'
+            )}
           </button>
 
           <p className="form-footer">
