@@ -526,6 +526,33 @@ app.include_router(chat_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
 app.include_router(documentos_router, prefix="/api")
 
+@app.get("/", tags=["Health"])
+async def root():
+    """Health check endpoint"""
+    return {
+        "status": "ok",
+        "service": "Estudia en España API",
+        "version": "1.0.0",
+        "message": "API funcionando correctamente"
+    }
+
+@app.get("/health", tags=["Health"])
+async def health_check(db: Session = Depends(get_db)):
+    """Health check con verificación de base de datos"""
+    try:
+        # Verificar conexión a base de datos
+        db.execute(text("SELECT 1"))
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database connection failed: {str(e)}"
+        )
+
 @app.post("/api/login", response_model=LoginResponse, tags=["Auth"])
 @limiter.limit("5/minute")  # Máximo 5 intentos de login por minuto
 def login(request: Request, datos: LoginRequest, db: Session = Depends(get_db)):

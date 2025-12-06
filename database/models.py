@@ -312,16 +312,31 @@ def init_db():
 
 def get_db():
     """Get database session with retry logic"""
-    db = SessionLocal()
-    try:
-        # Test connection
-        db.execute(text("SELECT 1"))
-        yield db
-    except Exception as e:
-        print(f"❌ Error de base de datos: {e}")
-        raise HTTPException(
-            status_code=503, 
-            detail="Servicio de base de datos temporalmente no disponible"
-        )
-    finally:
-        db.close()
+    max_retries = 3
+    retry_delay = 1  # segundos
+    
+    for attempt in range(max_retries):
+        db = SessionLocal()
+        try:
+            # Test connection
+            db.execute(text("SELECT 1"))
+            yield db
+            return
+        except Exception as e:
+            db.close()
+            
+            if attempt < max_retries - 1:
+                print(f"⚠️ Intento {attempt + 1}/{max_retries} falló. Reintentando en {retry_delay}s...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Backoff exponencial
+            else:
+                print(f"❌ Error de base de datos después de {max_retries} intentos: {e}")
+                raise HTTPException(
+                    status_code=503, 
+                    detail="La base de datos está iniciando. Por favor, intenta de nuevo en unos segundos."
+                )
+        finally:
+            try:
+                db.close()
+            except:
+                pass

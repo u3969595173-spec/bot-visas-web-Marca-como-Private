@@ -90,7 +90,19 @@ const RegistroEstudiante = () => {
       setSuccess(true);
     } catch (err) {
       console.error('Error al registrar:', err);
-      setError(err.response?.data?.detail || 'Error al registrar estudiante');
+      
+      // Mensaje de error más amigable
+      let mensajeError = 'Error al registrar estudiante';
+      
+      if (err.response?.status === 503) {
+        mensajeError = 'La base de datos está iniciando. Por favor, espera 10 segundos e intenta de nuevo.';
+      } else if (err.response?.data?.detail) {
+        mensajeError = err.response.data.detail;
+      } else if (err.message.includes('Network Error') || err.message.includes('timeout')) {
+        mensajeError = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+      }
+      
+      setError(mensajeError);
     } finally {
       setLoading(false);
     }
