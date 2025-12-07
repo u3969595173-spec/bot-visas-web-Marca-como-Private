@@ -2959,6 +2959,111 @@ function DashboardAdminExpandido({ onLogout }) {
                   )}
                 </div>
 
+                {/* Extractos Bancarios */}
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px', flex: 1}}>
+                    {estudianteEditar.archivo_extractos ? (
+                      <span style={{fontSize: '20px'}}>✅</span>
+                    ) : (
+                      <span style={{fontSize: '20px'}}>❌</span>
+                    )}
+                    <span style={{fontWeight: '500', color: '#374151', fontSize: '14px'}}>Extractos Bancarios</span>
+                  </div>
+                  {estudianteEditar.archivo_extractos && (
+                    <button
+                      onClick={() => {
+                        const url = `${import.meta.env.VITE_API_URL}/estudiantes/${estudianteEditar.id}/documentos/extractos`;
+                        window.open(url, '_blank');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      📥 Descargar
+                    </button>
+                  )}
+                </div>
+
+                {/* Seguro Médico */}
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px', flex: 1}}>
+                    {estudianteEditar.archivo_seguro_medico ? (
+                      <span style={{fontSize: '20px'}}>✅</span>
+                    ) : (
+                      <span style={{fontSize: '20px'}}>❌</span>
+                    )}
+                    <span style={{fontWeight: '500', color: '#374151', fontSize: '14px'}}>Seguro Médico Internacional</span>
+                  </div>
+                  {estudianteEditar.archivo_seguro_medico && (
+                    <button
+                      onClick={() => {
+                        const url = `${import.meta.env.VITE_API_URL}/estudiantes/${estudianteEditar.id}/documentos/seguro_medico`;
+                        window.open(url, '_blank');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      📥 Descargar
+                    </button>
+                  )}
+                </div>
+
+                {/* Foto Pasaporte */}
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px', flex: 1}}>
+                    {estudianteEditar.archivo_foto_pasaporte ? (
+                      <span style={{fontSize: '20px'}}>✅</span>
+                    ) : (
+                      <span style={{fontSize: '20px'}}>❌</span>
+                    )}
+                    <span style={{fontWeight: '500', color: '#374151', fontSize: '14px'}}>Foto tipo Pasaporte</span>
+                  </div>
+                  {estudianteEditar.archivo_foto_pasaporte && (
+                    <button
+                      onClick={() => {
+                        const url = `${import.meta.env.VITE_API_URL}/estudiantes/${estudianteEditar.id}/documentos/foto_pasaporte`;
+                        window.open(url, '_blank');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      📥 Descargar
+                    </button>
+                  )}
+                </div>
+
                 <p style={{margin: '10px 0 0 0', fontSize: '12px', color: '#6b7280', fontStyle: 'italic'}}>
                   💡 Los estudiantes pueden subir sus documentos desde su panel.
                 </p>
