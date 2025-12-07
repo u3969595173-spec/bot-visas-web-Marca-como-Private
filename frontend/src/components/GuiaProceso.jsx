@@ -117,6 +117,42 @@ const GuiaProceso = () => {
       pasos: [
         {
           numero: 6,
+          titulo: "Recolectar y Revisar Documentos del Estudiante",
+          queHace: "Verificar que el estudiante suba TODOS los documentos necesarios",
+          accionAgencia: [
+            "✅ VERIFICAR que el estudiante haya subido estos 7 documentos en el sistema:",
+            "1️⃣ PASAPORTE válido (mínimo 6 meses de vigencia)",
+            "2️⃣ TÍTULO UNIVERSITARIO (original o copia certificada)",
+            "3️⃣ NOTAS ACADÉMICAS completas (transcript oficial)",
+            "4️⃣ CERTIFICADO MÉDICO reciente (máx 3 meses antigüedad)",
+            "5️⃣ EXTRACTOS BANCARIOS (últimos 6 meses mostrando fondos)",
+            "6️⃣ SEGURO MÉDICO INTERNACIONAL (póliza con cobertura 30,000€ mínimo)",
+            "7️⃣ FOTO TIPO PASAPORTE (fondo blanco, reciente)",
+            "",
+            "🔴 IMPORTANTE: Revisar calidad de los documentos:",
+            "• ¿Las fotos/PDFs son legibles?",
+            "• ¿Los documentos están completos?",
+            "• ¿Las fechas son válidas?",
+            "• ¿Los nombres coinciden exactamente?",
+            "",
+            "📧 Si falta algo: Contactar al estudiante de inmediato",
+            "✅ Si todo OK: Marcar como verificado en el sistema"
+          ],
+          documentos: [
+            "📄 PASAPORTE (vigente +6 meses)",
+            "🎓 TÍTULO UNIVERSITARIO",
+            "📊 NOTAS ACADÉMICAS (transcript completo)",
+            "🏥 CERTIFICADO MÉDICO (máx 3 meses antigüedad)",
+            "💰 EXTRACTOS BANCARIOS (últimos 6 meses)",
+            "🩺 SEGURO MÉDICO INTERNACIONAL (30,000€ cobertura)",
+            "📸 FOTO TIPO PASAPORTE (fondo blanco)"
+          ],
+          sistema: "Verificar en Admin → Estudiantes → Ver Documentos que los 7 archivos estén subidos",
+          tiempo: "1-2 días (depende del estudiante)",
+          importante: true
+        },
+        {
+          numero: 7,
           titulo: "Apostillar Documentos",
           queHace: "Legalizar documentos del país de origen ante La Haya",
           accionAgencia: [
@@ -126,17 +162,17 @@ const GuiaProceso = () => {
             "Verificar que apostilla tenga sello oficial"
           ],
           documentos: [
-            "Título de bachillerato APOSTILLADO",
+            "Título universitario APOSTILLADO",
             "Notas académicas APOSTILLADAS",
             "Certificado de nacimiento APOSTILLADO",
-            "Antecedentes penales APOSTILLADOS"
+            "Antecedentes penales APOSTILLADOS (TÚ lo sacas)"
           ],
           sistema: "Marcar paso_apostillado_documentos = true",
           tiempo: "5-10 días",
           importante: true
         },
         {
-          numero: 7,
+          numero: 8,
           titulo: "Traducción Jurada",
           queHace: "Traducir todos los documentos apostillados al español por traductor oficial",
           accionAgencia: [
@@ -150,23 +186,25 @@ const GuiaProceso = () => {
           tiempo: "3-5 días"
         },
         {
-          numero: 8,
-          titulo: "Certificado Médico",
-          queHace: "Examen médico oficial para visa",
+          numero: 9,
+          titulo: "Certificado Médico Oficial",
+          queHace: "Examen médico oficial para visa (ADEMÁS del que subió el estudiante)",
           accionAgencia: [
             "Dar lista de clínicas autorizadas por consulado",
             "Explicar qué exámenes necesita (general, rayos X, sangre)",
-            "Verificar que certificado incluya sello oficial y firma médico"
+            "Verificar que certificado incluya sello oficial y firma médico",
+            "Nota: Esto es ADICIONAL al certificado que ya subió el estudiante"
           ],
-          documentos: ["Certificado médico sellado (vigencia máxima 3 meses)"],
+          documentos: ["Certificado médico oficial del consulado (vigencia máxima 3 meses)"],
           sistema: "Marcar paso_certificado_medico = true",
           tiempo: "1-2 días"
         },
         {
-          numero: 9,
-          titulo: "Antecedentes Penales",
+          numero: 10,
+          titulo: "Antecedentes Penales (TÚ los sacas)",
           queHace: "Solicitar certificado de antecedentes penales del país de origen",
           accionAgencia: [
+            "🔴 LA AGENCIA saca este documento, NO el estudiante",
             "Guiar proceso según país (varía mucho)",
             "Verificar que sea reciente (máximo 90 días antigüedad)",
             "Confirmar que esté apostillado"
@@ -184,33 +222,35 @@ const GuiaProceso = () => {
       color: "#9f7aea",
       pasos: [
         {
-          numero: 10,
-          titulo: "Seguro Médico Internacional",
-          queHace: "Contratar seguro médico válido para España",
+          numero: 11,
+          titulo: "Seguro Médico Internacional (Ya está subido)",
+          queHace: "VERIFICAR que el estudiante subió el seguro médico internacional",
           accionAgencia: [
-            "Recomendar aseguradoras confiables: Asisa, Sanitas, DKV, Adeslas",
-            "Verificar cobertura mínima 30,000€",
-            "Confirmar que cubra repatriación",
-            "Verificar vigencia desde fecha de entrada a España"
+            "✅ El estudiante YA subió este documento en el paso 6",
+            "Verificar que la póliza tenga:",
+            "• Cobertura mínima 30,000€",
+            "• Cubra repatriación",
+            "• Vigencia desde fecha de entrada a España",
+            "• Aseguradoras recomendadas: Asisa, Sanitas, DKV, Adeslas"
           ],
-          documentos: ["Póliza de seguro médico con cobertura completa"],
+          documentos: ["Póliza de seguro médico (YA SUBIDA por el estudiante)"],
           sistema: "Marcar paso_seguro_medico = true, guardar número de póliza",
-          tiempo: "1-2 días",
+          tiempo: "1 día (solo verificación)",
           importante: true
         },
         {
-          numero: 11,
+          numero: 12,
           titulo: "Demostración de Fondos",
           queHace: "Preparar prueba de solvencia económica suficiente",
           accionAgencia: [
             "Calcular monto mínimo: IPREM (600€/mes) × duración estudios + matrícula",
             "Generar declaración jurada de fondos automáticamente (sistema)",
             "Si tiene patrocinador → Generar carta de patrocinio (sistema)",
-            "Revisar extractos bancarios (deben mostrar fondos estables últimos 6 meses)",
+            "Revisar extractos bancarios que ya subió el estudiante (paso 6)",
             "Verificar documentos de ingresos del patrocinador si aplica"
           ],
           documentos: [
-            "Extractos bancarios últimos 6 meses (cuenta con fondos suficientes)",
+            "Extractos bancarios (YA SUBIDOS en paso 6)",
             "✅ Declaración jurada de fondos (generada automáticamente)",
             "✅ Carta de patrocinio (si aplica, generada automáticamente)",
             "Certificados laborales y de ingresos del patrocinador",
@@ -229,7 +269,7 @@ const GuiaProceso = () => {
       color: "#ed64a6",
       pasos: [
         {
-          numero: 12,
+          numero: 13,
           titulo: "Formulario Nacional de Visado",
           queHace: "Llenar formulario oficial del consulado español",
           accionAgencia: [
@@ -245,7 +285,7 @@ const GuiaProceso = () => {
           importante: true
         },
         {
-          numero: 13,
+          numero: 14,
           titulo: "Formulario Schengen (si aplica)",
           queHace: "Llenar formulario europeo de visa Schengen",
           accionAgencia: [
@@ -259,7 +299,7 @@ const GuiaProceso = () => {
           tiempo: "1 día"
         },
         {
-          numero: 14,
+          numero: 15,
           titulo: "Pago de Tasas Consulares",
           queHace: "Pagar tasas oficiales del consulado",
           accionAgencia: [
@@ -281,7 +321,7 @@ const GuiaProceso = () => {
       color: "#4299e1",
       pasos: [
         {
-          numero: 15,
+          numero: 16,
           titulo: "Agendar Cita en Consulado",
           queHace: "Sacar cita oficial en consulado español del país",
           accionAgencia: [
@@ -296,7 +336,7 @@ const GuiaProceso = () => {
           importante: true
         },
         {
-          numero: 16,
+          numero: 17,
           titulo: "Preparación para Entrevista",
           queHace: "Ensayar respuestas a preguntas típicas del oficial consular",
           accionAgencia: [
@@ -311,7 +351,7 @@ const GuiaProceso = () => {
           tiempo: "2-3 días antes de cita"
         },
         {
-          numero: 17,
+          numero: 18,
           titulo: "Revisión Final de Expediente",
           queHace: "Verificar que absolutamente TODO esté completo y correcto",
           accionAgencia: [
@@ -327,7 +367,7 @@ const GuiaProceso = () => {
           importante: true
         },
         {
-          numero: 18,
+          numero: 19,
           titulo: "Asistir a Cita en Consulado",
           queHace: "Ir al consulado español en fecha y hora exacta",
           accionAgencia: [
@@ -350,7 +390,7 @@ const GuiaProceso = () => {
       color: "#38b2ac",
       pasos: [
         {
-          numero: 19,
+          numero: 20,
           titulo: "Entrevista Consular",
           queHace: "Oficial consular entrevista al estudiante (5-15 minutos típicamente)",
           accionAgencia: [
@@ -365,7 +405,7 @@ const GuiaProceso = () => {
           importante: true
         },
         {
-          numero: 20,
+          numero: 21,
           titulo: "Entrega de Documentos",
           queHace: "Dejar expediente completo en consulado",
           accionAgencia: [
@@ -379,7 +419,7 @@ const GuiaProceso = () => {
           tiempo: "Mismo día de cita"
         },
         {
-          numero: 21,
+          numero: 22,
           titulo: "Período de Espera",
           queHace: "Esperar resolución del consulado (15-60 días típicamente)",
           accionAgencia: [
@@ -393,11 +433,11 @@ const GuiaProceso = () => {
           tiempo: "15-60 días (varía por país)"
         },
         {
-          numero: 22,
+          numero: 23,
           titulo: "Notificación de Resultado",
           queHace: "Consulado informa decisión final (aprobado/rechazado)",
           accionAgencia: [
-            "SI APROBADO: Felicitar inmediatamente, pasar a Paso 23",
+            "SI APROBADO: Felicitar inmediatamente, pasar a Paso 24",
             "SI RECHAZADO: Analizar motivos del rechazo detalladamente",
             "SI RECHAZADO: Evaluar si procede apelar o rehacer solicitud",
             "SI RECHAZADO: Ofrecer análisis de qué falló para mejorar",
@@ -417,7 +457,7 @@ const GuiaProceso = () => {
       color: "#48bb78",
       pasos: [
         {
-          numero: 23,
+          numero: 24,
           titulo: "Recoger Visa en Consulado",
           queHace: "Ir a consulado a recoger pasaporte con visa estampada",
           accionAgencia: [
@@ -433,7 +473,7 @@ const GuiaProceso = () => {
           importante: true
         },
         {
-          numero: 24,
+          numero: 25,
           titulo: "Preparativos de Viaje a España",
           queHace: "Organizar viaje y llegada a España",
           accionAgencia: [
