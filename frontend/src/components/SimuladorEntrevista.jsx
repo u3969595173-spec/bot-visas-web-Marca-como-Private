@@ -12,7 +12,6 @@ const SimuladorEntrevista = ({ estudianteId }) => {
   const [modo, setModo] = useState('preparacion'); // preparacion, practica, completado
   const [evaluaciones, setEvaluaciones] = useState({});
   const [mostrandoTips, setMostrandoTips] = useState(false);
-
   useEffect(() => {
     cargarEntrevista();
   }, [estudianteId]);
@@ -37,7 +36,7 @@ const SimuladorEntrevista = ({ estudianteId }) => {
 
   const guardarRespuesta = async () => {
     const pregunta = entrevista.preguntas[preguntaActual];
-    
+
     // Guardar respuesta
     const nuevasRespuestas = {
       ...respuestas,
@@ -52,7 +51,7 @@ const SimuladorEntrevista = ({ estudianteId }) => {
         respuesta: respuestaActual,
         pregunta: pregunta  // Enviar pregunta completa para tips
       });
-      
+
       setEvaluaciones({
         ...evaluaciones,
         [preguntaActual]: response.data
@@ -63,7 +62,7 @@ const SimuladorEntrevista = ({ estudianteId }) => {
 
     // Limpiar campo y avanzar
     setRespuestaActual('');
-    
+
     if (preguntaActual < entrevista.preguntas.length - 1) {
       setPreguntaActual(preguntaActual + 1);
       setMostrandoTips(false);
@@ -133,10 +132,10 @@ const SimuladorEntrevista = ({ estudianteId }) => {
         {/* Contexto personalizado */}
         <div className="simulador-contexto">
           <h2>📊 Tu Perfil</h2>
-          
+
           {entrevista.contexto_personalizado.puntos_fuertes.length > 0 && (
             <div className="contexto-section">
-              <h3 style={{color: '#28a745'}}>Puntos Fuertes:</h3>
+              <h3 style={{ color: '#28a745' }}>Puntos Fuertes:</h3>
               <ul>
                 {entrevista.contexto_personalizado.puntos_fuertes.map((punto, i) => (
                   <li key={i}>{punto}</li>
@@ -147,7 +146,7 @@ const SimuladorEntrevista = ({ estudianteId }) => {
 
           {entrevista.contexto_personalizado.areas_a_mejorar.length > 0 && (
             <div className="contexto-section">
-              <h3 style={{color: '#ffc107'}}>Áreas a Reforzar:</h3>
+              <h3 style={{ color: '#ffc107' }}>Áreas a Reforzar:</h3>
               <ul>
                 {entrevista.contexto_personalizado.areas_a_mejorar.map((area, i) => (
                   <li key={i}>{area}</li>
@@ -196,7 +195,7 @@ const SimuladorEntrevista = ({ estudianteId }) => {
           <div className="practica-progreso">
             <span>Pregunta {preguntaActual + 1} de {entrevista.preguntas.length}</span>
             <div className="progreso-bar">
-              <div className="progreso-fill" style={{width: `${progreso}%`}}></div>
+              <div className="progreso-fill" style={{ width: `${progreso}%` }}></div>
             </div>
           </div>
         </div>
@@ -220,8 +219,8 @@ const SimuladorEntrevista = ({ estudianteId }) => {
             />
             <div className="respuesta-info">
               <span>{respuestaActual.split(' ').filter(w => w).length} palabras</span>
-              <button 
-                className="btn-tips" 
+              <button
+                className="btn-tips"
                 onClick={() => setMostrandoTips(!mostrandoTips)}
               >
                 {mostrandoTips ? '❌ Ocultar' : '💡 Ver Tips'}
@@ -255,15 +254,15 @@ const SimuladorEntrevista = ({ estudianteId }) => {
 
           <div className="practica-actions">
             {preguntaActual > 0 && (
-              <button 
-                className="btn-anterior" 
+              <button
+                className="btn-anterior"
                 onClick={() => setPreguntaActual(preguntaActual - 1)}
               >
                 ← Anterior
               </button>
             )}
-            <button 
-              className="btn-siguiente" 
+            <button
+              className="btn-siguiente"
               onClick={guardarRespuesta}
               disabled={respuestaActual.trim().length < 10}
             >
@@ -297,7 +296,7 @@ const SimuladorEntrevista = ({ estudianteId }) => {
         <div className="completado-header">
           <div className="completado-icono">🎉</div>
           <h1>¡Simulación Completada!</h1>
-          <div className="completado-puntuacion" style={{color: colorFinal}}>
+          <div className="completado-puntuacion" style={{ color: colorFinal }}>
             <span className="puntuacion-numero">{promedio}</span>
             <span className="puntuacion-max">/100</span>
           </div>
@@ -323,7 +322,7 @@ const SimuladorEntrevista = ({ estudianteId }) => {
                       <span className="eval-calidad">{evaluacion.calidad}</span>
                     </div>
                     <p className="eval-feedback">{evaluacion.feedback}</p>
-                    
+
                     {evaluacion.problemas && evaluacion.problemas.length > 0 && (
                       <div className="eval-problemas">
                         <strong>⚠️ Problemas detectados:</strong>
@@ -334,7 +333,7 @@ const SimuladorEntrevista = ({ estudianteId }) => {
                         </ul>
                       </div>
                     )}
-                    
+
                     {evaluacion.recomendaciones && evaluacion.recomendaciones.length > 0 && (
                       <div className="eval-recomendaciones">
                         <strong>💡 Recomendaciones:</strong>
@@ -345,14 +344,14 @@ const SimuladorEntrevista = ({ estudianteId }) => {
                         </ul>
                       </div>
                     )}
-                    
+
                     {evaluacion.tips && (
                       <div className="eval-tips">
                         <strong>📌 Tip:</strong>
                         <p>{evaluacion.tips}</p>
                       </div>
                     )}
-                    
+
                     {evaluacion.respuesta_modelo && (
                       <div className="eval-modelo">
                         <strong>✨ Ejemplo de respuesta ideal:</strong>

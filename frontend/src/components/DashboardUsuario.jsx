@@ -57,9 +57,9 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       console.log('[DEBUG] Presupuestos recibidos:', response.data);
       if (response.data && response.data.length > 0) {
         // Obtener el presupuesto más reciente con oferta (incluye aceptados)
-        const ultimoConOferta = response.data.find(p => 
-          p.estado === 'oferta_enviada' || 
-          p.estado === 'ofertado' || 
+        const ultimoConOferta = response.data.find(p =>
+          p.estado === 'oferta_enviada' ||
+          p.estado === 'ofertado' ||
           p.estado === 'aceptado'
         );
         if (ultimoConOferta) {
@@ -70,7 +70,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             precio_financiado: ultimoConOferta.precio_financiado
           });
           console.log('[DEBUG] Estado del presupuesto:', ultimoConOferta.estado);
-          console.log('[DEBUG] ¿Tiene al menos un precio?', 
+          console.log('[DEBUG] ¿Tiene al menos un precio?',
             !!(ultimoConOferta.precio_al_empezar || ultimoConOferta.precio_con_visa || ultimoConOferta.precio_financiado)
           );
           setPresupuestoActual(ultimoConOferta);
@@ -82,23 +82,6 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         console.log('[DEBUG] No hay presupuestos');
         setPresupuestoActual(null);
       }
-    } catch (err) {
-      console.error('Error cargando presupuestos:', err);
-      setPresupuestoActual(null);
-    }
-  };
-
-  const cargarDatos = async () => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const url = `${apiUrl}/api/estudiantes/${estudianteId}`;
-      console.log('[DEBUG] Cargando datos desde:', url);
-      
-      const estRes = await axios.get(url);
-      console.log('[DEBUG] Datos recibidos:', estRes.data);
-      setEstudiante(estRes.data);
-      setError(null);
-    } catch (err) {
       console.error('[ERROR] Error cargando datos:', err);
       console.error('[ERROR] Detalles:', err.response?.data);
       setError(err.response?.data?.detail || err.message || 'Error desconocido');
@@ -120,8 +103,8 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
   if (error) {
     return (
       <div className="container">
-        <div style={{ 
-          textAlign: 'center', 
+        <div style={{
+          textAlign: 'center',
           padding: '50px',
           background: '#fff3cd',
           borderRadius: '10px',
@@ -129,8 +112,8 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         }}>
           <h2 style={{ color: '#856404' }}>⚠️ Error al cargar datos</h2>
           <p style={{ color: '#856404' }}>{error}</p>
-          <button 
-            className="btn btn-primary" 
+          <button
+            className="btn btn-primary"
             onClick={() => {
               setLoading(true);
               setError(null);
@@ -139,8 +122,8 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
           >
             🔄 Reintentar
           </button>
-          <button 
-            className="btn" 
+          <button
+            className="btn"
             style={{ marginLeft: '10px' }}
             onClick={() => navigate('/')}
           >
@@ -277,33 +260,51 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         }}>
           🎯 Acciones Rápidas
         </h3>
-        
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
           gap: '15px',
           marginBottom: '20px'
         }}>
-          <button
-            onClick={() => setShowPresupuestoModal(true)}
-            className="btn"
-            style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: 'white',
-              border: 'none',
-              fontWeight: '600',
+          {/* Botón Solicitar Presupuesto - Solo si NO tiene presupuesto aceptado */}
+          {(!presupuestoActual || !['aceptado', 'ofertado', 'oferta_enviada'].includes(presupuestoActual.estado)) ? (
+            <button
+              onClick={() => setShowPresupuestoModal(true)}
+              className="btn"
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: 'white',
+                border: 'none',
+                fontWeight: '600',
+                padding: '15px 20px',
+                borderRadius: '10px',
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              💰 Solicitar Presupuesto
+            </button>
+          ) : (
+            <div style={{
+              background: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
               padding: '15px 20px',
               borderRadius: '10px',
-              fontSize: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px'
-            }}
-          >
-            💰 Solicitar Presupuesto
-          </button>
-          
+              border: '2px solid #818cf8',
+              textAlign: 'center'
+            }}>
+              <div style={{ color: '#4338ca', fontWeight: '600', marginBottom: '5px' }}>
+                ✅ Ya tienes un presupuesto activo
+              </div>
+              <div style={{ color: '#6366f1', fontSize: '14px' }}>
+                ¿Necesitas cambios? Contacta al admin por chat
+              </div>
+            </div>
+          )}
+
           {estadisticasReferidos && estadisticasReferidos.codigo_referido && (
             <button
               onClick={() => setShowReferidosModal(true)}
@@ -325,39 +326,39 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               💎 Referidos ({estadisticasReferidos.total_referidos})
             </button>
           )}
-          
+
           {/* Botón Ver Oferta - Si existe presupuesto */}
-          {presupuestoActual && 
-           ['ofertado', 'oferta_enviada', 'aceptado'].includes(presupuestoActual.estado) && 
-           (presupuestoActual.precio_al_empezar || presupuestoActual.precio_con_visa || presupuestoActual.precio_financiado) && (
-            <button
-              onClick={() => setShowOfertaModal(true)}
-              className="btn"
-              style={{
-                background: presupuestoActual.pagado
-                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                  : (presupuestoActual.estado === 'aceptado' 
-                    ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' 
-                    : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'),
-                color: 'white',
-                border: 'none',
-                fontWeight: '600',
-                padding: '15px 20px',
-                borderRadius: '10px',
-                fontSize: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              {presupuestoActual.pagado ? '✅ Pago Confirmado' : 
-               (presupuestoActual.estado === 'aceptado' ? '⏳ Ver Presupuesto (Pendiente Pago)' : 
-                (presupuestoActual.estado === 'ofertado' ? '💰 Ver Oferta Recibida' : '✅ Ver Presupuesto'))}
-            </button>
-          )}
+          {presupuestoActual &&
+            ['ofertado', 'oferta_enviada', 'aceptado'].includes(presupuestoActual.estado) &&
+            (presupuestoActual.precio_al_empezar || presupuestoActual.precio_con_visa || presupuestoActual.precio_financiado) && (
+              <button
+                onClick={() => setShowOfertaModal(true)}
+                className="btn"
+                style={{
+                  background: presupuestoActual.pagado
+                    ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                    : (presupuestoActual.estado === 'aceptado'
+                      ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                      : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'),
+                  color: 'white',
+                  border: 'none',
+                  fontWeight: '600',
+                  padding: '15px 20px',
+                  borderRadius: '10px',
+                  fontSize: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                {presupuestoActual.pagado ? '✅ Pago Confirmado' :
+                  (presupuestoActual.estado === 'aceptado' ? '⏳ Ver Presupuesto (Pendiente Pago)' :
+                    (presupuestoActual.estado === 'ofertado' ? '💰 Ver Oferta Recibida' : '✅ Ver Presupuesto'))}
+              </button>
+            )}
         </div>
-        
+
         <h4 style={{
           margin: '25px 0 15px 0',
           color: '#4a5568',
@@ -366,7 +367,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         }}>
           📋 Gestionar Mi Información
         </h4>
-        
+
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
@@ -394,7 +395,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
           >
             💸 Información Financiera
           </button>
-          
+
           <button
             onClick={() => {
               window.location.href = '/estudiante/informacion-alojamiento';
@@ -417,7 +418,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
           >
             🏠 Información de Alojamiento
           </button>
-          
+
           <button
             onClick={() => {
               window.location.href = '/estudiante/informacion-seguro-medico';
@@ -490,7 +491,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 👤 Completar tu Perfil
               </h3>
               <p style={{ color: '#1e3a8a', margin: 0, fontSize: '15px', lineHeight: '1.6' }}>
-                Ve a la pestaña <strong>"👤 Perfil"</strong> y llena todos tus datos personales y académicos. 
+                Ve a la pestaña <strong>"👤 Perfil"</strong> y llena todos tus datos personales y académicos.
                 Esto nos ayuda a entender tu situación y ofrecerte el mejor servicio.
               </p>
             </div>
@@ -633,8 +634,8 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 💬 Esperar Contacto del Administrador
               </h3>
               <p style={{ color: '#6b21a8', margin: 0, fontSize: '15px', lineHeight: '1.6' }}>
-                El administrador revisará tu información y te contactará por <strong>"💬 Mensajes"</strong> para 
-                indicarte qué documentos adicionales necesitas según tu caso específico (certificado médico, extractos bancarios, 
+                El administrador revisará tu información y te contactará por <strong>"💬 Mensajes"</strong> para
+                indicarte qué documentos adicionales necesitas según tu caso específico (certificado médico, extractos bancarios,
                 seguro médico, foto tipo pasaporte, etc.).
               </p>
             </div>
@@ -667,7 +668,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 📧 Revisar el Chat Regularmente
               </h3>
               <p style={{ color: '#7c3aed', margin: 0, fontSize: '15px', lineHeight: '1.6' }}>
-                Mantente atento a la pestaña <strong>"💬 Mensajes"</strong> para recibir actualizaciones sobre tu proceso, 
+                Mantente atento a la pestaña <strong>"💬 Mensajes"</strong> para recibir actualizaciones sobre tu proceso,
                 instrucciones adicionales y respuestas a tus consultas. La comunicación constante es clave para un proceso exitoso.
               </p>
             </div>
@@ -782,10 +783,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             marginBottom: '30px',
             textAlign: 'center'
           }}>
-            <h2 style={{ 
-              margin: 0, 
-              color: 'white', 
-              fontSize: '28px', 
+            <h2 style={{
+              margin: 0,
+              color: 'white',
+              fontSize: '28px',
               fontWeight: '700',
               display: 'flex',
               alignItems: 'center',
@@ -802,7 +803,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
 
           {/* Preguntas y Respuestas */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            
+
             {/* Pregunta 1 */}
             <div style={{
               border: '2px solid #e2e8f0',
@@ -811,10 +812,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -836,10 +837,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -849,7 +850,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 ¿Cuánto dinero necesito?
               </h3>
               <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
-                Entre 3,000 y 10,000 euros dependiendo del curso académico y situación personal. Puedes usar patrocinio de familiares en países extranjeros (España o EEUU, por ejemplo). 
+                Entre 3,000 y 10,000 euros dependiendo del curso académico y situación personal. Puedes usar patrocinio de familiares en países extranjeros (España o EEUU, por ejemplo).
                 <strong> Importante:</strong> Si buscas el cambio en el gobierno, ellos calculan entre 140 y 150 pesos cubanos por euro, por lo que al presentar solvencia económica en peso cubano es más económico.
               </p>
             </div>
@@ -862,10 +863,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -875,7 +876,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 ¿Qué pasa si me rechazan la visa?
               </h3>
               <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
-                Puedes volver a solicitar sin problema. <strong>Importante:</strong> Solo pagas nuestros servicios cuando te aprueban la visa, 
+                Puedes volver a solicitar sin problema. <strong>Importante:</strong> Solo pagas nuestros servicios cuando te aprueban la visa,
                 si te rechazan no tienes que hacer el segundo pago.
               </p>
             </div>
@@ -888,10 +889,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -901,7 +902,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 ¿Necesito apostillar mis documentos?
               </h3>
               <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
-                Sí, todos los documentos académicos deben estar apostillados. Nosotros te informamos cuándo y cómo hacerlo, 
+                Sí, todos los documentos académicos deben estar apostillados. Nosotros te informamos cuándo y cómo hacerlo,
                 y tenemos contacto con MINJUS para agilizarlo en cuestión de días.
               </p>
             </div>
@@ -914,10 +915,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -939,10 +940,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -964,10 +965,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -989,10 +990,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -1014,10 +1015,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -1039,10 +1040,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               backgroundColor: '#f8fafc',
               transition: 'all 0.3s'
             }}>
-              <h3 style={{ 
-                margin: '0 0 15px 0', 
-                color: '#667eea', 
-                fontSize: '18px', 
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
                 fontWeight: '700',
                 display: 'flex',
                 alignItems: 'center',
@@ -1113,7 +1114,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       {activeTab === 'probabilidad' && (
         <CalculadoraVisa estudianteId={estudianteId} />
       )}
-      
+
       {/* TAB: Checklist Documentos */}
       {activeTab === 'checklist' && (
         <ChecklistDocumentos estudianteId={estudianteId} />
@@ -1131,16 +1132,16 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               textAlign: 'center'
             }}>
               <div style={{ fontSize: '48px', marginBottom: '20px' }}>
-                {estudiante?.estado === 'aprobado' ? '✅' : 
-                 estudiante?.estado === 'rechazado' ? '❌' : '⏳'}
+                {estudiante?.estado === 'aprobado' ? '✅' :
+                  estudiante?.estado === 'rechazado' ? '❌' : '⏳'}
               </div>
               <h3 style={{ color: '#2d3748', marginBottom: '10px' }}>
                 {estudiante?.estado?.toUpperCase() || 'PENDIENTE'}
               </h3>
               <p style={{ color: '#718096' }}>
                 {estudiante?.estado === 'aprobado' ? '¡Felicidades! Tu solicitud ha sido aprobada.' :
-                 estudiante?.estado === 'rechazado' ? 'Tu solicitud requiere más información.' :
-                 'Tu solicitud está siendo revisada por nuestro equipo.'}
+                  estudiante?.estado === 'rechazado' ? 'Tu solicitud requiere más información.' :
+                    'Tu solicitud está siendo revisada por nuestro equipo.'}
               </p>
               {estudiante?.notas && (
                 <div style={{
@@ -1173,62 +1174,62 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
       {/* Modal Solicitar Presupuesto */}
       {showPresupuestoModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto'}}>
-            <h3 style={{marginTop: 0, color: '#1f2937', borderBottom: '2px solid #10b981', paddingBottom: '10px'}}>
+          <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 style={{ marginTop: 0, color: '#1f2937', borderBottom: '2px solid #10b981', paddingBottom: '10px' }}>
               💰 Solicitar Presupuesto de Servicios
             </h3>
 
-            <p style={{color: '#6b7280', marginBottom: '25px'}}>
+            <p style={{ color: '#6b7280', marginBottom: '25px' }}>
               Selecciona los servicios que necesitas y verás el precio total calculado automáticamente.
             </p>
 
-            <div style={{marginBottom: '30px'}}>
+            <div style={{ marginBottom: '30px' }}>
               {[
                 {
-                  id: 'gestion_basica_documentos', 
+                  id: 'gestion_basica_documentos',
                   nombre: 'Gestión Básica de Documentos',
                   descripcion: 'Organización, revisión y preparación de todos tus documentos académicos y personales necesarios para el proceso de visa. Incluye verificación de completitud y formato requerido.'
                 },
                 {
-                  id: 'solicitud_universitaria', 
+                  id: 'solicitud_universitaria',
                   nombre: 'Solicitud Universitaria',
                   descripcion: 'Búsqueda personalizada de universidades según tu perfil académico, aplicación completa a múltiples instituciones, seguimiento del proceso y obtención de carta de aceptación.'
                 },
                 {
-                  id: 'legalizacion_apostillamiento', 
+                  id: 'legalizacion_apostillamiento',
                   nombre: 'Legalización y Apostillamiento',
                   descripcion: 'Legalización de tu título y documentos académicos en órganos rectores de tu país, apostillado en cancillería y preparación para validación internacional.'
                 },
                 {
-                  id: 'antecedentes_penales', 
+                  id: 'antecedentes_penales',
                   nombre: 'Antecedentes Penales',
                   descripcion: 'Obtención de certificado de antecedentes penales, legalización en instancias correspondientes, apostillado y preparación del documento para presentación consular.'
                 },
                 {
-                  id: 'cita_preparacion_consular', 
+                  id: 'cita_preparacion_consular',
                   nombre: 'Cita y Preparación Consular',
                   descripcion: 'Agendamiento de cita en consulado, preparación completa para entrevista, simulacros, revisión de documentación requerida y acompañamiento en el proceso.'
                 },
                 {
-                  id: 'seguimiento_visa_otorgada', 
+                  id: 'seguimiento_visa_otorgada',
                   nombre: 'Seguimiento Hasta Visa Otorgada',
                   descripcion: 'Monitoreo constante del estado de tu solicitud, comunicación con consulado, resolución de requerimientos adicionales y acompañamiento hasta obtención de visa.'
                 },
                 {
-                  id: 'alojamiento_cita', 
+                  id: 'alojamiento_cita',
                   nombre: 'Gestión de Alojamiento',
                   descripcion: 'Esto es solo para llevar a la cita consular como comprobante de alojamiento planificado. Búsqueda y reserva temporal de accommodation.',
                   esParaCita: true,
                   navegarA: '/estudiante/informacion-alojamiento'
                 },
                 {
-                  id: 'seguro_medico_real', 
+                  id: 'seguro_medico_real',
                   nombre: 'Seguro Médico Internacional',
                   descripcion: 'Este seguro sí te va a servir allí. Contratación de seguro médico internacional válido para estudios, con cobertura completa y reconocimiento oficial.',
                   navegarA: '/estudiante/informacion-seguro-medico'
                 },
                 {
-                  id: 'financiacion_cita', 
+                  id: 'financiacion_cita',
                   nombre: 'Demostración Financiera',
                   descripcion: 'Esto es solo para llevar a la cita consular. Preparación de documentos bancarios, certificaciones de solvencia y comprobantes financieros requeridos.',
                   esParaCita: true,
@@ -1245,31 +1246,31 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   transition: 'all 0.2s',
                   boxShadow: serviciosSeleccionados[servicio.id] ? '0 4px 12px rgba(16, 185, 129, 0.2)' : '0 2px 4px rgba(0,0,0,0.1)'
                 }}
-                onClick={() => {
-                  // Si es un servicio que navega a otro componente
-                  if (servicio.navegarA) {
-                    if (confirm(`Este servicio requiere completar información adicional. ¿Quieres ir a rellenar la solicitud ahora?`)) {
-                      window.location.href = servicio.navegarA;
-                      return;
+                  onClick={() => {
+                    // Si es un servicio que navega a otro componente
+                    if (servicio.navegarA) {
+                      if (confirm(`Este servicio requiere completar información adicional. ¿Quieres ir a rellenar la solicitud ahora?`)) {
+                        window.location.href = servicio.navegarA;
+                        return;
+                      }
                     }
-                  }
-                  
-                  setServiciosSeleccionados(prev => ({
-                    ...prev,
-                    [servicio.id]: !prev[servicio.id]
-                  }))
-                }}
+
+                    setServiciosSeleccionados(prev => ({
+                      ...prev,
+                      [servicio.id]: !prev[servicio.id]
+                    }))
+                  }}
                 >
-                  <div style={{display: 'flex', alignItems: 'flex-start', gap: '15px'}}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px' }}>
                     <input
                       type="checkbox"
                       checked={serviciosSeleccionados[servicio.id] || false}
-                      onChange={() => {}}
-                      style={{width: '20px', height: '20px', cursor: 'pointer', marginTop: '2px'}}
+                      onChange={() => { }}
+                      style={{ width: '20px', height: '20px', cursor: 'pointer', marginTop: '2px' }}
                     />
-                    <div style={{flex: 1}}>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
-                        <strong style={{color: '#1f2937', fontSize: '16px'}}>{servicio.nombre}</strong>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <strong style={{ color: '#1f2937', fontSize: '16px' }}>{servicio.nombre}</strong>
                         {servicio.esParaCita && (
                           <span style={{
                             backgroundColor: '#fbbf24',
@@ -1291,7 +1292,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                           }}>REQUIERE FORMULARIO</span>
                         )}
                       </div>
-                      <p style={{color: '#6b7280', fontSize: '14px', margin: 0, lineHeight: '1.4'}}>
+                      <p style={{ color: '#6b7280', fontSize: '14px', margin: 0, lineHeight: '1.4' }}>
                         {servicio.descripcion}
                       </p>
                     </div>
@@ -1309,12 +1310,12 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               marginBottom: '20px'
             }}>
               <div>
-                <h4 style={{margin: '0 0 15px 0', color: '#065f46', fontSize: '18px'}}>📋 Servicios Seleccionados</h4>
-                <p style={{margin: '0 0 10px 0', fontSize: '16px', color: '#059669', fontWeight: '600'}}>
+                <h4 style={{ margin: '0 0 15px 0', color: '#065f46', fontSize: '18px' }}>📋 Servicios Seleccionados</h4>
+                <p style={{ margin: '0 0 10px 0', fontSize: '16px', color: '#059669', fontWeight: '600' }}>
                   {Object.values(serviciosSeleccionados).filter(Boolean).length} servicios solicitados
                 </p>
                 {Object.values(serviciosSeleccionados).filter(Boolean).length > 0 && (
-                  <p style={{margin: 0, fontSize: '14px', color: '#065f46'}}>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#065f46' }}>
                     ✅ Tu solicitud será revisada y recibirás una oferta personalizada
                   </p>
                 )}
@@ -1328,9 +1329,9 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               marginBottom: '20px',
               border: '1px solid #81d4fa'
             }}>
-              <div style={{marginBottom: '15px'}}>
-                <h4 style={{margin: '0 0 10px 0', color: '#01579b', fontSize: '16px'}}>💰 Proceso de Presupuesto:</h4>
-                <ol style={{margin: 0, paddingLeft: '20px', color: '#0277bd', fontSize: '14px'}}>
+              <div style={{ marginBottom: '15px' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#01579b', fontSize: '16px' }}>💰 Proceso de Presupuesto:</h4>
+                <ol style={{ margin: 0, paddingLeft: '20px', color: '#0277bd', fontSize: '14px' }}>
                   <li>Seleccionas los servicios que necesitas</li>
                   <li>Nuestro equipo revisa tu solicitud personalizada</li>
                   <li>Te enviamos una oferta con modalidades de pago</li>
@@ -1343,13 +1344,13 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 borderRadius: '8px',
                 marginTop: '15px'
               }}>
-                <p style={{margin: 0, fontSize: '14px', color: '#01579b', fontWeight: '600'}}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#01579b', fontWeight: '600' }}>
                   💬 Para cualquier duda, contacta por chat al administrador
                 </p>
               </div>
             </div>
 
-            <div style={{display: 'flex', gap: '10px', justifyContent: 'flex-end'}}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => {
                   setShowPresupuestoModal(false)
@@ -1372,7 +1373,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   const serviciosArray = Object.entries(serviciosSeleccionados)
                     .filter(([_, selected]) => selected)
                     .map(([id]) => id);
-                  
+
                   if (serviciosArray.length === 0) {
                     alert('⚠️ Por favor selecciona al menos un servicio para solicitar presupuesto');
                     return;
@@ -1420,7 +1421,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               borderLeft: '4px solid #2563eb',
               borderRadius: '8px'
             }}>
-              <p style={{margin: 0, fontSize: '13px', color: '#1e40af', lineHeight: '1.5'}}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#1e40af', lineHeight: '1.5' }}>
                 💡 <strong>¿Rechazaste alguna oferta anterior?</strong> No te preocupes, puedes solicitar un nuevo presupuesto las veces que necesites hasta encontrar la opción perfecta para ti. Nuestro equipo está aquí para ayudarte.
               </p>
             </div>
@@ -1452,7 +1453,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             maxHeight: '80vh',
             overflow: 'auto'
           }}>
-            <h2 style={{margin: '0 0 20px 0', color: '#2d3748'}}>
+            <h2 style={{ margin: '0 0 20px 0', color: '#2d3748' }}>
               💎 Mis Referidos
             </h2>
 
@@ -1464,7 +1465,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               borderRadius: '10px',
               marginBottom: '25px'
             }}>
-              <h3 style={{fontSize: '18px', marginBottom: '15px', margin: '0 0 15px 0'}}>
+              <h3 style={{ fontSize: '18px', marginBottom: '15px', margin: '0 0 15px 0' }}>
                 🔗 Tu Enlace de Referido
               </h3>
               <div style={{
@@ -1511,12 +1512,12 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   📋 Copiar
                 </button>
               </div>
-              <p style={{fontSize: '13px', opacity: 0.9, margin: '0 0 15px 0'}}>
+              <p style={{ fontSize: '13px', opacity: 0.9, margin: '0 0 15px 0' }}>
                 Comparte este enlace y recibe el <strong>10% del valor del trámite</strong> por cada persona que empiece proceso usando tu código: <strong>{estadisticasReferidos.codigo_referido}</strong>
               </p>
-              
+
               {/* Botones de compartir rápido */}
-              <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
                     const enlace = `${window.location.origin}/estudiante/registro?ref=${estadisticasReferidos.codigo_referido}`;
@@ -1575,10 +1576,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 borderRadius: '10px',
                 textAlign: 'center'
               }}>
-                <div style={{fontSize: '36px', fontWeight: '700'}}>
+                <div style={{ fontSize: '36px', fontWeight: '700' }}>
                   {estadisticasReferidos.total_referidos}
                 </div>
-                <div style={{fontSize: '14px', opacity: 0.9}}>Total Referidos</div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Total Referidos</div>
               </div>
               <div style={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -1587,10 +1588,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 borderRadius: '10px',
                 textAlign: 'center'
               }}>
-                <div style={{fontSize: '36px', fontWeight: '700'}}>
+                <div style={{ fontSize: '36px', fontWeight: '700' }}>
                   {estadisticasReferidos.credito_disponible.toFixed(2)}€
                 </div>
-                <div style={{fontSize: '14px', opacity: 0.9}}>Crédito Disponible</div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Crédito Disponible</div>
               </div>
               <div style={{
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
@@ -1599,19 +1600,19 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 borderRadius: '10px',
                 textAlign: 'center'
               }}>
-                <div style={{fontSize: '36px', fontWeight: '700'}}>
+                <div style={{ fontSize: '36px', fontWeight: '700' }}>
                   {estadisticasReferidos.total_ganado.toFixed(2)}€
                 </div>
-                <div style={{fontSize: '14px', opacity: 0.9}}>Total Ganado</div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Total Ganado</div>
               </div>
             </div>
 
             {estadisticasReferidos.referidos.length > 0 ? (
               <div>
-                <h3 style={{fontSize: '18px', color: '#2d3748', marginBottom: '15px'}}>
+                <h3 style={{ fontSize: '18px', color: '#2d3748', marginBottom: '15px' }}>
                   Lista de Personas Referidas:
                 </h3>
-                <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {estadisticasReferidos.referidos.map((referido, index) => (
                     <div key={index} style={{
                       backgroundColor: '#f7fafc',
@@ -1619,12 +1620,12 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                       borderRadius: '8px',
                       border: '1px solid #e2e8f0'
                     }}>
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <div style={{fontWeight: '600', color: '#2d3748', marginBottom: '5px'}}>
+                          <div style={{ fontWeight: '600', color: '#2d3748', marginBottom: '5px' }}>
                             {referido.nombre}
                           </div>
-                          <div style={{fontSize: '13px', color: '#718096'}}>
+                          <div style={{ fontSize: '13px', color: '#718096' }}>
                             {referido.email}
                           </div>
                         </div>
@@ -1646,9 +1647,9 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 padding: '40px',
                 color: '#a0aec0'
               }}>
-                <div style={{fontSize: '48px', marginBottom: '10px'}}>👥</div>
+                <div style={{ fontSize: '48px', marginBottom: '10px' }}>👥</div>
                 <p>Aún no tienes referidos</p>
-                <p style={{fontSize: '14px'}}>Comparte tu código para empezar a ganar crédito</p>
+                <p style={{ fontSize: '14px' }}>Comparte tu código para empezar a ganar crédito</p>
               </div>
             )}
 
@@ -1661,13 +1662,13 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 borderRadius: '10px',
                 color: 'white'
               }}>
-                <h3 style={{fontSize: '18px', marginBottom: '15px', margin: 0}}>
+                <h3 style={{ fontSize: '18px', marginBottom: '15px', margin: 0 }}>
                   💰 Usa tu Crédito Disponible
                 </h3>
-                <p style={{fontSize: '14px', opacity: 0.9, marginBottom: '15px'}}>
+                <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: '15px' }}>
                   Tienes {estadisticasReferidos.credito_disponible.toFixed(2)}€ disponibles
                 </p>
-                <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <button
                     onClick={async () => {
                       if (confirm(`¿Solicitar retiro de ${estadisticasReferidos.credito_disponible.toFixed(2)}€?\n\nEl administrador procesará tu solicitud y te contactará.`)) {
@@ -1786,9 +1787,9 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               gap: '15px',
               marginBottom: '20px',
               padding: '15px',
-              background: presupuestoActual.pagado 
-                ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)' 
-                : (presupuestoActual.estado === 'aceptado' 
+              background: presupuestoActual.pagado
+                ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'
+                : (presupuestoActual.estado === 'aceptado'
                   ? 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)'
                   : 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'),
               borderRadius: '12px'
@@ -1810,39 +1811,39 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 {presupuestoActual.pagado ? '✅' : (presupuestoActual.estado === 'aceptado' ? '⏳' : '💰')}
               </div>
               <div>
-                <h2 style={{ 
-                  margin: 0, 
-                  color: presupuestoActual.pagado ? '#065f46' : (presupuestoActual.estado === 'aceptado' ? '#92400e' : '#065f46'), 
-                  fontSize: '20px', 
-                  fontWeight: '700' 
+                <h2 style={{
+                  margin: 0,
+                  color: presupuestoActual.pagado ? '#065f46' : (presupuestoActual.estado === 'aceptado' ? '#92400e' : '#065f46'),
+                  fontSize: '20px',
+                  fontWeight: '700'
                 }}>
-                  {presupuestoActual.pagado ? '✅ Pago Recibido' : 
-                   (presupuestoActual.estado === 'aceptado' ? '⏳ Pendiente de Pago' : 
-                    (presupuestoActual.estado === 'ofertado' ? 'Oferta Personalizada Recibida' : '✅ Presupuesto Aceptado'))}
+                  {presupuestoActual.pagado ? '✅ Pago Recibido' :
+                    (presupuestoActual.estado === 'aceptado' ? '⏳ Pendiente de Pago' :
+                      (presupuestoActual.estado === 'ofertado' ? 'Oferta Personalizada Recibida' : '✅ Presupuesto Aceptado'))}
                 </h2>
-                <p style={{ 
-                  margin: '5px 0 0 0', 
-                  color: presupuestoActual.pagado ? '#059669' : (presupuestoActual.estado === 'aceptado' ? '#d97706' : '#059669'), 
-                  fontSize: '14px' 
+                <p style={{
+                  margin: '5px 0 0 0',
+                  color: presupuestoActual.pagado ? '#059669' : (presupuestoActual.estado === 'aceptado' ? '#d97706' : '#059669'),
+                  fontSize: '14px'
                 }}>
                   {presupuestoActual.pagado ? 'Tu pago ha sido confirmado' :
-                   (presupuestoActual.estado === 'aceptado' ? 'Esperando confirmación de pago' :
-                    (presupuestoActual.estado === 'ofertado' ? 'Revisa las modalidades de pago disponibles' : 'Trabajo en proceso'))}
+                    (presupuestoActual.estado === 'aceptado' ? 'Esperando confirmación de pago' :
+                      (presupuestoActual.estado === 'ofertado' ? 'Revisa las modalidades de pago disponibles' : 'Trabajo en proceso'))}
                 </p>
               </div>
             </div>
-            
+
             {/* Modalidades de Pago */}
             <div style={{ display: 'grid', gap: '15px', marginBottom: '20px' }}>
               {presupuestoActual.precio_al_empezar && (
                 <div style={{
-                  background: presupuestoActual.pagado_al_empezar 
+                  background: presupuestoActual.pagado_al_empezar
                     ? 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)'
                     : 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
                   padding: '20px',
                   borderRadius: '12px',
-                  border: presupuestoActual.pagado_al_empezar 
-                    ? '3px solid #10b981' 
+                  border: presupuestoActual.pagado_al_empezar
+                    ? '3px solid #10b981'
                     : '2px solid #fbbf24',
                   position: 'relative'
                 }}>
@@ -1864,11 +1865,11 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
-                      <div style={{ 
-                        fontWeight: '700', 
-                        color: presupuestoActual.pagado_al_empezar ? '#065f46' : '#92400e', 
-                        fontSize: '16px', 
-                        marginBottom: '4px' 
+                      <div style={{
+                        fontWeight: '700',
+                        color: presupuestoActual.pagado_al_empezar ? '#065f46' : '#92400e',
+                        fontSize: '16px',
+                        marginBottom: '4px'
                       }}>
                         {presupuestoActual.pagado_al_empezar ? '✅' : '🚀'} Pago Inicial
                       </div>
@@ -1881,17 +1882,17 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                         </div>
                       )}
                     </div>
-                    <div style={{ 
-                      fontSize: '28px', 
-                      fontWeight: '700', 
-                      color: presupuestoActual.pagado_al_empezar ? '#047857' : '#92400e' 
+                    <div style={{
+                      fontSize: '28px',
+                      fontWeight: '700',
+                      color: presupuestoActual.pagado_al_empezar ? '#047857' : '#92400e'
                     }}>
                       €{presupuestoActual.precio_al_empezar}
                     </div>
                   </div>
                 </div>
               )}
-              
+
               {presupuestoActual.precio_con_visa && (
                 <div style={{
                   background: presupuestoActual.pagado_con_visa
@@ -1922,11 +1923,11 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
-                      <div style={{ 
-                        fontWeight: '700', 
-                        color: presupuestoActual.pagado_con_visa ? '#065f46' : '#1e40af', 
-                        fontSize: '16px', 
-                        marginBottom: '4px' 
+                      <div style={{
+                        fontWeight: '700',
+                        color: presupuestoActual.pagado_con_visa ? '#065f46' : '#1e40af',
+                        fontSize: '16px',
+                        marginBottom: '4px'
                       }}>
                         {presupuestoActual.pagado_con_visa ? '✅' : '🎯'} Pago Después de Cita
                       </div>
@@ -1939,17 +1940,17 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                         </div>
                       )}
                     </div>
-                    <div style={{ 
-                      fontSize: '28px', 
-                      fontWeight: '700', 
-                      color: presupuestoActual.pagado_con_visa ? '#047857' : '#1e40af' 
+                    <div style={{
+                      fontSize: '28px',
+                      fontWeight: '700',
+                      color: presupuestoActual.pagado_con_visa ? '#047857' : '#1e40af'
                     }}>
                       €{presupuestoActual.precio_con_visa}
                     </div>
                   </div>
                 </div>
               )}
-              
+
               {presupuestoActual.precio_financiado && (
                 <div style={{
                   background: presupuestoActual.pagado_financiado
@@ -1980,11 +1981,11 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
-                      <div style={{ 
-                        fontWeight: '700', 
-                        color: presupuestoActual.pagado_financiado ? '#065f46' : '#4338ca', 
-                        fontSize: '16px', 
-                        marginBottom: '4px' 
+                      <div style={{
+                        fontWeight: '700',
+                        color: presupuestoActual.pagado_financiado ? '#065f46' : '#4338ca',
+                        fontSize: '16px',
+                        marginBottom: '4px'
                       }}>
                         {presupuestoActual.pagado_financiado ? '✅' : '📅'} Pago Financiado
                       </div>
@@ -1997,17 +1998,17 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                         </div>
                       )}
                     </div>
-                    <div style={{ 
-                      fontSize: '28px', 
-                      fontWeight: '700', 
-                      color: presupuestoActual.pagado_financiado ? '#047857' : '#4338ca' 
+                    <div style={{
+                      fontSize: '28px',
+                      fontWeight: '700',
+                      color: presupuestoActual.pagado_financiado ? '#047857' : '#4338ca'
                     }}>
                       €{presupuestoActual.precio_financiado}
                     </div>
                   </div>
                 </div>
               )}
-              
+
               {/* Precio Total */}
               <div style={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -2027,8 +2028,8 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   </div>
                   <div style={{ fontSize: '32px', fontWeight: '700', color: 'white' }}>
                     €{(
-                      (parseFloat(presupuestoActual.precio_al_empezar) || 0) + 
-                      (parseFloat(presupuestoActual.precio_con_visa) || 0) + 
+                      (parseFloat(presupuestoActual.precio_al_empezar) || 0) +
+                      (parseFloat(presupuestoActual.precio_con_visa) || 0) +
                       (parseFloat(presupuestoActual.precio_financiado) || 0)
                     ).toFixed(2)}
                   </div>
@@ -2059,10 +2060,10 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               marginBottom: '20px',
               border: '1px solid #fbbf24'
             }}>
-              <p style={{ 
-                margin: 0, 
-                color: '#92400e', 
-                fontSize: '13px', 
+              <p style={{
+                margin: 0,
+                color: '#92400e',
+                fontSize: '13px',
                 lineHeight: '1.6',
                 display: 'flex',
                 alignItems: 'flex-start',
@@ -2081,8 +2082,8 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 <button
                   onClick={async () => {
                     const precioTotal = (
-                      (parseFloat(presupuestoActual.precio_al_empezar) || 0) + 
-                      (parseFloat(presupuestoActual.precio_con_visa) || 0) + 
+                      (parseFloat(presupuestoActual.precio_al_empezar) || 0) +
+                      (parseFloat(presupuestoActual.precio_con_visa) || 0) +
                       (parseFloat(presupuestoActual.precio_financiado) || 0)
                     ).toFixed(2);
                     if (!confirm(`¿Estás seguro de aceptar esta oferta por un total de €${precioTotal}?`)) return;
