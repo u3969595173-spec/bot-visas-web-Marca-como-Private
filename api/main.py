@@ -2371,6 +2371,16 @@ async def subir_documento(
         estudiante.documentos_estado = 'en_revision'
         db.commit()
         
+        # ✅ NOTIFICAR AL ADMIN DE DOCUMENTO SUBIDO
+        try:
+            from api.notificaciones_admin import notificar_documentos_subidos
+            notificar_documentos_subidos(
+                {'nombre': estudiante.nombre, 'email': estudiante.email},
+                [f"{tipo_documento}: {archivo.filename}"]
+            )
+        except Exception as e:
+            print(f"[WARN] Error notificando documento al admin: {e}")
+        
         return {
             "mensaje": "Documento subido correctamente",
             "documento_id": documento_id,
@@ -5822,6 +5832,30 @@ async def subir_documentos_multi(
         conn.commit()
         cursor.close()
         conn.close()
+        
+        # ✅ NOTIFICAR AL ADMIN DE DOCUMENTOS SUBIDOS
+        if documentos_creados:
+            try:
+                from api.notificaciones_admin import notificar_documentos_subidos
+                # Obtener datos del estudiante
+                conn_notif = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+                cursor_notif = conn_notif.cursor()
+                cursor_notif.execute(
+                    "SELECT nombre, email FROM estudiantes WHERE id = %s",
+                    (estudiante_id,)
+                )
+                est_data = cursor_notif.fetchone()
+                cursor_notif.close()
+                conn_notif.close()
+                
+                if est_data:
+                    lista_docs = [f"{doc['categoria']}: {doc['nombre']}" for doc in documentos_creados]
+                    notificar_documentos_subidos(
+                        {'nombre': est_data[0], 'email': est_data[1]},
+                        lista_docs
+                    )
+            except Exception as e:
+                print(f"[WARN] Error notificando documentos al admin: {e}")
         
         return {
             'success': True,
@@ -9703,6 +9737,92 @@ def responder_presupuesto(presupuesto_id: int, datos: dict, db: Session = Depend
                     notificar('presupuesto_aceptado', estudiante_id, modalidad_elegida=modalidad_seleccionada)
             except Exception as e:
                 logger.error(f"Error enviando notificación de presupuesto aceptado: {e}")
+            
+            # ✅ NOTIFICAR AL ADMIN POR EMAIL
+            try:
+                from api.notificaciones_admin import enviar_email_admin
+                from database.models import Estudiante as EstudianteModel
+                estudiante = db.query(EstudianteModel).filter(EstudianteModel.id == estudiante_id).first()
+                if estudiante:
+                    # Obtener detalles del presupuesto
+                    presupuesto_data = db.execute(text("""
+                        SELECT precio_al_empezar, precio_con_visa, precio_financiado 
+                        FROM presupuestos WHERE id = :id
+                    """), {"id": presupuesto_id}).fetchone()
+                    
+                    modalidad_texto = {
+                        'al_empezar': f'Pago al Empezar - €{presupuesto_data[0]:,.2f}',
+                        'con_visa': f'Pago con Visa - €{presupuesto_data[1]:,.2f}',
+                        'financiado': f'Pago Financiado - €{presupuesto_data[2]:,.2f}'
+                    }.get(modalidad_seleccionada, 'No especificada')
+                    
+                    enviar_email_admin(
+                        asunto=f"✅ Presupuesto aceptado por {estudiante.nombre}",
+                        cuerpo_html=f"""
+                        <html>
+                        <head>
+                            <style>
+                                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                                .header {{ background: linear-gradient(135deg, #10b981 0%, #059669 100%); 
+                                          color: white; padding: 30px; text-align: center; }}
+                                .content {{ padding: 30px; background-color: #f9f9f9; }}
+                                .card {{ background: white; padding: 20px; margin: 20px 0; 
+                                        border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }}
+                                .info-row {{ padding: 10px 0; border-bottom: 1px solid #eee; }}
+                                .label {{ font-weight: bold; color: #10b981; }}
+                                .button {{ display: inline-block; background-color: #10b981; 
+                                          color: white; padding: 12px 30px; text-decoration: none; 
+                                          border-radius: 5px; margin-top: 20px; }}
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header">
+                                <h1>✅ ¡Presupuesto Aceptado!</h1>
+                                <p>Un estudiante ha aceptado la oferta de presupuesto</p>
+                            </div>
+                            <div class="content">
+                                <div class="card">
+                                    <h2>Estudiante</h2>
+                                    <div class="info-row">
+                                        <span class="label">👤 Nombre:</span> {estudiante.nombre}
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">📧 Email:</span> {estudiante.email}
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">📱 Teléfono:</span> {estudiante.telefono}
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <h2>Presupuesto</h2>
+                                    <div class="info-row">
+                                        <span class="label">🆔 ID:</span> #{presupuesto_id}
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">💰 Modalidad seleccionada:</span> {modalidad_texto}
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="label">🕐 Fecha aceptación:</span> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+                                    </div>
+                                </div>
+                                
+                                <div style="text-align: center;">
+                                    <a href="https://fortunariocash.com/admin/presupuestos" class="button">
+                                        Ver en Panel Admin
+                                    </a>
+                                </div>
+                                
+                                <div class="card" style="background: #ecfdf5; border-left: 4px solid #10b981;">
+                                    <p><strong>⏰ Próximos pasos:</strong> Espera el pago inicial del estudiante para comenzar el proceso.</p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                        """
+                    )
+            except Exception as e:
+                print(f"[WARN] Error notificando aceptación de presupuesto al admin: {e}")
         else:
             # Rechazar - Permitir que el estudiante haga nuevas solicitudes
             db.execute(text("""
