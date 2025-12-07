@@ -237,7 +237,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         gap: '10px',
         flexWrap: 'wrap'
       }}>
-        {['perfil', 'proceso', 'probabilidad', 'estado', 'checklist', 'documentos', 'mensajes'].map(tab => (
+        {['guia', 'perfil', 'proceso', 'probabilidad', 'estado', 'checklist', 'documentos', 'mensajes'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -248,6 +248,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               border: activeTab === tab ? 'none' : '2px solid #e2e8f0'
             }}
           >
+            {tab === 'guia' && '📖 ¿Qué debo hacer?'}
             {tab === 'proceso' && '📊 Mi Proceso'}
             {tab === 'checklist' && '📋 Checklist'}
             {tab === 'perfil' && '👤 Perfil'}
@@ -440,6 +441,252 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
           </button>
         </div>
       </div>
+
+      {/* TAB: GUÍA - ¿Qué debo hacer? */}
+      {activeTab === 'guia' && (
+        <div className="card" style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{
+            textAlign: 'center',
+            marginBottom: '30px',
+            padding: '30px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '15px',
+            color: 'white'
+          }}>
+            <div style={{ fontSize: '64px', marginBottom: '15px' }}>📖</div>
+            <h1 style={{ margin: '0 0 10px 0', fontSize: '32px' }}>Guía: ¿Qué debo hacer?</h1>
+            <p style={{ margin: 0, fontSize: '18px', opacity: 0.9 }}>
+              Sigue estos pasos para completar tu proceso de visa
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Paso 1 */}
+            <div style={{
+              backgroundColor: '#f0f9ff',
+              border: '3px solid #3b82f6',
+              borderRadius: '12px',
+              padding: '25px',
+              position: 'relative'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-15px',
+                left: '20px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 10px rgba(59, 130, 246, 0.3)'
+              }}>1</div>
+              <h3 style={{ color: '#1e40af', marginTop: '15px', marginBottom: '12px', fontSize: '20px' }}>
+                👤 Completar tu Perfil
+              </h3>
+              <p style={{ color: '#1e3a8a', margin: 0, fontSize: '15px', lineHeight: '1.6' }}>
+                Ve a la pestaña <strong>"👤 Perfil"</strong> y llena todos tus datos personales y académicos. 
+                Esto nos ayuda a entender tu situación y ofrecerte el mejor servicio.
+              </p>
+            </div>
+
+            {/* Paso 2 */}
+            <div style={{
+              backgroundColor: '#fef3c7',
+              border: '3px solid #f59e0b',
+              borderRadius: '12px',
+              padding: '25px',
+              position: 'relative'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-15px',
+                left: '20px',
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 10px rgba(245, 158, 11, 0.3)'
+              }}>2</div>
+              <h3 style={{ color: '#92400e', marginTop: '15px', marginBottom: '12px', fontSize: '20px' }}>
+                💰 Solicitar Presupuesto
+              </h3>
+              <p style={{ color: '#78350f', margin: 0, fontSize: '15px', lineHeight: '1.6' }}>
+                Haz clic en los botones de <strong>"Acciones Rápidas"</strong> para solicitar presupuesto de los servicios que necesitas.
+                El administrador te responderá con las opciones y precios.
+              </p>
+            </div>
+
+            {/* Paso 3 */}
+            <div style={{
+              backgroundColor: '#fef2f2',
+              border: '3px solid #ef4444',
+              borderRadius: '12px',
+              padding: '25px',
+              position: 'relative'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-15px',
+                left: '20px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)'
+              }}>3</div>
+              <h3 style={{ color: '#991b1b', marginTop: '15px', marginBottom: '12px', fontSize: '20px' }}>
+                🏠🩺💰 Llenar las 3 Opciones Importantes
+              </h3>
+              <p style={{ color: '#7f1d1d', margin: '0 0 15px 0', fontSize: '15px', lineHeight: '1.6' }}>
+                Usa los 3 botones de "Acciones Rápidas":
+              </p>
+              <ul style={{ color: '#7f1d1d', margin: 0, paddingLeft: '25px', fontSize: '15px', lineHeight: '1.8' }}>
+                <li><strong>🏠 Alojamiento:</strong> ¿Necesitas vivienda en España?</li>
+                <li><strong>🩺 Seguro Médico:</strong> ¿Necesitas que gestionemos tu seguro?</li>
+                <li><strong>💰 Financiación:</strong> ¿Necesitas ayuda con fondos o patrocinio?</li>
+              </ul>
+              <p style={{ color: '#991b1b', margin: '15px 0 0 0', fontSize: '14px', fontWeight: '600', fontStyle: 'italic' }}>
+                ⚠️ De esto depende qué documentos adicionales necesitarás subir más adelante.
+              </p>
+            </div>
+
+            {/* Paso 4 */}
+            <div style={{
+              backgroundColor: '#f0fdf4',
+              border: '3px solid #10b981',
+              borderRadius: '12px',
+              padding: '25px',
+              position: 'relative'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-15px',
+                left: '20px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 10px rgba(16, 185, 129, 0.3)'
+              }}>4</div>
+              <h3 style={{ color: '#065f46', marginTop: '15px', marginBottom: '12px', fontSize: '20px' }}>
+                📄 Subir los 3 Documentos OBLIGATORIOS
+              </h3>
+              <p style={{ color: '#047857', margin: '0 0 15px 0', fontSize: '15px', lineHeight: '1.6' }}>
+                Ve a <strong>"📄 Documentos"</strong> y sube estos 3 documentos necesarios para solicitar tu universidad:
+              </p>
+              <ul style={{ color: '#047857', margin: 0, paddingLeft: '25px', fontSize: '15px', lineHeight: '1.8' }}>
+                <li><strong>📘 Pasaporte</strong> (copia completa)</li>
+                <li><strong>🎓 Título Universitario</strong> (diploma o certificado)</li>
+                <li><strong>📊 Notas Académicas</strong> (expediente oficial)</li>
+              </ul>
+            </div>
+
+            {/* Paso 5 */}
+            <div style={{
+              backgroundColor: '#eff6ff',
+              border: '3px solid #8b5cf6',
+              borderRadius: '12px',
+              padding: '25px',
+              position: 'relative'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-15px',
+                left: '20px',
+                backgroundColor: '#8b5cf6',
+                color: 'white',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 10px rgba(139, 92, 246, 0.3)'
+              }}>5</div>
+              <h3 style={{ color: '#5b21b6', marginTop: '15px', marginBottom: '12px', fontSize: '20px' }}>
+                💬 Esperar Contacto del Administrador
+              </h3>
+              <p style={{ color: '#6b21a8', margin: 0, fontSize: '15px', lineHeight: '1.6' }}>
+                El administrador revisará tu información y te contactará por <strong>"💬 Mensajes"</strong> para 
+                indicarte qué documentos adicionales necesitas según tu caso específico (certificado médico, extractos bancarios, 
+                seguro médico, foto tipo pasaporte, etc.).
+              </p>
+            </div>
+
+            {/* Paso 6 */}
+            <div style={{
+              backgroundColor: '#f5f3ff',
+              border: '3px solid #a78bfa',
+              borderRadius: '12px',
+              padding: '25px',
+              position: 'relative'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-15px',
+                left: '20px',
+                backgroundColor: '#a78bfa',
+                color: 'white',
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 10px rgba(167, 139, 250, 0.3)'
+              }}>6</div>
+              <h3 style={{ color: '#6b21a8', marginTop: '15px', marginBottom: '12px', fontSize: '20px' }}>
+                📧 Revisar el Chat Regularmente
+              </h3>
+              <p style={{ color: '#7c3aed', margin: 0, fontSize: '15px', lineHeight: '1.6' }}>
+                Mantente atento a la pestaña <strong>"💬 Mensajes"</strong> para recibir actualizaciones sobre tu proceso, 
+                instrucciones adicionales y respuestas a tus consultas. La comunicación constante es clave para un proceso exitoso.
+              </p>
+            </div>
+          </div>
+
+          <div style={{
+            marginTop: '30px',
+            padding: '20px',
+            backgroundColor: '#fef9c3',
+            borderRadius: '10px',
+            border: '2px solid #eab308',
+            textAlign: 'center'
+          }}>
+            <p style={{ margin: 0, color: '#854d0e', fontSize: '16px', lineHeight: '1.6' }}>
+              💡 <strong>Consejo:</strong> Completa los pasos en orden para agilizar tu proceso. 
+              Si tienes dudas, no dudes en escribir al administrador por el chat.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* TAB: Perfil */}
       {activeTab === 'perfil' && (
