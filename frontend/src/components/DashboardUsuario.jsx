@@ -237,7 +237,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         gap: '10px',
         flexWrap: 'wrap'
       }}>
-        {['guia', 'faq', 'perfil', 'proceso', 'probabilidad', 'estado', 'checklist', 'documentos', 'mensajes'].map(tab => (
+        {['perfil', 'guia', 'faq', 'proceso', 'probabilidad', 'estado', 'checklist', 'documentos', 'mensajes'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -248,11 +248,11 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               border: activeTab === tab ? 'none' : '2px solid #e2e8f0'
             }}
           >
+            {tab === 'perfil' && '👤 Perfil'}
             {tab === 'guia' && '📖 ¿Qué debo hacer?'}
             {tab === 'faq' && '❓ Preguntas Frecuentes'}
             {tab === 'proceso' && '📊 Mi Proceso'}
             {tab === 'checklist' && '📋 Checklist'}
-            {tab === 'perfil' && '👤 Perfil'}
             {tab === 'probabilidad' && '🎯 Probabilidad'}
             {tab === 'estado' && '📈 Estado'}
             {tab === 'documentos' && '📄 Documentos'}
@@ -849,8 +849,8 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 ¿Cuánto dinero necesito?
               </h3>
               <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
-                Entre 3,000 y 10,000 euros dependiendo de tu país de origen y situación personal. Puedes usar patrocinio de familiares en España. 
-                <strong> Importante:</strong> Si buscas el cambio en el gobierno, ellos calculan entre 140 y 150 pesos cubanos por euro.
+                Entre 3,000 y 10,000 euros dependiendo del curso académico y situación personal. Puedes usar patrocinio de familiares en países extranjeros (España o EEUU, por ejemplo). 
+                <strong> Importante:</strong> Si buscas el cambio en el gobierno, ellos calculan entre 140 y 150 pesos cubanos por euro, por lo que al presentar solvencia económica en peso cubano es más económico.
               </p>
             </div>
 
