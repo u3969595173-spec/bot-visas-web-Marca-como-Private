@@ -844,6 +844,18 @@ async def registrar_estudiante(
             import traceback
             traceback.print_exc()
         
+        # ✅ NOTIFICAR AL ADMIN DEL NUEVO REGISTRO
+        try:
+            from api.notificaciones_admin import notificar_nuevo_registro
+            notificar_nuevo_registro({
+                'nombre': datos.nombre,
+                'email': datos.email,
+                'telefono': datos.telefono,
+                'codigo_acceso': codigo_final
+            })
+        except Exception as e:
+            print(f"[WARN] Error notificando admin: {e}")
+        
         return {
             "id": nuevo_id,
             "estudiante_id": nuevo_id,
@@ -1127,6 +1139,18 @@ async def completar_perfil_estudiante(
             notificar('perfil_completado', estudiante_id)
         except Exception as e:
             logger.error(f"Error enviando notificación de perfil completado: {e}")
+        
+        # ✅ NOTIFICAR AL ADMIN DE PERFIL COMPLETADO
+        try:
+            from api.notificaciones_admin import notificar_perfil_completado
+            notificar_perfil_completado({
+                'nombre': estudiante[1],
+                'email': estudiante[2],
+                'carrera_deseada': carrera_deseada,
+                'fecha_nacimiento': fecha_nacimiento
+            })
+        except Exception as e:
+            print(f"[WARN] Error notificando perfil completado al admin: {e}")
         
         return {
             "mensaje": "Perfil completado exitosamente",
@@ -4036,6 +4060,17 @@ def enviar_mensaje(estudiante_id: int, datos: dict, db: Session = Depends(get_db
         
         mensaje_id = cursor.fetchone()[0]
         db.commit()
+        
+        # ✅ NOTIFICAR AL ADMIN SI EL MENSAJE ES DEL ESTUDIANTE
+        if remitente == 'estudiante':
+            try:
+                from api.notificaciones_admin import notificar_nuevo_mensaje
+                notificar_nuevo_mensaje({
+                    'nombre': estudiante.nombre,
+                    'email': estudiante.email
+                }, mensaje)
+            except Exception as e:
+                print(f"[WARN] Error notificando mensaje al admin: {e}")
         
         return {
             'mensaje_id': mensaje_id,
@@ -9141,6 +9176,29 @@ def crear_presupuesto(datos: dict, db: Session = Depends(get_db)):
         'estudiante_id': estudiante_id,
         'servicios_count': len(servicios_solicitados)
     })
+    
+    # ✅ NOTIFICAR AL ADMIN DE LA SOLICITUD DE PRESUPUESTO
+    try:
+        # Obtener datos del estudiante
+        estudiante_data = db.execute(text(
+            "SELECT nombre, email, telefono FROM estudiantes WHERE id = :id"
+        ), {"id": estudiante_id}).fetchone()
+        
+        if estudiante_data:
+            from api.notificaciones_admin import notificar_solicitud_presupuesto
+            # Calcular precio total estimado (suma de todos los servicios)
+            total_estimado = precio_solicitado if precio_solicitado > 0 else 0
+            notificar_solicitud_presupuesto(
+                {
+                    'nombre': estudiante_data[0],
+                    'email': estudiante_data[1],
+                    'telefono': estudiante_data[2]
+                },
+                servicios_solicitados,
+                total_estimado
+            )
+    except Exception as e:
+        print(f"[WARN] Error notificando presupuesto al admin: {e}")
     
     return {"message": "Solicitud de presupuesto creada exitosamente", "id": presupuesto_id}
 
