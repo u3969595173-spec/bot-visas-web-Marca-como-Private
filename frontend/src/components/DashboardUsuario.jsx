@@ -237,7 +237,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
         gap: '10px',
         flexWrap: 'wrap'
       }}>
-        {['guia', 'perfil', 'proceso', 'probabilidad', 'estado', 'checklist', 'documentos', 'mensajes'].map(tab => (
+        {['guia', 'faq', 'perfil', 'proceso', 'probabilidad', 'estado', 'checklist', 'documentos', 'mensajes'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -249,6 +249,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             }}
           >
             {tab === 'guia' && '📖 ¿Qué debo hacer?'}
+            {tab === 'faq' && '❓ Preguntas Frecuentes'}
             {tab === 'proceso' && '📊 Mi Proceso'}
             {tab === 'checklist' && '📋 Checklist'}
             {tab === 'perfil' && '👤 Perfil'}
@@ -760,6 +761,339 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 <div style={{ fontSize: '16px', fontWeight: '700' }}>Practica tu entrevista</div>
                 <div style={{ fontSize: '13px', opacity: 0.9 }}>Simulador de cita consular</div>
               </div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: FAQ - Preguntas Frecuentes */}
+      {activeTab === 'faq' && (
+        <div style={{
+          background: 'white',
+          borderRadius: '15px',
+          padding: '30px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.1)'
+        }}>
+          {/* Header */}
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            padding: '25px',
+            borderRadius: '12px',
+            marginBottom: '30px',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ 
+              margin: 0, 
+              color: 'white', 
+              fontSize: '28px', 
+              fontWeight: '700',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px'
+            }}>
+              <span style={{ fontSize: '32px' }}>❓</span>
+              Preguntas Frecuentes
+            </h2>
+            <p style={{ margin: '10px 0 0 0', color: 'rgba(255,255,255,0.9)', fontSize: '15px' }}>
+              Las respuestas a tus dudas más comunes sobre el proceso de visa de estudiante
+            </p>
+          </div>
+
+          {/* Preguntas y Respuestas */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            
+            {/* Pregunta 1 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>⏱️</span>
+                ¿Cuánto tiempo tarda el proceso?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                De 1 a 3 meses en total, dependiendo de la rapidez en reunir documentos y la fecha de tu cita en el consulado.
+              </p>
+            </div>
+
+            {/* Pregunta 2 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>💰</span>
+                ¿Cuánto dinero necesito?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                Entre 3,000 y 10,000 euros dependiendo de tu país de origen y situación personal. Puedes usar patrocinio de familiares en España. 
+                <strong> Importante:</strong> Si buscas el cambio en el gobierno, ellos calculan entre 140 y 150 pesos cubanos por euro.
+              </p>
+            </div>
+
+            {/* Pregunta 3 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>❌</span>
+                ¿Qué pasa si me rechazan la visa?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                Puedes volver a solicitar sin problema. <strong>Importante:</strong> Solo pagas nuestros servicios cuando te aprueban la visa, 
+                si te rechazan no tienes que hacer el segundo pago.
+              </p>
+            </div>
+
+            {/* Pregunta 4 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>📜</span>
+                ¿Necesito apostillar mis documentos?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                Sí, todos los documentos académicos deben estar apostillados. Nosotros te informamos cuándo y cómo hacerlo, 
+                y tenemos contacto con MINJUS para agilizarlo en cuestión de días.
+              </p>
+            </div>
+
+            {/* Pregunta 5 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>✈️</span>
+                ¿Puedo viajar a mi país mientras estoy con la visa?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                Sí, puedes viajar a tu país siempre que tengas tu visa de estudiante o NIE vigentes. Asegúrate de llevar documentos que demuestren que eres estudiante activo en España.
+              </p>
+            </div>
+
+            {/* Pregunta 6 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>📧</span>
+                ¿Necesito carta de aceptación de la universidad?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                Sí, es <strong>OBLIGATORIO</strong>. Sin la carta de aceptación no puedes pedir cita en el consulado. Nosotros nos encargamos de gestionarla con la universidad.
+              </p>
+            </div>
+
+            {/* Pregunta 7 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>💼</span>
+                ¿Puedo trabajar con visa de estudiante?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                Sí, puedes trabajar hasta 30 horas semanales con el permiso correspondiente. Te ayudamos a entender el proceso para obtener tu permiso de trabajo.
+              </p>
+            </div>
+
+            {/* Pregunta 8 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>💵</span>
+                ¿Cuánto cuesta la visa en el consulado?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                La tasa consular varía entre 60 y 160 euros dependiendo del tipo de visa y tu país de origen. Este pago se realiza directamente en el consulado.
+              </p>
+            </div>
+
+            {/* Pregunta 9 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>🗣️</span>
+                ¿Necesito saber español?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                No es obligatorio para la visa, pero se recomienda tener nivel B1 o B2. Algunas universidades pueden pedirte certificado de español o hacerte una prueba.
+              </p>
+            </div>
+
+            {/* Pregunta 10 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{ 
+                margin: '0 0 15px 0', 
+                color: '#667eea', 
+                fontSize: '18px', 
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>🛂</span>
+                ¿Qué pasa si mi pasaporte vence pronto?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                Tu pasaporte debe tener al menos 6 meses de vigencia desde la fecha de tu viaje. Si está próximo a vencer, es recomendable renovarlo antes de iniciar el proceso.
+              </p>
+            </div>
+
+          </div>
+
+          {/* Footer con call to action */}
+          <div style={{
+            marginTop: '30px',
+            padding: '25px',
+            backgroundColor: '#eef2ff',
+            borderRadius: '12px',
+            border: '2px solid #667eea',
+            textAlign: 'center'
+          }}>
+            <p style={{ margin: '0 0 15px 0', color: '#4c1d95', fontSize: '16px', lineHeight: '1.6' }}>
+              💬 <strong>¿Tienes más preguntas?</strong> No dudes en escribirnos en el chat. Estamos aquí para ayudarte en cada paso del proceso.
+            </p>
+            <button
+              onClick={() => setActiveTab('mensajes')}
+              style={{
+                padding: '12px 30px',
+                backgroundColor: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+              }}
+            >
+              📨 Ir al Chat
             </button>
           </div>
         </div>
