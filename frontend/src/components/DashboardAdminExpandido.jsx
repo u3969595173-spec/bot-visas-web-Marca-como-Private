@@ -2814,6 +2814,157 @@ function DashboardAdminExpandido({ onLogout }) {
               )}
             </div>
 
+            {/* Documentos Subidos */}
+            <div style={{marginBottom: '25px', backgroundColor: '#eff6ff', padding: '15px', borderRadius: '8px', border: '1px solid #bfdbfe'}}>
+              <h4 style={{color: '#3b82f6', marginBottom: '15px', fontSize: '16px'}}>📄 Documentos del Estudiante</h4>
+              
+              <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                {/* Pasaporte */}
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px', flex: 1}}>
+                    {estudianteEditar.archivo_pasaporte ? (
+                      <span style={{fontSize: '20px'}}>✅</span>
+                    ) : (
+                      <span style={{fontSize: '20px'}}>❌</span>
+                    )}
+                    <span style={{fontWeight: '500', color: '#374151', fontSize: '14px'}}>Pasaporte</span>
+                  </div>
+                  {estudianteEditar.archivo_pasaporte && (
+                    <button
+                      onClick={() => {
+                        const url = `${import.meta.env.VITE_API_URL}/estudiantes/${estudianteEditar.id}/documentos/pasaporte`;
+                        window.open(url, '_blank');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      📥 Descargar
+                    </button>
+                  )}
+                </div>
+
+                {/* Título Universitario */}
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px', flex: 1}}>
+                    {estudianteEditar.archivo_titulo ? (
+                      <span style={{fontSize: '20px'}}>✅</span>
+                    ) : (
+                      <span style={{fontSize: '20px'}}>❌</span>
+                    )}
+                    <span style={{fontWeight: '500', color: '#374151', fontSize: '14px'}}>Título Universitario</span>
+                  </div>
+                  {estudianteEditar.archivo_titulo && (
+                    <button
+                      onClick={() => {
+                        const url = `${import.meta.env.VITE_API_URL}/estudiantes/${estudianteEditar.id}/documentos/titulo`;
+                        window.open(url, '_blank');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      📥 Descargar
+                    </button>
+                  )}
+                </div>
+
+                {/* Notas Académicas */}
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px', flex: 1}}>
+                    {estudianteEditar.archivo_notas ? (
+                      <span style={{fontSize: '20px'}}>✅</span>
+                    ) : (
+                      <span style={{fontSize: '20px'}}>❌</span>
+                    )}
+                    <span style={{fontWeight: '500', color: '#374151', fontSize: '14px'}}>Notas Académicas</span>
+                  </div>
+                  {estudianteEditar.archivo_notas && (
+                    <button
+                      onClick={() => {
+                        const url = `${import.meta.env.VITE_API_URL}/estudiantes/${estudianteEditar.id}/documentos/notas`;
+                        window.open(url, '_blank');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      📥 Descargar
+                    </button>
+                  )}
+                </div>
+
+                {/* Certificado Médico */}
+                <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '10px', flex: 1}}>
+                    {estudianteEditar.archivo_certificado_medico ? (
+                      <span style={{fontSize: '20px'}}>✅</span>
+                    ) : (
+                      <span style={{fontSize: '20px'}}>❌</span>
+                    )}
+                    <span style={{fontWeight: '500', color: '#374151', fontSize: '14px'}}>Certificado Médico</span>
+                  </div>
+                  {estudianteEditar.archivo_certificado_medico && (
+                    <button
+                      onClick={() => {
+                        const url = `${import.meta.env.VITE_API_URL}/estudiantes/${estudianteEditar.id}/documentos/certificado_medico`;
+                        window.open(url, '_blank');
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: '#3b82f6',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}
+                    >
+                      📥 Descargar
+                    </button>
+                  )}
+                </div>
+
+                <p style={{margin: '10px 0 0 0', fontSize: '12px', color: '#6b7280', fontStyle: 'italic'}}>
+                  💡 Los estudiantes pueden subir sus documentos desde su panel.
+                </p>
+              </div>
+            </div>
+
             <div className="modal-actions" style={{display: 'flex', justifyContent: 'flex-end', gap: '10px', paddingTop: '15px', borderTop: '1px solid #e5e7eb'}}>
               <button 
                 onClick={() => {
