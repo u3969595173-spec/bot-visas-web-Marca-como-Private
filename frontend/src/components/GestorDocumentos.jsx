@@ -99,6 +99,41 @@ const GestorDocumentos = ({ estudianteId }) => {
     multiple: true
   });
 
+  const subirDocumentoObligatorio = async (archivo, tipo, nombre) => {
+    if (!archivo) return;
+    
+    setCargando(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('archivos', archivo);
+      formData.append('categorias', tipo);
+      
+      const response = await fetch(`${API_BASE_URL}/api/documentos/${estudianteId}/subir`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`✅ ${nombre} subido correctamente`);
+        cargarDocumentos();
+      } else {
+        alert('❌ Error subiendo documento: ' + (data.detail || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('❌ Error:', error);
+      alert('❌ Error subiendo documento: ' + error.message);
+    } finally {
+      setCargando(false);
+    }
+  };
+
   const descargarDocumento = async (docId, nombre) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/documentos/${docId}/descargar`);
@@ -208,38 +243,197 @@ const GestorDocumentos = ({ estudianteId }) => {
 
       {/* Cartel informativo */}
       <div style={{
-        backgroundColor: '#eff6ff',
-        border: '2px solid #3b82f6',
+        backgroundColor: '#fee2e2',
+        border: '2px solid #ef4444',
         borderRadius: '12px',
         padding: '24px',
         margin: '20px 0',
         textAlign: 'center'
       }}>
-        <div style={{ fontSize: '48px', marginBottom: '12px' }}>💬</div>
-        <h3 style={{ color: '#1e40af', marginBottom: '12px', fontSize: '20px' }}>
-          ¿No sabes qué documentos subir?
+        <div style={{ fontSize: '48px', marginBottom: '12px' }}>⚠️</div>
+        <h3 style={{ color: '#991b1b', marginBottom: '12px', fontSize: '20px', fontWeight: 'bold' }}>
+          OBLIGATORIO SUBIR ESTOS DOCUMENTOS PARA EMPEZAR EL PROCESO
         </h3>
-        <p style={{ color: '#1e3a8a', fontSize: '16px', marginBottom: '16px', lineHeight: '1.6' }}>
-          <strong>Contacta con el administrador por chat</strong> para que te indique exactamente qué documentos necesitas subir según tu caso.
+        <p style={{ color: '#7f1d1d', fontSize: '16px', marginBottom: '0', lineHeight: '1.6' }}>
+          Debes subir los <strong>3 documentos obligatorios</strong> antes de continuar. El administrador te indicará por chat si necesita algo más.
         </p>
-        <button 
-          onClick={() => window.location.href = '/estudiante#mensajes'}
-          style={{
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            padding: '12px 32px',
-            fontSize: '16px',
-            fontWeight: '600',
-            border: 'none',
+      </div>
+
+      {/* Documentos OBLIGATORIOS */}
+      <div style={{
+        backgroundColor: '#fff7ed',
+        border: '3px solid #f97316',
+        borderRadius: '12px',
+        padding: '24px',
+        margin: '20px 0'
+      }}>
+        <h2 style={{ color: '#c2410c', fontSize: '22px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          🔴 DOCUMENTOS OBLIGATORIOS (Para universidad)
+        </h2>
+        
+        <div style={{ display: 'grid', gap: '16px' }}>
+          {/* Pasaporte */}
+          <div style={{
+            backgroundColor: 'white',
+            border: '2px solid #e5e7eb',
             borderRadius: '8px',
-            cursor: 'pointer',
-            transition: 'all 0.3s'
-          }}
-          onMouseEnter={(e) => e.target.style.backgroundColor = '#2563eb'}
-          onMouseLeave={(e) => e.target.style.backgroundColor = '#3b82f6'}
-        >
-          💬 Ir al Chat
-        </button>
+            padding: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: '0 0 8px 0', color: '#1f2937', fontSize: '18px', fontWeight: '600' }}>
+                📘 1. Pasaporte
+              </h3>
+              <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
+                Copia del pasaporte vigente (todas las páginas con información)
+              </p>
+            </div>
+            <button 
+              onClick={() => document.getElementById('upload-pasaporte').click()}
+              style={{
+                padding: '10px 24px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              ⬆️ Subir
+            </button>
+            <input 
+              id="upload-pasaporte" 
+              type="file" 
+              accept=".pdf,.jpg,.jpeg,.png" 
+              style={{ display: 'none' }}
+              onChange={(e) => subirDocumentoObligatorio(e.target.files[0], 'pasaporte', 'Pasaporte')}
+            />
+          </div>
+
+          {/* Título */}
+          <div style={{
+            backgroundColor: 'white',
+            border: '2px solid #e5e7eb',
+            borderRadius: '8px',
+            padding: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: '0 0 8px 0', color: '#1f2937', fontSize: '18px', fontWeight: '600' }}>
+                🎓 2. Título Universitario
+              </h3>
+              <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
+                Diploma o certificado de estudios universitarios completo
+              </p>
+            </div>
+            <button 
+              onClick={() => document.getElementById('upload-titulo').click()}
+              style={{
+                padding: '10px 24px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              ⬆️ Subir
+            </button>
+            <input 
+              id="upload-titulo" 
+              type="file" 
+              accept=".pdf,.jpg,.jpeg,.png" 
+              style={{ display: 'none' }}
+              onChange={(e) => subirDocumentoObligatorio(e.target.files[0], 'titulo', 'Título Universitario')}
+            />
+          </div>
+
+          {/* Notas */}
+          <div style={{
+            backgroundColor: 'white',
+            border: '2px solid #e5e7eb',
+            borderRadius: '8px',
+            padding: '20px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: '0 0 8px 0', color: '#1f2937', fontSize: '18px', fontWeight: '600' }}>
+                📊 3. Notas Académicas
+              </h3>
+              <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
+                Expediente académico completo (transcript oficial)
+              </p>
+            </div>
+            <button 
+              onClick={() => document.getElementById('upload-notas').click()}
+              style={{
+                padding: '10px 24px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              ⬆️ Subir
+            </button>
+            <input 
+              id="upload-notas" 
+              type="file" 
+              accept=".pdf,.jpg,.jpeg,.png" 
+              style={{ display: 'none' }}
+              onChange={(e) => subirDocumentoObligatorio(e.target.files[0], 'notas', 'Notas Académicas')}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* OTROS DOCUMENTOS */}
+      <div style={{
+        backgroundColor: '#f0fdf4',
+        border: '2px solid #10b981',
+        borderRadius: '12px',
+        padding: '24px',
+        margin: '20px 0'
+      }}>
+        <h2 style={{ color: '#065f46', fontSize: '22px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          📋 OTROS DOCUMENTOS
+        </h2>
+        
+        <p style={{ color: '#047857', fontSize: '15px', marginBottom: '20px', lineHeight: '1.6' }}>
+          El administrador te indicará por <strong>chat interno</strong> si necesita que subas documentos adicionales como:
+          certificado médico, extractos bancarios, seguro médico, foto tipo pasaporte, etc.
+        </p>
+
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <button 
+            onClick={() => window.location.href = '/estudiante#mensajes'}
+            style={{
+              backgroundColor: '#10b981',
+              color: 'white',
+              padding: '12px 32px',
+              fontSize: '16px',
+              fontWeight: '600',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer'
+            }}
+          >
+            💬 Ir al Chat con el Admin
+          </button>
+        </div>
       </div>
 
       {/* Zona de subida */}
