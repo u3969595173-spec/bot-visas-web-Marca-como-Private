@@ -680,10 +680,87 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
             border: '2px solid #eab308',
             textAlign: 'center'
           }}>
-            <p style={{ margin: 0, color: '#854d0e', fontSize: '16px', lineHeight: '1.6' }}>
-              💡 <strong>Consejo:</strong> Completa los pasos en orden para agilizar tu proceso. 
-              Si tienes dudas, no dudes en escribir al administrador por el chat.
+            <p style={{ margin: '0 0 15px 0', color: '#854d0e', fontSize: '16px', lineHeight: '1.6' }}>
+              💡 <strong>Consejo:</strong> Completa los pasos en orden para agilizar tu proceso.
             </p>
+          </div>
+
+          {/* Acciones adicionales */}
+          <div style={{
+            marginTop: '20px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gap: '20px'
+          }}>
+            {/* Botón Chat */}
+            <button
+              onClick={() => setActiveTab('mensajes')}
+              style={{
+                padding: '20px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+              }}
+            >
+              <span style={{ fontSize: '24px' }}>💬</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '16px', fontWeight: '700' }}>¿Tienes dudas?</div>
+                <div style={{ fontSize: '13px', opacity: 0.9 }}>Escribe al administrador</div>
+              </div>
+            </button>
+
+            {/* Botón Simulador */}
+            <button
+              onClick={() => setActiveTab('probabilidad')}
+              style={{
+                padding: '20px',
+                backgroundColor: '#8b5cf6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 16px rgba(139, 92, 246, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 12px rgba(139, 92, 246, 0.3)';
+              }}
+            >
+              <span style={{ fontSize: '24px' }}>🎤</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '16px', fontWeight: '700' }}>Practica tu entrevista</div>
+                <div style={{ fontSize: '13px', opacity: 0.9 }}>Simulador de cita consular</div>
+              </div>
+            </button>
           </div>
         </div>
       )}
