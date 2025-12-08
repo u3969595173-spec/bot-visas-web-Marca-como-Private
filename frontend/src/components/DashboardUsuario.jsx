@@ -862,7 +862,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               </h3>
               <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
                 Entre 3,000 y 10,000 euros dependiendo del curso académico y situación personal. Puedes usar patrocinio de familiares en países extranjeros (España o EEUU, por ejemplo).
-                <strong> Importante:</strong> Si buscas el cambio en el gobierno, ellos calculan entre 140 y 150 pesos cubanos por euro, por lo que al presentar solvencia económica en peso cubano es más económico.
+                <strong> Te ayudamos a preparar toda la documentación de solvencia económica.</strong>
               </p>
             </div>
 
