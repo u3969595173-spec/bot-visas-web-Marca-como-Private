@@ -1068,6 +1068,56 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
               </p>
             </div>
 
+            {/* Pregunta 11 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>🏠</span>
+                ¿Tengo que regresar a mi país una vez finalice el curso?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                <strong>No.</strong> Una vez finalices tu curso, tienes varias opciones para continuar legalmente en España: puedes solicitar permiso de residencia y trabajo si encuentras empleo, prorrogar tus estudios con un máster o curso superior, o cambiar a otro tipo de visa. Te asesoramos en todas las opciones disponibles.
+              </p>
+            </div>
+
+            {/* Pregunta 12 */}
+            <div style={{
+              border: '2px solid #e2e8f0',
+              borderRadius: '12px',
+              padding: '20px',
+              backgroundColor: '#f8fafc',
+              transition: 'all 0.3s'
+            }}>
+              <h3 style={{
+                margin: '0 0 15px 0',
+                color: '#667eea',
+                fontSize: '18px',
+                fontWeight: '700',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <span style={{ fontSize: '22px' }}>⚖️</span>
+                ¿Quedo irregular una vez termine el curso?
+              </h3>
+              <p style={{ margin: 0, color: '#4a5568', fontSize: '15px', lineHeight: '1.6' }}>
+                <strong>No.</strong> Al finalizar tus estudios, puedes cambiar tu visa de estudiante a permiso de residencia y trabajo si consigues un empleo, o prorrogar tu estancia estudiando un nivel superior (máster, doctorado). Tienes un periodo de tiempo para realizar estos trámites sin quedarte irregular.
+              </p>
+            </div>
+
           </div>
 
           {/* Footer con call to action */}
