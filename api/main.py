@@ -1049,7 +1049,7 @@ async def completar_perfil_estudiante(
     nivel_espanol: str = Form(...),
     tipo_visa: str = Form(...),
     fondos_disponibles: float = Form(...),
-    fecha_inicio_estimada: str = Form(...),
+    fecha_inicio_estimada: str = Form(None),
     archivo_titulo: UploadFile = File(None),
     archivo_pasaporte: UploadFile = File(None),
     archivo_extractos: UploadFile = File(None),
