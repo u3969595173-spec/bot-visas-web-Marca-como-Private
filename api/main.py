@@ -66,11 +66,11 @@ app.add_middleware(
         "https://fortunariocash.com",
         "https://www.fortunariocash.com",
         "https://bot-visas-web-marca-como-private-s785-g4twzsjhe.vercel.app",
-        "https://*.vercel.app",  # Permitir todos los subdominios de Vercel
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 @app.on_event("startup")
@@ -1034,6 +1034,7 @@ def actualizar_estudiante_publico(estudiante_id: int, datos: dict, db: Session =
 
 
 @app.put("/api/estudiantes/{estudiante_id}/completar-perfil", tags=["Estudiantes"])
+@app.options("/api/estudiantes/{estudiante_id}/completar-perfil", tags=["Estudiantes"])
 async def completar_perfil_estudiante(
     estudiante_id: int,
     codigo_acceso: str = Query(...),
@@ -1064,18 +1065,31 @@ async def completar_perfil_estudiante(
     import secrets
     
     # Verificar código de acceso
-    conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, nombre, email FROM estudiantes 
-        WHERE id = %s AND codigo_acceso = %s
-    """, (estudiante_id, codigo_acceso))
-    
-    estudiante = cursor.fetchone()
-    if not estudiante:
-        conn.close()
-        raise HTTPException(status_code=403, detail="Código de acceso inválido")
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT id, nombre, email FROM estudiantes 
+            WHERE id = %s AND codigo_acceso = %s
+        """, (estudiante_id, codigo_acceso))
+        
+        estudiante = cursor.fetchone()
+        if not estudiante:
+            cursor.close()
+            conn.close()
+            raise HTTPException(
+                status_code=403, 
+                detail="Código de acceso inválido",
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
+    except psycopg2.Error as e:
+        logger.error(f"Error DB en completar perfil: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error de base de datos: {str(e)}",
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
     
     try:
         # Directorio de uploads
@@ -1157,9 +1171,26 @@ async def completar_perfil_estudiante(
             "estudiante_id": estudiante_id
         }
         
+    except HTTPException:
+        raise
+    except psycopg2.Error as e:
+        if conn:
+            conn.close()
+        logger.error(f"Error DB guardando perfil: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error de base de datos: {str(e)}",
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
     except Exception as e:
-        conn.close()
-        raise HTTPException(status_code=500, detail=f"Error al completar perfil: {str(e)}")
+        if conn:
+            conn.close()
+        logger.error(f"Error completando perfil: {e}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Error al completar perfil: {str(e)}",
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
 
 
 @app.get("/api/estudiantes/{estudiante_id}/probabilidad-visa", tags=["Estudiantes"])
