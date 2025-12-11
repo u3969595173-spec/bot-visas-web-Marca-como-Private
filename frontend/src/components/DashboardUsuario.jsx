@@ -1574,7 +1574,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 </button>
               </div>
               <p style={{ fontSize: '13px', opacity: 0.9, margin: '0 0 15px 0' }}>
-                Comparte este enlace y recibe el <strong>10% del valor del trámite</strong> por cada persona que empiece proceso usando tu código: <strong>{estadisticasReferidos.codigo_referido}</strong>
+                Comparte este enlace y recibe el <strong>5% del valor del trámite</strong> por cada persona que empiece proceso usando tu código: <strong>{estadisticasReferidos.codigo_referido}</strong>
               </p>
 
               {/* Botones de compartir rápido */}
@@ -1582,7 +1582,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 <button
                   onClick={() => {
                     const enlace = `${window.location.origin}/estudiante/registro?ref=${estadisticasReferidos.codigo_referido}`;
-                    const mensaje = `¡Hola! 👋 Te invito a registrarte en Bot Visas de Estudio usando mi código de referido ${estadisticasReferidos.codigo_referido}. ¡Recibo el 10% cuando empiezas tu trámite y tú obtienes ayuda profesional! ${enlace}`;
+                    const mensaje = `¡Hola! 👋 Te invito a registrarte en Bot Visas de Estudio usando mi código de referido ${estadisticasReferidos.codigo_referido}. ¡Recibo el 5% cuando empiezas tu trámite y tú obtienes ayuda profesional! ${enlace}`;
                     window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`);
                   }}
                   style={{
@@ -1602,7 +1602,7 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 <button
                   onClick={() => {
                     const enlace = `${window.location.origin}/estudiante/registro?ref=${estadisticasReferidos.codigo_referido}`;
-                    const mensaje = `¡Regístrate en Bot Visas de Estudio con mi código ${estadisticasReferidos.codigo_referido} y recibe ayuda profesional para tu visa! Yo recibo el 10% cuando empiezas tu trámite. Win-win 🎯 ${enlace}`;
+                    const mensaje = `¡Regístrate en Bot Visas de Estudio con mi código ${estadisticasReferidos.codigo_referido} y recibe ayuda profesional para tu visa! Yo recibo el 5% cuando empiezas tu trámite. Win-win 🎯 ${enlace}`;
                     navigator.clipboard.writeText(mensaje).then(() => {
                       alert('✅ Mensaje copiado. Pégalo en cualquier red social');
                     });
