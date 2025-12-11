@@ -8361,7 +8361,7 @@ async def admin_obtener_contabilidad(
     presupuestos_result = db.execute(text("""
         SELECT COALESCE(SUM(precio_ofertado), 0) as total
         FROM presupuestos
-        WHERE estado = 'aceptado'
+        WHERE LOWER(estado) = 'aceptado'
     """)).fetchone()
     total_presupuestos = float(presupuestos_result[0])
     
@@ -8372,7 +8372,7 @@ async def admin_obtener_contabilidad(
             COALESCE(SUM(CASE WHEN pagado_con_visa = true THEN precio_con_visa ELSE 0 END), 0) +
             COALESCE(SUM(CASE WHEN pagado_financiado = true THEN precio_financiado ELSE 0 END), 0) as total_pagado
         FROM presupuestos
-        WHERE estado = 'aceptado'
+        WHERE LOWER(estado) = 'aceptado'
     """)).fetchone()
     total_pagado = float(pagado_result[0])
     
