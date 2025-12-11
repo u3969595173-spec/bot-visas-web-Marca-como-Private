@@ -8026,11 +8026,19 @@ async def obtener_estadisticas_referidos(
 ):
     """Obtiene estadísticas de referidos de un estudiante"""
     
-    # Obtener datos del estudiante
-    estudiante = db.execute(text("""
-        SELECT codigo_referido, credito_disponible, tipo_recompensa, COALESCE(credito_retirado, 0)
-        FROM estudiantes WHERE id = :id
-    """), {"id": estudiante_id}).fetchone()
+    # Obtener datos del estudiante - try con y sin credito_retirado
+    try:
+        estudiante = db.execute(text("""
+            SELECT codigo_referido, credito_disponible, tipo_recompensa, 
+                   COALESCE(credito_retirado, 0) as credito_retirado
+            FROM estudiantes WHERE id = :id
+        """), {"id": estudiante_id}).fetchone()
+    except:
+        # Si falla (columna no existe), intentar sin credito_retirado
+        estudiante = db.execute(text("""
+            SELECT codigo_referido, credito_disponible, tipo_recompensa, 0 as credito_retirado
+            FROM estudiantes WHERE id = :id
+        """), {"id": estudiante_id}).fetchone()
     
     if not estudiante:
         # Si no existe el estudiante, devolver datos vacíos en lugar de error
