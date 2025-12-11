@@ -923,6 +923,7 @@ function DashboardAdminExpandido({ onLogout }) {
                     <th>Valor Total</th>
                     <th>Comisión Total</th>
                     <th>Crédito Disponible</th>
+                    <th>Crédito Retirado</th>
                     <th>Fecha Registro</th>
                   </tr>
                 </thead>
@@ -1006,6 +1007,11 @@ function DashboardAdminExpandido({ onLogout }) {
                       <td>
                         <div style={{fontSize: '16px', fontWeight: '700', color: '#f59e0b'}}>
                           {agente.credito_disponible.toFixed(2)}€
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{fontSize: '16px', fontWeight: '700', color: '#6366f1'}}>
+                          {(agente.credito_retirado || 0).toFixed(2)}€
                         </div>
                       </td>
                       <td style={{fontSize: '13px', color: '#6b7280'}}>
@@ -1702,6 +1708,7 @@ function DashboardAdminExpandido({ onLogout }) {
                     <th>Total Referidos</th>
                     <th>Comisión Total</th>
                     <th>Crédito Disponible</th>
+                    <th>Crédito Retirado</th>
                     <th>Tipo Recompensa</th>
                     <th>Acciones</th>
                   </tr>
@@ -1758,6 +1765,11 @@ function DashboardAdminExpandido({ onLogout }) {
                       <td>
                         <div style={{fontSize: '16px', fontWeight: '700', color: '#f59e0b'}}>
                           {ref.credito_disponible.toFixed(2)}€
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{fontSize: '16px', fontWeight: '700', color: '#6366f1'}}>
+                          {(ref.credito_retirado || 0).toFixed(2)}€
                         </div>
                       </td>
                       <td>

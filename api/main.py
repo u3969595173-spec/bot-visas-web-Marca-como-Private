@@ -8102,13 +8102,14 @@ async def admin_obtener_referidos(
             e.email,
             e.codigo_referido,
             e.credito_disponible,
+            COALESCE(e.credito_retirado, 0) as credito_retirado,
             e.tipo_recompensa,
             COUNT(DISTINCT r.id) as total_referidos,
             COALESCE(SUM(CASE WHEN p.estado = 'aceptado' THEN p.precio_ofertado * 0.05 ELSE 0 END), 0) as comision_total
         FROM estudiantes e
         INNER JOIN estudiantes r ON r.referido_por_id = e.id
         LEFT JOIN presupuestos p ON p.estudiante_id = r.id
-        GROUP BY e.id, e.nombre, e.email, e.codigo_referido, e.credito_disponible, e.tipo_recompensa
+        GROUP BY e.id, e.nombre, e.email, e.codigo_referido, e.credito_disponible, e.credito_retirado, e.tipo_recompensa
         HAVING COUNT(DISTINCT r.id) > 0
     """)).fetchall()
     
@@ -8121,12 +8122,13 @@ async def admin_obtener_referidos(
             a.email,
             a.codigo_referido,
             a.credito_disponible,
+            COALESCE(a.credito_retirado, 0) as credito_retirado,
             'dinero' as tipo_recompensa,
             COUNT(DISTINCT e.id) as total_referidos,
             a.comision_total
         FROM agentes a
         INNER JOIN estudiantes e ON e.referido_por_agente_id = a.id
-        GROUP BY a.id, a.nombre, a.email, a.codigo_referido, a.credito_disponible, a.comision_total
+        GROUP BY a.id, a.nombre, a.email, a.codigo_referido, a.credito_disponible, a.credito_retirado, a.comision_total
         HAVING COUNT(DISTINCT e.id) > 0
     """)).fetchall()
     
@@ -8141,9 +8143,10 @@ async def admin_obtener_referidos(
             "email": row[3],
             "codigo_referido": row[4],
             "credito_disponible": float(row[5]),
-            "tipo_recompensa": row[6],
-            "total_referidos": row[7],
-            "comision_total": float(row[8])
+            "credito_retirado": float(row[6]),
+            "tipo_recompensa": row[7],
+            "total_referidos": row[8],
+            "comision_total": float(row[9])
         })
     
     for row in agentes_result:
@@ -8154,9 +8157,10 @@ async def admin_obtener_referidos(
             "email": row[3],
             "codigo_referido": row[4],
             "credito_disponible": float(row[5]),
-            "tipo_recompensa": row[6],
-            "total_referidos": row[7],
-            "comision_total": float(row[8])
+            "credito_retirado": float(row[6]),
+            "tipo_recompensa": row[7],
+            "total_referidos": row[8],
+            "comision_total": float(row[9])
         })
     
     # Ordenar por total de referidos y comisión
@@ -8306,6 +8310,7 @@ async def admin_obtener_estadisticas_agentes(
             a.codigo_referido,
             a.comision_total,
             a.credito_disponible,
+            COALESCE(a.credito_retirado, 0) as credito_retirado,
             a.activo,
             a.fecha_registro,
             COUNT(DISTINCT e.id) as total_referidos,
@@ -8317,7 +8322,7 @@ async def admin_obtener_estadisticas_agentes(
         FROM agentes a
         LEFT JOIN estudiantes e ON e.referido_por_agente_id = a.id
         LEFT JOIN presupuestos p ON p.estudiante_id = e.id
-        GROUP BY a.id, a.nombre, a.email, a.codigo_referido, a.comision_total, a.credito_disponible, a.activo, a.fecha_registro
+        GROUP BY a.id, a.nombre, a.email, a.codigo_referido, a.comision_total, a.credito_disponible, a.credito_retirado, a.activo, a.fecha_registro
         ORDER BY a.comision_total DESC
     """)).fetchall()
     
@@ -8329,14 +8334,15 @@ async def admin_obtener_estadisticas_agentes(
             "codigo_referido": row[3],
             "comision_total": float(row[4]),
             "credito_disponible": float(row[5]),
-            "activo": row[6],
-            "fecha_registro": row[7],
-            "total_referidos": row[8],
-            "referidos_aprobados": row[9],
-            "referidos_pendientes": row[10],
-            "presupuestos_generados": row[11],
-            "presupuestos_aceptados": row[12],
-            "valor_total_presupuestos": float(row[13])
+            "credito_retirado": float(row[6]),
+            "activo": row[7],
+            "fecha_registro": row[8],
+            "total_referidos": row[9],
+            "referidos_aprobados": row[10],
+            "referidos_pendientes": row[11],
+            "presupuestos_generados": row[12],
+            "presupuestos_aceptados": row[13],
+            "valor_total_presupuestos": float(row[14])
         }
         for row in result
     ]
@@ -8432,17 +8438,19 @@ async def admin_responder_solicitud_credito(
     
     if accion == 'aprobar':
         if tipo == 'retiro':
-            # Descontar del crédito disponible
+            # Descontar del crédito disponible y sumar a crédito retirado (historial)
             if beneficiario_tipo == 'agente':
                 db.execute(text("""
                     UPDATE agentes 
-                    SET credito_disponible = credito_disponible - :monto
+                    SET credito_disponible = credito_disponible - :monto,
+                        credito_retirado = credito_retirado + :monto
                     WHERE id = :id
                 """), {"monto": monto, "id": beneficiario_id})
             else:
                 db.execute(text("""
                     UPDATE estudiantes 
-                    SET credito_disponible = credito_disponible - :monto
+                    SET credito_disponible = credito_disponible - :monto,
+                        credito_retirado = credito_retirado + :monto
                     WHERE id = :id
                 """), {"monto": monto, "id": beneficiario_id})
             
