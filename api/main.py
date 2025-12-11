@@ -8531,115 +8531,130 @@ async def admin_obtener_solicitudes_credito(
 async def admin_responder_solicitud_credito(
     solicitud_id: int,
     data: dict,
-    usuario=Depends(obtener_usuario_actual),
+    usuario=Depends(verificar_admin),
     db: Session = Depends(get_db)
 ):
     """Admin: Aprueba o rechaza una solicitud de uso de crédito (estudiantes y agentes)"""
     
-    accion = data.get('accion')  # 'aprobar' o 'rechazar'
-    notas = data.get('notas', '')
-    
-    if accion not in ['aprobar', 'rechazar']:
-        raise HTTPException(status_code=400, detail="Acción inválida")
-    
-    # Obtener solicitud
-    solicitud = db.execute(text("""
-        SELECT estudiante_id, tipo, monto, estado, beneficiario_tipo, beneficiario_id
-        FROM solicitudes_credito 
-        WHERE id = :id
-    """), {"id": solicitud_id}).fetchone()
-    
-    if not solicitud:
-        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
-    
-    if solicitud[3] != 'pendiente':
-        raise HTTPException(status_code=400, detail="La solicitud ya fue procesada")
-    
-    estudiante_id = solicitud[0]
-    tipo = solicitud[1]
-    monto = solicitud[2]
-    beneficiario_tipo = solicitud[4] or 'estudiante'
-    beneficiario_id = solicitud[5] or estudiante_id
-    
-    if accion == 'aprobar':
-        if tipo == 'retiro':
-            # VALIDAR que tiene crédito suficiente ANTES de aprobar
-            if beneficiario_tipo == 'agente':
-                credito_check = db.execute(text("""
-                    SELECT COALESCE(credito_disponible, 0) FROM agentes WHERE id = :id
-                """), {"id": beneficiario_id}).fetchone()
-            else:
-                credito_check = db.execute(text("""
-                    SELECT COALESCE(credito_disponible, 0) FROM estudiantes WHERE id = :id
-                """), {"id": beneficiario_id}).fetchone()
-            
-            credito_disponible = float(credito_check[0]) if credito_check else 0
-            
-            if credito_disponible < monto:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Crédito insuficiente. Disponible: {credito_disponible:.2f}€, Solicitado: {monto:.2f}€"
-                )
-            
-            # Descontar del crédito disponible y sumar a crédito retirado (historial)
-            if beneficiario_tipo == 'agente':
-                db.execute(text("""
-                    UPDATE agentes 
-                    SET credito_disponible = credito_disponible - :monto,
-                        credito_retirado = COALESCE(credito_retirado, 0) + :monto
-                    WHERE id = :id
-                """), {"monto": monto, "id": beneficiario_id})
-            else:
-                db.execute(text("""
-                    UPDATE estudiantes 
-                    SET credito_disponible = credito_disponible - :monto,
-                        credito_retirado = COALESCE(credito_retirado, 0) + :monto
-                    WHERE id = :id
-                """), {"monto": monto, "id": beneficiario_id})
-            
-        elif tipo == 'descuento':
-            # Descuento: Restar del presupuesto aceptado actual (solo estudiantes)
-            presupuesto = db.execute(text("""
-                SELECT id, precio_ofertado 
-                FROM presupuestos 
-                WHERE estudiante_id = :id AND estado = 'aceptado'
-                ORDER BY fecha_respuesta DESC
-                LIMIT 1
-            """), {"id": estudiante_id}).fetchone()
-            
-            if presupuesto:
-                nuevo_precio = max(0, presupuesto[1] - monto)
-                db.execute(text("""
-                    UPDATE presupuestos 
-                    SET precio_ofertado = :nuevo_precio
-                    WHERE id = :id
-                """), {"nuevo_precio": nuevo_precio, "id": presupuesto[0]})
-                
-                # Reducir crédito usado
-                db.execute(text("""
-                    UPDATE estudiantes 
-                    SET credito_disponible = credito_disponible - :monto
-                    WHERE id = :id
-                """), {"monto": monto, "id": estudiante_id})
-            else:
-                raise HTTPException(status_code=400, detail="No hay presupuesto aceptado para aplicar el descuento")
+    try:
+        accion = data.get('accion')  # 'aprobar' o 'rechazar'
+        notas = data.get('notas', '')
         
-        estado_final = 'aprobada'
-    else:
-        estado_final = 'rechazada'
+        if accion not in ['aprobar', 'rechazar']:
+            raise HTTPException(status_code=400, detail="Acción inválida")
+        
+        # Obtener solicitud
+        solicitud = db.execute(text("""
+            SELECT estudiante_id, tipo, monto, estado, beneficiario_tipo, beneficiario_id
+            FROM solicitudes_credito 
+            WHERE id = :id
+        """), {"id": solicitud_id}).fetchone()
+        
+        if not solicitud:
+            raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+        
+        if solicitud[3] != 'pendiente':
+            raise HTTPException(status_code=400, detail="La solicitud ya fue procesada")
+        
+        estudiante_id = solicitud[0]
+        tipo = solicitud[1]
+        monto = float(solicitud[2]) if solicitud[2] else 0  # Convertir Decimal a float
+        beneficiario_tipo = solicitud[4] or 'estudiante'
+        beneficiario_id = solicitud[5] or estudiante_id
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error procesando solicitud de crédito: {e}")
+        raise HTTPException(status_code=500, detail=f"Error procesando solicitud: {str(e)}")
     
-    # Actualizar solicitud
-    db.execute(text("""
-        UPDATE solicitudes_credito
-        SET estado = :estado,
-            fecha_respuesta = CURRENT_TIMESTAMP,
-            notas = :notas
-        WHERE id = :id
-    """), {"estado": estado_final, "notas": notas, "id": solicitud_id})
-    
-    db.commit()
-    
-    return {"message": f"Solicitud {estado_final}"}
+    try:
+        if accion == 'aprobar':
+            if tipo == 'retiro':
+                # VALIDAR que tiene crédito suficiente ANTES de aprobar
+                if beneficiario_tipo == 'agente':
+                    credito_check = db.execute(text("""
+                        SELECT COALESCE(credito_disponible, 0) FROM agentes WHERE id = :id
+                    """), {"id": beneficiario_id}).fetchone()
+                else:
+                    credito_check = db.execute(text("""
+                        SELECT COALESCE(credito_disponible, 0) FROM estudiantes WHERE id = :id
+                    """), {"id": beneficiario_id}).fetchone()
+                
+                credito_disponible = float(credito_check[0]) if credito_check else 0
+                
+                if credito_disponible < monto:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"Crédito insuficiente. Disponible: {credito_disponible:.2f}€, Solicitado: {monto:.2f}€"
+                    )
+                
+                # Descontar del crédito disponible y sumar a crédito retirado (historial)
+                if beneficiario_tipo == 'agente':
+                    db.execute(text("""
+                        UPDATE agentes 
+                        SET credito_disponible = credito_disponible - :monto,
+                            credito_retirado = COALESCE(credito_retirado, 0) + :monto
+                        WHERE id = :id
+                    """), {"monto": monto, "id": beneficiario_id})
+                else:
+                    db.execute(text("""
+                        UPDATE estudiantes 
+                        SET credito_disponible = credito_disponible - :monto,
+                            credito_retirado = COALESCE(credito_retirado, 0) + :monto
+                        WHERE id = :id
+                    """), {"monto": monto, "id": beneficiario_id})
+                
+            elif tipo == 'descuento':
+                # Descuento: Restar del presupuesto aceptado actual (solo estudiantes)
+                presupuesto = db.execute(text("""
+                    SELECT id, precio_ofertado 
+                    FROM presupuestos 
+                    WHERE estudiante_id = :id AND estado = 'aceptado'
+                    ORDER BY fecha_respuesta DESC
+                    LIMIT 1
+                """), {"id": estudiante_id}).fetchone()
+                
+                if presupuesto:
+                    nuevo_precio = max(0, float(presupuesto[1]) - monto)
+                    db.execute(text("""
+                        UPDATE presupuestos 
+                        SET precio_ofertado = :nuevo_precio
+                        WHERE id = :id
+                    """), {"nuevo_precio": nuevo_precio, "id": presupuesto[0]})
+                    
+                    # Reducir crédito usado
+                    db.execute(text("""
+                        UPDATE estudiantes 
+                        SET credito_disponible = credito_disponible - :monto
+                        WHERE id = :id
+                    """), {"monto": monto, "id": estudiante_id})
+                else:
+                    raise HTTPException(status_code=400, detail="No hay presupuesto aceptado para aplicar el descuento")
+            
+            estado_final = 'aprobada'
+        else:
+            estado_final = 'rechazada'
+        
+        # Actualizar solicitud
+        db.execute(text("""
+            UPDATE solicitudes_credito
+            SET estado = :estado,
+                fecha_respuesta = CURRENT_TIMESTAMP,
+                notas = :notas
+            WHERE id = :id
+        """), {"estado": estado_final, "notas": notas, "id": solicitud_id})
+        
+        db.commit()
+        
+        return {"message": f"Solicitud {estado_final}"}
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error actualizando crédito: {e}")
+        raise HTTPException(status_code=500, detail=f"Error actualizando crédito: {str(e)}")
 
 
 # ============================================================================
