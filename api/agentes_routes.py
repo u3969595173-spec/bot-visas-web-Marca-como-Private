@@ -167,11 +167,16 @@ async def obtener_perfil_agente(
     
     perfil = db.execute(text("""
         SELECT id, nombre, email, telefono, codigo_referido,
-               comision_total, credito_disponible, total_referidos,
-               activo, created_at
+               comision_total, credito_disponible, COALESCE(credito_retirado, 0) as credito_retirado,
+               total_referidos, activo, created_at
         FROM agentes
         WHERE id = :id
     """), {"id": agente["id"]}).fetchone()
+    
+    # Calcular comisión total real (disponible + retirado)
+    credito_disponible = float(perfil[6])
+    credito_retirado = float(perfil[7])
+    comision_total_real = credito_disponible + credito_retirado
     
     return {
         "id": perfil[0],
@@ -179,11 +184,12 @@ async def obtener_perfil_agente(
         "email": perfil[2],
         "telefono": perfil[3],
         "codigo_referido": perfil[4],
-        "comision_total": float(perfil[5]),
-        "credito_disponible": float(perfil[6]),
-        "total_referidos": perfil[7],
-        "activo": perfil[8],
-        "created_at": perfil[9].isoformat() if perfil[9] else None
+        "comision_total": comision_total_real,  # Total ganado = disponible + retirado
+        "credito_disponible": credito_disponible,
+        "credito_retirado": credito_retirado,
+        "total_referidos": perfil[8],
+        "activo": perfil[9],
+        "created_at": perfil[10].isoformat() if perfil[10] else None
     }
 
 @router.get("/estadisticas", tags=["Agentes"])
@@ -193,13 +199,23 @@ async def obtener_estadisticas_agente(
 ):
     """Obtener estadísticas del agente"""
     
+    # Obtener crédito disponible y retirado del agente
+    agente_data = db.execute(text("""
+        SELECT credito_disponible, COALESCE(credito_retirado, 0) as credito_retirado
+        FROM agentes
+        WHERE id = :agente_id
+    """), {"agente_id": agente["id"]}).fetchone()
+    
+    credito_disponible = float(agente_data[0] or 0)
+    credito_retirado = float(agente_data[1] or 0)
+    comision_total = credito_disponible + credito_retirado  # Total ganado = disponible + retirado
+    
     # Estadísticas generales
     stats = db.execute(text("""
         SELECT 
             COUNT(DISTINCT e.id) as total_referidos,
             COUNT(DISTINCT CASE WHEN e.estado = 'activo' THEN e.id END) as referidos_activos,
-            COUNT(DISTINCT CASE WHEN p.estado = 'aceptado' THEN p.id END) as presupuestos_aceptados,
-            COALESCE(SUM(CASE WHEN p.estado = 'aceptado' THEN p.precio_ofertado * 0.10 ELSE 0 END), 0) as comision_total
+            COUNT(DISTINCT CASE WHEN p.estado = 'aceptado' THEN p.id END) as presupuestos_aceptados
         FROM estudiantes e
         LEFT JOIN presupuestos p ON p.estudiante_id = e.id
         WHERE e.referido_por_agente_id = :agente_id
@@ -218,7 +234,9 @@ async def obtener_estadisticas_agente(
         "total_referidos": stats[0],
         "referidos_activos": stats[1],
         "presupuestos_aceptados": stats[2],
-        "comision_total": float(stats[3]),
+        "comision_total": comision_total,
+        "credito_disponible": credito_disponible,
+        "credito_retirado": credito_retirado,
         "referidos_recientes": [
             {
                 "id": r[0],

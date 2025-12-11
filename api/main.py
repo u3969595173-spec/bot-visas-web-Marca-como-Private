@@ -8085,22 +8085,19 @@ async def obtener_estadisticas_referidos(
         ORDER BY created_at DESC
     """), {"id": estudiante_id}).fetchall()
     
-    # Calcular total ganado de presupuestos aceptados
-    # 10% si es referido por agente, 5% si es por estudiante
-    total_ganado = db.execute(text("""
-        SELECT COALESCE(SUM(p.precio_ofertado * 0.05), 0) as total
-        FROM presupuestos p
-        JOIN estudiantes e ON p.estudiante_id = e.id
-        WHERE e.referido_por_id = :id AND p.estado = 'aceptado'
-    """), {"id": estudiante_id}).fetchone()[0]
+    # Calcular total ganado: credito disponible + credito retirado
+    # Esto incluye todo lo que ha ganado (disponible para usar + ya retirado)
+    credito_disponible = float(estudiante[1] or 0)
+    credito_retirado = float(estudiante[3] or 0)
+    total_ganado = credito_disponible + credito_retirado
     
     return {
         "codigo_referido": estudiante[0] or "",
-        "credito_disponible": float(estudiante[1] or 0),
-        "credito_retirado": float(estudiante[3] or 0),
+        "credito_disponible": credito_disponible,
+        "credito_retirado": credito_retirado,
         "tipo_recompensa": estudiante[2] or "dinero",
         "total_referidos": len(referidos),
-        "total_ganado": float(total_ganado or 0),
+        "total_ganado": total_ganado,
         "referidos": [
             {
                 "id": r[0],
@@ -8405,9 +8402,13 @@ async def admin_obtener_contabilidad(
 ):
     """Admin: Obtiene métricas generales de contabilidad del sistema"""
     
-    # 1. PRESUPUESTOS ACEPTADOS - Total de todos los presupuestos aceptados
+    # 1. PRESUPUESTOS ACEPTADOS - Total de todos los presupuestos aceptados (suma de las 3 modalidades)
     presupuestos_result = db.execute(text("""
-        SELECT COALESCE(SUM(precio_ofertado), 0) as total
+        SELECT COALESCE(SUM(
+            COALESCE(precio_al_empezar, 0) + 
+            COALESCE(precio_con_visa, 0) + 
+            COALESCE(precio_financiado, 0)
+        ), 0) as total
         FROM presupuestos
         WHERE LOWER(estado) = 'aceptado'
     """)).fetchone()
@@ -8533,19 +8534,37 @@ async def admin_responder_solicitud_credito(
     
     if accion == 'aprobar':
         if tipo == 'retiro':
+            # VALIDAR que tiene crédito suficiente ANTES de aprobar
+            if beneficiario_tipo == 'agente':
+                credito_check = db.execute(text("""
+                    SELECT COALESCE(credito_disponible, 0) FROM agentes WHERE id = :id
+                """), {"id": beneficiario_id}).fetchone()
+            else:
+                credito_check = db.execute(text("""
+                    SELECT COALESCE(credito_disponible, 0) FROM estudiantes WHERE id = :id
+                """), {"id": beneficiario_id}).fetchone()
+            
+            credito_disponible = float(credito_check[0]) if credito_check else 0
+            
+            if credito_disponible < monto:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Crédito insuficiente. Disponible: {credito_disponible:.2f}€, Solicitado: {monto:.2f}€"
+                )
+            
             # Descontar del crédito disponible y sumar a crédito retirado (historial)
             if beneficiario_tipo == 'agente':
                 db.execute(text("""
                     UPDATE agentes 
                     SET credito_disponible = credito_disponible - :monto,
-                        credito_retirado = credito_retirado + :monto
+                        credito_retirado = COALESCE(credito_retirado, 0) + :monto
                     WHERE id = :id
                 """), {"monto": monto, "id": beneficiario_id})
             else:
                 db.execute(text("""
                     UPDATE estudiantes 
                     SET credito_disponible = credito_disponible - :monto,
-                        credito_retirado = credito_retirado + :monto
+                        credito_retirado = COALESCE(credito_retirado, 0) + :monto
                     WHERE id = :id
                 """), {"monto": monto, "id": beneficiario_id})
             
