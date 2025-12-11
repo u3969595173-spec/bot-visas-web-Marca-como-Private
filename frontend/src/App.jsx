@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
 import RegistroEstudiante from './components/RegistroEstudiante'
+import RegistroAgente from './components/RegistroAgente'
 import CompletarPerfil from './components/CompletarPerfil'
 import LoginEstudiante from './components/LoginEstudiante'
 import LoginAdmin from './components/LoginAdmin'
@@ -82,6 +83,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/estudiante/login" element={<LoginEstudiante />} />
           <Route path="/agente/login" element={<LoginAgente />} />
+          <Route path="/registro-agente" element={<RegistroAgente />} />
           <Route path="/dashboard-agente/:agenteId" element={<DashboardAgente />} />
           <Route
             path="/registro"
