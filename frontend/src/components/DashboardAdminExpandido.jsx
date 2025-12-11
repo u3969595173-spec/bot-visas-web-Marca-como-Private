@@ -1464,7 +1464,7 @@ function DashboardAdminExpandido({ onLogout }) {
           <div className="section-header">
             <h2>💎 Sistema de Referidos</h2>
             <div style={{fontSize: '14px', color: '#718096'}}>
-              Comisión automática: 10% del presupuesto aceptado
+              Comisión automática: 5% del presupuesto aceptado
             </div>
           </div>
 
