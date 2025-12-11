@@ -108,6 +108,9 @@ function Home() {
               <Link to="/testimonios" className="footer-link">
                 Testimonios
               </Link>
+              <Link to="/agente/login" className="footer-link">
+                Acceso Agentes
+              </Link>
               <Link to="/admin/login" className="footer-link">
                 Acceso Admin
               </Link>
