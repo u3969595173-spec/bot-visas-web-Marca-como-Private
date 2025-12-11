@@ -9691,6 +9691,55 @@ def marcar_pago_individual(
     
     db.commit()
     
+    # 💰 CALCULAR COMISIÓN SI SE MARCA COMO PAGADO
+    if pagado:
+        try:
+            # Obtener monto del pago según modalidad
+            monto_pago = 0
+            if modalidad == 'al_empezar' and check and check[0]:
+                monto_pago = float(check[0])
+            elif modalidad == 'con_visa' and check and check[2]:
+                monto_pago = float(check[2])
+            elif modalidad == 'financiado' and check and check[4]:
+                monto_pago = float(check[4])
+            
+            if monto_pago > 0:
+                # Obtener estudiante y verificar si fue referido
+                est = db.execute(text("""
+                    SELECT id, referido_por_id, referido_por_agente_id
+                    FROM estudiantes
+                    WHERE id = (SELECT estudiante_id FROM presupuestos WHERE id = :pid)
+                """), {"pid": presupuesto_id}).fetchone()
+                
+                if est:
+                    # Si fue referido por AGENTE → 10%
+                    if est[2]:
+                        comision = monto_pago * 0.10
+                        db.execute(text("""
+                            UPDATE agentes
+                            SET comision_total = comision_total + :comision,
+                                credito_disponible = credito_disponible + :comision,
+                                updated_at = NOW()
+                            WHERE id = :agente_id
+                        """), {"comision": comision, "agente_id": est[2]})
+                        print(f"✅ Comisión agente: {comision}€ (10% de {monto_pago}€)")
+                    
+                    # Si fue referido por ESTUDIANTE → 5%
+                    elif est[1]:
+                        comision = monto_pago * 0.05
+                        db.execute(text("""
+                            UPDATE estudiantes
+                            SET credito_disponible = credito_disponible + :comision,
+                                updated_at = NOW()
+                            WHERE id = :estudiante_id
+                        """), {"comision": comision, "estudiante_id": est[1]})
+                        print(f"✅ Comisión estudiante: {comision}€ (5% de {monto_pago}€)")
+                    
+                    db.commit()
+        except Exception as e:
+            print(f"⚠️ Error calculando comisión: {e}")
+            # No hacer rollback, el pago ya se marcó correctamente
+    
     log_event("pago_individual_marcado", {
         'presupuesto_id': presupuesto_id,
         'modalidad': modalidad,
