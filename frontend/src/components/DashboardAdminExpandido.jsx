@@ -64,6 +64,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [showDetallesReferidosModal, setShowDetallesReferidosModal] = useState(false)
   const [referidosDetalles, setReferidosDetalles] = useState([])
   const [referidorSeleccionado, setReferidorSeleccionado] = useState(null)
+  const [contabilidad, setContabilidad] = useState(null)
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -165,6 +166,9 @@ function DashboardAdminExpandido({ onLogout }) {
       } else if (activeTab === 'agentes') {
         const agentesRes = await axios.get(`${apiUrl}/api/admin/agentes/estadisticas`)
         setAgentes(agentesRes.data)
+      } else if (activeTab === 'contabilidad') {
+        const contaRes = await axios.get(`${apiUrl}/api/admin/contabilidad`)
+        setContabilidad(contaRes.data)
       } else if (activeTab === 'informacion-financiera') {
         const response = await axios.get(`${apiUrl}/api/admin/solicitudes-financieras`)
         setSolicitudesFinancieras(response.data)
@@ -868,6 +872,13 @@ function DashboardAdminExpandido({ onLogout }) {
           style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', fontWeight: 'bold' }}
         >
           💰 Retiros
+        </button>
+        <button 
+          className={`tab ${activeTab === 'contabilidad' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('contabilidad')}
+          style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          💰 Contabilidad
         </button>
         <button 
           className={`tab ${activeTab === 'reportes' ? 'tab-active' : ''}`}
@@ -2487,6 +2498,272 @@ function DashboardAdminExpandido({ onLogout }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* SECCIÓN: CONTABILIDAD */}
+      {activeTab === 'contabilidad' && (
+        <div style={{padding: '0'}}>
+          <h2 style={{marginBottom: '30px', color: '#1f2937', fontSize: '28px'}}>💰 Contabilidad General</h2>
+          
+          {!contabilidad ? (
+            <div style={{textAlign: 'center', padding: '60px', color: '#6b7280'}}>
+              <div style={{fontSize: '48px', marginBottom: '15px'}}>⏳</div>
+              <p style={{fontSize: '18px'}}>Cargando datos de contabilidad...</p>
+            </div>
+          ) : (
+            <>
+              {/* CARDS DE MÉTRICAS */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '25px',
+                marginBottom: '40px'
+              }}>
+                {/* Card: Presupuestos Aceptados */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '16px',
+                  padding: '30px',
+                  color: 'white',
+                  boxShadow: '0 10px 30px rgba(102, 126, 234, 0.3)',
+                  transition: 'transform 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <div style={{fontSize: '16px', opacity: 0.9, marginBottom: '10px', fontWeight: '500'}}>
+                    📋 Presupuestos Aceptados
+                  </div>
+                  <div style={{fontSize: '42px', fontWeight: '800', letterSpacing: '-1px'}}>
+                    {contabilidad.presupuestos_aceptados.toFixed(2)}€
+                  </div>
+                  <div style={{fontSize: '13px', opacity: 0.8, marginTop: '8px'}}>
+                    Total de presupuestos aceptados
+                  </div>
+                </div>
+
+                {/* Card: Pagado (Recibido) */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '16px',
+                  padding: '30px',
+                  color: 'white',
+                  boxShadow: '0 10px 30px rgba(16, 185, 129, 0.3)',
+                  transition: 'transform 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <div style={{fontSize: '16px', opacity: 0.9, marginBottom: '10px', fontWeight: '500'}}>
+                    💰 Pagado (Recibido)
+                  </div>
+                  <div style={{fontSize: '42px', fontWeight: '800', letterSpacing: '-1px'}}>
+                    {contabilidad.total_pagado.toFixed(2)}€
+                  </div>
+                  <div style={{fontSize: '13px', opacity: 0.8, marginTop: '8px'}}>
+                    Total recibido por modalidades
+                  </div>
+                </div>
+
+                {/* Card: Retirado (Comisiones) */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  borderRadius: '16px',
+                  padding: '30px',
+                  color: 'white',
+                  boxShadow: '0 10px 30px rgba(239, 68, 68, 0.3)',
+                  transition: 'transform 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <div style={{fontSize: '16px', opacity: 0.9, marginBottom: '10px', fontWeight: '500'}}>
+                    💸 Retirado (Comisiones)
+                  </div>
+                  <div style={{fontSize: '42px', fontWeight: '800', letterSpacing: '-1px'}}>
+                    {contabilidad.total_retirado.toFixed(2)}€
+                  </div>
+                  <div style={{fontSize: '13px', opacity: 0.8, marginTop: '8px'}}>
+                    Total aprobado en retiros
+                  </div>
+                </div>
+
+                {/* Card: Balance */}
+                <div style={{
+                  background: contabilidad.balance >= 0 
+                    ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+                    : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  borderRadius: '16px',
+                  padding: '30px',
+                  color: 'white',
+                  boxShadow: contabilidad.balance >= 0
+                    ? '0 10px 30px rgba(59, 130, 246, 0.3)'
+                    : '0 10px 30px rgba(245, 158, 11, 0.3)',
+                  transition: 'transform 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <div style={{fontSize: '16px', opacity: 0.9, marginBottom: '10px', fontWeight: '500'}}>
+                    ⚖️ Balance
+                  </div>
+                  <div style={{fontSize: '42px', fontWeight: '800', letterSpacing: '-1px'}}>
+                    {contabilidad.balance >= 0 ? '+' : ''}{contabilidad.balance.toFixed(2)}€
+                  </div>
+                  <div style={{fontSize: '13px', opacity: 0.8, marginTop: '8px'}}>
+                    {contabilidad.balance >= 0 ? 'Disponible en caja' : 'Déficit pendiente'}
+                  </div>
+                </div>
+              </div>
+
+              {/* GRÁFICA DE BARRAS */}
+              <div style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '30px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+              }}>
+                <h3 style={{marginBottom: '25px', color: '#374151', fontSize: '20px'}}>
+                  📊 Resumen Visual de Contabilidad
+                </h3>
+                
+                <div style={{position: 'relative', height: '400px'}}>
+                  {/* Gráfica de barras simple con CSS */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'space-around',
+                    height: '100%',
+                    gap: '30px',
+                    padding: '20px 0'
+                  }}>
+                    {/* Barra: Presupuestos */}
+                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                      <div style={{
+                        width: '100%',
+                        maxWidth: '120px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        borderRadius: '8px 8px 0 0',
+                        transition: 'all 0.3s',
+                        height: `${(contabilidad.presupuestos_aceptados / Math.max(contabilidad.presupuestos_aceptados, contabilidad.total_pagado, contabilidad.total_retirado)) * 100}%`,
+                        minHeight: '50px',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'center',
+                        paddingTop: '15px',
+                        color: 'white',
+                        fontWeight: '700',
+                        fontSize: '16px'
+                      }}>
+                        {contabilidad.presupuestos_aceptados.toFixed(0)}€
+                      </div>
+                      <div style={{marginTop: '15px', textAlign: 'center', fontSize: '14px', color: '#6b7280', fontWeight: '600'}}>
+                        Presupuestos
+                      </div>
+                    </div>
+
+                    {/* Barra: Pagado */}
+                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                      <div style={{
+                        width: '100%',
+                        maxWidth: '120px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        borderRadius: '8px 8px 0 0',
+                        transition: 'all 0.3s',
+                        height: `${(contabilidad.total_pagado / Math.max(contabilidad.presupuestos_aceptados, contabilidad.total_pagado, contabilidad.total_retirado)) * 100}%`,
+                        minHeight: '50px',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'center',
+                        paddingTop: '15px',
+                        color: 'white',
+                        fontWeight: '700',
+                        fontSize: '16px'
+                      }}>
+                        {contabilidad.total_pagado.toFixed(0)}€
+                      </div>
+                      <div style={{marginTop: '15px', textAlign: 'center', fontSize: '14px', color: '#6b7280', fontWeight: '600'}}>
+                        Pagado
+                      </div>
+                    </div>
+
+                    {/* Barra: Retirado */}
+                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                      <div style={{
+                        width: '100%',
+                        maxWidth: '120px',
+                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                        borderRadius: '8px 8px 0 0',
+                        transition: 'all 0.3s',
+                        height: `${(contabilidad.total_retirado / Math.max(contabilidad.presupuestos_aceptados, contabilidad.total_pagado, contabilidad.total_retirado)) * 100}%`,
+                        minHeight: '50px',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'center',
+                        paddingTop: '15px',
+                        color: 'white',
+                        fontWeight: '700',
+                        fontSize: '16px'
+                      }}>
+                        {contabilidad.total_retirado.toFixed(0)}€
+                      </div>
+                      <div style={{marginTop: '15px', textAlign: 'center', fontSize: '14px', color: '#6b7280', fontWeight: '600'}}>
+                        Retirado
+                      </div>
+                    </div>
+
+                    {/* Barra: Balance */}
+                    <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                      <div style={{
+                        width: '100%',
+                        maxWidth: '120px',
+                        background: contabilidad.balance >= 0
+                          ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+                          : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                        borderRadius: '8px 8px 0 0',
+                        transition: 'all 0.3s',
+                        height: `${(Math.abs(contabilidad.balance) / Math.max(contabilidad.presupuestos_aceptados, contabilidad.total_pagado, contabilidad.total_retirado)) * 100}%`,
+                        minHeight: '50px',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'center',
+                        paddingTop: '15px',
+                        color: 'white',
+                        fontWeight: '700',
+                        fontSize: '16px'
+                      }}>
+                        {contabilidad.balance.toFixed(0)}€
+                      </div>
+                      <div style={{marginTop: '15px', textAlign: 'center', fontSize: '14px', color: '#6b7280', fontWeight: '600'}}>
+                        Balance
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Leyenda y explicación */}
+                <div style={{
+                  marginTop: '30px',
+                  padding: '20px',
+                  background: '#f9fafb',
+                  borderRadius: '12px'
+                }}>
+                  <h4 style={{marginBottom: '15px', color: '#374151', fontSize: '16px'}}>📝 Notas:</h4>
+                  <ul style={{margin: 0, paddingLeft: '20px', color: '#6b7280', fontSize: '14px', lineHeight: '1.8'}}>
+                    <li><strong>Presupuestos:</strong> Total de presupuestos aceptados por estudiantes</li>
+                    <li><strong>Pagado:</strong> Dinero recibido de estudiantes (suma de pagos por modalidad marcados como pagados)</li>
+                    <li><strong>Retirado:</strong> Total de comisiones aprobadas y pagadas a estudiantes y agentes</li>
+                    <li><strong>Balance:</strong> Diferencia entre lo pagado y lo retirado (Pagado - Retirado)</li>
+                  </ul>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 

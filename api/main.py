@@ -8348,6 +8348,51 @@ async def admin_obtener_estadisticas_agentes(
     ]
 
 
+@app.get("/api/admin/contabilidad", tags=["Admin - Contabilidad"])
+async def admin_obtener_contabilidad(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Obtiene métricas generales de contabilidad del sistema"""
+    
+    # 1. PRESUPUESTOS ACEPTADOS - Total de todos los presupuestos aceptados
+    presupuestos_result = db.execute(text("""
+        SELECT COALESCE(SUM(precio_ofertado), 0) as total
+        FROM presupuestos
+        WHERE estado = 'aceptado'
+    """)).fetchone()
+    total_presupuestos = float(presupuestos_result[0])
+    
+    # 2. PAGADO - Suma de pagos por modalidad que están marcados como pagados
+    pagado_result = db.execute(text("""
+        SELECT 
+            COALESCE(SUM(CASE WHEN pagado_al_empezar = true THEN precio_al_empezar ELSE 0 END), 0) +
+            COALESCE(SUM(CASE WHEN pagado_con_visa = true THEN precio_con_visa ELSE 0 END), 0) +
+            COALESCE(SUM(CASE WHEN pagado_financiado = true THEN precio_financiado ELSE 0 END), 0) as total_pagado
+        FROM presupuestos
+        WHERE estado = 'aceptado'
+    """)).fetchone()
+    total_pagado = float(pagado_result[0])
+    
+    # 3. RETIRADO - Total de solicitudes de retiro aprobadas (estudiantes + agentes)
+    retirado_result = db.execute(text("""
+        SELECT COALESCE(SUM(monto), 0) as total
+        FROM solicitudes_credito
+        WHERE tipo = 'retiro' AND estado = 'aprobada'
+    """)).fetchone()
+    total_retirado = float(retirado_result[0])
+    
+    # 4. BALANCE - Diferencia entre lo pagado y lo retirado
+    balance = total_pagado - total_retirado
+    
+    return {
+        "presupuestos_aceptados": total_presupuestos,
+        "total_pagado": total_pagado,
+        "total_retirado": total_retirado,
+        "balance": balance
+    }
+
+
 @app.get("/api/admin/solicitudes-credito", tags=["Admin - Referidos"])
 async def admin_obtener_solicitudes_credito(
     usuario=Depends(obtener_usuario_actual),
