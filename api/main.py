@@ -98,6 +98,31 @@ async def startup_event():
         except Exception as e:
             print(f"⚠️  Migración credito_retirado: {e}")
         
+        # ARREGLAR: Estudiantes sin codigo_referido
+        try:
+            import random
+            import string
+            cursor.execute("""
+                SELECT id, nombre FROM estudiantes 
+                WHERE codigo_referido IS NULL OR codigo_referido = ''
+            """)
+            estudiantes_sin_codigo = cursor.fetchall()
+            
+            for est_id, nombre in estudiantes_sin_codigo:
+                codigo = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                cursor.execute("""
+                    UPDATE estudiantes
+                    SET codigo_referido = %s,
+                        tipo_recompensa = 'dinero'
+                    WHERE id = %s
+                """, (codigo, est_id))
+                print(f"✅ Código {codigo} asignado a {nombre} (ID: {est_id})")
+            
+            if estudiantes_sin_codigo:
+                conn.commit()
+        except Exception as e:
+            print(f"⚠️  Arreglar códigos referidos: {e}")
+        
         # Crear tabla documentos_generados si no existe
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS documentos_generados (
