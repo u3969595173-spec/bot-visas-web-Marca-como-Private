@@ -8110,6 +8110,16 @@ async def obtener_estadisticas_referidos(
     }
 
 
+# Alias del endpoint anterior para compatibilidad
+@app.get("/api/estudiantes/{estudiante_id}/referidos", tags=["Referidos"])
+async def obtener_referidos_estudiante(
+    estudiante_id: int,
+    db: Session = Depends(get_db)
+):
+    """Alias de /api/referidos/estadisticas/{estudiante_id} para compatibilidad"""
+    return await obtener_estadisticas_referidos(estudiante_id, db)
+
+
 @app.get("/api/referidos/validar/{codigo}", tags=["Referidos"])
 async def validar_codigo_referido(codigo: str):
     """Valida si un código de referido existe"""
