@@ -719,7 +719,8 @@ def verificar_admin(
     usuario = Depends(obtener_usuario_actual)
 ):
     """Verifica que el usuario sea administrador"""
-    if not usuario.get('is_admin'):
+    # El token tiene 'rol', no 'is_admin'
+    if usuario.get('rol') != 'admin':
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Se requieren permisos de administrador"

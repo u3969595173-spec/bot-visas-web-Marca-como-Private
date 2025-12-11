@@ -1,5 +1,7 @@
 # Sistema de Tracking de Crédito Retirado
 
+
+
 ## 🎯 Problema Identificado y Resuelto
 
 ### PROBLEMA ORIGINAL:
