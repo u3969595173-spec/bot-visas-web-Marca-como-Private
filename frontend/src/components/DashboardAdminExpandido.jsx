@@ -297,17 +297,6 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
-  const verDetallesReferidos = async (referidor) => {
-    try {
-      const response = await axios.get(`${apiUrl}/api/admin/referidos/${referidor.tipo}/${referidor.id}/detalles`)
-      setReferidosDetalles(response.data)
-      setReferidorSeleccionado(referidor)
-      setShowDetallesReferidosModal(true)
-    } catch (err) {
-      alert('❌ Error al cargar detalles: ' + (err.response?.data?.detail || err.message))
-    }
-  }
-
   const estudiantesFiltrados = estudiantes.filter(est => {
     // Normalizar estado (puede venir como 'estado' o 'estado_procesamiento')
     const estadoActual = est.estado || est.estado_procesamiento || 'pendiente'
