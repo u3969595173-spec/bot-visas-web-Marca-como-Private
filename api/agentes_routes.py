@@ -434,4 +434,23 @@ async def solicitar_retiro(
     
     db.commit()
     
+    # ✅ NOTIFICAR AL ADMIN DE LA SOLICITUD DE RETIRO DE AGENTE
+    try:
+        from api.notificaciones_admin import notificar_solicitud_credito
+        
+        # Obtener datos del agente
+        agente_data = db.execute(text("""
+            SELECT nombre, email, credito_disponible FROM agentes WHERE id = :id
+        """), {"id": agente["id"]}).fetchone()
+        
+        if agente_data:
+            agente_dict = {
+                'nombre': agente_data[0],
+                'email': agente_data[1],
+                'credito_disponible': float(agente_data[2] or 0)
+            }
+            notificar_solicitud_credito(None, agente_dict, 'retiro', monto)
+    except Exception as e:
+        print(f"⚠️ Error enviando notificación de solicitud de retiro de agente: {e}")
+    
     return {"message": "Solicitud de retiro enviada al administrador"}

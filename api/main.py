@@ -8349,6 +8349,25 @@ async def solicitar_uso_credito(
     """), {"estudiante_id": estudiante_id, "tipo": tipo, "monto": monto})
     db.commit()
     
+    # ✅ NOTIFICAR AL ADMIN DE LA SOLICITUD DE CRÉDITO
+    try:
+        from api.notificaciones_admin import notificar_solicitud_credito
+        
+        # Obtener datos del estudiante
+        est_data = db.execute(text("""
+            SELECT nombre, email, credito_disponible FROM estudiantes WHERE id = :id
+        """), {"id": estudiante_id}).fetchone()
+        
+        if est_data:
+            estudiante_dict = {
+                'nombre': est_data[0],
+                'email': est_data[1],
+                'credito_disponible': float(est_data[2] or 0)
+            }
+            notificar_solicitud_credito(estudiante_dict, None, tipo, monto)
+    except Exception as e:
+        print(f"⚠️ Error enviando notificación de solicitud de crédito: {e}")
+    
     return {"message": "Solicitud enviada al administrador"}
 
 
@@ -10056,6 +10075,26 @@ def marcar_pago_individual(
                     'financiado': 'Pago Financiado'
                 }
                 notificar('pago_confirmado', est_id, tipo_pago=tipo_pago_map.get(modalidad, modalidad))
+                
+                # ✅ NOTIFICAR AL ADMIN POR EMAIL DEL PAGO CONFIRMADO
+                from api.notificaciones_admin import notificar_pago_confirmado
+                
+                # Obtener datos del estudiante y presupuesto
+                datos_completos = db.execute(text("""
+                    SELECT e.nombre, e.email, p.id
+                    FROM estudiantes e
+                    JOIN presupuestos p ON p.estudiante_id = e.id
+                    WHERE p.id = :pid
+                """), {"pid": presupuesto_id}).fetchone()
+                
+                if datos_completos:
+                    estudiante_dict = {
+                        'nombre': datos_completos[0],
+                        'email': datos_completos[1]
+                    }
+                    presupuesto_dict = {'id': datos_completos[2]}
+                    notificar_pago_confirmado(estudiante_dict, presupuesto_dict, modalidad, monto_pago)
+                
         except Exception as e:
             logger.error(f"Error enviando notificación de pago confirmado: {e}")
     
