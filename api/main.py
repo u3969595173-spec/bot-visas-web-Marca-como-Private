@@ -8193,28 +8193,82 @@ async def solicitar_uso_credito(
     return {"message": "Solicitud enviada al administrador"}
 
 
+@app.get("/api/admin/agentes/estadisticas", tags=["Admin - Agentes"])
+async def admin_obtener_estadisticas_agentes(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Obtiene estadísticas completas de todos los agentes"""
+    
+    result = db.execute(text("""
+        SELECT 
+            a.id,
+            a.nombre,
+            a.email,
+            a.codigo_referido,
+            a.comision_total,
+            a.credito_disponible,
+            a.activo,
+            a.fecha_registro,
+            COUNT(DISTINCT e.id) as total_referidos,
+            COUNT(DISTINCT CASE WHEN e.estado = 'aprobado' THEN e.id END) as referidos_aprobados,
+            COUNT(DISTINCT CASE WHEN e.estado = 'pendiente' THEN e.id END) as referidos_pendientes,
+            COUNT(DISTINCT p.id) as presupuestos_generados,
+            COUNT(DISTINCT CASE WHEN p.estado = 'aceptado' THEN p.id END) as presupuestos_aceptados,
+            COALESCE(SUM(CASE WHEN p.estado = 'aceptado' THEN p.precio_ofertado END), 0) as valor_total_presupuestos
+        FROM agentes a
+        LEFT JOIN estudiantes e ON e.referido_por_agente_id = a.id
+        LEFT JOIN presupuestos p ON p.estudiante_id = e.id
+        GROUP BY a.id, a.nombre, a.email, a.codigo_referido, a.comision_total, a.credito_disponible, a.activo, a.fecha_registro
+        ORDER BY a.comision_total DESC
+    """)).fetchall()
+    
+    return [
+        {
+            "id": row[0],
+            "nombre": row[1],
+            "email": row[2],
+            "codigo_referido": row[3],
+            "comision_total": float(row[4]),
+            "credito_disponible": float(row[5]),
+            "activo": row[6],
+            "fecha_registro": row[7],
+            "total_referidos": row[8],
+            "referidos_aprobados": row[9],
+            "referidos_pendientes": row[10],
+            "presupuestos_generados": row[11],
+            "presupuestos_aceptados": row[12],
+            "valor_total_presupuestos": float(row[13])
+        }
+        for row in result
+    ]
+
+
 @app.get("/api/admin/solicitudes-credito", tags=["Admin - Referidos"])
 async def admin_obtener_solicitudes_credito(
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
-    """Admin: Obtiene todas las solicitudes de uso de crédito"""
+    """Admin: Obtiene todas las solicitudes de uso de crédito (estudiantes y agentes)"""
     
     result = db.execute(text("""
         SELECT 
             sc.id,
             sc.estudiante_id,
-            e.nombre,
-            e.email,
+            sc.beneficiario_tipo,
+            sc.beneficiario_id,
             sc.tipo,
             sc.monto,
             sc.estado,
             sc.fecha_solicitud,
             sc.fecha_respuesta,
             sc.notas,
-            e.credito_disponible
+            COALESCE(e.nombre, a.nombre) as nombre,
+            COALESCE(e.email, a.email) as email,
+            COALESCE(e.credito_disponible, a.credito_disponible) as credito_disponible
         FROM solicitudes_credito sc
-        JOIN estudiantes e ON sc.estudiante_id = e.id
+        LEFT JOIN estudiantes e ON sc.estudiante_id = e.id
+        LEFT JOIN agentes a ON sc.beneficiario_tipo = 'agente' AND sc.beneficiario_id = a.id
         ORDER BY 
             CASE sc.estado 
                 WHEN 'pendiente' THEN 1
@@ -8228,15 +8282,17 @@ async def admin_obtener_solicitudes_credito(
         {
             "id": row[0],
             "estudiante_id": row[1],
-            "nombre_estudiante": row[2],
-            "email_estudiante": row[3],
+            "beneficiario_tipo": row[2] or 'estudiante',
+            "beneficiario_id": row[3] or row[1],
             "tipo": row[4],
             "monto": float(row[5]),
             "estado": row[6],
             "fecha_solicitud": row[7].isoformat() if row[7] else None,
             "fecha_respuesta": row[8].isoformat() if row[8] else None,
             "notas": row[9],
-            "credito_disponible": float(row[10])
+            "nombre": row[10],
+            "email": row[11],
+            "credito_disponible": float(row[12]) if row[12] else 0
         }
         for row in result
     ]
@@ -8249,7 +8305,7 @@ async def admin_responder_solicitud_credito(
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
-    """Admin: Aprueba o rechaza una solicitud de uso de crédito"""
+    """Admin: Aprueba o rechaza una solicitud de uso de crédito (estudiantes y agentes)"""
     
     accion = data.get('accion')  # 'aprobar' o 'rechazar'
     notas = data.get('notas', '')
@@ -8259,7 +8315,7 @@ async def admin_responder_solicitud_credito(
     
     # Obtener solicitud
     solicitud = db.execute(text("""
-        SELECT estudiante_id, tipo, monto, estado 
+        SELECT estudiante_id, tipo, monto, estado, beneficiario_tipo, beneficiario_id
         FROM solicitudes_credito 
         WHERE id = :id
     """), {"id": solicitud_id}).fetchone()
@@ -8273,18 +8329,27 @@ async def admin_responder_solicitud_credito(
     estudiante_id = solicitud[0]
     tipo = solicitud[1]
     monto = solicitud[2]
+    beneficiario_tipo = solicitud[4] or 'estudiante'
+    beneficiario_id = solicitud[5] or estudiante_id
     
     if accion == 'aprobar':
         if tipo == 'retiro':
-            # Retiro: Poner crédito en 0
-            db.execute(text("""
-                UPDATE estudiantes 
-                SET credito_disponible = credito_disponible - :monto
-                WHERE id = :id
-            """), {"monto": monto, "id": estudiante_id})
+            # Descontar del crédito disponible
+            if beneficiario_tipo == 'agente':
+                db.execute(text("""
+                    UPDATE agentes 
+                    SET credito_disponible = credito_disponible - :monto
+                    WHERE id = :id
+                """), {"monto": monto, "id": beneficiario_id})
+            else:
+                db.execute(text("""
+                    UPDATE estudiantes 
+                    SET credito_disponible = credito_disponible - :monto
+                    WHERE id = :id
+                """), {"monto": monto, "id": beneficiario_id})
             
         elif tipo == 'descuento':
-            # Descuento: Restar del presupuesto aceptado actual
+            # Descuento: Restar del presupuesto aceptado actual (solo estudiantes)
             presupuesto = db.execute(text("""
                 SELECT id, precio_ofertado 
                 FROM presupuestos 

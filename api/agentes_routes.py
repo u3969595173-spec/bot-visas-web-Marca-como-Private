@@ -379,3 +379,41 @@ async def subir_documento_referido(
         "tipo": tipo_documento,
         "archivo": archivo.filename
     }
+
+# =====================================================
+# SOLICITUD DE RETIRO
+# =====================================================
+
+@router.post("/solicitar-retiro", tags=["Agentes"])
+async def solicitar_retiro(
+    data: dict,
+    agente = Depends(obtener_agente_actual),
+    db: Session = Depends(get_db)
+):
+    """Agente solicita retiro de comisiones"""
+    
+    monto = data.get('monto')
+    
+    if not monto or monto <= 0:
+        raise HTTPException(status_code=400, detail="Monto inválido")
+    
+    # Verificar crédito disponible
+    perfil = db.execute(text("""
+        SELECT credito_disponible FROM agentes WHERE id = :id
+    """), {"id": agente["id"]}).fetchone()
+    
+    if not perfil or perfil[0] < monto:
+        raise HTTPException(status_code=400, detail="Crédito insuficiente")
+    
+    # Crear solicitud
+    db.execute(text("""
+        INSERT INTO solicitudes_credito (
+            estudiante_id, tipo, monto, estado, 
+            beneficiario_tipo, beneficiario_id
+        )
+        VALUES (NULL, 'retiro', :monto, 'pendiente', 'agente', :agente_id)
+    """), {"monto": monto, "agente_id": agente["id"]})
+    
+    db.commit()
+    
+    return {"message": "Solicitud de retiro enviada al administrador"}

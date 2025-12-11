@@ -60,6 +60,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [solicitudesAlojamiento, setSolicitudesAlojamiento] = useState([])
   const [solicitudesSeguroMedico, setSolicitudesSeguroMedico] = useState([])
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0)
+  const [agentes, setAgentes] = useState([])
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -155,6 +156,12 @@ function DashboardAdminExpandido({ onLogout }) {
         ])
         setReferidos(refRes.data)
         setSolicitudesCredito(solRes.data)
+      } else if (activeTab === 'retiros') {
+        const solRes = await axios.get(`${apiUrl}/api/admin/solicitudes-credito`)
+        setSolicitudesCredito(solRes.data)
+      } else if (activeTab === 'agentes') {
+        const agentesRes = await axios.get(`${apiUrl}/api/admin/agentes/estadisticas`)
+        setAgentes(agentesRes.data)
       } else if (activeTab === 'informacion-financiera') {
         const response = await axios.get(`${apiUrl}/api/admin/solicitudes-financieras`)
         setSolicitudesFinancieras(response.data)
@@ -768,11 +775,11 @@ function DashboardAdminExpandido({ onLogout }) {
           📊 Proceso de Visa (Tracking)
         </button>
         <button 
-          className={`tab ${activeTab === 'alertas' ? 'tab-active' : ''}`}
-          onClick={() => setActiveTab('alertas')}
-          style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', fontWeight: 'bold' }}
+          className={`tab ${activeTab === 'agentes' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('agentes')}
+          style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white', fontWeight: 'bold' }}
         >
-          📅 Alertas de Fechas
+          👤 Agentes
         </button>
         <button 
           className={`tab ${activeTab === 'cursos' ? 'tab-active' : ''}`}
@@ -831,6 +838,13 @@ function DashboardAdminExpandido({ onLogout }) {
           💎 Referidos
         </button>
         <button 
+          className={`tab ${activeTab === 'retiros' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('retiros')}
+          style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          💰 Retiros
+        </button>
+        <button 
           className={`tab ${activeTab === 'reportes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('reportes')}
           style={{ background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)', color: 'white', fontWeight: 'bold' }}
@@ -849,8 +863,180 @@ function DashboardAdminExpandido({ onLogout }) {
       {/* SECCIÓN: PARTNERSHIPS */}
       {activeTab === 'partners' && <PartnersAdmin />}
 
-      {/* SECCIÓN: ALERTAS DE FECHAS */}
-      {activeTab === 'alertas' && <AlertasAdmin apiUrl={apiUrl} />}
+      {/* SECCIÓN: ESTADÍSTICAS DE AGENTES */}
+      {activeTab === 'agentes' && (
+        <div className="card">
+          <div className="section-header">
+            <h2>👤 Estadísticas de Agentes</h2>
+            <div style={{fontSize: '14px', color: '#718096'}}>
+              Comisión: 10% por cada pago realizado
+            </div>
+          </div>
+
+          {agentes.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '10px',
+              color: '#6b7280'
+            }}>
+              📭 No hay agentes registrados aún
+            </div>
+          ) : (
+            <div className="tabla-wrapper">
+              <table className="tabla-estudiantes">
+                <thead>
+                  <tr>
+                    <th>Agente</th>
+                    <th>Código Referido</th>
+                    <th>Estado</th>
+                    <th>Total Referidos</th>
+                    <th>Aprobados</th>
+                    <th>Pendientes</th>
+                    <th>Presupuestos</th>
+                    <th>Valor Total</th>
+                    <th>Comisión Total</th>
+                    <th>Crédito Disponible</th>
+                    <th>Fecha Registro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agentes.map((agente) => (
+                    <tr key={agente.id}>
+                      <td>
+                        <div style={{fontWeight: '600'}}>{agente.nombre}</div>
+                        <div style={{fontSize: '13px', color: '#718096'}}>{agente.email}</div>
+                      </td>
+                      <td>
+                        <div style={{
+                          background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                          color: 'white',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          display: 'inline-block',
+                          fontWeight: '700',
+                          letterSpacing: '1px',
+                          fontSize: '13px'
+                        }}>
+                          {agente.codigo_referido}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`badge ${agente.activo ? 'badge-success' : 'badge-danger'}`}>
+                          {agente.activo ? '✅ Activo' : '❌ Inactivo'}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{
+                          background: '#dbeafe',
+                          color: '#1e40af',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontWeight: '600',
+                          fontSize: '14px'
+                        }}>
+                          {agente.total_referidos}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{
+                          background: '#d1fae5',
+                          color: '#065f46',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontWeight: '600',
+                          fontSize: '14px'
+                        }}>
+                          {agente.referidos_aprobados}
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontWeight: '600',
+                          fontSize: '14px'
+                        }}>
+                          {agente.referidos_pendientes}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{fontSize: '14px', color: '#6b7280'}}>
+                          {agente.presupuestos_aceptados} / {agente.presupuestos_generados}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{fontSize: '16px', fontWeight: '700', color: '#3b82f6'}}>
+                          {agente.valor_total_presupuestos.toFixed(2)}€
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{fontSize: '16px', fontWeight: '700', color: '#10b981'}}>
+                          {agente.comision_total.toFixed(2)}€
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{fontSize: '16px', fontWeight: '700', color: '#f59e0b'}}>
+                          {agente.credito_disponible.toFixed(2)}€
+                        </div>
+                      </td>
+                      <td style={{fontSize: '13px', color: '#6b7280'}}>
+                        {new Date(agente.fecha_registro).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric'
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Resumen Total */}
+          {agentes.length > 0 && (
+            <div style={{
+              marginTop: '30px',
+              padding: '25px',
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+              borderRadius: '12px',
+              color: 'white'
+            }}>
+              <h3 style={{marginBottom: '20px', fontSize: '18px'}}>📊 Resumen General</h3>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px'}}>
+                <div>
+                  <div style={{fontSize: '14px', opacity: 0.9}}>Total Agentes</div>
+                  <div style={{fontSize: '28px', fontWeight: '700'}}>{agentes.length}</div>
+                </div>
+                <div>
+                  <div style={{fontSize: '14px', opacity: 0.9}}>Agentes Activos</div>
+                  <div style={{fontSize: '28px', fontWeight: '700'}}>{agentes.filter(a => a.activo).length}</div>
+                </div>
+                <div>
+                  <div style={{fontSize: '14px', opacity: 0.9}}>Total Referidos</div>
+                  <div style={{fontSize: '28px', fontWeight: '700'}}>{agentes.reduce((sum, a) => sum + a.total_referidos, 0)}</div>
+                </div>
+                <div>
+                  <div style={{fontSize: '14px', opacity: 0.9}}>Presupuestos Aceptados</div>
+                  <div style={{fontSize: '28px', fontWeight: '700'}}>{agentes.reduce((sum, a) => sum + a.presupuestos_aceptados, 0)}</div>
+                </div>
+                <div>
+                  <div style={{fontSize: '14px', opacity: 0.9}}>Comisiones Totales</div>
+                  <div style={{fontSize: '28px', fontWeight: '700'}}>{agentes.reduce((sum, a) => sum + a.comision_total, 0).toFixed(2)}€</div>
+                </div>
+                <div>
+                  <div style={{fontSize: '14px', opacity: 0.9}}>Valor Total Negocios</div>
+                  <div style={{fontSize: '28px', fontWeight: '700'}}>{agentes.reduce((sum, a) => sum + a.valor_total_presupuestos, 0).toFixed(2)}€</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* SECCIÓN: GUÍA DEL PROCESO */}
       {activeTab === 'guia' && <GuiaProceso />}
@@ -1701,6 +1887,155 @@ function DashboardAdminExpandido({ onLogout }) {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* SECCIÓN: RETIROS */}
+      {activeTab === 'retiros' && (
+        <div className="card">
+          <div className="section-header">
+            <h2>💰 Gestión de Retiros</h2>
+            <div style={{fontSize: '14px', color: '#718096'}}>
+              Solicitudes de retiro de estudiantes y agentes
+            </div>
+          </div>
+
+          {solicitudesCredito.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '10px',
+              color: '#6b7280'
+            }}>
+              📭 No hay solicitudes de retiro pendientes
+            </div>
+          ) : (
+            <div style={{overflowX: 'auto'}}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                backgroundColor: 'white',
+                borderRadius: '10px',
+                overflow: 'hidden',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+              }}>
+                <thead>
+                  <tr style={{backgroundColor: '#f3f4f6'}}>
+                    <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Usuario</th>
+                    <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Tipo</th>
+                    <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Monto</th>
+                    <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Saldo Actual</th>
+                    <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estado</th>
+                    <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Fecha</th>
+                    <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {solicitudesCredito.map((sol) => (
+                    <tr key={sol.id} style={{borderBottom: '1px solid #e5e7eb'}}>
+                      <td style={{padding: '12px'}}>
+                        <div>
+                          <div style={{fontWeight: '600', color: '#1f2937'}}>{sol.nombre}</div>
+                          <div style={{fontSize: '12px', color: '#6b7280'}}>{sol.email}</div>
+                        </div>
+                      </td>
+                      <td style={{padding: '12px'}}>
+                        <span style={{
+                          padding: '4px 12px',
+                          borderRadius: '9999px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor: sol.beneficiario_tipo === 'agente' ? '#dbeafe' : '#fef3c7',
+                          color: sol.beneficiario_tipo === 'agente' ? '#1e40af' : '#92400e'
+                        }}>
+                          {sol.beneficiario_tipo === 'agente' ? '👤 Agente' : '🎓 Estudiante'}
+                        </span>
+                      </td>
+                      <td style={{padding: '12px', fontWeight: '700', fontSize: '16px', color: '#dc2626'}}>
+                        {sol.monto.toFixed(2)}€
+                      </td>
+                      <td style={{padding: '12px', fontWeight: '600', color: '#059669'}}>
+                        {sol.credito_disponible.toFixed(2)}€
+                      </td>
+                      <td style={{padding: '12px'}}>
+                        <span style={{
+                          padding: '4px 12px',
+                          borderRadius: '9999px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          backgroundColor: 
+                            sol.estado === 'pendiente' ? '#fef3c7' :
+                            sol.estado === 'aprobada' ? '#d1fae5' : '#fee2e2',
+                          color: 
+                            sol.estado === 'pendiente' ? '#92400e' :
+                            sol.estado === 'aprobada' ? '#065f46' : '#991b1b'
+                        }}>
+                          {sol.estado === 'pendiente' ? '⏳ Pendiente' :
+                           sol.estado === 'aprobada' ? '✅ Aprobada' : '❌ Rechazada'}
+                        </span>
+                      </td>
+                      <td style={{padding: '12px', fontSize: '14px', color: '#6b7280'}}>
+                        {new Date(sol.fecha_solicitud).toLocaleDateString('es-ES', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </td>
+                      <td style={{padding: '12px'}}>
+                        {sol.estado === 'pendiente' ? (
+                          <div style={{display: 'flex', gap: '8px'}}>
+                            <button
+                              onClick={() => responderSolicitudCredito(sol.id, 'aprobar')}
+                              style={{
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.target.style.background = '#059669'}
+                              onMouseLeave={(e) => e.target.style.background = '#10b981'}
+                            >
+                              ✅ Aprobar
+                            </button>
+                            <button
+                              onClick={() => responderSolicitudCredito(sol.id, 'rechazar')}
+                              style={{
+                                background: '#ef4444',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                transition: 'all 0.2s'
+                              }}
+                              onMouseEnter={(e) => e.target.style.background = '#dc2626'}
+                              onMouseLeave={(e) => e.target.style.background = '#ef4444'}
+                            >
+                              ❌ Rechazar
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{fontSize: '12px', color: '#9ca3af', fontStyle: 'italic'}}>
+                            {sol.estado === 'aprobada' ? 'Procesada ✓' : 'Rechazada ✗'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
