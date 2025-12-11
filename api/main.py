@@ -8625,19 +8625,32 @@ async def admin_responder_solicitud_credito(
                     LIMIT 1
                 """), {"id": estudiante_id}).fetchone()
                 
-                if presupuesto:
-                    nuevo_precio = max(0, float(presupuesto[1]) - monto)
-                    db.execute(text("""
-                        UPDATE presupuestos 
-                        SET precio_ofertado = :nuevo_precio
-                        WHERE id = :id
-                    """), {"nuevo_precio": nuevo_precio, "id": presupuesto[0]})
-                    
-                    # Reducir crédito usado
-                    db.execute(text("""
-                        UPDATE estudiantes 
-                        SET credito_disponible = credito_disponible - :monto
-                        WHERE id = :id
+                if not presupuesto:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail="No hay presupuesto aceptado para aplicar el descuento"
+                    )
+                
+                # Validar que precio_ofertado no sea NULL
+                precio_actual = presupuesto[1]
+                if precio_actual is None:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="El presupuesto no tiene precio definido"
+                    )
+                
+                nuevo_precio = max(0, float(precio_actual) - monto)
+                db.execute(text("""
+                    UPDATE presupuestos 
+                    SET precio_ofertado = :nuevo_precio
+                    WHERE id = :id
+                """), {"nuevo_precio": nuevo_precio, "id": presupuesto[0]})
+                
+                # Reducir crédito usado
+                db.execute(text("""
+                    UPDATE estudiantes 
+                    SET credito_disponible = credito_disponible - :monto
+                    WHERE id = :id
                     """), {"monto": monto, "id": estudiante_id})
                 else:
                     raise HTTPException(status_code=400, detail="No hay presupuesto aceptado para aplicar el descuento")
