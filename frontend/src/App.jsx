@@ -4,6 +4,8 @@ import RegistroEstudiante from './components/RegistroEstudiante'
 import CompletarPerfil from './components/CompletarPerfil'
 import LoginEstudiante from './components/LoginEstudiante'
 import LoginAdmin from './components/LoginAdmin'
+import LoginAgente from './components/LoginAgente'
+import DashboardAgente from './components/DashboardAgente'
 import DashboardAdminExpandido from './components/DashboardAdminExpandido'
 import DashboardUsuario from './components/DashboardUsuario'
 import PortalEstudiante from './components/PortalEstudiante'
@@ -79,6 +81,8 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/estudiante/login" element={<LoginEstudiante />} />
+          <Route path="/agente/login" element={<LoginAgente />} />
+          <Route path="/dashboard-agente/:agenteId" element={<DashboardAgente />} />
           <Route
             path="/registro"
             element={<RegistroEstudiante onRegistro={(id) => {

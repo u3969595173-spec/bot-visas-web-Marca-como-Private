@@ -42,6 +42,7 @@ from api.notificaciones_routes import router as notificaciones_router
 from api.chat_routes import router as chat_router
 from api.analytics_routes import router as analytics_router
 from api.documentos_routes import router as documentos_router
+from api.agentes_routes import router as agentes_router
 
 # Configurar rate limiter
 limiter = Limiter(key_func=get_remote_address)
@@ -525,6 +526,7 @@ app.include_router(notificaciones_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
 app.include_router(analytics_router, prefix="/api")
 app.include_router(documentos_router, prefix="/api")
+app.include_router(agentes_router, prefix="/api/agentes")
 
 @app.get("/", tags=["Health"])
 async def root():
@@ -754,13 +756,24 @@ async def registrar_estudiante(
         
         # Verificar código de referido si se proporcionó
         referido_por_id = None
+        referido_por_agente_id = None
+        
         if hasattr(datos, 'codigo_referido') and datos.codigo_referido:
+            # Primero buscar en estudiantes
             referidor = db.execute(text("""
                 SELECT id FROM estudiantes WHERE codigo_referido = :codigo
             """), {"codigo": datos.codigo_referido.upper()}).fetchone()
             
             if referidor:
                 referido_por_id = referidor[0]
+            else:
+                # Si no es estudiante, buscar en agentes
+                agente = db.execute(text("""
+                    SELECT id FROM agentes WHERE codigo_referido = :codigo AND activo = TRUE
+                """), {"codigo": datos.codigo_referido.upper()}).fetchone()
+                
+                if agente:
+                    referido_por_agente_id = agente[0]
         
         # Generar código de referido único para el nuevo estudiante
         codigo_referido = generar_codigo_acceso()
@@ -778,13 +791,13 @@ async def registrar_estudiante(
                 nombre, email, telefono,
                 consentimiento_gdpr, fecha_consentimiento,
                 estado, documentos_estado, codigo_acceso, codigo_referido,
-                referido_por_id, credito_disponible, tipo_recompensa,
+                referido_por_id, referido_por_agente_id, credito_disponible, tipo_recompensa,
                 created_at, perfil_completo
             ) VALUES (
                 :nombre, :email, :telefono,
                 :consentimiento_gdpr, NOW(),
                 'pendiente', 'pendiente', :codigo_acceso, :codigo_referido,
-                :referido_por_id, 0.00, 'dinero',
+                :referido_por_id, :referido_por_agente_id, 0.00, 'dinero',
                 NOW(), FALSE
             ) RETURNING id, codigo_acceso
         """), {
@@ -794,7 +807,8 @@ async def registrar_estudiante(
             "consentimiento_gdpr": datos.consentimiento_gdpr,
             "codigo_acceso": codigo_acceso,
             "codigo_referido": codigo_referido,
-            "referido_por_id": referido_por_id
+            "referido_por_id": referido_por_id,
+            "referido_por_agente_id": referido_por_agente_id
         })
         
         row = result.fetchone()
@@ -8023,6 +8037,7 @@ async def obtener_estadisticas_referidos(
     """), {"id": estudiante_id}).fetchall()
     
     # Calcular total ganado de presupuestos aceptados
+    # 10% si es referido por agente, 5% si es por estudiante
     total_ganado = db.execute(text("""
         SELECT COALESCE(SUM(p.precio_ofertado * 0.05), 0) as total
         FROM presupuestos p
