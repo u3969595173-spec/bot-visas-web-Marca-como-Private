@@ -83,6 +83,21 @@ async def startup_event():
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
         cursor = conn.cursor()
         
+        # MIGRACIÓN: Agregar credito_retirado
+        try:
+            cursor.execute("""
+                ALTER TABLE estudiantes 
+                ADD COLUMN IF NOT EXISTS credito_retirado DECIMAL(10, 2) DEFAULT 0.00
+            """)
+            cursor.execute("""
+                ALTER TABLE agentes 
+                ADD COLUMN IF NOT EXISTS credito_retirado DECIMAL(10, 2) DEFAULT 0.00
+            """)
+            conn.commit()
+            print("✅ Migración credito_retirado aplicada")
+        except Exception as e:
+            print(f"⚠️  Migración credito_retirado: {e}")
+        
         # Crear tabla documentos_generados si no existe
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS documentos_generados (
