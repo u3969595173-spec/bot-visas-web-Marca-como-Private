@@ -8651,9 +8651,7 @@ async def admin_responder_solicitud_credito(
                     UPDATE estudiantes 
                     SET credito_disponible = credito_disponible - :monto
                     WHERE id = :id
-                    """), {"monto": monto, "id": estudiante_id})
-                else:
-                    raise HTTPException(status_code=400, detail="No hay presupuesto aceptado para aplicar el descuento")
+                """), {"monto": monto, "id": estudiante_id})
             
             estado_final = 'aprobada'
         else:
