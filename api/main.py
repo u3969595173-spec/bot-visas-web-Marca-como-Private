@@ -8621,7 +8621,7 @@ async def admin_responder_solicitud_credito(
                     SELECT id, precio_ofertado 
                     FROM presupuestos 
                     WHERE estudiante_id = :id AND estado = 'aceptado'
-                    ORDER BY fecha_respuesta DESC
+                    ORDER BY updated_at DESC
                     LIMIT 1
                 """), {"id": estudiante_id}).fetchone()
                 
