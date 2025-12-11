@@ -8013,7 +8013,7 @@ async def obtener_estadisticas_referidos(
     
     # Obtener datos del estudiante
     estudiante = db.execute(text("""
-        SELECT codigo_referido, credito_disponible, tipo_recompensa
+        SELECT codigo_referido, credito_disponible, tipo_recompensa, COALESCE(credito_retirado, 0)
         FROM estudiantes WHERE id = :id
     """), {"id": estudiante_id}).fetchone()
     
@@ -8022,6 +8022,7 @@ async def obtener_estadisticas_referidos(
         return {
             "codigo_referido": "",
             "credito_disponible": 0.0,
+            "credito_retirado": 0.0,
             "tipo_recompensa": "dinero",
             "total_referidos": 0,
             "total_ganado": 0.0,
@@ -8048,6 +8049,7 @@ async def obtener_estadisticas_referidos(
     return {
         "codigo_referido": estudiante[0] or "",
         "credito_disponible": float(estudiante[1] or 0),
+        "credito_retirado": float(estudiante[3] or 0),
         "tipo_recompensa": estudiante[2] or "dinero",
         "total_referidos": len(referidos),
         "total_ganado": float(total_ganado or 0),

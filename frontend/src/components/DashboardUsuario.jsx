@@ -1655,6 +1655,18 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                 <div style={{ fontSize: '14px', opacity: 0.9 }}>Crédito Disponible</div>
               </div>
               <div style={{
+                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '10px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '36px', fontWeight: '700' }}>
+                  {(estadisticasReferidos.credito_retirado || 0).toFixed(2)}€
+                </div>
+                <div style={{ fontSize: '14px', opacity: 0.9 }}>Crédito Retirado</div>
+              </div>
+              <div style={{
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                 color: 'white',
                 padding: '20px',
