@@ -8091,11 +8091,13 @@ async def admin_obtener_referidos(
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
-    """Admin: Obtiene lista completa de referidos y créditos"""
+    """Admin: Obtiene lista de estudiantes y agentes QUE TIENEN referidos"""
     
-    result = db.execute(text("""
+    # Estudiantes con referidos
+    estudiantes_result = db.execute(text("""
         SELECT 
             e.id,
+            'estudiante' as tipo,
             e.nombre,
             e.email,
             e.codigo_referido,
@@ -8104,22 +8106,118 @@ async def admin_obtener_referidos(
             COUNT(DISTINCT r.id) as total_referidos,
             COALESCE(SUM(CASE WHEN p.estado = 'aceptado' THEN p.precio_ofertado * 0.05 ELSE 0 END), 0) as comision_total
         FROM estudiantes e
-        LEFT JOIN estudiantes r ON r.referido_por_id = e.id
+        INNER JOIN estudiantes r ON r.referido_por_id = e.id
         LEFT JOIN presupuestos p ON p.estudiante_id = r.id
         GROUP BY e.id, e.nombre, e.email, e.codigo_referido, e.credito_disponible, e.tipo_recompensa
-        ORDER BY total_referidos DESC, comision_total DESC
+        HAVING COUNT(DISTINCT r.id) > 0
     """)).fetchall()
+    
+    # Agentes con referidos
+    agentes_result = db.execute(text("""
+        SELECT 
+            a.id,
+            'agente' as tipo,
+            a.nombre,
+            a.email,
+            a.codigo_referido,
+            a.credito_disponible,
+            'dinero' as tipo_recompensa,
+            COUNT(DISTINCT e.id) as total_referidos,
+            a.comision_total
+        FROM agentes a
+        INNER JOIN estudiantes e ON e.referido_por_agente_id = a.id
+        GROUP BY a.id, a.nombre, a.email, a.codigo_referido, a.credito_disponible, a.comision_total
+        HAVING COUNT(DISTINCT e.id) > 0
+    """)).fetchall()
+    
+    # Combinar resultados
+    todos_referidores = []
+    
+    for row in estudiantes_result:
+        todos_referidores.append({
+            "id": row[0],
+            "tipo": row[1],
+            "nombre": row[2],
+            "email": row[3],
+            "codigo_referido": row[4],
+            "credito_disponible": float(row[5]),
+            "tipo_recompensa": row[6],
+            "total_referidos": row[7],
+            "comision_total": float(row[8])
+        })
+    
+    for row in agentes_result:
+        todos_referidores.append({
+            "id": row[0],
+            "tipo": row[1],
+            "nombre": row[2],
+            "email": row[3],
+            "codigo_referido": row[4],
+            "credito_disponible": float(row[5]),
+            "tipo_recompensa": row[6],
+            "total_referidos": row[7],
+            "comision_total": float(row[8])
+        })
+    
+    # Ordenar por total de referidos y comisión
+    todos_referidores.sort(key=lambda x: (x['total_referidos'], x['comision_total']), reverse=True)
+    
+    return todos_referidores
+
+
+@app.get("/api/admin/referidos/{tipo}/{referidor_id}/detalles", tags=["Referidos"])
+async def admin_obtener_detalles_referidos(
+    tipo: str,
+    referidor_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Obtiene lista detallada de estudiantes referidos por un usuario o agente"""
+    
+    if tipo == 'estudiante':
+        result = db.execute(text("""
+            SELECT 
+                e.id,
+                e.nombre,
+                e.email,
+                e.estado,
+                e.carrera_deseada,
+                e.created_at,
+                COALESCE(SUM(CASE WHEN p.estado = 'aceptado' THEN p.precio_ofertado ELSE 0 END), 0) as valor_presupuestos
+            FROM estudiantes e
+            LEFT JOIN presupuestos p ON p.estudiante_id = e.id
+            WHERE e.referido_por_id = :referidor_id
+            GROUP BY e.id, e.nombre, e.email, e.estado, e.carrera_deseada, e.created_at
+            ORDER BY e.created_at DESC
+        """), {"referidor_id": referidor_id}).fetchall()
+    elif tipo == 'agente':
+        result = db.execute(text("""
+            SELECT 
+                e.id,
+                e.nombre,
+                e.email,
+                e.estado,
+                e.carrera_deseada,
+                e.created_at,
+                COALESCE(SUM(CASE WHEN p.estado = 'aceptado' THEN p.precio_ofertado ELSE 0 END), 0) as valor_presupuestos
+            FROM estudiantes e
+            LEFT JOIN presupuestos p ON p.estudiante_id = e.id
+            WHERE e.referido_por_agente_id = :referidor_id
+            GROUP BY e.id, e.nombre, e.email, e.estado, e.carrera_deseada, e.created_at
+            ORDER BY e.created_at DESC
+        """), {"referidor_id": referidor_id}).fetchall()
+    else:
+        raise HTTPException(status_code=400, detail="Tipo inválido")
     
     return [
         {
             "id": row[0],
             "nombre": row[1],
             "email": row[2],
-            "codigo_referido": row[3],
-            "credito_disponible": float(row[4]),
-            "tipo_recompensa": row[5],
-            "total_referidos": row[6],
-            "comision_total": float(row[7])
+            "estado": row[3],
+            "carrera_deseada": row[4],
+            "fecha_registro": row[5].isoformat() if row[5] else None,
+            "valor_presupuestos": float(row[6])
         }
         for row in result
     ]

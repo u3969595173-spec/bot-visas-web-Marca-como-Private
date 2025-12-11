@@ -61,6 +61,9 @@ function DashboardAdminExpandido({ onLogout }) {
   const [solicitudesSeguroMedico, setSolicitudesSeguroMedico] = useState([])
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0)
   const [agentes, setAgentes] = useState([])
+  const [showDetallesReferidosModal, setShowDetallesReferidosModal] = useState(false)
+  const [referidosDetalles, setReferidosDetalles] = useState([])
+  const [referidorSeleccionado, setReferidorSeleccionado] = useState(null)
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -276,6 +279,28 @@ function DashboardAdminExpandido({ onLogout }) {
       cargarDatos()
     } catch (err) {
       alert('❌ Error: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const verDetallesReferidos = async (referidor) => {
+    try {
+      const response = await axios.get(`${apiUrl}/api/admin/referidos/${referidor.tipo}/${referidor.id}/detalles`)
+      setReferidosDetalles(response.data)
+      setReferidorSeleccionado(referidor)
+      setShowDetallesReferidosModal(true)
+    } catch (err) {
+      alert('❌ Error al cargar detalles: ' + (err.response?.data?.detail || err.message))
+    }
+  }
+
+  const verDetallesReferidos = async (referidor) => {
+    try {
+      const response = await axios.get(`${apiUrl}/api/admin/referidos/${referidor.tipo}/${referidor.id}/detalles`)
+      setReferidosDetalles(response.data)
+      setReferidorSeleccionado(referidor)
+      setShowDetallesReferidosModal(true)
+    } catch (err) {
+      alert('❌ Error al cargar detalles: ' + (err.response?.data?.detail || err.message))
     }
   }
 
@@ -1650,19 +1675,28 @@ function DashboardAdminExpandido({ onLogout }) {
           <div className="section-header">
             <h2>💎 Sistema de Referidos</h2>
             <div style={{fontSize: '14px', color: '#718096'}}>
-              Comisión automática: 5% del presupuesto aceptado
+              Solo usuarios con referidos activos • Estudiantes: 5% | Agentes: 10%
             </div>
           </div>
 
           {referidos.length === 0 ? (
-            <div className="no-data">
-              <p>📭 No hay datos de referidos aún</p>
+            <div className="no-data" style={{
+              textAlign: 'center',
+              padding: '60px 20px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '12px',
+              color: '#6b7280'
+            }}>
+              <div style={{fontSize: '48px', marginBottom: '16px'}}>📭</div>
+              <h3 style={{color: '#374151', marginBottom: '8px'}}>No hay usuarios con referidos aún</h3>
+              <p>Cuando estudiantes o agentes refieran a otros usuarios, aparecerán aquí</p>
             </div>
           ) : (
             <div className="tabla-wrapper">
               <table className="tabla-estudiantes">
                 <thead>
                   <tr>
+                    <th>Tipo</th>
                     <th>Usuario</th>
                     <th>Código Referido</th>
                     <th>Total Referidos</th>
@@ -1674,7 +1708,19 @@ function DashboardAdminExpandido({ onLogout }) {
                 </thead>
                 <tbody>
                   {referidos.map((ref) => (
-                    <tr key={ref.id}>
+                    <tr key={`${ref.tipo}-${ref.id}`}>
+                      <td>
+                        <span className={`badge ${ref.tipo === 'agente' ? 'badge-info' : 'badge-primary'}`} style={{
+                          background: ref.tipo === 'agente' ? 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                          color: 'white',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '700'
+                        }}>
+                          {ref.tipo === 'agente' ? '👤 Agente' : '🎓 Estudiante'}
+                        </span>
+                      </td>
                       <td>
                         <div style={{fontWeight: '600'}}>{ref.nombre}</div>
                         <div style={{fontSize: '13px', color: '#718096'}}>{ref.email}</div>
@@ -1696,10 +1742,10 @@ function DashboardAdminExpandido({ onLogout }) {
                         <span style={{
                           background: '#e0e7ff',
                           color: '#5b21b6',
-                          padding: '4px 12px',
+                          padding: '6px 14px',
                           borderRadius: '12px',
-                          fontWeight: '600',
-                          fontSize: '14px'
+                          fontWeight: '700',
+                          fontSize: '15px'
                         }}>
                           {ref.total_referidos}
                         </span>
@@ -1720,28 +1766,47 @@ function DashboardAdminExpandido({ onLogout }) {
                         </span>
                       </td>
                       <td>
-                        <button
-                          onClick={() => {
-                            setEstudianteReferido(ref);
-                            setAjusteCredito({
-                              credito: ref.credito_disponible,
-                              tipo_recompensa: ref.tipo_recompensa
-                            });
-                            setShowAjustarCreditoModal(true);
-                          }}
-                          style={{
-                            background: '#4299e1',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            fontWeight: '600'
-                          }}
-                        >
-                          ⚙️ Ajustar
-                        </button>
+                        <div style={{display: 'flex', gap: '8px'}}>
+                          <button
+                            onClick={() => verDetallesReferidos(ref)}
+                            style={{
+                              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                              color: 'white',
+                              border: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              fontWeight: '600'
+                            }}
+                          >
+                            👁️ Ver Referidos
+                          </button>
+                          {ref.tipo === 'estudiante' && (
+                            <button
+                              onClick={() => {
+                                setEstudianteReferido(ref);
+                                setAjusteCredito({
+                                  credito: ref.credito_disponible,
+                                  tipo_recompensa: ref.tipo_recompensa
+                                });
+                                setShowAjustarCreditoModal(true);
+                              }}
+                              style={{
+                                background: '#4299e1',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '600'
+                              }}
+                            >
+                              ⚙️ Ajustar
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1749,144 +1814,6 @@ function DashboardAdminExpandido({ onLogout }) {
               </table>
             </div>
           )}
-
-          {/* Solicitudes de Uso de Crédito */}
-          <div style={{marginTop: '40px'}}>
-            <h3 style={{marginBottom: '20px', fontSize: '20px', fontWeight: '700', color: '#1f2937'}}>
-              📋 Solicitudes de Uso de Crédito ({solicitudesCredito.length})
-            </h3>
-
-            {solicitudesCredito.length === 0 ? (
-              <div style={{
-                textAlign: 'center',
-                padding: '40px',
-                backgroundColor: '#f9fafb',
-                borderRadius: '10px',
-                color: '#6b7280'
-              }}>
-                No hay solicitudes de crédito
-              </div>
-            ) : (
-              <div style={{overflowX: 'auto'}}>
-                <table style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  backgroundColor: 'white',
-                  borderRadius: '10px',
-                  overflow: 'hidden',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                }}>
-                  <thead>
-                    <tr style={{backgroundColor: '#f3f4f6'}}>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estudiante</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Tipo</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Monto</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Crédito Actual</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Estado</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Fecha</th>
-                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600', color: '#374151'}}>Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {solicitudesCredito.map((sol) => (
-                      <tr key={sol.id} style={{borderBottom: '1px solid #e5e7eb'}}>
-                        <td style={{padding: '12px'}}>
-                          <div>
-                            <div style={{fontWeight: '600', color: '#1f2937'}}>{sol.nombre}</div>
-                            <div style={{fontSize: '12px', color: '#6b7280'}}>{sol.email}</div>
-                          </div>
-                        </td>
-                        <td style={{padding: '12px'}}>
-                          <span style={{
-                            padding: '4px 12px',
-                            borderRadius: '9999px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            backgroundColor: sol.tipo === 'retiro' ? '#dbeafe' : '#fef3c7',
-                            color: sol.tipo === 'retiro' ? '#1e40af' : '#92400e'
-                          }}>
-                            {sol.tipo === 'retiro' ? '💸 Retiro' : '🎫 Descuento'}
-                          </span>
-                        </td>
-                        <td style={{padding: '12px', fontWeight: '700', fontSize: '16px', color: '#059669'}}>
-                          {sol.monto.toFixed(2)}€
-                        </td>
-                        <td style={{padding: '12px', fontWeight: '600', color: '#6b7280'}}>
-                          {sol.credito_disponible.toFixed(2)}€
-                        </td>
-                        <td style={{padding: '12px'}}>
-                          <span style={{
-                            padding: '4px 12px',
-                            borderRadius: '9999px',
-                            fontSize: '12px',
-                            fontWeight: '600',
-                            backgroundColor: 
-                              sol.estado === 'pendiente' ? '#fef3c7' :
-                              sol.estado === 'aprobada' ? '#d1fae5' : '#fee2e2',
-                            color: 
-                              sol.estado === 'pendiente' ? '#92400e' :
-                              sol.estado === 'aprobada' ? '#065f46' : '#991b1b'
-                          }}>
-                            {sol.estado === 'pendiente' ? '⏳ Pendiente' :
-                             sol.estado === 'aprobada' ? '✅ Aprobada' : '❌ Rechazada'}
-                          </span>
-                        </td>
-                        <td style={{padding: '12px', fontSize: '14px', color: '#6b7280'}}>
-                          {new Date(sol.fecha_solicitud).toLocaleDateString('es-ES', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </td>
-                        <td style={{padding: '12px'}}>
-                          {sol.estado === 'pendiente' ? (
-                            <div style={{display: 'flex', gap: '8px'}}>
-                              <button
-                                onClick={() => responderSolicitudCredito(sol.id, 'aprobar')}
-                                style={{
-                                  background: '#10b981',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '6px 12px',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '13px',
-                                  fontWeight: '600'
-                                }}
-                              >
-                                ✅ Aprobar
-                              </button>
-                              <button
-                                onClick={() => responderSolicitudCredito(sol.id, 'rechazar')}
-                                style={{
-                                  background: '#ef4444',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '6px 12px',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '13px',
-                                  fontWeight: '600'
-                                }}
-                              >
-                                ❌ Rechazar
-                              </button>
-                            </div>
-                          ) : (
-                            <span style={{fontSize: '12px', color: '#9ca3af', fontStyle: 'italic'}}>
-                              {sol.estado === 'aprobada' ? 'Procesada ✓' : 'Rechazada ✗'}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -3576,6 +3503,135 @@ function DashboardAdminExpandido({ onLogout }) {
                 📤 Enviar Oferta
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Ver Detalles de Referidos */}
+      {showDetallesReferidosModal && referidorSeleccionado && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '30px',
+            maxWidth: '900px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+              <h3 style={{margin: 0, color: '#2d3748'}}>
+                👁️ Referidos de {referidorSeleccionado.nombre}
+              </h3>
+              <button
+                onClick={() => setShowDetallesReferidosModal(false)}
+                style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                ✕ Cerrar
+              </button>
+            </div>
+
+            <div style={{marginBottom: '20px', padding: '15px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', borderRadius: '8px', color: 'white'}}>
+              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px'}}>
+                <div>
+                  <div style={{fontSize: '12px', opacity: 0.9}}>Tipo</div>
+                  <div style={{fontSize: '20px', fontWeight: '700'}}>
+                    {referidorSeleccionado.tipo === 'agente' ? '👤 Agente' : '🎓 Estudiante'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{fontSize: '12px', opacity: 0.9}}>Código Referido</div>
+                  <div style={{fontSize: '20px', fontWeight: '700'}}>{referidorSeleccionado.codigo_referido}</div>
+                </div>
+                <div>
+                  <div style={{fontSize: '12px', opacity: 0.9}}>Total Referidos</div>
+                  <div style={{fontSize: '20px', fontWeight: '700'}}>{referidorSeleccionado.total_referidos}</div>
+                </div>
+                <div>
+                  <div style={{fontSize: '12px', opacity: 0.9}}>Comisión Total</div>
+                  <div style={{fontSize: '20px', fontWeight: '700'}}>{referidorSeleccionado.comision_total.toFixed(2)}€</div>
+                </div>
+              </div>
+            </div>
+
+            {referidosDetalles.length === 0 ? (
+              <div style={{textAlign: 'center', padding: '40px', color: '#6b7280'}}>
+                No hay referidos registrados
+              </div>
+            ) : (
+              <div style={{overflowX: 'auto'}}>
+                <table style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  backgroundColor: '#fff'
+                }}>
+                  <thead>
+                    <tr style={{backgroundColor: '#f3f4f6'}}>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Estudiante</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Email</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Estado</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Carrera</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Valor Presupuestos</th>
+                      <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Fecha Registro</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {referidosDetalles.map((estudiante) => (
+                      <tr key={estudiante.id} style={{borderBottom: '1px solid #e5e7eb'}}>
+                        <td style={{padding: '12px'}}>
+                          <div style={{fontWeight: '600'}}>{estudiante.nombre}</div>
+                          <div style={{fontSize: '12px', color: '#6b7280'}}>ID: {estudiante.id}</div>
+                        </td>
+                        <td style={{padding: '12px', fontSize: '13px'}}>{estudiante.email}</td>
+                        <td style={{padding: '12px'}}>
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            backgroundColor: 
+                              estudiante.estado === 'aprobado' ? '#d1fae5' :
+                              estudiante.estado === 'rechazado' ? '#fee2e2' : '#fef3c7',
+                            color:
+                              estudiante.estado === 'aprobado' ? '#065f46' :
+                              estudiante.estado === 'rechazado' ? '#dc2626' : '#92400e'
+                          }}>
+                            {estudiante.estado === 'aprobado' ? '✅ Aprobado' :
+                             estudiante.estado === 'rechazado' ? '❌ Rechazado' : '⏳ Pendiente'}
+                          </span>
+                        </td>
+                        <td style={{padding: '12px', fontSize: '13px'}}>{estudiante.carrera_deseada || 'No especificada'}</td>
+                        <td style={{padding: '12px', fontWeight: '700', color: '#10b981', fontSize: '14px'}}>
+                          {estudiante.valor_presupuestos.toFixed(2)}€
+                        </td>
+                        <td style={{padding: '12px', fontSize: '13px', color: '#6b7280'}}>
+                          {estudiante.fecha_registro ? new Date(estudiante.fecha_registro).toLocaleDateString('es-ES') : 'N/A'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
