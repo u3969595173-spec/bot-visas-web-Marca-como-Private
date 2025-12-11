@@ -719,8 +719,15 @@ def verificar_admin(
     usuario = Depends(obtener_usuario_actual)
 ):
     """Verifica que el usuario sea administrador"""
+    # Log para debugging
+    logger.info(f"verificar_admin llamado. Usuario payload: {usuario}")
+    
     # El token tiene 'rol', no 'is_admin'
-    if usuario.get('rol') != 'admin':
+    rol = usuario.get('rol')
+    logger.info(f"Rol del usuario: {rol}")
+    
+    if rol != 'admin':
+        logger.warning(f"Acceso denegado. Rol requerido: 'admin', rol actual: '{rol}'")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Se requieren permisos de administrador"
@@ -8536,6 +8543,9 @@ async def admin_responder_solicitud_credito(
     db: Session = Depends(get_db)
 ):
     """Admin: Aprueba o rechaza una solicitud de uso de crédito (estudiantes y agentes)"""
+    
+    # Log para debugging
+    logger.info(f"Procesando solicitud {solicitud_id} por usuario {usuario.get('usuario', 'desconocido')}")
     
     try:
         accion = data.get('accion')  # 'aprobar' o 'rechazar'
