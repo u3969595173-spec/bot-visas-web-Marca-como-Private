@@ -51,44 +51,62 @@ const DashboardAgente = () => {
   };
 
   const copiarLinkReferido = () => {
-    const link = `${window.location.origin}/registro?ref=${perfil.codigo_referido}`;
-    
-    // Intentar copiar al portapapeles
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(link)
-        .then(() => {
-          setCopiado(true);
-          setTimeout(() => setCopiado(false), 3000);
-        })
-        .catch(() => {
-          // Si falla, seleccionar el texto manualmente
-          alert('No se pudo copiar automáticamente. Selecciona y copia el enlace manualmente.');
-        });
-    } else {
-      // Fallback para navegadores antiguos
-      alert('Copia este enlace: ' + link);
+    if (!perfil?.codigo_referido) {
+      alert('⚠️ Espera a que cargue tu código de referido');
+      return;
     }
+    
+    const link = `https://fortunariocash.com/registro?ref=${perfil.codigo_referido}`;
+    
+    // Crear un input temporal para copiar
+    const tempInput = document.createElement('input');
+    tempInput.value = link;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    tempInput.setSelectionRange(0, 99999); // Para móviles
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        setCopiado(true);
+        setTimeout(() => setCopiado(false), 3000);
+        alert('✅ Enlace copiado: ' + link);
+      } else {
+        alert('📋 Copia este enlace manualmente:\n\n' + link);
+      }
+    } catch (err) {
+      alert('📋 Copia este enlace manualmente:\n\n' + link);
+    }
+    
+    document.body.removeChild(tempInput);
   };
 
   const compartirLink = () => {
-    const link = `${window.location.origin}/registro?ref=${perfil.codigo_referido}`;
-    const mensaje = `¡Hola! 👋\n\n¿Quieres estudiar en el extranjero? 🎓✈️\n\nRegístrate con mi código de referido y recibe asesoría personalizada para tu visa de estudiante.\n\n🔗 ${link}\n\n💼 Servicios incluidos:\n✅ Asesoría completa\n✅ Gestión de documentos\n✅ Preparación para entrevista\n✅ Y mucho más...\n\n¡No pierdas esta oportunidad! 🚀`;
-    
-    // Verificar si Web Share API está disponible
-    if (navigator.share) {
-      navigator.share({
-        title: 'Estudia en el Extranjero',
-        text: mensaje,
-        url: link
-      }).catch(() => {
-        // Si cancela el compartir, copiar al portapapeles
-        copiarLinkReferido();
-      });
-    } else {
-      // Si no está disponible Web Share, abrir WhatsApp
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
-      window.open(whatsappUrl, '_blank');
+    if (!perfil?.codigo_referido) {
+      alert('⚠️ Espera a que cargue tu código de referido');
+      return;
     }
+    
+    const link = `https://fortunariocash.com/registro?ref=${perfil.codigo_referido}`;
+    const mensaje = `¡Hola! 👋
+
+¿Quieres estudiar en el extranjero? 🎓✈️
+
+Regístrate con mi código de referido y recibe asesoría personalizada para tu visa de estudiante.
+
+🔗 ${link}
+
+💼 Servicios incluidos:
+✅ Asesoría completa
+✅ Gestión de documentos
+✅ Preparación para entrevista
+✅ Y mucho más...
+
+¡No pierdas esta oportunidad! 🚀`;
+    
+    // Abrir WhatsApp directamente
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const cerrarSesion = () => {
@@ -201,9 +219,10 @@ const DashboardAgente = () => {
                   border: '1px solid #e5e7eb'
                 }}>
                   <input 
+                    id="linkReferidoInput"
                     type="text" 
                     readOnly 
-                    value={`${window.location.origin}/registro?ref=${perfil?.codigo_referido || ''}`}
+                    value={perfil?.codigo_referido ? `https://fortunariocash.com/registro?ref=${perfil.codigo_referido}` : 'Cargando...'}
                     style={{
                       flex: 1,
                       border: 'none',
@@ -213,7 +232,11 @@ const DashboardAgente = () => {
                       fontFamily: 'monospace',
                       backgroundColor: 'transparent'
                     }}
-                    onClick={(e) => e.target.select()}
+                    onClick={(e) => {
+                      e.target.select();
+                      document.execCommand('copy');
+                      alert('✅ Enlace copiado al portapapeles');
+                    }}
                   />
                   <button onClick={copiarLinkReferido} style={{
                     padding: '8px 16px',
