@@ -11,10 +11,14 @@ const DashboardAgente = () => {
   const [perfil, setPerfil] = useState(null);
   const [estadisticas, setEstadisticas] = useState(null);
   const [referidos, setReferidos] = useState([]);
+  const [retiros, setRetiros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiado, setCopiado] = useState(false);
   const [mostrarGuia, setMostrarGuia] = useState(false);
+  const [mostrarFormRetiro, setMostrarFormRetiro] = useState(false);
+  const [montoRetiro, setMontoRetiro] = useState('');
+  const [notasRetiro, setNotasRetiro] = useState('');
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -37,6 +41,9 @@ const DashboardAgente = () => {
       } else if (activeTab === 'referidos') {
         const refRes = await axios.get(`${apiUrl}/api/agentes/referidos`, { headers });
         setReferidos(refRes.data);
+      } else if (activeTab === 'retiros') {
+        const retirosRes = await axios.get(`${apiUrl}/api/agentes/retiros`, { headers });
+        setRetiros(retirosRes.data);
       }
 
       setLoading(false);
@@ -109,6 +116,38 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
     window.open(whatsappUrl, '_blank');
   };
 
+  const solicitarRetiro = async () => {
+    try {
+      const monto = parseFloat(montoRetiro);
+      
+      if (!monto || monto <= 0) {
+        alert('⚠️ Ingresa un monto válido');
+        return;
+      }
+      
+      if (monto > perfil?.credito_disponible) {
+        alert(`⚠️ Crédito insuficiente. Disponible: ${perfil?.credito_disponible}€`);
+        return;
+      }
+      
+      const token = localStorage.getItem('token');
+      await axios.post(`${apiUrl}/api/agentes/solicitar-retiro`, {
+        monto,
+        notas: notasRetiro
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      alert('✅ Solicitud de retiro enviada al administrador');
+      setMostrarFormRetiro(false);
+      setMontoRetiro('');
+      setNotasRetiro('');
+      cargarDatos();
+    } catch (err) {
+      alert('❌ Error: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
   const cerrarSesion = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('agente_id');
@@ -175,6 +214,12 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
           onClick={() => setActiveTab('referidos')}
         >
           👥 Mis Referidos ({perfil?.total_referidos || 0})
+        </button>
+        <button
+          className={`tab ${activeTab === 'retiros' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('retiros')}
+        >
+          💰 Retiros
         </button>
         <button
           className={`tab ${activeTab === 'estadisticas' ? 'tab-active' : ''}`}
@@ -400,6 +445,181 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
                               👁️ Ver Detalle
                             </button>
                           </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB: RETIROS */}
+        {activeTab === 'retiros' && (
+          <div className="tab-content">
+            {/* Crédito Disponible y Botón Solicitar */}
+            <div className="card highlight-card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <h2 style={{ margin: '0 0 10px 0' }}>💰 Tu Crédito</h2>
+                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#10b981' }}>
+                    {perfil?.credito_disponible?.toFixed(2) || '0.00'}€
+                  </div>
+                  <p style={{ margin: '5px 0 0 0', color: '#6b7280' }}>
+                    Disponible para retiro
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setMostrarFormRetiro(true)}
+                  style={{
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    padding: '15px 30px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}
+                  disabled={!perfil?.credito_disponible || perfil.credito_disponible <= 0}
+                >
+                  💸 Solicitar Retiro
+                </button>
+              </div>
+              
+              <div style={{ backgroundColor: '#f3f4f6', padding: '15px', borderRadius: '8px' }}>
+                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                  📊 Total retirado históricamente: <strong>{perfil?.credito_retirado?.toFixed(2) || '0.00'}€</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Formulario de Solicitud */}
+            {mostrarFormRetiro && (
+              <div className="card" style={{ border: '2px solid #10b981' }}>
+                <h3>💸 Solicitar Retiro</h3>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                    Monto a retirar (€)
+                  </label>
+                  <input 
+                    type="number"
+                    value={montoRetiro}
+                    onChange={(e) => setMontoRetiro(e.target.value)}
+                    placeholder="0.00"
+                    max={perfil?.credito_disponible}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '16px'
+                    }}
+                  />
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '5px 0 0 0' }}>
+                    Máximo disponible: {perfil?.credito_disponible?.toFixed(2)}€
+                  </p>
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
+                    Notas (opcional)
+                  </label>
+                  <textarea 
+                    value={notasRetiro}
+                    onChange={(e) => setNotasRetiro(e.target.value)}
+                    placeholder="Método de pago preferido, información bancaria, etc."
+                    rows="3"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button 
+                    onClick={solicitarRetiro}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ✅ Enviar Solicitud
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setMostrarFormRetiro(false);
+                      setMontoRetiro('');
+                      setNotasRetiro('');
+                    }}
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#6b7280',
+                      color: 'white',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ❌ Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Historial de Retiros */}
+            <div className="card">
+              <h3>📋 Historial de Retiros</h3>
+              
+              {retiros.length === 0 ? (
+                <div className="no-data">
+                  <p>No has solicitado ningún retiro aún</p>
+                </div>
+              ) : (
+                <div className="tabla-responsive">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th>Notas</th>
+                        <th>Respuesta Admin</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {retiros.map((retiro) => (
+                        <tr key={retiro.id}>
+                          <td>{new Date(retiro.fecha_solicitud).toLocaleDateString('es-ES')}</td>
+                          <td style={{ fontWeight: 'bold', color: '#10b981' }}>{retiro.monto.toFixed(2)}€</td>
+                          <td>
+                            <span className={`badge badge-${retiro.estado}`}>
+                              {retiro.estado === 'pendiente' && '⏳ Pendiente'}
+                              {retiro.estado === 'aprobado' && '✅ Aprobado'}
+                              {retiro.estado === 'rechazado' && '❌ Rechazado'}
+                            </span>
+                          </td>
+                          <td>{retiro.notas_agente || '-'}</td>
+                          <td>{retiro.comentarios_admin || '-'}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -8432,6 +8432,140 @@ async def admin_obtener_estadisticas_agentes(
     ]
 
 
+@app.get("/api/admin/retiros-agentes", tags=["Admin - Agentes"])
+async def admin_obtener_retiros_agentes(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Obtiene todas las solicitudes de retiro de agentes"""
+    
+    result = db.execute(text("""
+        SELECT 
+            sra.id,
+            sra.agente_id,
+            a.nombre,
+            a.email,
+            a.credito_disponible,
+            a.credito_retirado,
+            sra.monto,
+            sra.estado,
+            sra.notas_agente,
+            sra.comentarios_admin,
+            sra.created_at,
+            sra.updated_at
+        FROM solicitudes_retiro_agentes sra
+        INNER JOIN agentes a ON a.id = sra.agente_id
+        ORDER BY 
+            CASE WHEN sra.estado = 'pendiente' THEN 0 ELSE 1 END,
+            sra.created_at DESC
+    """)).fetchall()
+    
+    return [
+        {
+            "id": row[0],
+            "agente_id": row[1],
+            "agente_nombre": row[2],
+            "agente_email": row[3],
+            "credito_disponible": float(row[4] or 0),
+            "credito_retirado": float(row[5] or 0),
+            "monto": float(row[6]),
+            "estado": row[7],
+            "notas_agente": row[8],
+            "comentarios_admin": row[9],
+            "fecha_solicitud": row[10].isoformat() if row[10] else None,
+            "fecha_respuesta": row[11].isoformat() if row[11] else None
+        }
+        for row in result
+    ]
+
+
+@app.put("/api/admin/aprobar-retiro-agente/{solicitud_id}", tags=["Admin - Agentes"])
+async def admin_aprobar_retiro_agente(
+    solicitud_id: int,
+    datos: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Aprueba o rechaza solicitud de retiro de agente"""
+    
+    accion = datos.get('accion')  # 'aprobar' o 'rechazar'
+    comentarios = datos.get('comentarios', '')
+    
+    if accion not in ['aprobar', 'rechazar']:
+        raise HTTPException(status_code=400, detail="Acción debe ser 'aprobar' o 'rechazar'")
+    
+    try:
+        # Obtener solicitud
+        solicitud = db.execute(text("""
+            SELECT sra.agente_id, sra.monto, a.nombre, a.email, a.credito_disponible
+            FROM solicitudes_retiro_agentes sra
+            INNER JOIN agentes a ON a.id = sra.agente_id
+            WHERE sra.id = :id AND sra.estado = 'pendiente'
+        """), {"id": solicitud_id}).fetchone()
+        
+        if not solicitud:
+            raise HTTPException(status_code=404, detail="Solicitud no encontrada o ya procesada")
+        
+        agente_id = solicitud[0]
+        monto = float(solicitud[1])
+        agente_nombre = solicitud[2]
+        agente_email = solicitud[3]
+        credito_disponible = float(solicitud[4] or 0)
+        
+        if accion == 'aprobar':
+            # Validar que tenga crédito suficiente
+            if credito_disponible < monto:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"El agente no tiene crédito suficiente. Disponible: {credito_disponible}€"
+                )
+            
+            # Actualizar crédito del agente
+            db.execute(text("""
+                UPDATE agentes
+                SET credito_disponible = credito_disponible - :monto,
+                    credito_retirado = COALESCE(credito_retirado, 0) + :monto
+                WHERE id = :id
+            """), {"monto": monto, "id": agente_id})
+            
+            estado_final = 'aprobado'
+        else:
+            estado_final = 'rechazado'
+        
+        # Actualizar solicitud
+        db.execute(text("""
+            UPDATE solicitudes_retiro_agentes
+            SET estado = :estado,
+                comentarios_admin = :comentarios,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id
+        """), {"estado": estado_final, "comentarios": comentarios, "id": solicitud_id})
+        
+        db.commit()
+        
+        # Notificar al agente
+        try:
+            from api.notificaciones_admin import NotificacionesAprobaciones
+            NotificacionesAprobaciones.notificar_aprobacion_retiro(
+                agente_id=agente_id,
+                tipo='retiro',
+                estado=estado_final,
+                monto=monto,
+                comentarios_admin=comentarios
+            )
+        except Exception as e:
+            print(f"⚠️ Error enviando notificación: {e}")
+        
+        return {"message": f"Retiro {estado_final} exitosamente"}
+        
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/admin/contabilidad", tags=["Admin - Contabilidad"])
 async def admin_obtener_contabilidad(
     usuario=Depends(obtener_usuario_actual),

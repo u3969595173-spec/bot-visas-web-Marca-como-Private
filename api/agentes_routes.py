@@ -411,46 +411,73 @@ async def solicitar_retiro(
     """Agente solicita retiro de comisiones"""
     
     monto = data.get('monto')
+    notas = data.get('notas', '')
     
     if not monto or monto <= 0:
         raise HTTPException(status_code=400, detail="Monto inválido")
     
     # Verificar crédito disponible
     perfil = db.execute(text("""
-        SELECT credito_disponible FROM agentes WHERE id = :id
+        SELECT credito_disponible, nombre, email FROM agentes WHERE id = :id
     """), {"id": agente["id"]}).fetchone()
     
     if not perfil or perfil[0] < monto:
-        raise HTTPException(status_code=400, detail="Crédito insuficiente")
-    
-    # Crear solicitud
-    db.execute(text("""
-        INSERT INTO solicitudes_credito (
-            estudiante_id, tipo, monto, estado, 
-            beneficiario_tipo, beneficiario_id
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Crédito insuficiente. Disponible: {perfil[0] if perfil else 0}€"
         )
-        VALUES (NULL, 'retiro', :monto, 'pendiente', 'agente', :agente_id)
-    """), {"monto": monto, "agente_id": agente["id"]})
+    
+    # Crear solicitud en tabla específica de agentes
+    db.execute(text("""
+        INSERT INTO solicitudes_retiro_agentes (
+            agente_id, monto, estado, notas_agente, created_at
+        )
+        VALUES (:agente_id, :monto, 'pendiente', :notas, CURRENT_TIMESTAMP)
+    """), {"agente_id": agente["id"], "monto": monto, "notas": notas})
     
     db.commit()
     
-    # ✅ NOTIFICAR AL ADMIN DE LA SOLICITUD DE RETIRO DE AGENTE
+    # Notificar al admin
     try:
         from api.notificaciones_admin import notificar_solicitud_credito
         
-        # Obtener datos del agente
-        agente_data = db.execute(text("""
-            SELECT nombre, email, credito_disponible FROM agentes WHERE id = :id
-        """), {"id": agente["id"]}).fetchone()
-        
-        if agente_data:
-            agente_dict = {
-                'nombre': agente_data[0],
-                'email': agente_data[1],
-                'credito_disponible': float(agente_data[2] or 0)
-            }
-            notificar_solicitud_credito(None, agente_dict, 'retiro', monto)
+        agente_dict = {
+            'nombre': perfil[1],
+            'email': perfil[2],
+            'credito_disponible': float(perfil[0] or 0)
+        }
+        notificar_solicitud_credito(None, agente_dict, 'retiro', monto)
     except Exception as e:
-        print(f"⚠️ Error enviando notificación de solicitud de retiro de agente: {e}")
+        print(f"⚠️ Error enviando notificación: {e}")
     
     return {"message": "Solicitud de retiro enviada al administrador"}
+
+
+@router.get("/retiros", tags=["Agentes"])
+async def obtener_retiros(
+    agente = Depends(obtener_agente_actual),
+    db: Session = Depends(get_db)
+):
+    """Obtener historial de retiros del agente"""
+    
+    result = db.execute(text("""
+        SELECT id, monto, estado, notas_agente, comentarios_admin, 
+               created_at, updated_at
+        FROM solicitudes_retiro_agentes
+        WHERE agente_id = :agente_id
+        ORDER BY created_at DESC
+    """), {"agente_id": agente["id"]})
+    
+    retiros = []
+    for row in result.fetchall():
+        retiros.append({
+            'id': row[0],
+            'monto': float(row[1]),
+            'estado': row[2],
+            'notas_agente': row[3],
+            'comentarios_admin': row[4],
+            'fecha_solicitud': row[5].isoformat() if row[5] else None,
+            'fecha_respuesta': row[6].isoformat() if row[6] else None
+        })
+    
+    return retiros
