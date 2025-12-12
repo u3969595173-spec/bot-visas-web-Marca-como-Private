@@ -6,7 +6,6 @@ import PartnersAdmin from './PartnersAdmin'
 import AlertasAdmin from './AlertasAdmin'
 import GuiaProceso from './GuiaProceso'
 import AdminChats from './AdminChats'
-import AdminChatsAgentes from './AdminChatsAgentes'
 import TesoroAdmin from './TesoroAdmin'
 import PresupuestosAdmin from './PresupuestosAdmin'
 
@@ -67,6 +66,10 @@ function DashboardAdminExpandido({ onLogout }) {
   const [referidosDetalles, setReferidosDetalles] = useState([])
   const [referidorSeleccionado, setReferidorSeleccionado] = useState(null)
   const [contabilidad, setContabilidad] = useState(null)
+  const [showChatAgenteModal, setShowChatAgenteModal] = useState(false)
+  const [agenteParaChat, setAgenteParaChat] = useState(null)
+  const [mensajesAgente, setMensajesAgente] = useState([])
+  const [mensajeAgenteTexto, setMensajeAgenteTexto] = useState('')
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -108,13 +111,70 @@ function DashboardAdminExpandido({ onLogout }) {
       const responseAgentes = await axios.get(`${apiUrl}/api/admin/agentes/mensajes/no-leidos`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      if (activeTabRef.current !== 'chat-agentes') {
+      // No resetear si están viendo agentes o si hay modal abierto
+      if (activeTabRef.current !== 'agentes') {
         setMensajesAgentesNoLeidos(responseAgentes.data.no_leidos || 0)
       }
     } catch (error) {
       console.error('Error cargando contador de mensajes:', error)
       // No resetear a 0 si hay error, mantener el valor actual
     }
+  }
+
+  const abrirChatAgente = async (agente) => {
+    setAgenteParaChat(agente)
+    setShowChatAgenteModal(true)
+    await cargarMensajesAgente(agente.id)
+  }
+
+  const cargarMensajesAgente = async (agenteId) => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await axios.get(`${apiUrl}/api/admin/agentes/${agenteId}/mensajes`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setMensajesAgente(response.data.mensajes || [])
+      cargarContadorMensajes() // Actualizar contador
+    } catch (error) {
+      console.error('Error cargando mensajes:', error)
+    }
+  }
+
+  const enviarMensajeAgente = async (e) => {
+    e.preventDefault()
+    if (!mensajeAgenteTexto.trim() || !agenteParaChat) return
+
+    try {
+      const token = localStorage.getItem('token')
+      await axios.post(
+        `${apiUrl}/api/admin/agentes/${agenteParaChat.id}/enviar-mensaje`,
+        { mensaje: mensajeAgenteTexto.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      
+      setMensajeAgenteTexto('')
+      await cargarMensajesAgente(agenteParaChat.id)
+    } catch (error) {
+      console.error('Error enviando mensaje:', error)
+      alert('Error enviando mensaje')
+    }
+  }
+
+  const formatearFechaChat = (fecha) => {
+    if (!fecha) return ''
+    const d = new Date(fecha)
+    const hoy = new Date()
+    const esHoy = d.toDateString() === hoy.toDateString()
+    
+    if (esHoy) {
+      return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    }
+    return d.toLocaleString('es-ES', { 
+      day: '2-digit', 
+      month: 'short', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    })
   }
 
   const cargarDatos = async () => {
@@ -809,14 +869,7 @@ function DashboardAdminExpandido({ onLogout }) {
           onClick={() => setActiveTab('agentes')}
           style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white', fontWeight: 'bold' }}
         >
-          👤 Agentes
-        </button>
-        <button 
-          className={`tab ${activeTab === 'chat-agentes' ? 'tab-active' : ''}`}
-          onClick={() => setActiveTab('chat-agentes')}
-          style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white', fontWeight: 'bold' }}
-        >
-          💬 Chat Agentes {mensajesAgentesNoLeidos > 0 && <span className="badge-no-leidos">{mensajesAgentesNoLeidos}</span>}
+          👤 Agentes {mensajesAgentesNoLeidos > 0 && <span className="badge-no-leidos">{mensajesAgentesNoLeidos}</span>}
         </button>
         <button 
           className={`tab ${activeTab === 'cursos' ? 'tab-active' : ''}`}
@@ -904,13 +957,6 @@ function DashboardAdminExpandido({ onLogout }) {
         </div>
       )}
 
-      {/* SECCIÓN: CHAT CON AGENTES */}
-      {activeTab === 'chat-agentes' && (
-        <div style={{margin: '-20px'}}>
-          <AdminChatsAgentes />
-        </div>
-      )}
-
       {/* SECCIÓN: PARTNERSHIPS */}
       {activeTab === 'partners' && <PartnersAdmin />}
 
@@ -951,6 +997,7 @@ function DashboardAdminExpandido({ onLogout }) {
                     <th>Crédito Disponible</th>
                     <th>Crédito Retirado</th>
                     <th>Fecha Registro</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1046,6 +1093,26 @@ function DashboardAdminExpandido({ onLogout }) {
                           month: '2-digit',
                           year: 'numeric'
                         })}
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => abrirChatAgente(agente)}
+                          style={{
+                            background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                            color: 'white',
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          💬 Chat
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -4064,6 +4131,105 @@ function DashboardAdminExpandido({ onLogout }) {
                 💾 Guardar Cambios
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CHAT CON AGENTE */}
+      {showChatAgenteModal && agenteParaChat && (
+        <div className="modal-overlay" onClick={() => setShowChatAgenteModal(false)}>
+          <div className="modal-content-large" onClick={(e) => e.stopPropagation()} style={{maxWidth: '700px'}}>
+            <div className="modal-header">
+              <h2>💬 Chat con {agenteParaChat.nombre}</h2>
+              <button className="modal-close" onClick={() => setShowChatAgenteModal(false)}>✕</button>
+            </div>
+
+            <div style={{
+              padding: '10px',
+              borderBottom: '1px solid #e5e7eb',
+              backgroundColor: '#f9fafb',
+              fontSize: '14px',
+              color: '#6b7280'
+            }}>
+              📧 {agenteParaChat.email}
+            </div>
+
+            <div style={{
+              height: '400px',
+              overflowY: 'auto',
+              padding: '20px',
+              backgroundColor: '#f9fafb'
+            }}>
+              {mensajesAgente.length === 0 ? (
+                <div style={{textAlign: 'center', color: '#6b7280', padding: '40px'}}>
+                  No hay mensajes. Inicia la conversación 👇
+                </div>
+              ) : (
+                mensajesAgente.map(msg => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      marginBottom: '15px',
+                      display: 'flex',
+                      justifyContent: msg.remitente === 'admin' ? 'flex-end' : 'flex-start'
+                    }}
+                  >
+                    <div style={{
+                      maxWidth: '70%',
+                      padding: '12px 16px',
+                      borderRadius: '12px',
+                      backgroundColor: msg.remitente === 'admin' ? '#3b82f6' : '#e5e7eb',
+                      color: msg.remitente === 'admin' ? 'white' : '#1f2937'
+                    }}>
+                      <div style={{fontSize: '14px'}}>{msg.mensaje}</div>
+                      <div style={{fontSize: '11px', marginTop: '5px', opacity: 0.7}}>
+                        {formatearFechaChat(msg.fecha)}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <form 
+              onSubmit={enviarMensajeAgente}
+              style={{
+                display: 'flex',
+                gap: '10px',
+                padding: '15px',
+                backgroundColor: 'white',
+                borderTop: '1px solid #e5e7eb'
+              }}
+            >
+              <input
+                type="text"
+                value={mensajeAgenteTexto}
+                onChange={(e) => setMensajeAgenteTexto(e.target.value)}
+                placeholder="Escribe un mensaje..."
+                style={{
+                  flex: 1,
+                  padding: '10px 15px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px'
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}
+              >
+                📤 Enviar
+              </button>
+            </form>
           </div>
         </div>
       )}
