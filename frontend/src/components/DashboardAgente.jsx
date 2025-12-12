@@ -690,7 +690,7 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
                     </tbody>
                   </table>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
