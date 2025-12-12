@@ -4,6 +4,7 @@ Comisión: 10% del presupuesto aceptado por estudiantes referidos
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Optional
@@ -16,6 +17,7 @@ from database.models import get_db
 from api.auth import crear_token, verificar_token
 
 router = APIRouter()
+security = HTTPBearer()
 
 # =====================================================
 # SCHEMAS
@@ -47,14 +49,26 @@ class AgenteResponse(BaseModel):
 # AUTENTICACIÓN
 # =====================================================
 
-def obtener_agente_actual(token: str = Depends(verificar_token), db: Session = Depends(get_db)):
+def obtener_agente_actual(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
     """Verifica que el token corresponda a un agente"""
+    
+    token = credentials.credentials
+    payload = verificar_token(token)
+    
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido o expirado"
+        )
     
     result = db.execute(text("""
         SELECT id, nombre, email, activo 
         FROM agentes 
         WHERE email = :email AND activo = TRUE
-    """), {"email": token.get("sub")}).fetchone()
+    """), {"email": payload.get("sub")}).fetchone()
     
     if not result:
         raise HTTPException(status_code=401, detail="Agente no encontrado o inactivo")
