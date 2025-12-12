@@ -261,34 +261,59 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
       </div>
 
       {/* TABS */}
-      <div className="dashboard-tabs">
+      <div className="dashboard-tabs" style={{ marginTop: '20px' }}>
         <button
           className={`tab ${activeTab === 'inicio' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('inicio')}
+          style={{
+            fontSize: '16px',
+            padding: '14px 24px',
+            fontWeight: '600'
+          }}
         >
           🏠 Inicio
         </button>
         <button
           className={`tab ${activeTab === 'referidos' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('referidos')}
+          style={{
+            fontSize: '18px',
+            padding: '16px 32px',
+            fontWeight: '700'
+          }}
         >
           👥 Mis Referidos ({perfil?.total_referidos || 0})
         </button>
         <button
           className={`tab ${activeTab === 'retiros' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('retiros')}
+          style={{
+            fontSize: '18px',
+            padding: '16px 32px',
+            fontWeight: '700'
+          }}
         >
           💰 Retiros
         </button>
         <button
           className={`tab ${activeTab === 'mensajes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('mensajes')}
+          style={{
+            fontSize: '18px',
+            padding: '16px 32px',
+            fontWeight: '700'
+          }}
         >
           💬 Mensajes {noLeidos > 0 && <span className="badge-no-leidos">{noLeidos}</span>}
         </button>
         <button
           className={`tab ${activeTab === 'estadisticas' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('estadisticas')}
+          style={{
+            fontSize: '18px',
+            padding: '16px 32px',
+            fontWeight: '700'
+          }}
         >
           📈 Estadísticas
         </button>
@@ -300,32 +325,32 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
         {activeTab === 'inicio' && (
           <div className="tab-content">
             {/* Código de Referido */}
-            <div className="card highlight-card">
-              <h2>🔗 Tu Código de Referido</h2>
+            <div className="card" style={{ padding: '15px', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>🔗 Tu Código de Referido</h3>
               <div className="codigo-referido-display">
-                <div className="codigo-box">
+                <div className="codigo-box" style={{ fontSize: '18px', padding: '10px 16px' }}>
                   {perfil?.codigo_referido}
                 </div>
               </div>
               
               {/* Link completo para copiar */}
               <div style={{ 
-                marginTop: '15px', 
-                padding: '15px', 
+                marginTop: '10px', 
+                padding: '10px', 
                 backgroundColor: '#f3f4f6', 
-                borderRadius: '8px',
+                borderRadius: '6px',
                 border: '1px solid #d1d5db'
               }}>
-                <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>
+                <p style={{ margin: '0 0 6px 0', fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>
                   🔗 Tu enlace de referido:
                 </p>
                 <div style={{ 
                   display: 'flex', 
-                  gap: '10px', 
+                  gap: '6px', 
                   alignItems: 'center',
                   backgroundColor: 'white',
-                  padding: '10px',
-                  borderRadius: '6px',
+                  padding: '6px',
+                  borderRadius: '4px',
                   border: '1px solid #e5e7eb'
                 }}>
                   <input 
@@ -337,7 +362,7 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
                       flex: 1,
                       border: 'none',
                       outline: 'none',
-                      fontSize: '14px',
+                      fontSize: '11px',
                       color: '#1f2937',
                       fontFamily: 'monospace',
                       backgroundColor: 'transparent'
@@ -349,13 +374,13 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
                     }}
                   />
                   <button onClick={copiarLinkReferido} style={{
-                    padding: '8px 16px',
-                    fontSize: '14px',
+                    padding: '6px 12px',
+                    fontSize: '12px',
                     whiteSpace: 'nowrap',
                     backgroundColor: '#6b7280',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '6px',
+                    borderRadius: '4px',
                     cursor: 'pointer',
                     fontWeight: '600'
                   }}>
@@ -365,13 +390,13 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
               </div>
 
               {/* Botón de Compartir */}
-              <div style={{ marginTop: '15px', textAlign: 'center' }}>
+              <div style={{ marginTop: '10px', textAlign: 'center' }}>
                 <button onClick={compartirLink} style={{
                   backgroundColor: '#10b981',
                   color: 'white',
-                  padding: '15px 30px',
-                  fontSize: '16px',
-                  fontWeight: '700',
+                  padding: '10px 20px',
+                  fontSize: '13px',
+                  fontWeight: '600',
                   border: 'none',
                   borderRadius: '10px',
                   cursor: 'pointer',
