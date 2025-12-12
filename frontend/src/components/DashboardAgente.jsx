@@ -12,6 +12,9 @@ const DashboardAgente = () => {
   const [estadisticas, setEstadisticas] = useState(null);
   const [referidos, setReferidos] = useState([]);
   const [retiros, setRetiros] = useState([]);
+  const [mensajes, setMensajes] = useState([]);
+  const [noLeidos, setNoLeidos] = useState(0);
+  const [mensaje, setMensaje] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiado, setCopiado] = useState(false);
@@ -24,6 +27,9 @@ const DashboardAgente = () => {
 
   useEffect(() => {
     cargarDatos();
+    cargarNoLeidos();
+    const interval = setInterval(cargarNoLeidos, 10000); // Actualizar cada 10s
+    return () => clearInterval(interval);
   }, [agenteId, activeTab]);
 
   const cargarDatos = async () => {
@@ -44,6 +50,10 @@ const DashboardAgente = () => {
       } else if (activeTab === 'retiros') {
         const retirosRes = await axios.get(`${apiUrl}/api/agentes/retiros`, { headers });
         setRetiros(retirosRes.data);
+      } else if (activeTab === 'mensajes') {
+        const mensajesRes = await axios.get(`${apiUrl}/api/agentes/mensajes`, { headers });
+        setMensajes(mensajesRes.data);
+        cargarNoLeidos(); // Actualizar contador después de marcar como leídos
       }
 
       setLoading(false);
@@ -148,6 +158,55 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
     }
   };
 
+  const cargarNoLeidos = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${apiUrl}/api/agentes/mensajes/no-leidos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNoLeidos(response.data.no_leidos || 0);
+    } catch (error) {
+      console.error('Error cargando no leídos:', error);
+    }
+  };
+
+  const enviarMensaje = async (e) => {
+    e.preventDefault();
+    if (!mensaje.trim()) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${apiUrl}/api/agentes/enviar-mensaje`,
+        { mensaje: mensaje.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      setMensaje('');
+      cargarDatos(); // Recargar mensajes
+    } catch (error) {
+      console.error('Error enviando mensaje:', error);
+      alert('Error enviando mensaje');
+    }
+  };
+
+  const formatearFecha = (fecha) => {
+    if (!fecha) return '';
+    const d = new Date(fecha);
+    const hoy = new Date();
+    const esHoy = d.toDateString() === hoy.toDateString();
+    
+    if (esHoy) {
+      return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    }
+    return d.toLocaleString('es-ES', { 
+      day: '2-digit', 
+      month: 'short', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
   const cerrarSesion = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('agente_id');
@@ -220,6 +279,12 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
           onClick={() => setActiveTab('retiros')}
         >
           💰 Retiros
+        </button>
+        <button
+          className={`tab ${activeTab === 'mensajes' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('mensajes')}
+        >
+          💬 Mensajes {noLeidos > 0 && <span className="badge-no-leidos">{noLeidos}</span>}
         </button>
         <button
           className={`tab ${activeTab === 'estadisticas' ? 'tab-active' : ''}`}
@@ -625,7 +690,107 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
                     </tbody>
                   </table>
                 </div>
-              )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: MENSAJES */}
+        {activeTab === 'mensajes' && (
+          <div className="tab-content">
+            <div className="card">
+              <h2>💬 Mensajes con Administrador</h2>
+              
+              {/* Chat */}
+              <div style={{ 
+                border: '1px solid #e5e7eb', 
+                borderRadius: '12px', 
+                overflow: 'hidden',
+                marginTop: '20px'
+              }}>
+                {/* Mensajes */}
+                <div style={{ 
+                  height: '400px', 
+                  overflowY: 'auto', 
+                  padding: '20px',
+                  backgroundColor: '#f9fafb'
+                }}>
+                  {mensajes.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#6b7280', padding: '40px' }}>
+                      <p>No hay mensajes aún. Inicia la conversación 👇</p>
+                    </div>
+                  ) : (
+                    mensajes.map(msg => (
+                      <div
+                        key={msg.id}
+                        style={{
+                          marginBottom: '15px',
+                          display: 'flex',
+                          justifyContent: msg.remitente === 'agente' ? 'flex-end' : 'flex-start'
+                        }}
+                      >
+                        <div style={{
+                          maxWidth: '70%',
+                          padding: '12px 16px',
+                          borderRadius: '12px',
+                          backgroundColor: msg.remitente === 'agente' ? '#3b82f6' : '#e5e7eb',
+                          color: msg.remitente === 'agente' ? 'white' : '#1f2937'
+                        }}>
+                          <div style={{ fontSize: '14px' }}>{msg.mensaje}</div>
+                          <div style={{ 
+                            fontSize: '11px', 
+                            marginTop: '5px',
+                            opacity: 0.7
+                          }}>
+                            {formatearFecha(msg.fecha)}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Input de mensaje */}
+                <form 
+                  onSubmit={enviarMensaje}
+                  style={{ 
+                    display: 'flex', 
+                    gap: '10px', 
+                    padding: '15px',
+                    backgroundColor: 'white',
+                    borderTop: '1px solid #e5e7eb'
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={mensaje}
+                    onChange={(e) => setMensaje(e.target.value)}
+                    placeholder="Escribe un mensaje..."
+                    style={{
+                      flex: 1,
+                      padding: '10px 15px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px'
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    📤 Enviar
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         )}

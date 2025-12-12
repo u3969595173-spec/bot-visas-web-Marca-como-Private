@@ -8566,7 +8566,107 @@ async def admin_aprobar_retiro_agente(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# =====================================================
+# ADMIN - CHAT CON AGENTES
+# =====================================================
+
+@app.get("/api/admin/agentes/{agente_id}/mensajes", tags=["Admin - Agentes"])
+async def admin_obtener_mensajes_agente(
+    agente_id: int,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Obtener mensajes del chat con un agente"""
+    
+    # Verificar que el agente existe
+    agente = db.execute(text("""
+        SELECT id, nombre FROM agentes WHERE id = :id
+    """), {"id": agente_id}).fetchone()
+    
+    if not agente:
+        raise HTTPException(status_code=404, detail="Agente no encontrado")
+    
+    result = db.execute(text("""
+        SELECT id, remitente, mensaje, leido, created_at
+        FROM mensajes_agentes
+        WHERE agente_id = :agente_id
+        ORDER BY created_at ASC
+    """), {"agente_id": agente_id})
+    
+    mensajes = []
+    for row in result.fetchall():
+        mensajes.append({
+            'id': row[0],
+            'remitente': row[1],
+            'mensaje': row[2],
+            'leido': row[3],
+            'fecha': row[4].isoformat() if row[4] else None
+        })
+    
+    # Marcar mensajes del agente como leídos
+    db.execute(text("""
+        UPDATE mensajes_agentes
+        SET leido = TRUE
+        WHERE agente_id = :agente_id AND remitente = 'agente' AND leido = FALSE
+    """), {"agente_id": agente_id})
+    db.commit()
+    
+    return {
+        'agente': {'id': agente[0], 'nombre': agente[1]},
+        'mensajes': mensajes
+    }
+
+
+@app.post("/api/admin/agentes/{agente_id}/enviar-mensaje", tags=["Admin - Agentes"])
+async def admin_enviar_mensaje_a_agente(
+    agente_id: int,
+    mensaje: dict,
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Enviar mensaje a un agente"""
+    
+    if not mensaje.get('mensaje'):
+        raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
+    
+    # Verificar que el agente existe
+    agente = db.execute(text("""
+        SELECT id FROM agentes WHERE id = :id
+    """), {"id": agente_id}).fetchone()
+    
+    if not agente:
+        raise HTTPException(status_code=404, detail="Agente no encontrado")
+    
+    db.execute(text("""
+        INSERT INTO mensajes_agentes (agente_id, remitente, mensaje, leido)
+        VALUES (:agente_id, 'admin', :mensaje, FALSE)
+    """), {
+        "agente_id": agente_id,
+        "mensaje": mensaje['mensaje']
+    })
+    
+    db.commit()
+    
+    return {"message": "Mensaje enviado"}
+
+
+@app.get("/api/admin/agentes/mensajes/no-leidos", tags=["Admin - Agentes"])
+async def admin_contar_mensajes_agentes_no_leidos(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """Admin: Contar total de mensajes no leídos de todos los agentes"""
+    
+    result = db.execute(text("""
+        SELECT COUNT(*) FROM mensajes_agentes
+        WHERE remitente = 'agente' AND leido = FALSE
+    """)).fetchone()
+    
+    return {"no_leidos": result[0] if result else 0}
+
+
 @app.get("/api/admin/contabilidad", tags=["Admin - Contabilidad"])
+
 async def admin_obtener_contabilidad(
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)

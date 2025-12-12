@@ -495,3 +495,82 @@ async def obtener_retiros(
         })
     
     return retiros
+
+
+# =====================================================
+# MENSAJES/CHAT CON ADMIN
+# =====================================================
+
+@router.get("/mensajes", tags=["Agentes"])
+async def obtener_mensajes_agente(
+    agente = Depends(obtener_agente_actual),
+    db: Session = Depends(get_db)
+):
+    """Obtener mensajes del chat con admin"""
+    
+    result = db.execute(text("""
+        SELECT id, remitente, mensaje, leido, created_at
+        FROM mensajes_agentes
+        WHERE agente_id = :agente_id
+        ORDER BY created_at ASC
+    """), {"agente_id": agente["id"]})
+    
+    mensajes = []
+    for row in result.fetchall():
+        mensajes.append({
+            'id': row[0],
+            'remitente': row[1],
+            'mensaje': row[2],
+            'leido': row[3],
+            'fecha': row[4].isoformat() if row[4] else None
+        })
+    
+    # Marcar mensajes del admin como leídos
+    db.execute(text("""
+        UPDATE mensajes_agentes
+        SET leido = TRUE
+        WHERE agente_id = :agente_id AND remitente = 'admin' AND leido = FALSE
+    """), {"agente_id": agente["id"]})
+    db.commit()
+    
+    return mensajes
+
+
+@router.post("/enviar-mensaje", tags=["Agentes"])
+async def enviar_mensaje_a_admin(
+    mensaje: dict,
+    agente = Depends(obtener_agente_actual),
+    db: Session = Depends(get_db)
+):
+    """Enviar mensaje al admin"""
+    
+    if not mensaje.get('mensaje'):
+        raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío")
+    
+    db.execute(text("""
+        INSERT INTO mensajes_agentes (agente_id, remitente, mensaje, leido)
+        VALUES (:agente_id, 'agente', :mensaje, FALSE)
+    """), {
+        "agente_id": agente["id"],
+        "mensaje": mensaje['mensaje']
+    })
+    
+    db.commit()
+    
+    return {"message": "Mensaje enviado"}
+
+
+@router.get("/mensajes/no-leidos", tags=["Agentes"])
+async def contar_mensajes_no_leidos(
+    agente = Depends(obtener_agente_actual),
+    db: Session = Depends(get_db)
+):
+    """Contar mensajes no leídos del admin"""
+    
+    result = db.execute(text("""
+        SELECT COUNT(*) FROM mensajes_agentes
+        WHERE agente_id = :agente_id AND remitente = 'admin' AND leido = FALSE
+    """), {"agente_id": agente["id"]}).fetchone()
+    
+    return {"no_leidos": result[0] if result else 0}
+

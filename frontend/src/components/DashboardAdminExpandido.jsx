@@ -6,6 +6,7 @@ import PartnersAdmin from './PartnersAdmin'
 import AlertasAdmin from './AlertasAdmin'
 import GuiaProceso from './GuiaProceso'
 import AdminChats from './AdminChats'
+import AdminChatsAgentes from './AdminChatsAgentes'
 import TesoroAdmin from './TesoroAdmin'
 import PresupuestosAdmin from './PresupuestosAdmin'
 
@@ -60,6 +61,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [solicitudesAlojamiento, setSolicitudesAlojamiento] = useState([])
   const [solicitudesSeguroMedico, setSolicitudesSeguroMedico] = useState([])
   const [mensajesNoLeidos, setMensajesNoLeidos] = useState(0)
+  const [mensajesAgentesNoLeidos, setMensajesAgentesNoLeidos] = useState(0)
   const [agentes, setAgentes] = useState([])
   const [showDetallesReferidosModal, setShowDetallesReferidosModal] = useState(false)
   const [referidosDetalles, setReferidosDetalles] = useState([])
@@ -90,6 +92,8 @@ function DashboardAdminExpandido({ onLogout }) {
   const cargarContadorMensajes = async () => {
     try {
       const token = localStorage.getItem('token')
+      
+      // Contador mensajes estudiantes
       const response = await axios.get(`${apiUrl}/api/admin/chat/total-no-leidos`, {
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -98,6 +102,14 @@ function DashboardAdminExpandido({ onLogout }) {
         if (activeTabRef.current !== 'chat') {
           setMensajesNoLeidos(response.data.total_no_leidos || 0)
         }
+      }
+
+      // Contador mensajes agentes
+      const responseAgentes = await axios.get(`${apiUrl}/api/admin/agentes/mensajes/no-leidos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (activeTabRef.current !== 'chat-agentes') {
+        setMensajesAgentesNoLeidos(responseAgentes.data.no_leidos || 0)
       }
     } catch (error) {
       console.error('Error cargando contador de mensajes:', error)
@@ -800,6 +812,13 @@ function DashboardAdminExpandido({ onLogout }) {
           👤 Agentes
         </button>
         <button 
+          className={`tab ${activeTab === 'chat-agentes' ? 'tab-active' : ''}`}
+          onClick={() => setActiveTab('chat-agentes')}
+          style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white', fontWeight: 'bold' }}
+        >
+          💬 Chat Agentes {mensajesAgentesNoLeidos > 0 && <span className="badge-no-leidos">{mensajesAgentesNoLeidos}</span>}
+        </button>
+        <button 
           className={`tab ${activeTab === 'cursos' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('cursos')}
           style={{ background: 'linear-gradient(135deg, #84cc16 0%, #65a30d 100%)', color: 'white', fontWeight: 'bold' }}
@@ -882,6 +901,13 @@ function DashboardAdminExpandido({ onLogout }) {
       {activeTab === 'chat' && (
         <div style={{margin: '-20px'}}>
           <AdminChats />
+        </div>
+      )}
+
+      {/* SECCIÓN: CHAT CON AGENTES */}
+      {activeTab === 'chat-agentes' && (
+        <div style={{margin: '-20px'}}>
+          <AdminChatsAgentes />
         </div>
       )}
 
