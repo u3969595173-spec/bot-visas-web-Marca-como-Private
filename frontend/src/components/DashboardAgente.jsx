@@ -14,6 +14,7 @@ const DashboardAgente = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiado, setCopiado] = useState(false);
+  const [mostrarGuia, setMostrarGuia] = useState(false);
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -82,9 +83,30 @@ const DashboardAgente = () => {
             <h1>🎯 Panel de Agente</h1>
             <p>Bienvenido, {perfil?.nombre}</p>
           </div>
-          <button onClick={cerrarSesion} className="btn-logout">
-            🚪 Cerrar Sesión
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={() => setMostrarGuia(true)} 
+              className="btn-guia"
+              style={{
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              📖 Guía del Agente
+            </button>
+            <button onClick={cerrarSesion} className="btn-logout">
+              🚪 Cerrar Sesión
+            </button>
+          </div>
         </div>
       </div>
 
@@ -289,6 +311,181 @@ const DashboardAgente = () => {
           </div>
         )}
       </div>
+
+      {/* MODAL GUÍA DEL AGENTE */}
+      {mostrarGuia && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}
+        onClick={() => setMostrarGuia(false)}
+        >
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            maxWidth: '800px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            padding: '30px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, color: '#1f2937', fontSize: '28px' }}>📖 Guía Completa del Agente</h2>
+              <button 
+                onClick={() => setMostrarGuia(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '28px',
+                  cursor: 'pointer',
+                  color: '#6b7280'
+                }}
+              >×</button>
+            </div>
+
+            {/* Sección 1: Código de Referido */}
+            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f0f9ff', borderRadius: '12px', border: '2px solid #3b82f6' }}>
+              <h3 style={{ color: '#1e40af', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                🎯 1. Tu Código de Referido
+              </h3>
+              <p style={{ color: '#1f2937', lineHeight: '1.6', marginBottom: '10px' }}>
+                <strong>Tu código único:</strong> <span style={{ backgroundColor: '#dbeafe', padding: '4px 12px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '16px' }}>{perfil?.codigo_referido}</span>
+              </p>
+              <ul style={{ color: '#374151', lineHeight: '1.8' }}>
+                <li>Este código está visible en la parte superior de tu dashboard</li>
+                <li>Copia el link completo con el botón "📋 Copiar Link"</li>
+                <li>Compártelo por WhatsApp, redes sociales, email, etc.</li>
+              </ul>
+            </div>
+
+            {/* Sección 2: Captación de Estudiantes */}
+            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '2px solid #10b981' }}>
+              <h3 style={{ color: '#065f46', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                👥 2. Cómo Captar Estudiantes
+              </h3>
+              <ul style={{ color: '#374151', lineHeight: '1.8' }}>
+                <li><strong>Comparte tu link de referido</strong> con personas interesadas en estudiar en el extranjero</li>
+                <li>El estudiante debe <strong>registrarse usando tu link</strong> o ingresar tu código manualmente</li>
+                <li>Una vez registrado, aparecerá automáticamente en tu lista de "Mis Referidos"</li>
+                <li><strong>Importante:</strong> El código debe ingresarse al momento del registro, no se puede agregar después</li>
+              </ul>
+              <div style={{ backgroundColor: '#d1fae5', padding: '15px', borderRadius: '8px', marginTop: '15px' }}>
+                <p style={{ margin: 0, color: '#065f46', fontSize: '14px' }}>
+                  💡 <strong>Tip:</strong> Crea un mensaje atractivo explicando los beneficios de estudiar en el extranjero y comparte tu link de referido.
+                </p>
+              </div>
+            </div>
+
+            {/* Sección 3: Sistema de Comisiones */}
+            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#fefce8', borderRadius: '12px', border: '2px solid #eab308' }}>
+              <h3 style={{ color: '#854d0e', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                💰 3. Sistema de Comisiones (10%)
+              </h3>
+              <p style={{ color: '#374151', lineHeight: '1.6', marginBottom: '15px' }}>
+                Ganas el <strong>10% de comisión</strong> sobre todos los pagos que realicen tus estudiantes referidos:
+              </p>
+              <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
+                <p style={{ margin: '0 0 10px 0', color: '#1f2937' }}><strong>📊 Ejemplos prácticos:</strong></p>
+                <ul style={{ color: '#374151', lineHeight: '1.8', marginTop: 0 }}>
+                  <li>Estudiante paga 500€ → Tú ganas <strong>50€</strong></li>
+                  <li>Estudiante paga 1,000€ → Tú ganas <strong>100€</strong></li>
+                  <li>Estudiante paga 2,500€ → Tú ganas <strong>250€</strong></li>
+                  <li>5 estudiantes pagan 1,000€ c/u → Tú ganas <strong>500€</strong></li>
+                </ul>
+              </div>
+              <p style={{ color: '#374151', lineHeight: '1.6' }}>
+                ✅ Las comisiones se acumulan automáticamente en tu <strong>"Crédito Disponible"</strong>
+                <br/>
+                ✅ Puedes ver el detalle de cada comisión en la sección "Mis Referidos"
+              </p>
+            </div>
+
+            {/* Sección 4: Solicitud de Retiros */}
+            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#fef2f2', borderRadius: '12px', border: '2px solid #ef4444' }}>
+              <h3 style={{ color: '#991b1b', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                💳 4. Solicitar Retiro de Comisiones
+              </h3>
+              <ol style={{ color: '#374151', lineHeight: '1.8' }}>
+                <li>Acumula el crédito disponible en tu cuenta</li>
+                <li>Cuando quieras retirar, solicita el retiro desde tu dashboard</li>
+                <li>El administrador revisará y aprobará tu solicitud</li>
+                <li>Recibirás el pago mediante el método acordado (transferencia, PayPal, etc.)</li>
+              </ol>
+              <div style={{ backgroundColor: '#fee2e2', padding: '15px', borderRadius: '8px', marginTop: '15px' }}>
+                <p style={{ margin: 0, color: '#991b1b', fontSize: '14px' }}>
+                  ⚠️ <strong>Importante:</strong> Solo puedes retirar el crédito disponible. El crédito retirado se descuenta automáticamente.
+                </p>
+              </div>
+            </div>
+
+            {/* Sección 5: Seguimiento */}
+            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f5f3ff', borderRadius: '12px', border: '2px solid #8b5cf6' }}>
+              <h3 style={{ color: '#5b21b6', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                📊 5. Seguimiento de tus Estudiantes
+              </h3>
+              <p style={{ color: '#374151', lineHeight: '1.6', marginBottom: '10px' }}>
+                En la pestaña <strong>"Mis Referidos"</strong> puedes:
+              </p>
+              <ul style={{ color: '#374151', lineHeight: '1.8' }}>
+                <li>Ver la lista completa de estudiantes que has referido</li>
+                <li>Conocer el estado de cada estudiante (activo, inactivo, etc.)</li>
+                <li>Ver cuánto ha pagado cada uno y tu comisión generada</li>
+                <li>Revisar el historial de pagos</li>
+                <li>Monitorear el progreso de tus referidos</li>
+              </ul>
+            </div>
+
+            {/* Sección 6: Soporte */}
+            <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: '#fef3c7', borderRadius: '12px', border: '2px solid #f59e0b' }}>
+              <h3 style={{ color: '#92400e', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                📞 6. Soporte y Contacto
+              </h3>
+              <p style={{ color: '#374151', lineHeight: '1.6' }}>
+                Si tienes dudas sobre:
+              </p>
+              <ul style={{ color: '#374151', lineHeight: '1.8' }}>
+                <li>Cálculo de comisiones</li>
+                <li>Proceso de retiros</li>
+                <li>Estado de tus referidos</li>
+                <li>Cualquier otra consulta</li>
+              </ul>
+              <p style={{ color: '#374151', lineHeight: '1.6', marginBottom: 0 }}>
+                👉 Contacta directamente con el administrador a través del sistema de mensajería o email.
+              </p>
+            </div>
+
+            <div style={{ textAlign: 'center', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+              <button 
+                onClick={() => setMostrarGuia(false)}
+                style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  padding: '12px 30px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }}
+              >
+                ✅ Entendido, ¡Empecemos!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
