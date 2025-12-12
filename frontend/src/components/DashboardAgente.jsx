@@ -144,12 +144,55 @@ const DashboardAgente = () => {
                 <div className="codigo-box">
                   {perfil?.codigo_referido}
                 </div>
-                <button onClick={copiarLinkReferido} className="btn-copiar">
-                  {copiado ? '✅ ¡Copiado!' : '📋 Copiar Link'}
-                </button>
               </div>
+              
+              {/* Link completo para copiar */}
+              <div style={{ 
+                marginTop: '15px', 
+                padding: '15px', 
+                backgroundColor: '#f3f4f6', 
+                borderRadius: '8px',
+                border: '1px solid #d1d5db'
+              }}>
+                <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>
+                  🔗 Tu enlace de referido:
+                </p>
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '10px', 
+                  alignItems: 'center',
+                  backgroundColor: 'white',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={`${window.location.origin}/registro?ref=${perfil?.codigo_referido || ''}`}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '14px',
+                      color: '#1f2937',
+                      fontFamily: 'monospace',
+                      backgroundColor: 'transparent'
+                    }}
+                    onClick={(e) => e.target.select()}
+                  />
+                  <button onClick={copiarLinkReferido} className="btn-copiar" style={{
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {copiado ? '✅ ¡Copiado!' : '📋 Copiar'}
+                  </button>
+                </div>
+              </div>
+
               <p className="codigo-info">
-                📱 Comparte este código con estudiantes interesados. 
+                📱 Comparte este enlace con estudiantes interesados. 
                 <br/>
                 💰 Ganas <strong>10%</strong> de comisión por cada presupuesto aceptado.
               </p>
