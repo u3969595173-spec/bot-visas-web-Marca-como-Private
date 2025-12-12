@@ -52,9 +52,43 @@ const DashboardAgente = () => {
 
   const copiarLinkReferido = () => {
     const link = `${window.location.origin}/registro?ref=${perfil.codigo_referido}`;
-    navigator.clipboard.writeText(link);
-    setCopiado(true);
-    setTimeout(() => setCopiado(false), 3000);
+    
+    // Intentar copiar al portapapeles
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(link)
+        .then(() => {
+          setCopiado(true);
+          setTimeout(() => setCopiado(false), 3000);
+        })
+        .catch(() => {
+          // Si falla, seleccionar el texto manualmente
+          alert('No se pudo copiar automáticamente. Selecciona y copia el enlace manualmente.');
+        });
+    } else {
+      // Fallback para navegadores antiguos
+      alert('Copia este enlace: ' + link);
+    }
+  };
+
+  const compartirLink = () => {
+    const link = `${window.location.origin}/registro?ref=${perfil.codigo_referido}`;
+    const mensaje = `¡Hola! 👋\n\n¿Quieres estudiar en el extranjero? 🎓✈️\n\nRegístrate con mi código de referido y recibe asesoría personalizada para tu visa de estudiante.\n\n🔗 ${link}\n\n💼 Servicios incluidos:\n✅ Asesoría completa\n✅ Gestión de documentos\n✅ Preparación para entrevista\n✅ Y mucho más...\n\n¡No pierdas esta oportunidad! 🚀`;
+    
+    // Verificar si Web Share API está disponible
+    if (navigator.share) {
+      navigator.share({
+        title: 'Estudia en el Extranjero',
+        text: mensaje,
+        url: link
+      }).catch(() => {
+        // Si cancela el compartir, copiar al portapapeles
+        copiarLinkReferido();
+      });
+    } else {
+      // Si no está disponible Web Share, abrir WhatsApp
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+      window.open(whatsappUrl, '_blank');
+    }
   };
 
   const cerrarSesion = () => {
@@ -181,18 +215,48 @@ const DashboardAgente = () => {
                     }}
                     onClick={(e) => e.target.select()}
                   />
-                  <button onClick={copiarLinkReferido} className="btn-copiar" style={{
+                  <button onClick={copiarLinkReferido} style={{
                     padding: '8px 16px',
                     fontSize: '14px',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    backgroundColor: '#6b7280',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '600'
                   }}>
                     {copiado ? '✅ ¡Copiado!' : '📋 Copiar'}
                   </button>
                 </div>
               </div>
 
+              {/* Botón de Compartir */}
+              <div style={{ marginTop: '15px', textAlign: 'center' }}>
+                <button onClick={compartirLink} style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '15px 30px',
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+                onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                >
+                  📤 Compartir Enlace
+                </button>
+              </div>
+
               <p className="codigo-info">
-                📱 Comparte este enlace con estudiantes interesados. 
+                📱 Usa el botón "Compartir" para enviar por WhatsApp, redes sociales o cualquier app. 
                 <br/>
                 💰 Ganas <strong>10%</strong> de comisión por cada presupuesto aceptado.
               </p>
