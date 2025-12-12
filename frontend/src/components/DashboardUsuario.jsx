@@ -1310,6 +1310,27 @@ function DashboardUsuario({ estudianteId: propEstudianteId }) {
                   onClick={() => {
                     // Si es un servicio que navega a otro componente
                     if (servicio.navegarA) {
+                      // Verificar si ya está completado y aprobado
+                      let yaCompletado = false;
+                      
+                      if (servicio.id === 'alojamiento_cita') {
+                        yaCompletado = estudiante?.gestion_solicitada === true && estudiante?.estado_alojamiento === 'aprobado';
+                      } else if (servicio.id === 'seguro_medico_real') {
+                        yaCompletado = estudiante?.gestion_seguro_solicitada === true && estudiante?.estado_seguro_medico === 'aprobado';
+                      } else if (servicio.id === 'financiacion_cita') {
+                        yaCompletado = estudiante?.patrocinio_solicitado === true && estudiante?.estado_patrocinio === 'aprobado';
+                      }
+                      
+                      // Si ya está completado y aprobado, marcar directamente
+                      if (yaCompletado) {
+                        setServiciosSeleccionados(prev => ({
+                          ...prev,
+                          [servicio.id]: !prev[servicio.id]
+                        }));
+                        return;
+                      }
+                      
+                      // Si no está completado o no está aprobado, pedir que complete el formulario
                       if (confirm(`Este servicio requiere completar información adicional. ¿Quieres ir a rellenar la solicitud ahora?`)) {
                         window.location.href = servicio.navegarA;
                         return;
