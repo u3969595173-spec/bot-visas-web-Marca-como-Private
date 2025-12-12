@@ -8396,7 +8396,7 @@ async def admin_obtener_estadisticas_agentes(
             a.credito_disponible,
             COALESCE(a.credito_retirado, 0) as credito_retirado,
             a.activo,
-            a.fecha_registro,
+            a.created_at,
             COUNT(DISTINCT e.id) as total_referidos,
             COUNT(DISTINCT CASE WHEN e.estado = 'aprobado' THEN e.id END) as referidos_aprobados,
             COUNT(DISTINCT CASE WHEN e.estado = 'pendiente' THEN e.id END) as referidos_pendientes,
@@ -8406,7 +8406,7 @@ async def admin_obtener_estadisticas_agentes(
         FROM agentes a
         LEFT JOIN estudiantes e ON e.referido_por_agente_id = a.id
         LEFT JOIN presupuestos p ON p.estudiante_id = e.id
-        GROUP BY a.id, a.nombre, a.email, a.codigo_referido, a.comision_total, a.credito_disponible, a.credito_retirado, a.activo, a.fecha_registro
+        GROUP BY a.id, a.nombre, a.email, a.codigo_referido, a.comision_total, a.credito_disponible, a.credito_retirado, a.activo, a.created_at
         ORDER BY a.comision_total DESC
     """)).fetchall()
     
