@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import './DashboardAdminExpandido.css'; // Reutilizamos estilos del admin
+import './DashboardAdminExpandido.css';
 
 const DashboardAgente = () => {
   const { agenteId } = useParams();
@@ -28,7 +28,7 @@ const DashboardAgente = () => {
   useEffect(() => {
     cargarDatos();
     cargarNoLeidos();
-    const interval = setInterval(cargarNoLeidos, 10000); // Actualizar cada 10s
+    const interval = setInterval(cargarNoLeidos, 10000);
     return () => clearInterval(interval);
   }, [agenteId, activeTab]);
 
@@ -37,7 +37,6 @@ const DashboardAgente = () => {
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
-      // Cargar perfil siempre
       const perfilRes = await axios.get(`${apiUrl}/api/agentes/perfil`, { headers });
       setPerfil(perfilRes.data);
 
@@ -53,7 +52,10 @@ const DashboardAgente = () => {
       } else if (activeTab === 'mensajes') {
         const mensajesRes = await axios.get(`${apiUrl}/api/agentes/mensajes`, { headers });
         setMensajes(mensajesRes.data);
-        cargarNoLeidos(); // Actualizar contador después de marcar como leídos
+        cargarNoLeidos();
+      } else if (activeTab === 'estadisticas') {
+        const statsRes = await axios.get(`${apiUrl}/api/agentes/estadisticas`, { headers });
+        setEstadisticas(statsRes.data);
       }
 
       setLoading(false);
@@ -74,13 +76,11 @@ const DashboardAgente = () => {
     }
     
     const link = `https://fortunariocash.com/registro?ref=${perfil.codigo_referido}`;
-    
-    // Crear un input temporal para copiar
     const tempInput = document.createElement('input');
     tempInput.value = link;
     document.body.appendChild(tempInput);
     tempInput.select();
-    tempInput.setSelectionRange(0, 99999); // Para móviles
+    tempInput.setSelectionRange(0, 99999);
     
     try {
       const successful = document.execCommand('copy');
@@ -109,44 +109,35 @@ const DashboardAgente = () => {
 
 ¿Quieres estudiar en el extranjero? 🎓✈️
 
-Regístrate con mi código de referido y recibe asesoría personalizada para tu visa de estudiante.
+Te invito a registrarte en Fortunario Cash, donde te ayudamos con todo el proceso de visa de estudiante para España.
 
-🔗 ${link}
+🔗 Regístrate con mi enlace: ${link}
 
-💼 Servicios incluidos:
-✅ Asesoría completa
-✅ Gestión de documentos
-✅ Preparación para entrevista
-✅ Y mucho más...
+¡Cumple tu sueño de estudiar en Europa! 🇪🇸`;
 
-¡No pierdas esta oportunidad! 🚀`;
-    
-    // Abrir WhatsApp directamente
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
     window.open(whatsappUrl, '_blank');
   };
 
   const solicitarRetiro = async () => {
+    if (!montoRetiro || parseFloat(montoRetiro) <= 0) {
+      alert('❌ Ingresa un monto válido');
+      return;
+    }
+
+    const monto = parseFloat(montoRetiro);
+    if (monto > perfil.credito_disponible) {
+      alert(`❌ No tienes suficiente crédito disponible. Disponible: ${perfil.credito_disponible.toFixed(2)}€`);
+      return;
+    }
+
     try {
-      const monto = parseFloat(montoRetiro);
-      
-      if (!monto || monto <= 0) {
-        alert('⚠️ Ingresa un monto válido');
-        return;
-      }
-      
-      if (monto > perfil?.credito_disponible) {
-        alert(`⚠️ Crédito insuficiente. Disponible: ${perfil?.credito_disponible}€`);
-        return;
-      }
-      
       const token = localStorage.getItem('token');
-      await axios.post(`${apiUrl}/api/agentes/solicitar-retiro`, {
-        monto,
-        notas: notasRetiro
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axios.post(
+        `${apiUrl}/api/agentes/solicitar-retiro`,
+        { monto, notas: notasRetiro },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       
       alert('✅ Solicitud de retiro enviada al administrador');
       setMostrarFormRetiro(false);
@@ -183,7 +174,7 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
       );
       
       setMensaje('');
-      cargarDatos(); // Recargar mensajes
+      cargarDatos();
     } catch (error) {
       console.error('Error enviando mensaje:', error);
       alert('Error enviando mensaje');
@@ -226,7 +217,6 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
 
   return (
     <div className="dashboard-container">
-      {/* HEADER */}
       <div className="dashboard-header">
         <div className="header-content">
           <div>
@@ -236,7 +226,6 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button 
               onClick={() => setMostrarGuia(true)} 
-              className="btn-guia"
               style={{
                 backgroundColor: '#3b82f6',
                 color: 'white',
@@ -245,74 +234,148 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
                 border: 'none',
                 cursor: 'pointer',
                 fontWeight: '600',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
+                fontSize: '14px'
               }}
             >
-              📖 Guía del Agente
+              📖 Guía
             </button>
             <button onClick={cerrarSesion} className="btn-logout">
-              🚪 Cerrar Sesión
+              🚪 Salir
             </button>
           </div>
         </div>
       </div>
 
-      {/* TABS */}
-      <div className="dashboard-tabs" style={{ marginTop: '20px' }}>
+      {/* TABS GRANDES CON COLORES */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+        gap: '15px', 
+        padding: '20px',
+        maxWidth: '1400px',
+        margin: '0 auto'
+      }}>
         <button
-          className={`tab ${activeTab === 'inicio' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('inicio')}
           style={{
-            fontSize: '16px',
-            padding: '14px 24px',
-            fontWeight: '600'
+            padding: '25px 20px',
+            fontSize: '17px',
+            fontWeight: '700',
+            borderRadius: '15px',
+            border: 'none',
+            cursor: 'pointer',
+            background: activeTab === 'inicio' 
+              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              : '#f3f4f6',
+            color: activeTab === 'inicio' ? 'white' : '#374151',
+            boxShadow: activeTab === 'inicio' ? '0 6px 20px rgba(102, 126, 234, 0.5)' : 'none',
+            transform: activeTab === 'inicio' ? 'translateY(-3px) scale(1.02)' : 'none',
+            transition: 'all 0.3s ease'
           }}
         >
           🏠 Inicio
         </button>
+        
         <button
-          className={`tab ${activeTab === 'referidos' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('referidos')}
           style={{
-            fontSize: '18px',
-            padding: '16px 32px',
-            fontWeight: '700'
+            padding: '25px 20px',
+            fontSize: '17px',
+            fontWeight: '700',
+            borderRadius: '15px',
+            border: 'none',
+            cursor: 'pointer',
+            background: activeTab === 'referidos' 
+              ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+              : '#f3f4f6',
+            color: activeTab === 'referidos' ? 'white' : '#374151',
+            boxShadow: activeTab === 'referidos' ? '0 6px 20px rgba(240, 147, 251, 0.5)' : 'none',
+            transform: activeTab === 'referidos' ? 'translateY(-3px) scale(1.02)' : 'none',
+            transition: 'all 0.3s ease'
           }}
         >
-          👥 Mis Referidos ({perfil?.total_referidos || 0})
+          👥 Referidos<br/><span style={{fontSize: '14px'}}>({perfil?.total_referidos || 0})</span>
         </button>
+        
         <button
-          className={`tab ${activeTab === 'retiros' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('retiros')}
           style={{
-            fontSize: '18px',
-            padding: '16px 32px',
-            fontWeight: '700'
+            padding: '25px 20px',
+            fontSize: '17px',
+            fontWeight: '700',
+            borderRadius: '15px',
+            border: 'none',
+            cursor: 'pointer',
+            background: activeTab === 'retiros' 
+              ? 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)'
+              : '#f3f4f6',
+            color: activeTab === 'retiros' ? 'white' : '#374151',
+            boxShadow: activeTab === 'retiros' ? '0 6px 20px rgba(251, 194, 235, 0.5)' : 'none',
+            transform: activeTab === 'retiros' ? 'translateY(-3px) scale(1.02)' : 'none',
+            transition: 'all 0.3s ease'
           }}
         >
           💰 Retiros
         </button>
+        
         <button
-          className={`tab ${activeTab === 'mensajes' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('mensajes')}
           style={{
-            fontSize: '18px',
-            padding: '16px 32px',
-            fontWeight: '700'
+            padding: '25px 20px',
+            fontSize: '17px',
+            fontWeight: '700',
+            borderRadius: '15px',
+            border: 'none',
+            cursor: 'pointer',
+            background: activeTab === 'mensajes' 
+              ? 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+              : '#f3f4f6',
+            color: activeTab === 'mensajes' ? 'white' : '#374151',
+            boxShadow: activeTab === 'mensajes' ? '0 6px 20px rgba(79, 172, 254, 0.5)' : 'none',
+            transform: activeTab === 'mensajes' ? 'translateY(-3px) scale(1.02)' : 'none',
+            transition: 'all 0.3s ease',
+            position: 'relative'
           }}
         >
-          💬 Mensajes {noLeidos > 0 && <span className="badge-no-leidos">{noLeidos}</span>}
+          💬 Mensajes
+          {noLeidos > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '8px',
+              right: '8px',
+              backgroundColor: '#ef4444',
+              color: 'white',
+              borderRadius: '50%',
+              width: '26px',
+              height: '26px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '13px',
+              fontWeight: '700',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+            }}>
+              {noLeidos}
+            </span>
+          )}
         </button>
+        
         <button
-          className={`tab ${activeTab === 'estadisticas' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('estadisticas')}
           style={{
-            fontSize: '18px',
-            padding: '16px 32px',
-            fontWeight: '700'
+            padding: '25px 20px',
+            fontSize: '17px',
+            fontWeight: '700',
+            borderRadius: '15px',
+            border: 'none',
+            cursor: 'pointer',
+            background: activeTab === 'estadisticas' 
+              ? 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+              : '#f3f4f6',
+            color: activeTab === 'estadisticas' ? 'white' : '#374151',
+            boxShadow: activeTab === 'estadisticas' ? '0 6px 20px rgba(67, 233, 123, 0.5)' : 'none',
+            transform: activeTab === 'estadisticas' ? 'translateY(-3px) scale(1.02)' : 'none',
+            transition: 'all 0.3s ease'
           }}
         >
           📈 Estadísticas
@@ -324,169 +387,152 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
         {/* TAB: INICIO */}
         {activeTab === 'inicio' && (
           <div className="tab-content">
-            {/* Código de Referido */}
-            <div className="card" style={{ padding: '15px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>🔗 Tu Código de Referido</h3>
-              <div className="codigo-referido-display">
-                <div className="codigo-box" style={{ fontSize: '18px', padding: '10px 16px' }}>
+            {/* Código de Referido compacto */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              padding: '20px',
+              borderRadius: '15px',
+              marginBottom: '25px',
+              color: 'white',
+              boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)'
+            }}>
+              <h3 style={{ margin: '0 0 15px 0', fontSize: '18px' }}>🔗 Tu Código de Referido</h3>
+              <div style={{
+                backgroundColor: 'rgba(255,255,255,0.25)',
+                padding: '20px',
+                borderRadius: '12px',
+                textAlign: 'center',
+                marginBottom: '15px'
+              }}>
+                <div style={{
+                  fontSize: '36px',
+                  fontWeight: '700',
+                  letterSpacing: '4px',
+                  fontFamily: 'monospace'
+                }}>
                   {perfil?.codigo_referido}
                 </div>
               </div>
               
-              {/* Link completo para copiar */}
-              <div style={{ 
-                marginTop: '10px', 
-                padding: '10px', 
-                backgroundColor: '#f3f4f6', 
-                borderRadius: '6px',
-                border: '1px solid #d1d5db'
+              <div style={{
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                padding: '15px',
+                borderRadius: '10px',
+                fontSize: '13px'
               }}>
-                <p style={{ margin: '0 0 6px 0', fontSize: '12px', color: '#6b7280', fontWeight: '600' }}>
-                  🔗 Tu enlace de referido:
-                </p>
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '6px', 
-                  alignItems: 'center',
-                  backgroundColor: 'white',
-                  padding: '6px',
-                  borderRadius: '4px',
-                  border: '1px solid #e5e7eb'
+                <div style={{ marginBottom: '10px', opacity: 0.95, fontWeight: '600' }}>📋 Enlace completo:</div>
+                <div style={{
+                  display: 'flex',
+                  gap: '10px',
+                  backgroundColor: 'rgba(255,255,255,0.25)',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  alignItems: 'center'
                 }}>
-                  <input 
-                    id="linkReferidoInput"
-                    type="text" 
-                    readOnly 
-                    value={perfil?.codigo_referido ? `https://fortunariocash.com/registro?ref=${perfil.codigo_referido}` : 'Cargando...'}
+                  <input
+                    type="text"
+                    readOnly
+                    value={`https://fortunariocash.com/registro?ref=${perfil?.codigo_referido || ''}`}
                     style={{
                       flex: 1,
+                      background: 'transparent',
                       border: 'none',
-                      outline: 'none',
-                      fontSize: '11px',
-                      color: '#1f2937',
-                      fontFamily: 'monospace',
-                      backgroundColor: 'transparent'
-                    }}
-                    onClick={(e) => {
-                      e.target.select();
-                      document.execCommand('copy');
-                      alert('✅ Enlace copiado al portapapeles');
+                      color: 'white',
+                      fontSize: '12px',
+                      outline: 'none'
                     }}
                   />
-                  <button onClick={copiarLinkReferido} style={{
-                    padding: '6px 12px',
-                    fontSize: '12px',
-                    whiteSpace: 'nowrap',
-                    backgroundColor: '#6b7280',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}>
-                    {copiado ? '✅ ¡Copiado!' : '📋 Copiar'}
+                  <button
+                    onClick={copiarLinkReferido}
+                    style={{
+                      padding: '10px 16px',
+                      backgroundColor: 'rgba(255,255,255,0.35)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'white',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    {copiado ? '✅ Copiado' : '📋 Copiar'}
+                  </button>
+                  <button
+                    onClick={compartirLink}
+                    style={{
+                      padding: '10px 16px',
+                      backgroundColor: '#25D366',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'white',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    📱 WhatsApp
                   </button>
                 </div>
               </div>
-
-              {/* Botón de Compartir */}
-              <div style={{ marginTop: '10px', textAlign: 'center' }}>
-                <button onClick={compartirLink} style={{
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  padding: '10px 20px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  border: 'none',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
-                >
-                  📤 Compartir Enlace
-                </button>
-              </div>
-
-              <p className="codigo-info">
-                📱 Usa el botón "Compartir" para enviar por WhatsApp, redes sociales o cualquier app. 
-                <br/>
-                💰 Ganas <strong>10%</strong> de comisión por cada presupuesto aceptado.
-              </p>
             </div>
 
-            {/* Métricas */}
-            <div className="metricas-grid">
-              <div className="metrica-card">
-                <div className="metrica-icono">👥</div>
-                <div className="metrica-info">
-                  <div className="metrica-valor">{estadisticas?.total_referidos || 0}</div>
-                  <div className="metrica-label">Total Referidos</div>
-                </div>
+            {/* Tarjetas de resumen */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+              <div style={{
+                background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                padding: '30px 25px',
+                borderRadius: '15px',
+                color: 'white',
+                boxShadow: '0 6px 20px rgba(240, 147, 251, 0.4)'
+              }}>
+                <div style={{ fontSize: '15px', opacity: 0.9, marginBottom: '10px' }}>👥 Total Referidos</div>
+                <div style={{ fontSize: '48px', fontWeight: '700', lineHeight: '1' }}>{perfil?.total_referidos || 0}</div>
               </div>
 
-              <div className="metrica-card">
-                <div className="metrica-icono">✅</div>
-                <div className="metrica-info">
-                  <div className="metrica-valor">{estadisticas?.referidos_activos || 0}</div>
-                  <div className="metrica-label">Referidos Activos</div>
-                </div>
+              <div style={{
+                background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                padding: '30px 25px',
+                borderRadius: '15px',
+                color: 'white',
+                boxShadow: '0 6px 20px rgba(67, 233, 123, 0.4)'
+              }}>
+                <div style={{ fontSize: '15px', opacity: 0.9, marginBottom: '10px' }}>💰 Crédito Disponible</div>
+                <div style={{ fontSize: '48px', fontWeight: '700', lineHeight: '1' }}>{perfil?.credito_disponible?.toFixed(2) || '0.00'}€</div>
               </div>
 
-              <div className="metrica-card">
-                <div className="metrica-icono">💰</div>
-                <div className="metrica-info">
-                  <div className="metrica-valor">{estadisticas?.comision_total?.toFixed(2) || '0.00'}€</div>
-                  <div className="metrica-label">Comisión Total</div>
-                </div>
+              <div style={{
+                background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                padding: '30px 25px',
+                borderRadius: '15px',
+                color: 'white',
+                boxShadow: '0 6px 20px rgba(79, 172, 254, 0.4)'
+              }}>
+                <div style={{ fontSize: '15px', opacity: 0.9, marginBottom: '10px' }}>💎 Comisión Total</div>
+                <div style={{ fontSize: '48px', fontWeight: '700', lineHeight: '1' }}>{perfil?.comision_total?.toFixed(2) || '0.00'}€</div>
               </div>
 
-              <div className="metrica-card">
-                <div className="metrica-icono">📊</div>
-                <div className="metrica-info">
-                  <div className="metrica-valor">{estadisticas?.presupuestos_aceptados || 0}</div>
-                  <div className="metrica-label">Presupuestos Aceptados</div>
-                </div>
+              <div style={{
+                background: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)',
+                padding: '30px 25px',
+                borderRadius: '15px',
+                color: 'white',
+                boxShadow: '0 6px 20px rgba(251, 194, 235, 0.4)'
+              }}>
+                <div style={{ fontSize: '15px', opacity: 0.9, marginBottom: '10px' }}>🏦 Crédito Retirado</div>
+                <div style={{ fontSize: '48px', fontWeight: '700', lineHeight: '1' }}>{perfil?.credito_retirado?.toFixed(2) || '0.00'}€</div>
               </div>
             </div>
-
-            {/* Referidos Recientes */}
-            {estadisticas?.referidos_recientes?.length > 0 && (
-              <div className="card">
-                <h3>📝 Referidos Recientes</h3>
-                <div className="lista-referidos-recientes">
-                  {estadisticas.referidos_recientes.map((ref) => (
-                    <div key={ref.id} className="referido-item">
-                      <div>
-                        <strong>{ref.nombre}</strong>
-                        <div className="referido-email">{ref.email}</div>
-                      </div>
-                      <span className={`badge badge-${ref.estado}`}>
-                        {ref.estado}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
-        {/* TAB: MIS REFERIDOS */}
+        {/* TAB: REFERIDOS */}
         {activeTab === 'referidos' && (
           <div className="tab-content">
             <div className="card">
-              <h2>👥 Lista de Referidos</h2>
-              
+              <h2>👥 Mis Estudiantes Referidos</h2>
               {referidos.length === 0 ? (
                 <div className="no-data">
-                  <p>📭 Aún no tienes referidos</p>
-                  <p>Comparte tu código de referido para empezar a ganar comisiones</p>
+                  <p>Aún no has referido ningún estudiante</p>
                 </div>
               ) : (
                 <div className="tabla-wrapper">
@@ -494,47 +540,32 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
                     <thead>
                       <tr>
                         <th>Estudiante</th>
-                        <th>Carrera</th>
+                        <th>Email</th>
                         <th>Estado</th>
-                        <th>Perfil Completo</th>
-                        <th>Comisión Generada</th>
+                        <th>Presupuesto</th>
+                        <th>Comisión</th>
                         <th>Fecha Registro</th>
-                        <th>Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {referidos.map((est) => (
-                        <tr key={est.id}>
+                      {referidos.map((referido) => (
+                        <tr key={referido.id}>
+                          <td style={{ fontWeight: '600' }}>{referido.nombre}</td>
+                          <td>{referido.email}</td>
                           <td>
-                            <div style={{fontWeight: '600'}}>{est.nombre}</div>
-                            <div style={{fontSize: '13px', color: '#718096'}}>{est.email}</div>
-                            <div style={{fontSize: '12px', color: '#a0aec0'}}>{est.telefono}</div>
-                          </td>
-                          <td>{est.carrera_deseada || '-'}</td>
-                          <td>
-                            <span className={`badge badge-${est.estado}`}>
-                              {est.estado}
+                            <span className={`badge badge-${referido.estado}`}>
+                              {referido.estado === 'aprobado' && '✅ Aprobado'}
+                              {referido.estado === 'pendiente' && '⏳ Pendiente'}
+                              {referido.estado === 'rechazado' && '❌ Rechazado'}
                             </span>
                           </td>
-                          <td>
-                            {est.perfil_completo ? (
-                              <span style={{color: '#10b981'}}>✅ Completo</span>
-                            ) : (
-                              <span style={{color: '#f59e0b'}}>⏳ Pendiente</span>
-                            )}
+                          <td style={{ fontWeight: '700', color: '#3b82f6' }}>
+                            {referido.presupuesto ? `${referido.presupuesto.toFixed(2)}€` : '-'}
                           </td>
-                          <td style={{fontWeight: '700', color: '#10b981'}}>
-                            {est.comision_generada?.toFixed(2) || '0.00'}€
+                          <td style={{ fontWeight: '700', color: '#10b981' }}>
+                            {referido.comision ? `${referido.comision.toFixed(2)}€` : '-'}
                           </td>
-                          <td>{new Date(est.fecha_registro).toLocaleDateString()}</td>
-                          <td>
-                            <button
-                              className="btn-small btn-primary"
-                              onClick={() => navigate(`/agente/estudiante/${est.id}`)}
-                            >
-                              👁️ Ver Detalle
-                            </button>
-                          </td>
+                          <td>{new Date(referido.fecha_registro).toLocaleDateString('es-ES')}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -548,135 +579,110 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
         {/* TAB: RETIROS */}
         {activeTab === 'retiros' && (
           <div className="tab-content">
-            {/* Crédito Disponible y Botón Solicitar */}
-            <div className="card highlight-card">
+            <div className="card" style={{ marginBottom: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div>
-                  <h2 style={{ margin: '0 0 10px 0' }}>💰 Tu Crédito</h2>
-                  <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#10b981' }}>
-                    {perfil?.credito_disponible?.toFixed(2) || '0.00'}€
-                  </div>
-                  <p style={{ margin: '5px 0 0 0', color: '#6b7280' }}>
-                    Disponible para retiro
-                  </p>
+                <h2>💰 Solicitar Retiro</h2>
+                <div style={{ fontSize: '20px', fontWeight: '700', color: '#10b981' }}>
+                  Disponible: {perfil?.credito_disponible?.toFixed(2) || '0.00'}€
                 </div>
-                <button 
+              </div>
+
+              {!mostrarFormRetiro ? (
+                <button
                   onClick={() => setMostrarFormRetiro(true)}
                   style={{
-                    backgroundColor: '#10b981',
+                    width: '100%',
+                    padding: '18px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                     color: 'white',
-                    padding: '15px 30px',
-                    borderRadius: '10px',
                     border: 'none',
-                    fontSize: '16px',
-                    fontWeight: '600',
+                    borderRadius: '12px',
+                    fontSize: '17px',
+                    fontWeight: '700',
                     cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
+                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
                   }}
-                  disabled={!perfil?.credito_disponible || perfil.credito_disponible <= 0}
                 >
-                  💸 Solicitar Retiro
+                  ➕ Nueva Solicitud de Retiro
                 </button>
-              </div>
-              
-              <div style={{ backgroundColor: '#f3f4f6', padding: '15px', borderRadius: '8px' }}>
-                <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-                  📊 Total retirado históricamente: <strong>{perfil?.credito_retirado?.toFixed(2) || '0.00'}€</strong>
-                </p>
-              </div>
+              ) : (
+                <div style={{ backgroundColor: '#f9fafb', padding: '25px', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '15px' }}>Monto a retirar (€)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={montoRetiro}
+                      onChange={(e) => setMontoRetiro(e.target.value)}
+                      placeholder="0.00"
+                      style={{
+                        width: '100%',
+                        padding: '12px 15px',
+                        borderRadius: '8px',
+                        border: '2px solid #d1d5db',
+                        fontSize: '17px'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '15px' }}>Notas (opcional)</label>
+                    <textarea
+                      value={notasRetiro}
+                      onChange={(e) => setNotasRetiro(e.target.value)}
+                      placeholder="Ej: Número de cuenta, PayPal, etc."
+                      rows="3"
+                      style={{
+                        width: '100%',
+                        padding: '12px 15px',
+                        borderRadius: '8px',
+                        border: '2px solid #d1d5db',
+                        fontSize: '15px'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      onClick={solicitarRetiro}
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontSize: '16px',
+                        fontWeight: '700',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✅ Enviar Solicitud
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMostrarFormRetiro(false);
+                        setMontoRetiro('');
+                        setNotasRetiro('');
+                      }}
+                      style={{
+                        padding: '14px 25px',
+                        backgroundColor: '#6b7280',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '10px',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ❌ Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Formulario de Solicitud */}
-            {mostrarFormRetiro && (
-              <div className="card" style={{ border: '2px solid #10b981' }}>
-                <h3>💸 Solicitar Retiro</h3>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-                    Monto a retirar (€)
-                  </label>
-                  <input 
-                    type="number"
-                    value={montoRetiro}
-                    onChange={(e) => setMontoRetiro(e.target.value)}
-                    placeholder="0.00"
-                    max={perfil?.credito_disponible}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '16px'
-                    }}
-                  />
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '5px 0 0 0' }}>
-                    Máximo disponible: {perfil?.credito_disponible?.toFixed(2)}€
-                  </p>
-                </div>
-                
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>
-                    Notas (opcional)
-                  </label>
-                  <textarea 
-                    value={notasRetiro}
-                    onChange={(e) => setNotasRetiro(e.target.value)}
-                    placeholder="Método de pago preferido, información bancaria, etc."
-                    rows="3"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      resize: 'vertical'
-                    }}
-                  />
-                </div>
-                
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button 
-                    onClick={solicitarRetiro}
-                    style={{
-                      flex: 1,
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✅ Enviar Solicitud
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setMostrarFormRetiro(false);
-                      setMontoRetiro('');
-                      setNotasRetiro('');
-                    }}
-                    style={{
-                      flex: 1,
-                      backgroundColor: '#6b7280',
-                      color: 'white',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ❌ Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Historial de Retiros */}
             <div className="card">
               <h3>📋 Historial de Retiros</h3>
               
@@ -726,45 +732,45 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
             <div className="card">
               <h2>💬 Mensajes con Administrador</h2>
               
-              {/* Chat */}
               <div style={{ 
-                border: '1px solid #e5e7eb', 
-                borderRadius: '12px', 
+                border: '2px solid #e5e7eb', 
+                borderRadius: '15px', 
                 overflow: 'hidden',
                 marginTop: '20px'
               }}>
-                {/* Mensajes */}
                 <div style={{ 
-                  height: '400px', 
+                  height: '450px', 
                   overflowY: 'auto', 
-                  padding: '20px',
+                  padding: '25px',
                   backgroundColor: '#f9fafb'
                 }}>
                   {mensajes.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#6b7280', padding: '40px' }}>
-                      <p>No hay mensajes aún. Inicia la conversación 👇</p>
+                    <div style={{ textAlign: 'center', color: '#6b7280', padding: '60px 20px' }}>
+                      <div style={{ fontSize: '48px', marginBottom: '15px' }}>💬</div>
+                      <p style={{ fontSize: '16px' }}>No hay mensajes aún. Inicia la conversación 👇</p>
                     </div>
                   ) : (
                     mensajes.map(msg => (
                       <div
                         key={msg.id}
                         style={{
-                          marginBottom: '15px',
+                          marginBottom: '18px',
                           display: 'flex',
                           justifyContent: msg.remitente === 'agente' ? 'flex-end' : 'flex-start'
                         }}
                       >
                         <div style={{
                           maxWidth: '70%',
-                          padding: '12px 16px',
-                          borderRadius: '12px',
+                          padding: '14px 18px',
+                          borderRadius: '15px',
                           backgroundColor: msg.remitente === 'agente' ? '#3b82f6' : '#e5e7eb',
-                          color: msg.remitente === 'agente' ? 'white' : '#1f2937'
+                          color: msg.remitente === 'agente' ? 'white' : '#1f2937',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                         }}>
-                          <div style={{ fontSize: '14px' }}>{msg.mensaje}</div>
+                          <div style={{ fontSize: '15px', lineHeight: '1.5' }}>{msg.mensaje}</div>
                           <div style={{ 
                             fontSize: '11px', 
-                            marginTop: '5px',
+                            marginTop: '6px',
                             opacity: 0.7
                           }}>
                             {formatearFecha(msg.fecha)}
@@ -775,15 +781,14 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
                   )}
                 </div>
 
-                {/* Input de mensaje */}
                 <form 
                   onSubmit={enviarMensaje}
                   style={{ 
                     display: 'flex', 
-                    gap: '10px', 
-                    padding: '15px',
+                    gap: '12px', 
+                    padding: '20px',
                     backgroundColor: 'white',
-                    borderTop: '1px solid #e5e7eb'
+                    borderTop: '2px solid #e5e7eb'
                   }}
                 >
                   <input
@@ -793,23 +798,24 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
                     placeholder="Escribe un mensaje..."
                     style={{
                       flex: 1,
-                      padding: '10px 15px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px'
+                      padding: '12px 18px',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '10px',
+                      fontSize: '15px'
                     }}
                   />
                   <button
                     type="submit"
                     style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#3b82f6',
+                      padding: '12px 24px',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                       color: 'white',
                       border: 'none',
-                      borderRadius: '8px',
+                      borderRadius: '10px',
                       cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '600'
+                      fontSize: '15px',
+                      fontWeight: '700',
+                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
                     }}
                   >
                     📤 Enviar
@@ -826,202 +832,130 @@ Regístrate con mi código de referido y recibe asesoría personalizada para tu 
             <div className="card">
               <h2>📈 Estadísticas Detalladas</h2>
               
-              <div className="stats-grid">
-                <div className="stat-box">
-                  <h3>Resumen General</h3>
-                  <p>Total Referidos: <strong>{perfil?.total_referidos || 0}</strong></p>
-                  <p>Comisión Total: <strong>{perfil?.comision_total?.toFixed(2) || '0.00'}€</strong></p>
-                  <p>Crédito Disponible: <strong>{perfil?.credito_disponible?.toFixed(2) || '0.00'}€</strong></p>
-                </div>
+              {estadisticas && (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+                    <div style={{ padding: '25px', backgroundColor: '#dbeafe', borderRadius: '15px', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.15)' }}>
+                      <div style={{ fontSize: '14px', color: '#1e40af', marginBottom: '8px', fontWeight: '600' }}>Referidos Aprobados</div>
+                      <div style={{ fontSize: '42px', fontWeight: '700', color: '#1e40af' }}>
+                        {estadisticas.referidos_aprobados || 0}
+                      </div>
+                    </div>
 
-                <div className="stat-box">
-                  <h3>Información de Contacto</h3>
-                  <p>Email: <strong>{perfil?.email}</strong></p>
-                  <p>Teléfono: <strong>{perfil?.telefono || 'No especificado'}</strong></p>
-                  <p>Código: <strong>{perfil?.codigo_referido}</strong></p>
-                </div>
-              </div>
+                    <div style={{ padding: '25px', backgroundColor: '#fef3c7', borderRadius: '15px', boxShadow: '0 4px 12px rgba(245, 158, 11, 0.15)' }}>
+                      <div style={{ fontSize: '14px', color: '#92400e', marginBottom: '8px', fontWeight: '600' }}>Referidos Pendientes</div>
+                      <div style={{ fontSize: '42px', fontWeight: '700', color: '#92400e' }}>
+                        {estadisticas.referidos_pendientes || 0}
+                      </div>
+                    </div>
 
-              <div className="info-comision">
-                <h3>💰 Sistema de Comisiones</h3>
-                <p>Como agente, ganas el <strong>10%</strong> del valor de cada presupuesto aceptado por tus referidos.</p>
-                <p>Los pagos son gestionados por el administrador.</p>
-              </div>
+                    <div style={{ padding: '25px', backgroundColor: '#d1fae5', borderRadius: '15px', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)' }}>
+                      <div style={{ fontSize: '14px', color: '#065f46', marginBottom: '8px', fontWeight: '600' }}>Presupuestos Aceptados</div>
+                      <div style={{ fontSize: '42px', fontWeight: '700', color: '#065f46' }}>
+                        {estadisticas.presupuestos_aceptados || 0}
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '25px', backgroundColor: '#fce7f3', borderRadius: '15px', boxShadow: '0 4px 12px rgba(236, 72, 153, 0.15)' }}>
+                      <div style={{ fontSize: '14px', color: '#9f1239', marginBottom: '8px', fontWeight: '600' }}>Presupuestos Generados</div>
+                      <div style={{ fontSize: '42px', fontWeight: '700', color: '#9f1239' }}>
+                        {estadisticas.presupuestos_generados || 0}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    padding: '30px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: '15px',
+                    color: 'white',
+                    boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)'
+                  }}>
+                    <h3 style={{ marginTop: 0, fontSize: '22px' }}>💰 Resumen Financiero</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '25px' }}>
+                      <div>
+                        <div style={{ fontSize: '15px', opacity: 0.9, marginBottom: '8px' }}>Valor Total</div>
+                        <div style={{ fontSize: '32px', fontWeight: '700' }}>
+                          {(estadisticas.valor_total_presupuestos || 0).toFixed(2)}€
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '15px', opacity: 0.9, marginBottom: '8px' }}>Comisión Total</div>
+                        <div style={{ fontSize: '32px', fontWeight: '700' }}>
+                          {(estadisticas.comision_total || 0).toFixed(2)}€
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '15px', opacity: 0.9, marginBottom: '8px' }}>Disponible</div>
+                        <div style={{ fontSize: '32px', fontWeight: '700' }}>
+                          {(perfil?.credito_disponible || 0).toFixed(2)}€
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '15px', opacity: 0.9, marginBottom: '8px' }}>Retirado</div>
+                        <div style={{ fontSize: '32px', fontWeight: '700' }}>
+                          {(perfil?.credito_retirado || 0).toFixed(2)}€
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
 
-      {/* MODAL GUÍA DEL AGENTE */}
+      {/* MODAL GUÍA */}
       {mostrarGuia && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.7)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-          padding: '20px'
-        }}
-        onClick={() => setMostrarGuia(false)}
-        >
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            maxWidth: '800px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflow: 'auto',
-            padding: '30px',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
-          }}
-          onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ margin: 0, color: '#1f2937', fontSize: '28px' }}>📖 Guía Completa del Agente</h2>
-              <button 
-                onClick={() => setMostrarGuia(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '28px',
-                  cursor: 'pointer',
-                  color: '#6b7280'
-                }}
-              >×</button>
+        <div className="modal-overlay" onClick={() => setMostrarGuia(false)}>
+          <div className="modal-content-large" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className="modal-header">
+              <h2>📖 Guía del Agente</h2>
+              <button className="modal-close" onClick={() => setMostrarGuia(false)}>✕</button>
             </div>
 
-            {/* Sección 1: Código de Referido */}
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f0f9ff', borderRadius: '12px', border: '2px solid #3b82f6' }}>
-              <h3 style={{ color: '#1e40af', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                🎯 1. Tu Código de Referido
-              </h3>
-              <p style={{ color: '#1f2937', lineHeight: '1.6', marginBottom: '10px' }}>
-                <strong>Tu código único:</strong> <span style={{ backgroundColor: '#dbeafe', padding: '4px 12px', borderRadius: '6px', fontFamily: 'monospace', fontSize: '16px' }}>{perfil?.codigo_referido}</span>
-              </p>
-              <ul style={{ color: '#374151', lineHeight: '1.8' }}>
-                <li>Este código está visible en la parte superior de tu dashboard</li>
-                <li>Copia el link completo con el botón "📋 Copiar Link"</li>
-                <li>Compártelo por WhatsApp, redes sociales, email, etc.</li>
-              </ul>
-            </div>
-
-            {/* Sección 2: Captación de Estudiantes */}
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '2px solid #10b981' }}>
-              <h3 style={{ color: '#065f46', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                👥 2. Cómo Captar Estudiantes
-              </h3>
-              <ul style={{ color: '#374151', lineHeight: '1.8' }}>
-                <li><strong>Comparte tu link de referido</strong> con personas interesadas en estudiar en el extranjero</li>
-                <li>El estudiante debe <strong>registrarse usando tu link</strong> o ingresar tu código manualmente</li>
-                <li>Una vez registrado, aparecerá automáticamente en tu lista de "Mis Referidos"</li>
-                <li><strong>Importante:</strong> El código debe ingresarse al momento del registro, no se puede agregar después</li>
-              </ul>
-              <div style={{ backgroundColor: '#d1fae5', padding: '15px', borderRadius: '8px', marginTop: '15px' }}>
-                <p style={{ margin: 0, color: '#065f46', fontSize: '14px' }}>
-                  💡 <strong>Tip:</strong> Crea un mensaje atractivo explicando los beneficios de estudiar en el extranjero y comparte tu link de referido.
+            <div style={{ padding: '25px' }}>
+              <div style={{ marginBottom: '25px', padding: '20px', backgroundColor: '#eff6ff', borderRadius: '12px', border: '2px solid #3b82f6' }}>
+                <h3 style={{ color: '#1e40af', marginTop: 0 }}>🎯 1. Tu Rol como Agente</h3>
+                <p style={{ color: '#374151', lineHeight: '1.6', margin: 0 }}>
+                  Como agente de <strong>Fortunario Cash</strong>, tu objetivo es <strong>referir estudiantes</strong> que quieran estudiar en España. 
+                  Por cada estudiante que se registre usando tu código y complete su proceso, <strong>ganas una comisión del 10%</strong>.
                 </p>
               </div>
-            </div>
 
-            {/* Sección 3: Sistema de Comisiones */}
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#fefce8', borderRadius: '12px', border: '2px solid #eab308' }}>
-              <h3 style={{ color: '#854d0e', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                💰 3. Sistema de Comisiones (10%)
-              </h3>
-              <p style={{ color: '#374151', lineHeight: '1.6', marginBottom: '15px' }}>
-                Ganas el <strong>10% de comisión</strong> sobre todos los pagos que realicen tus estudiantes referidos:
-              </p>
-              <div style={{ backgroundColor: 'white', padding: '15px', borderRadius: '8px', marginBottom: '15px' }}>
-                <p style={{ margin: '0 0 10px 0', color: '#1f2937' }}><strong>📊 Ejemplos prácticos:</strong></p>
-                <ul style={{ color: '#374151', lineHeight: '1.8', marginTop: 0 }}>
-                  <li>Estudiante paga 500€ → Tú ganas <strong>50€</strong></li>
-                  <li>Estudiante paga 1,000€ → Tú ganas <strong>100€</strong></li>
-                  <li>Estudiante paga 2,500€ → Tú ganas <strong>250€</strong></li>
-                  <li>5 estudiantes pagan 1,000€ c/u → Tú ganas <strong>500€</strong></li>
-                </ul>
-              </div>
-              <p style={{ color: '#374151', lineHeight: '1.6' }}>
-                ✅ Las comisiones se acumulan automáticamente en tu <strong>"Crédito Disponible"</strong>
-                <br/>
-                ✅ Puedes ver el detalle de cada comisión en la sección "Mis Referidos"
-              </p>
-            </div>
-
-            {/* Sección 4: Solicitud de Retiros */}
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#fef2f2', borderRadius: '12px', border: '2px solid #ef4444' }}>
-              <h3 style={{ color: '#991b1b', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                💳 4. Solicitar Retiro de Comisiones
-              </h3>
-              <ol style={{ color: '#374151', lineHeight: '1.8' }}>
-                <li>Acumula el crédito disponible en tu cuenta</li>
-                <li>Cuando quieras retirar, solicita el retiro desde tu dashboard</li>
-                <li>El administrador revisará y aprobará tu solicitud</li>
-                <li>Recibirás el pago mediante el método acordado (transferencia, PayPal, etc.)</li>
-              </ol>
-              <div style={{ backgroundColor: '#fee2e2', padding: '15px', borderRadius: '8px', marginTop: '15px' }}>
-                <p style={{ margin: 0, color: '#991b1b', fontSize: '14px' }}>
-                  ⚠️ <strong>Importante:</strong> Solo puedes retirar el crédito disponible. El crédito retirado se descuenta automáticamente.
+              <div style={{ marginBottom: '25px', padding: '20px', backgroundColor: '#f0fdf4', borderRadius: '12px', border: '2px solid #10b981' }}>
+                <h3 style={{ color: '#065f46', marginTop: 0 }}>🔗 2. Cómo Compartir tu Código</h3>
+                <p style={{ color: '#374151', lineHeight: '1.6' }}>
+                  Usa el botón "Copiar" o "WhatsApp" para compartir tu enlace de referido con estudiantes interesados.
                 </p>
               </div>
-            </div>
 
-            {/* Sección 5: Seguimiento */}
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: '#f5f3ff', borderRadius: '12px', border: '2px solid #8b5cf6' }}>
-              <h3 style={{ color: '#5b21b6', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                📊 5. Seguimiento de tus Estudiantes
-              </h3>
-              <p style={{ color: '#374151', lineHeight: '1.6', marginBottom: '10px' }}>
-                En la pestaña <strong>"Mis Referidos"</strong> puedes:
-              </p>
-              <ul style={{ color: '#374151', lineHeight: '1.8' }}>
-                <li>Ver la lista completa de estudiantes que has referido</li>
-                <li>Conocer el estado de cada estudiante (activo, inactivo, etc.)</li>
-                <li>Ver cuánto ha pagado cada uno y tu comisión generada</li>
-                <li>Revisar el historial de pagos</li>
-                <li>Monitorear el progreso de tus referidos</li>
-              </ul>
-            </div>
+              <div style={{ marginBottom: '25px', padding: '20px', backgroundColor: '#fefce8', borderRadius: '12px', border: '2px solid #eab308' }}>
+                <h3 style={{ color: '#854d0e', marginTop: 0 }}>💰 3. Sistema de Comisiones (10%)</h3>
+                <p style={{ color: '#374151', lineHeight: '1.6' }}>
+                  Ganas el <strong>10% de comisión</strong> sobre todos los pagos que realicen tus estudiantes referidos.
+                </p>
+              </div>
 
-            {/* Sección 6: Soporte */}
-            <div style={{ marginBottom: '20px', padding: '20px', backgroundColor: '#fef3c7', borderRadius: '12px', border: '2px solid #f59e0b' }}>
-              <h3 style={{ color: '#92400e', marginTop: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-                📞 6. Soporte y Contacto
-              </h3>
-              <p style={{ color: '#374151', lineHeight: '1.6' }}>
-                Si tienes dudas sobre:
-              </p>
-              <ul style={{ color: '#374151', lineHeight: '1.8' }}>
-                <li>Cálculo de comisiones</li>
-                <li>Proceso de retiros</li>
-                <li>Estado de tus referidos</li>
-                <li>Cualquier otra consulta</li>
-              </ul>
-              <p style={{ color: '#374151', lineHeight: '1.6', marginBottom: 0 }}>
-                👉 Contacta directamente con el administrador a través del sistema de mensajería o email.
-              </p>
-            </div>
-
-            <div style={{ textAlign: 'center', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
-              <button 
-                onClick={() => setMostrarGuia(false)}
-                style={{
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  padding: '12px 30px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: '600'
-                }}
-              >
-                ✅ Entendido, ¡Empecemos!
-              </button>
+              <div style={{ textAlign: 'center', paddingTop: '20px', borderTop: '2px solid #e5e7eb' }}>
+                <button 
+                  onClick={() => setMostrarGuia(false)}
+                  style={{
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    color: 'white',
+                    padding: '14px 32px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: '700',
+                    boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)'
+                  }}
+                >
+                  ✅ Entendido
+                </button>
+              </div>
             </div>
           </div>
         </div>
