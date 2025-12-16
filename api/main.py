@@ -1207,8 +1207,6 @@ async def completar_perfil_estudiante(
         ))
         
         conn.commit()
-        cursor.close()
-        conn.close()
         
         # Enviar notificación automática
         try:
@@ -1228,9 +1226,13 @@ async def completar_perfil_estudiante(
         except Exception as e:
             print(f"[WARN] Error notificando perfil completado al admin: {e}")
         
+        cursor.close()
+        conn.close()
+        
         return {
             "mensaje": "Perfil completado exitosamente",
-            "estudiante_id": estudiante_id
+            "estudiante_id": estudiante_id,
+            "perfil_completo": True
         }
         
     except HTTPException:
@@ -2449,16 +2451,21 @@ async def subir_documento(
     
     # Guardar en base de datos
     try:
-        cursor = db.connection().connection.cursor()
-        cursor.execute("""
+        result = db.execute(text("""
             INSERT INTO documentos 
             (estudiante_id, tipo_documento, nombre_archivo, url_archivo, tamano_bytes, estado, created_at)
-            VALUES (%s, %s, %s, %s, %s, 'pendiente', %s)
+            VALUES (:estudiante_id, :tipo_doc, :nombre, :url, :tamano, 'pendiente', :fecha)
             RETURNING id
-        """, (estudiante_id, tipo_documento, archivo.filename, url_archivo, tamano_bytes, datetime.utcnow()))
+        """), {
+            "estudiante_id": estudiante_id,
+            "tipo_doc": tipo_documento,
+            "nombre": archivo.filename,
+            "url": url_archivo,
+            "tamano": tamano_bytes,
+            "fecha": datetime.utcnow()
+        })
         
-        documento_id = cursor.fetchone()[0]
-        db.commit()
+        documento_id = result.fetchone()[0]
         
         # Actualizar estado de documentos del estudiante
         estudiante.documentos_estado = 'en_revision'
@@ -2497,16 +2504,15 @@ def listar_documentos(estudiante_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
     try:
-        cursor = db.connection().connection.cursor()
-        cursor.execute("""
+        result = db.execute(text("""
             SELECT id, tipo_documento, nombre_archivo, tamano_bytes, estado, notas, created_at
             FROM documentos
-            WHERE estudiante_id = %s
+            WHERE estudiante_id = :est_id
             ORDER BY created_at DESC
-        """, (estudiante_id,))
+        """), {"est_id": estudiante_id})
         
         documentos = []
-        for row in cursor.fetchall():
+        for row in result:
             documentos.append({
                 'id': row[0],
                 'tipo_documento': row[1],
@@ -4626,7 +4632,8 @@ def actualizar_estudiante(
                          'carrera_deseada', 'especialidad', 'nivel_espanol', 
                          'tipo_visa', 'fondos_disponibles', 'notas',
                          'fondos_suficientes', 'monto_fondos', 'tiene_patrocinador',
-                         'tipo_patrocinador', 'nombre_patrocinador', 'relacion_patrocinador']
+                         'tipo_patrocinador', 'nombre_patrocinador', 'relacion_patrocinador',
+                         'perfil_completo', 'fecha_nacimiento']
     
     updates = []
     params = {"id": estudiante_id}
