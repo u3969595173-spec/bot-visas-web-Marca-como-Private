@@ -6105,7 +6105,7 @@ def descargar_documento(documento_id: str):
         else:
             # Documento subido por estudiante
             cursor.execute("""
-                SELECT nombre_archivo, contenido_base64, mime_type
+                SELECT nombre_archivo, url_archivo
                 FROM documentos
                 WHERE id = %s
             """, (documento_id,))
@@ -6117,7 +6117,27 @@ def descargar_documento(documento_id: str):
             if not row:
                 raise HTTPException(status_code=404, detail="Documento no encontrado")
             
-            nombre, contenido_b64, mime_type = row
+            nombre, url_archivo = row
+            
+            # El url_archivo viene como "data:application/pdf;base64,CONTENIDO"
+            # Extraer el contenido base64
+            if url_archivo.startswith('data:'):
+                # Formato: data:mime/type;base64,CONTENIDO
+                parts = url_archivo.split(',', 1)
+                if len(parts) == 2:
+                    mime_part = parts[0]  # data:application/pdf;base64
+                    contenido_b64 = parts[1]
+                    # Extraer mime type
+                    if ';' in mime_part:
+                        mime_type = mime_part.split(':')[1].split(';')[0]
+                    else:
+                        mime_type = 'application/octet-stream'
+                else:
+                    contenido_b64 = url_archivo
+                    mime_type = 'application/octet-stream'
+            else:
+                contenido_b64 = url_archivo
+                mime_type = 'application/octet-stream'
         
         # Decodificar base64
         contenido = base64.b64decode(contenido_b64)

@@ -70,6 +70,9 @@ function DashboardAdminExpandido({ onLogout }) {
   const [agenteParaChat, setAgenteParaChat] = useState(null)
   const [mensajesAgente, setMensajesAgente] = useState([])
   const [mensajeAgenteTexto, setMensajeAgenteTexto] = useState('')
+  const [showDocumentosModal, setShowDocumentosModal] = useState(false)
+  const [estudianteParaDocumentos, setEstudianteParaDocumentos] = useState(null)
+  const [documentosEstudiante, setDocumentosEstudiante] = useState([])
   const navigate = useNavigate()
 
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -175,6 +178,32 @@ function DashboardAdminExpandido({ onLogout }) {
       hour: '2-digit', 
       minute: '2-digit' 
     })
+  }
+
+  const abrirDocumentosEstudiante = async (estudiante) => {
+    setEstudianteParaDocumentos(estudiante)
+    setShowDocumentosModal(true)
+    
+    try {
+      const token = localStorage.getItem('token')
+      const response = await axios.get(`${apiUrl}/api/estudiantes/${estudiante.id}/documentos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      setDocumentosEstudiante(response.data || [])
+    } catch (error) {
+      console.error('Error cargando documentos:', error)
+      alert('Error al cargar documentos del estudiante')
+      setDocumentosEstudiante([])
+    }
+  }
+
+  const descargarDocumentoEstudiante = async (documentoId, nombreArchivo) => {
+    try {
+      window.open(`${apiUrl}/api/documentos/${documentoId}/descargar`, '_blank')
+    } catch (error) {
+      console.error('Error descargando documento:', error)
+      alert('Error al descargar documento')
+    }
   }
 
   const cargarDatos = async () => {
@@ -2197,9 +2226,17 @@ function DashboardAdminExpandido({ onLogout }) {
                           onClick={() => abrirModalMensaje(est)}
                           className="btn-mensaje"
                           title="Enviar Mensaje"
-                          style={{backgroundColor: '#3b82f6', color: 'white', padding: '6px 10px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px'}}
+                          style={{backgroundColor: '#3b82f6', color: 'white', padding: '6px 10px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px', marginRight: '5px'}}
                         >
                           ✉️
+                        </button>
+                        <button 
+                          onClick={() => abrirDocumentosEstudiante(est)}
+                          className="btn-documentos"
+                          title="Ver Documentos"
+                          style={{backgroundColor: '#8b5cf6', color: 'white', padding: '6px 10px', border: 'none', borderRadius: '5px', cursor: 'pointer', fontSize: '16px'}}
+                        >
+                          📄
                         </button>
                       </div>
                     </td>
@@ -4230,6 +4267,162 @@ function DashboardAdminExpandido({ onLogout }) {
                 📤 Enviar
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Ver Documentos del Estudiante */}
+      {showDocumentosModal && estudianteParaDocumentos && (
+        <div className="modal-overlay" onClick={() => setShowDocumentosModal(false)}>
+          <div className="modal-content modal-large" onClick={(e) => e.stopPropagation()} style={{maxWidth: '900px'}}>
+            <div className="modal-header">
+              <h2>📄 Documentos de {estudianteParaDocumentos.nombre}</h2>
+              <button className="modal-close" onClick={() => setShowDocumentosModal(false)}>✕</button>
+            </div>
+
+            <div style={{padding: '25px'}}>
+              <div style={{
+                backgroundColor: '#f9fafb',
+                padding: '15px',
+                borderRadius: '10px',
+                marginBottom: '20px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <p style={{margin: 0, fontSize: '14px', color: '#4a5568'}}>
+                  👤 <strong>{estudianteParaDocumentos.nombre}</strong>
+                </p>
+                <p style={{margin: '5px 0 0 0', fontSize: '13px', color: '#718096'}}>
+                  📧 {estudianteParaDocumentos.email}
+                </p>
+              </div>
+
+              {documentosEstudiante.length === 0 ? (
+                <div style={{
+                  padding: '60px 20px',
+                  textAlign: 'center',
+                  backgroundColor: '#fef3c7',
+                  borderRadius: '12px',
+                  border: '2px dashed #f59e0b'
+                }}>
+                  <div style={{fontSize: '64px', marginBottom: '15px'}}>📭</div>
+                  <h3 style={{color: '#92400e', margin: '0 0 10px 0'}}>Sin documentos</h3>
+                  <p style={{color: '#78350f', margin: 0}}>
+                    Este estudiante aún no ha subido ningún documento
+                  </p>
+                </div>
+              ) : (
+                <div style={{maxHeight: '500px', overflowY: 'auto'}}>
+                  <table style={{width: '100%', borderCollapse: 'collapse'}}>
+                    <thead style={{position: 'sticky', top: 0, backgroundColor: '#f9fafb', borderBottom: '2px solid #e5e7eb'}}>
+                      <tr>
+                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Tipo</th>
+                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Archivo</th>
+                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Tamaño</th>
+                        <th style={{padding: '12px', textAlign: 'left', fontWeight: '600'}}>Estado</th>
+                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600'}}>Fecha</th>
+                        <th style={{padding: '12px', textAlign: 'center', fontWeight: '600'}}>Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {documentosEstudiante.map(doc => (
+                        <tr key={doc.id} style={{borderBottom: '1px solid #e5e7eb'}}>
+                          <td style={{padding: '12px'}}>
+                            <span style={{
+                              padding: '4px 10px',
+                              backgroundColor: '#dbeafe',
+                              color: '#1e40af',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              fontWeight: '600'
+                            }}>
+                              {doc.tipo_documento}
+                            </span>
+                          </td>
+                          <td style={{padding: '12px', fontSize: '14px', color: '#374151'}}>
+                            {doc.nombre_archivo}
+                          </td>
+                          <td style={{padding: '12px', fontSize: '13px', color: '#6b7280'}}>
+                            {(doc.tamano_bytes / 1024).toFixed(1)} KB
+                          </td>
+                          <td style={{padding: '12px'}}>
+                            <span style={{
+                              padding: '4px 10px',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: doc.estado === 'aprobado' ? '#d1fae5' : doc.estado === 'rechazado' ? '#fee2e2' : '#fef3c7',
+                              color: doc.estado === 'aprobado' ? '#065f46' : doc.estado === 'rechazado' ? '#dc2626' : '#92400e'
+                            }}>
+                              {doc.estado === 'aprobado' ? '✅ Aprobado' : doc.estado === 'rechazado' ? '❌ Rechazado' : '⏳ Pendiente'}
+                            </span>
+                          </td>
+                          <td style={{padding: '12px', textAlign: 'center', fontSize: '13px', color: '#6b7280'}}>
+                            {new Date(doc.created_at).toLocaleDateString('es-ES')}
+                          </td>
+                          <td style={{padding: '12px', textAlign: 'center'}}>
+                            <button
+                              onClick={() => descargarDocumentoEstudiante(doc.id, doc.nombre_archivo)}
+                              style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#8b5cf6',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '5px'
+                              }}
+                            >
+                              📥 Descargar
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {documentosEstudiante.length > 0 && (
+                <div style={{
+                  marginTop: '20px',
+                  padding: '15px',
+                  backgroundColor: '#eff6ff',
+                  borderRadius: '10px',
+                  border: '1px solid #bfdbfe'
+                }}>
+                  <p style={{margin: 0, fontSize: '14px', color: '#1e40af'}}>
+                    💡 <strong>Total:</strong> {documentosEstudiante.length} documento(s) subido(s)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div style={{
+              padding: '20px 25px',
+              borderTop: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                onClick={() => setShowDocumentosModal(false)}
+                style={{
+                  padding: '10px 24px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  fontWeight: '600'
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}
