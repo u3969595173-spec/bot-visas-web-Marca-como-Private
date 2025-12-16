@@ -542,11 +542,30 @@ function DashboardAdminExpandido({ onLogout }) {
 
   const guardarEstudiante = async () => {
     try {
-      await axios.put(`${apiUrl}/api/admin/estudiantes/${estudianteEditar.id}`, estudianteEditar)
+      // Filtrar solo campos permitidos (sin financieros ni patrocinio)
+      const datosActualizar = {
+        nombre: estudianteEditar.nombre,
+        email: estudianteEditar.email,
+        telefono: estudianteEditar.telefono,
+        pasaporte: estudianteEditar.pasaporte,
+        edad: estudianteEditar.edad,
+        nacionalidad: estudianteEditar.nacionalidad,
+        ciudad_origen: estudianteEditar.ciudad_origen,
+        pais_origen: estudianteEditar.pais_origen,
+        especialidad: estudianteEditar.especialidad,
+        nivel_espanol: estudianteEditar.nivel_espanol,
+        tipo_visa: estudianteEditar.tipo_visa,
+        carrera_deseada: estudianteEditar.carrera_deseada,
+        fecha_nacimiento: estudianteEditar.fecha_nacimiento,
+        perfil_completo: true
+      }
+      
+      await axios.put(`${apiUrl}/api/admin/estudiantes/${estudianteEditar.id}`, datosActualizar)
       alert('✅ Estudiante actualizado correctamente')
       setShowEditarEstudianteModal(false)
       cargarDatos()
     } catch (err) {
+      console.error('Error:', err)
       alert('Error al actualizar: ' + (err.response?.data?.detail || err.message))
     }
   }
@@ -3390,100 +3409,6 @@ function DashboardAdminExpandido({ onLogout }) {
                   </select>
                 </div>
               </div>
-            </div>
-
-            {/* Información Financiera */}
-            <div style={{marginBottom: '25px', backgroundColor: '#f0fdf4', padding: '15px', borderRadius: '8px', border: '1px solid #bbf7d0'}}>
-              <h4 style={{color: '#10b981', marginBottom: '15px', fontSize: '16px'}}>💰 Información Financiera</h4>
-              
-              <div className="form-group" style={{marginBottom: '15px'}}>
-                <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
-                  <input
-                    type="checkbox"
-                    checked={estudianteEditar.fondos_suficientes || false}
-                    onChange={(e) => setEstudianteEditar({...estudianteEditar, fondos_suficientes: e.target.checked})}
-                    style={{marginRight: '10px', width: '18px', height: '18px', cursor: 'pointer'}}
-                  />
-                  <span style={{fontWeight: '500', color: '#374151'}}>¿Tiene fondos suficientes?</span>
-                </label>
-              </div>
-
-              <div className="form-group" style={{marginBottom: '15px'}}>
-                <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Monto de Fondos (€):</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={estudianteEditar.monto_fondos || ''}
-                  onChange={(e) => setEstudianteEditar({...estudianteEditar, monto_fondos: parseFloat(e.target.value)})}
-                  style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
-                  placeholder="8000.00"
-                />
-                <small style={{color: '#6b7280', fontSize: '12px'}}>Mínimo recomendado: 8,000€ por año académico</small>
-              </div>
-            </div>
-
-            {/* Información de Patrocinio */}
-            <div style={{marginBottom: '25px', backgroundColor: '#fef3c7', padding: '15px', borderRadius: '8px', border: '1px solid #fde68a'}}>
-              <h4 style={{color: '#f59e0b', marginBottom: '15px', fontSize: '16px'}}>🤝 Información de Patrocinio</h4>
-              
-              <div className="form-group" style={{marginBottom: '15px'}}>
-                <label style={{display: 'flex', alignItems: 'center', cursor: 'pointer'}}>
-                  <input
-                    type="checkbox"
-                    checked={estudianteEditar.tiene_patrocinador || false}
-                    onChange={(e) => setEstudianteEditar({...estudianteEditar, tiene_patrocinador: e.target.checked})}
-                    style={{marginRight: '10px', width: '18px', height: '18px', cursor: 'pointer'}}
-                  />
-                  <span style={{fontWeight: '500', color: '#374151'}}>¿Tiene patrocinador?</span>
-                </label>
-              </div>
-
-              {estudianteEditar.tiene_patrocinador && (
-                <>
-                  <div className="form-group" style={{marginBottom: '15px'}}>
-                    <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Tipo de Patrocinador:</label>
-                    <select
-                      value={estudianteEditar.tipo_patrocinador || ''}
-                      onChange={(e) => setEstudianteEditar({...estudianteEditar, tipo_patrocinador: e.target.value})}
-                      style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
-                    >
-                      <option value="">Seleccionar...</option>
-                      <option value="familiar">Familiar</option>
-                      <option value="empresa">Empresa</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group" style={{marginBottom: '15px'}}>
-                    <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Nombre del Patrocinador:</label>
-                    <input
-                      type="text"
-                      value={estudianteEditar.nombre_patrocinador || ''}
-                      onChange={(e) => setEstudianteEditar({...estudianteEditar, nombre_patrocinador: e.target.value})}
-                      style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
-                      placeholder="Nombre completo del patrocinador"
-                    />
-                  </div>
-
-                  {estudianteEditar.tipo_patrocinador === 'familiar' && (
-                    <div className="form-group" style={{marginBottom: '15px'}}>
-                      <label style={{display: 'block', marginBottom: '5px', fontWeight: '500', color: '#374151'}}>Relación con el Patrocinador:</label>
-                      <select
-                        value={estudianteEditar.relacion_patrocinador || ''}
-                        onChange={(e) => setEstudianteEditar({...estudianteEditar, relacion_patrocinador: e.target.value})}
-                        style={{width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '5px', fontSize: '14px'}}
-                      >
-                        <option value="">Seleccionar...</option>
-                        <option value="padre">Padre</option>
-                        <option value="madre">Madre</option>
-                        <option value="hermano">Hermano/a</option>
-                        <option value="abuelo">Abuelo/a</option>
-                        <option value="tio">Tío/a</option>
-                        <option value="otro">Otro Familiar</option>
-                      </select>
-                    </div>
-                  )}
-                </>
-              )}
             </div>
 
             {/* Documentos Subidos */}
