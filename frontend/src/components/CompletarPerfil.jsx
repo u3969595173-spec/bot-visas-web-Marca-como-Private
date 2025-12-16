@@ -17,14 +17,7 @@ const CompletarPerfil = () => {
     especialidad: '',
     nivel_espanol: 'basico',
     tipo_visa: 'estudiante',
-    fondos_disponibles: '',
-    fecha_inicio_estimada: '',
-    fondos_suficientes: false,
-    monto_fondos: '',
-    tiene_patrocinador: false,
-    tipo_patrocinador: '',
-    nombre_patrocinador: '',
-    relacion_patrocinador: ''
+    fecha_inicio_estimada: ''
   });
   const [archivos, setArchivos] = useState({
     titulo: null,
@@ -57,14 +50,7 @@ const CompletarPerfil = () => {
       if (response.data.especialidad) setFormData(prev => ({...prev, especialidad: response.data.especialidad}));
       if (response.data.nivel_espanol) setFormData(prev => ({...prev, nivel_espanol: response.data.nivel_espanol}));
       if (response.data.tipo_visa) setFormData(prev => ({...prev, tipo_visa: response.data.tipo_visa}));
-      if (response.data.fondos_disponibles) setFormData(prev => ({...prev, fondos_disponibles: response.data.fondos_disponibles}));
       if (response.data.fecha_inicio_estimada) setFormData(prev => ({...prev, fecha_inicio_estimada: response.data.fecha_inicio_estimada}));
-      if (response.data.fondos_suficientes !== undefined) setFormData(prev => ({...prev, fondos_suficientes: response.data.fondos_suficientes}));
-      if (response.data.monto_fondos) setFormData(prev => ({...prev, monto_fondos: response.data.monto_fondos}));
-      if (response.data.tiene_patrocinador !== undefined) setFormData(prev => ({...prev, tiene_patrocinador: response.data.tiene_patrocinador}));
-      if (response.data.tipo_patrocinador) setFormData(prev => ({...prev, tipo_patrocinador: response.data.tipo_patrocinador}));
-      if (response.data.nombre_patrocinador) setFormData(prev => ({...prev, nombre_patrocinador: response.data.nombre_patrocinador}));
-      if (response.data.relacion_patrocinador) setFormData(prev => ({...prev, relacion_patrocinador: response.data.relacion_patrocinador}));
     } catch (err) {
       console.error('Error cargando estudiante:', err);
       setError('Error al cargar tus datos');
