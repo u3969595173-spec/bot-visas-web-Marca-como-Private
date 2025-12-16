@@ -10018,9 +10018,6 @@ def ofertar_modalidades_pago(
             detail="Debe especificar al menos una modalidad de pago"
         )
     
-    # Agregar nota automática sobre rechazo y nueva solicitud
-    mensaje_con_nota = f"{mensaje_admin}\n\n📝 NOTA IMPORTANTE: Puedes rechazar esta oferta y solicitar un nuevo presupuesto si no se ajusta a tus necesidades. Estamos aquí para encontrar la mejor solución para ti."
-    
     # Actualizar presupuesto con modalidades
     db.execute(text("""
         UPDATE presupuestos
@@ -10036,7 +10033,7 @@ def ofertar_modalidades_pago(
         "precio_empezar": precio_al_empezar,
         "precio_visa": precio_con_visa,
         "precio_financiado": precio_financiado,
-        "mensaje": mensaje_con_nota
+        "mensaje": mensaje_admin
     })
     db.commit()
     
