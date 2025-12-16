@@ -4619,6 +4619,9 @@ def actualizar_estudiante(
     """Actualiza información de estudiante usando SQL directo"""
     from datetime import datetime
     
+    print(f"📥 Recibiendo actualización para estudiante {estudiante_id}")
+    print(f"📦 Datos recibidos: {datos}")
+    
     # Verificar que el estudiante existe
     check = db.execute(text("SELECT id FROM estudiantes WHERE id = :id"), 
                        {"id": estudiante_id}).fetchone()
@@ -4650,10 +4653,13 @@ def actualizar_estudiante(
     params["updated_at"] = datetime.utcnow()
     
     query = f"UPDATE estudiantes SET {', '.join(updates)} WHERE id = :id"
+    print(f"🔧 Query SQL: {query}")
+    print(f"🔧 Parámetros: {params}")
     
     db.execute(text(query), params)
     db.commit()
     
+    print(f"✅ Estudiante {estudiante_id} actualizado correctamente")
     return {"message": "Estudiante actualizado correctamente", "id": estudiante_id}
 
 

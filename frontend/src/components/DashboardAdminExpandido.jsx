@@ -544,22 +544,23 @@ function DashboardAdminExpandido({ onLogout }) {
     try {
       // Filtrar solo campos permitidos (sin financieros ni patrocinio)
       const datosActualizar = {
-        nombre: estudianteEditar.nombre,
-        email: estudianteEditar.email,
-        telefono: estudianteEditar.telefono,
-        pasaporte: estudianteEditar.pasaporte,
-        edad: estudianteEditar.edad,
-        nacionalidad: estudianteEditar.nacionalidad,
-        ciudad_origen: estudianteEditar.ciudad_origen,
-        pais_origen: estudianteEditar.pais_origen,
-        especialidad: estudianteEditar.especialidad,
-        nivel_espanol: estudianteEditar.nivel_espanol,
-        tipo_visa: estudianteEditar.tipo_visa,
-        carrera_deseada: estudianteEditar.carrera_deseada,
-        fecha_nacimiento: estudianteEditar.fecha_nacimiento,
+        nombre: estudianteEditar.nombre || '',
+        email: estudianteEditar.email || '',
+        telefono: estudianteEditar.telefono || '',
+        pasaporte: estudianteEditar.pasaporte || '',
+        edad: estudianteEditar.edad || null,
+        nacionalidad: estudianteEditar.nacionalidad || '',
+        ciudad_origen: estudianteEditar.ciudad_origen || '',
+        pais_origen: estudianteEditar.pais_origen || '',
+        especialidad: estudianteEditar.especialidad || '',
+        nivel_espanol: estudianteEditar.nivel_espanol || '',
+        tipo_visa: estudianteEditar.tipo_visa || '',
+        carrera_deseada: estudianteEditar.carrera_deseada || '',
+        fecha_nacimiento: estudianteEditar.fecha_nacimiento || null,
         perfil_completo: true
       }
       
+      console.log('📤 Datos a enviar:', datosActualizar)
       await axios.put(`${apiUrl}/api/admin/estudiantes/${estudianteEditar.id}`, datosActualizar)
       alert('✅ Estudiante actualizado correctamente')
       setShowEditarEstudianteModal(false)
