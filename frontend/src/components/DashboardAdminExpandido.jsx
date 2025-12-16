@@ -189,7 +189,9 @@ function DashboardAdminExpandido({ onLogout }) {
       const response = await axios.get(`${apiUrl}/api/estudiantes/${estudiante.id}/documentos`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setDocumentosEstudiante(response.data || [])
+      // El endpoint retorna {total, documentos}
+      const docs = response.data?.documentos || []
+      setDocumentosEstudiante(Array.isArray(docs) ? docs : [])
     } catch (error) {
       console.error('Error cargando documentos:', error)
       alert('Error al cargar documentos del estudiante')
