@@ -1,7 +1,7 @@
 """
 API REST con FastAPI para Dashboard Web
 Endpoints para estudiantes y panel de administración
-Última actualización: 2024-11-28 - Sistema de Referidos v2
+Última actualización: 2024-12-20 - Fix fondos_disponibles opcional
 """
 
 from fastapi import FastAPI, Depends, HTTPException, status, UploadFile, File, Query, Form, Request, Body
