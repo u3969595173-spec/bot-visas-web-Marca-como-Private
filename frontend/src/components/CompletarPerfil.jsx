@@ -101,6 +101,13 @@ const CompletarPerfil = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const codigo = localStorage.getItem('codigo_acceso');
       
+      // Validar que existe el código
+      if (!codigo) {
+        setError('No se encontró tu código de acceso. Por favor, accede desde el link del email.');
+        setLoading(false);
+        return;
+      }
+      
       // Crear FormData para enviar archivos
       const formDataToSend = new FormData();
       
