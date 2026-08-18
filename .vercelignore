@@ -1,4 +1,5 @@
-# Python files and directories - ignore all Python in root
+# Python files and directories - ignore ALL Python in root directory
+# This prevents Vercel from detecting Python and attempting to compile packages
 *.py
 __pycache__/
 *.pyc
