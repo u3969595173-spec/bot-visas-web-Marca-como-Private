@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: capital-trade-api
+    runtime: python
+    buildCommand: pip install -q fastapi uvicorn psycopg2-binary bcrypt python-jose pydantic-settings python-dotenv requests
+    startCommand: python api_simple.py
+    envVars:
+      - key: DATABASE_URL
+        scope: run
+        value: ${DATABASE_URL}
+      - key: ADMIN_USUARIO
+        scope: run
+        value: admin
+      - key: ADMIN_PASSWORD
+        scope: run
+        value: ${ADMIN_PASSWORD}
