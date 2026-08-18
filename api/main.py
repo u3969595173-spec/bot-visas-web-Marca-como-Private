@@ -14,6 +14,8 @@ from typing import List, Optional, Dict
 from datetime import datetime
 from pydantic import BaseModel
 import json
+from dotenv import load_dotenv
+load_dotenv()
 
 # Rate Limiting
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -22,7 +24,8 @@ from slowapi.errors import RateLimitExceeded
 
 # Logging estructurado
 import sys
-sys.path.append('..')
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.logger import logger, log_event, log_error
 
 # Sistema de notificaciones automáticas
@@ -63,6 +66,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://localhost:3000",
+        "http://localhost:3005",
+        "http://192.168.1.17:3005",
+        "http://192.168.1.17:5173",
+        "http://192.168.1.17:3000",
         "https://bot-visas-api.onrender.com",
         "https://fortunariocash.com",
         "https://www.fortunariocash.com",
@@ -699,6 +706,961 @@ def login(request: Request, datos: LoginRequest, db: Session = Depends(get_db)):
         )
 
 
+@app.post("/api/admin/login", tags=["Auth"])
+@limiter.limit("5/minute")
+def admin_login(request: Request, datos: LoginRequest):
+    """
+    Login para administrador.
+    Las credenciales se leen de las variables de entorno ADMIN_USUARIO y ADMIN_PASSWORD.
+    Devuelve JWT token válido.
+    """
+    import os
+
+    ADMIN_USUARIO = os.getenv("ADMIN_USUARIO", "admin")
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+
+    usuario = (datos.usuario or "").strip().lower()
+    password = (datos.password or "").strip()
+
+    if not ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="El sistema de administración no está configurado correctamente."
+        )
+
+    if usuario != ADMIN_USUARIO.lower() or password != ADMIN_PASSWORD:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales de administrador incorrectas"
+        )
+
+    token = crear_token({
+        "usuario": ADMIN_USUARIO,
+        "email": "admin@capitaltradeiberia.com",
+        "rol": "admin"
+    })
+
+    return {
+        "token": token,
+        "tipo": "Bearer",
+        "usuario": "Administrador",
+        "rol": "admin"
+    }
+
+
+# ============================================================================
+# INVERSORES
+# ============================================================================
+
+class InversorRegistroRequest(BaseModel):
+    nombre: str
+    email: str
+    telefono: str
+    pais: Optional[str] = "España"
+    password: str
+
+class InversorLoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/inversores/registro", tags=["Inversores"])
+@limiter.limit("3/hour")
+async def registro_inversor(request: Request, datos: InversorRegistroRequest):
+    """
+    Registro de nuevos inversores.
+    Contraseña almacenada con bcrypt. Devuelve JWT token.
+    Rate limit: 3 registros por hora por IP.
+    """
+    import bcrypt
+    import os
+    import psycopg2
+
+    nombre = (datos.nombre or "").strip()
+    email = (datos.email or "").strip().lower()
+    telefono = (datos.telefono or "").strip()
+    pais = (datos.pais or "España").strip()
+    password = (datos.password or "").strip()
+
+    if not nombre or not email or not telefono or not password:
+        raise HTTPException(status_code=400, detail="Todos los campos son obligatorios.")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 6 caracteres.")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        # Crear tabla inversores si no existe
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS inversores (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(200) NOT NULL,
+                email VARCHAR(200) UNIQUE NOT NULL,
+                telefono VARCHAR(50),
+                pais VARCHAR(100) DEFAULT 'España',
+                password_hash VARCHAR(255) NOT NULL,
+                estado VARCHAR(50) DEFAULT 'pendiente',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        conn.commit()
+
+        # Verificar si ya existe
+        cur.execute("SELECT id FROM inversores WHERE email = %s", (email,))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=409, detail="Ya existe un usuario registrado con ese correo electrónico.")
+
+        # Hash de contraseña
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+        cur.execute("""
+            INSERT INTO inversores (nombre, email, telefono, pais, password_hash)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id
+        """, (nombre, email, telefono, pais, password_hash))
+        inversor_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        token = crear_token({"inversor_id": inversor_id, "email": email, "role": "inversor"})
+
+        return {
+            "token": token,
+            "tipo": "Bearer",
+            "inversor": {"id": inversor_id, "nombre": nombre, "email": email}
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en registro: {str(e)}")
+
+
+@app.post("/api/inversores/login", tags=["Inversores"])
+@limiter.limit("5/minute")
+async def login_inversor(request: Request, datos: InversorLoginRequest):
+    """
+    Login de inversores con verificación bcrypt.
+    Rate limit: 5 intentos por minuto por IP.
+    """
+    import bcrypt
+    import os
+    import psycopg2
+
+    email = (datos.email or "").strip().lower()
+    password = (datos.password or "").strip()
+
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="Correo y contraseña requeridos.")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS inversores (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(200) NOT NULL,
+                email VARCHAR(200) UNIQUE NOT NULL,
+                telefono VARCHAR(50),
+                pais VARCHAR(100) DEFAULT 'España',
+                password_hash VARCHAR(255) NOT NULL,
+                estado VARCHAR(50) DEFAULT 'pendiente',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        cur.execute("SELECT id, nombre, email, password_hash FROM inversores WHERE email = %s", (email,))
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if not result or not bcrypt.checkpw(password.encode('utf-8'), result[3].encode('utf-8')):
+            raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
+
+        inversor_id, nombre, inversor_email, _ = result
+        token = crear_token({"inversor_id": inversor_id, "email": inversor_email, "rol": "inversor"})
+
+        return {
+            "token": token,
+            "tipo": "Bearer",
+            "inversor": {"id": inversor_id, "nombre": nombre, "email": inversor_email}
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en login: {str(e)}")
+
+
+@app.get("/api/inversores/pendientes", tags=["Inversores"])
+async def obtener_inversores_pendientes(
+    usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Devuelve los inversores pendientes de validación (solo para admin).
+    Requiere token JWT con role 'admin'.
+    """
+    import os
+    import psycopg2
+
+    # Verificar que sea admin
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado. Solo admins pueden ver esto.")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        # Obtener inversores con estado 'pendiente'
+        cur.execute("""
+            SELECT id, nombre, email, telefono, pais, created_at, estado 
+            FROM inversores 
+            WHERE estado = 'pendiente'
+            ORDER BY created_at DESC
+        """)
+        
+        resultados = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        inversores = []
+        for row in resultados:
+            inversores.append({
+                "id": row[0],
+                "nombre": row[1],
+                "email": row[2],
+                "telefono": row[3],
+                "pais": row[4],
+                "fecha": row[5].isoformat() if row[5] else None,
+                "estado": row[6]
+            })
+
+        return {"inversores": inversores}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener inversores: {str(e)}")
+
+
+class ActualizarInversorRequest(BaseModel):
+    estado: str
+
+
+class SolicitudInversionRequest(BaseModel):
+    importe: float
+    moneda: str
+    nombre: str
+    email: str
+    telefono: str
+    pais: str
+
+
+class AportacionRequest(BaseModel):
+    inversor_id: int
+    nombre: str
+    email: str
+    importe: float
+    moneda: str
+    estado: str = "Pendiente de validación"
+
+
+class RetiroRequest(BaseModel):
+    inversor_id: int
+    nombre: str
+    email: str
+    importe: float
+    moneda: str
+    estado: str = "Pendiente"
+
+
+class ReferidoRequest(BaseModel):
+    inversor_id: int
+    nombre: str
+    email: str
+    referido_por: str = None
+
+
+@app.post("/api/aportaciones", tags=["Aportaciones"])
+async def crear_aportacion(
+    datos: AportacionRequest,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """Crear nueva aportación"""
+    import os
+    import psycopg2
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS aportaciones (
+                id SERIAL PRIMARY KEY,
+                inversor_id INT,
+                nombre VARCHAR(200),
+                email VARCHAR(200),
+                importe DECIMAL(10, 2),
+                moneda VARCHAR(10),
+                estado VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        cur.execute("""
+            INSERT INTO aportaciones (inversor_id, nombre, email, importe, moneda, estado)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (datos.inversor_id, datos.nombre, datos.email, datos.importe, datos.moneda, datos.estado))
+        
+        aportacion_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True, "id": aportacion_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/aportaciones", tags=["Aportaciones"])
+async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
+    """Obtener todas las aportaciones (admin) o del usuario (inversor)"""
+    import os
+    import psycopg2
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        if usuario.get('rol') == 'admin':
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM aportaciones ORDER BY created_at DESC")
+        else:
+            inversor_id = usuario.get('inversor_id')
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM aportaciones WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
+        
+        resultados = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        aportaciones = []
+        for row in resultados:
+            aportaciones.append({
+                "id": row[0],
+                "inversor_id": row[1],
+                "nombre": row[2],
+                "email": row[3],
+                "importe": float(row[4]),
+                "moneda": row[5],
+                "estado": row[6],
+                "fecha": row[7].isoformat() if row[7] else None
+            })
+
+        return {"aportaciones": aportaciones}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/aportaciones/{aportacion_id}", tags=["Aportaciones"])
+async def actualizar_aportacion(
+    aportacion_id: int,
+    datos: dict,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """Actualizar estado de aportación (solo admin)"""
+    import os
+    import psycopg2
+
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("UPDATE aportaciones SET estado = %s WHERE id = %s", (datos.get('estado'), aportacion_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.post("/api/retiros", tags=["Retiros"])
+async def crear_retiro(
+    datos: RetiroRequest,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """Crear nuevo retiro"""
+    import os
+    import psycopg2
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS retiros (
+                id SERIAL PRIMARY KEY,
+                inversor_id INT,
+                nombre VARCHAR(200),
+                email VARCHAR(200),
+                importe DECIMAL(10, 2),
+                moneda VARCHAR(10),
+                estado VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        cur.execute("""
+            INSERT INTO retiros (inversor_id, nombre, email, importe, moneda, estado)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (datos.inversor_id, datos.nombre, datos.email, datos.importe, datos.moneda, datos.estado))
+        
+        retiro_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True, "id": retiro_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/retiros", tags=["Retiros"])
+async def obtener_retiros(usuario = Depends(obtener_usuario_actual)):
+    """Obtener todos los retiros (admin) o del usuario (inversor)"""
+    import os
+    import psycopg2
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        if usuario.get('rol') == 'admin':
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM retiros ORDER BY created_at DESC")
+        else:
+            inversor_id = usuario.get('inversor_id')
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM retiros WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
+        
+        resultados = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        retiros = []
+        for row in resultados:
+            retiros.append({
+                "id": row[0],
+                "inversor_id": row[1],
+                "nombre": row[2],
+                "email": row[3],
+                "importe": float(row[4]),
+                "moneda": row[5],
+                "estado": row[6],
+                "fecha": row[7].isoformat() if row[7] else None
+            })
+
+        return {"retiros": retiros}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/retiros/{retiro_id}", tags=["Retiros"])
+async def actualizar_retiro(
+    retiro_id: int,
+    datos: dict,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """Actualizar estado de retiro (solo admin)"""
+    import os
+    import psycopg2
+
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("UPDATE retiros SET estado = %s WHERE id = %s", (datos.get('estado'), retiro_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
+# CONFIGURACIÓN DEL ADMIN (Mínimos, Cuentas Bancarias)
+# ============================================================================
+
+@app.get("/api/admin/config", tags=["Admin Config"])
+async def obtener_config_admin(usuario = Depends(obtener_usuario_actual)):
+    """Obtener configuración del admin (mínimos, cuentas, etc)"""
+    import os
+    import psycopg2
+
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        # Crear tablas si no existen
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS admin_config (
+                id SERIAL PRIMARY KEY,
+                key VARCHAR(100) UNIQUE,
+                value_eur DECIMAL,
+                value_cup DECIMAL,
+                value_mlc DECIMAL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        cur.execute("SELECT key, value_eur, value_cup, value_mlc FROM admin_config WHERE key IN ('minimos')")
+        result = cur.fetchone()
+
+        minimos = {"EUR": 100, "CUP": 500, "MLC": 100}
+        if result:
+            minimos = {"EUR": float(result[1]), "CUP": float(result[2]), "MLC": float(result[3])}
+
+        cur.close()
+        conn.close()
+
+        return {"minimos": minimos}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/admin/config", tags=["Admin Config"])
+async def actualizar_config_admin(
+    datos: dict,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """Actualizar configuración del admin"""
+    import os
+    import psycopg2
+
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        minimos = datos.get('minimos', {})
+        
+        cur.execute("""
+            INSERT INTO admin_config (key, value_eur, value_cup, value_mlc) 
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (key) DO UPDATE SET 
+                value_eur = EXCLUDED.value_eur,
+                value_cup = EXCLUDED.value_cup,
+                value_mlc = EXCLUDED.value_mlc,
+                updated_at = CURRENT_TIMESTAMP
+        """, (
+            'minimos',
+            float(minimos.get('EUR', 100)),
+            float(minimos.get('CUP', 500)),
+            float(minimos.get('MLC', 100))
+        ))
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/admin/cuentas", tags=["Admin Cuentas"])
+async def obtener_cuentas_admin(usuario = Depends(obtener_usuario_actual)):
+    """Obtener cuentas bancarias configuradas"""
+    import os
+    import psycopg2
+
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS bank_accounts (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(200),
+                banco VARCHAR(100),
+                cuenta VARCHAR(100),
+                swift VARCHAR(50),
+                iban VARCHAR(100),
+                moneda VARCHAR(10),
+                activa BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        cur.execute("""
+            SELECT id, nombre, banco, cuenta, swift, iban, moneda 
+            FROM bank_accounts WHERE activa = TRUE
+            ORDER BY id
+        """)
+        
+        resultados = cur.fetchall()
+        cuentas = []
+        
+        for row in resultados:
+            cuentas.append({
+                "id": row[0],
+                "nombre": row[1],
+                "banco": row[2],
+                "cuenta": row[3],
+                "swift": row[4],
+                "iban": row[5],
+                "moneda": row[6]
+            })
+
+        cur.close()
+        conn.close()
+
+        return {"cuentas": cuentas}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.post("/api/admin/cuentas", tags=["Admin Cuentas"])
+async def crear_cuenta_admin(
+    datos: dict,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """Crear nueva cuenta bancaria"""
+    import os
+    import psycopg2
+
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            INSERT INTO bank_accounts 
+            (nombre, banco, cuenta, swift, iban, moneda, activa)
+            VALUES (%s, %s, %s, %s, %s, %s, TRUE)
+            RETURNING id
+        """, (
+            datos.get('nombre'),
+            datos.get('banco'),
+            datos.get('cuenta'),
+            datos.get('swift'),
+            datos.get('iban'),
+            datos.get('moneda')
+        ))
+        
+        cuenta_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True, "id": cuenta_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/admin/cuentas/{cuenta_id}", tags=["Admin Cuentas"])
+async def actualizar_cuenta_admin(
+    cuenta_id: int,
+    datos: dict,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """Actualizar cuenta bancaria"""
+    import os
+    import psycopg2
+
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            UPDATE bank_accounts 
+            SET nombre = %s, banco = %s, cuenta = %s, 
+                swift = %s, iban = %s, moneda = %s
+            WHERE id = %s
+        """, (
+            datos.get('nombre'),
+            datos.get('banco'),
+            datos.get('cuenta'),
+            datos.get('swift'),
+            datos.get('iban'),
+            datos.get('moneda'),
+            cuenta_id
+        ))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.post("/api/solicitudes-inversion", tags=["Solicitudes"])
+async def crear_solicitud_inversion(
+    datos: SolicitudInversionRequest,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Crea una nueva solicitud de inversión.
+    Requiere token JWT válido (inversor).
+    """
+    import os
+    import psycopg2
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        # Crear tabla si no existe
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS solicitudes_inversion (
+                id SERIAL PRIMARY KEY,
+                inversor_id INT,
+                nombre VARCHAR(200),
+                email VARCHAR(200),
+                telefono VARCHAR(50),
+                pais VARCHAR(100),
+                importe DECIMAL(10, 2),
+                moneda VARCHAR(10),
+                estado VARCHAR(50) DEFAULT 'pendiente',
+                justificante VARCHAR(500),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        # Insertar solicitud
+        inversor_id = usuario.get('inversor_id')
+        cur.execute("""
+            INSERT INTO solicitudes_inversion 
+            (inversor_id, nombre, email, telefono, pais, importe, moneda, estado)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pendiente')
+            RETURNING id
+        """, (inversor_id, datos.nombre, datos.email, datos.telefono, datos.pais, datos.importe, datos.moneda))
+        
+        solicitud_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True, "solicitud_id": solicitud_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/solicitudes-inversion", tags=["Solicitudes"])
+async def obtener_mis_solicitudes_inversion(
+    usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Devuelve todas las solicitudes de inversión del usuario actual.
+    Admin ve todas, inversor ve solo las suyas.
+    """
+    import os
+    import psycopg2
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        if usuario.get('rol') == 'admin':
+            # Admin ve todas
+            cur.execute("""
+                SELECT id, inversor_id, nombre, email, telefono, pais, importe, moneda, estado, created_at
+                FROM solicitudes_inversion
+                ORDER BY created_at DESC
+            """)
+        else:
+            # Inversor ve solo las suyas
+            inversor_id = usuario.get('inversor_id')
+            cur.execute("""
+                SELECT id, inversor_id, nombre, email, telefono, pais, importe, moneda, estado, created_at
+                FROM solicitudes_inversion
+                WHERE inversor_id = %s
+                ORDER BY created_at DESC
+            """, (inversor_id,))
+        
+        resultados = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        solicitudes = []
+        for row in resultados:
+            solicitudes.append({
+                "id": row[0],
+                "inversor_id": row[1],
+                "nombre": row[2],
+                "email": row[3],
+                "telefono": row[4],
+                "pais": row[5],
+                "importe": float(row[6]),
+                "moneda": row[7],
+                "estado": row[8],
+                "fecha": row[9].isoformat() if row[9] else None
+            })
+
+        return {"solicitudes": solicitudes}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/solicitudes-inversion/pendientes", tags=["Solicitudes"])
+async def obtener_solicitudes_inversion_pendientes(
+    usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Devuelve las solicitudes de inversión pendientes (solo para admin).
+    """
+    import os
+    import psycopg2
+
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado.")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT id, inversor_id, nombre, email, telefono, pais, importe, moneda, estado, created_at
+            FROM solicitudes_inversion
+            WHERE estado = 'pendiente'
+            ORDER BY created_at DESC
+        """)
+        
+        resultados = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        solicitudes = []
+        for row in resultados:
+            solicitudes.append({
+                "id": row[0],
+                "inversor_id": row[1],
+                "nombre": row[2],
+                "email": row[3],
+                "telefono": row[4],
+                "pais": row[5],
+                "importe": float(row[6]),
+                "moneda": row[7],
+                "estado": row[8],
+                "fecha": row[9].isoformat() if row[9] else None
+            })
+
+        return {"solicitudes": solicitudes}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/inversores/{inversor_id}/estado", tags=["Inversores"])
+async def actualizar_estado_inversor(
+    inversor_id: int,
+    datos: ActualizarInversorRequest,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Actualiza el estado de un inversor (solo para admin).
+    Estados válidos: 'pendiente', 'validada', 'rechazada'
+    """
+    import os
+    import psycopg2
+
+    # Verificar que sea admin
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado. Solo admins pueden actualizar esto.")
+
+    estado = datos.estado.lower()
+    if estado not in ['pendiente', 'validada', 'rechazada']:
+        raise HTTPException(status_code=400, detail="Estado inválido. Debe ser: pendiente, validada o rechazada.")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        # Actualizar estado
+        cur.execute(
+            "UPDATE inversores SET estado = %s WHERE id = %s",
+            (estado, inversor_id)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"success": True, "message": f"Inversor actualizado a estado: {estado}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar inversor: {str(e)}")
+
+
+@app.get("/api/inversores/validados", tags=["Inversores"])
+async def obtener_inversores_validados(
+    usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Devuelve los inversores validados (solo para admin).
+    """
+    import os
+    import psycopg2
+
+    # Verificar que sea admin
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado.")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT id, nombre, email, telefono, pais, created_at, estado 
+            FROM inversores 
+            WHERE estado = 'validada'
+            ORDER BY created_at DESC
+        """)
+        
+        resultados = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        inversores = []
+        for row in resultados:
+            inversores.append({
+                "id": row[0],
+                "nombre": row[1],
+                "email": row[2],
+                "telefono": row[3],
+                "pais": row[4],
+                "fecha": row[5].isoformat() if row[5] else None,
+                "estado": row[6]
+            })
+
+        return {"inversores": inversores}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 def obtener_usuario_actual(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
@@ -719,13 +1681,9 @@ def verificar_admin(
     usuario = Depends(obtener_usuario_actual)
 ):
     """Verifica que el usuario sea administrador"""
-    # Log para debugging
     logger.info(f"verificar_admin llamado. Usuario payload: {usuario}")
-    
-    # El token tiene 'rol', no 'is_admin'
     rol = usuario.get('rol')
     logger.info(f"Rol del usuario: {rol}")
-    
     if rol != 'admin':
         logger.warning(f"Acceso denegado. Rol requerido: 'admin', rol actual: '{rol}'")
         raise HTTPException(
@@ -733,6 +1691,139 @@ def verificar_admin(
             detail="Se requieren permisos de administrador"
         )
     return usuario
+
+
+# ─── COMUNIDAD ────────────────────────────────────────────────────────────────
+
+class MensajeComunidadRequest(BaseModel):
+    mensaje: str
+
+
+@app.get("/api/comunidad/mensajes", tags=["Comunidad"])
+async def get_mensajes_comunidad(
+    usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Devuelve los últimos 100 mensajes del chat de comunidad.
+    Requiere token JWT válido (inversor o admin).
+    """
+    import os
+    import psycopg2
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        # Crear tabla si no existe
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS mensajes_comunidad (
+                id SERIAL PRIMARY KEY,
+                autor_id TEXT NOT NULL,
+                autor_nombre TEXT NOT NULL,
+                autor_rol TEXT NOT NULL DEFAULT 'inversor',
+                mensaje TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        """)
+        conn.commit()
+
+        cur.execute("""
+            SELECT id, autor_id, autor_nombre, autor_rol, mensaje, created_at
+            FROM mensajes_comunidad
+            ORDER BY created_at DESC
+            LIMIT 100
+        """)
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        mensajes = [
+            {
+                "id": r[0],
+                "autor_id": r[1],
+                "autor_nombre": r[2],
+                "autor_rol": r[3],
+                "mensaje": r[4],
+                "created_at": r[5].isoformat() if r[5] else None
+            }
+            for r in reversed(rows)
+        ]
+        return {"mensajes": mensajes}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener mensajes: {str(e)}")
+
+
+@app.post("/api/comunidad/mensaje", tags=["Comunidad"])
+@limiter.limit("30/minute")
+async def post_mensaje_comunidad(
+    request: Request,
+    datos: MensajeComunidadRequest,
+    usuario = Depends(obtener_usuario_actual)
+):
+    """
+    Envía un mensaje al chat de comunidad.
+    Requiere token JWT válido (inversor o admin).
+    Rate limit: 30 mensajes por minuto por IP.
+    """
+    import os
+    import psycopg2
+
+    mensaje = (datos.mensaje or "").strip()
+    if not mensaje:
+        raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío.")
+    if len(mensaje) > 1000:
+        raise HTTPException(status_code=400, detail="El mensaje no puede superar 1000 caracteres.")
+
+    # Determinar nombre y rol del autor
+    autor_id = str(
+        usuario.get("inversor_id") or
+        usuario.get("sub") or
+        usuario.get("usuario") or
+        "anon"
+    )
+    autor_nombre = (
+        usuario.get("nombre") or
+        usuario.get("name") or
+        usuario.get("email") or
+        "Usuario"
+    )
+    autor_rol = usuario.get("role", "inversor")
+
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS mensajes_comunidad (
+                id SERIAL PRIMARY KEY,
+                autor_id TEXT NOT NULL,
+                autor_nombre TEXT NOT NULL,
+                autor_rol TEXT NOT NULL DEFAULT 'inversor',
+                mensaje TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+            )
+        """)
+
+        cur.execute("""
+            INSERT INTO mensajes_comunidad (autor_id, autor_nombre, autor_rol, mensaje)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, created_at
+        """, (autor_id, autor_nombre, autor_rol, mensaje))
+
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {
+            "ok": True,
+            "id": row[0],
+            "created_at": row[1].isoformat() if row[1] else None
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al enviar mensaje: {str(e)}")
 
 
 # ============================================================================
@@ -8472,25 +9563,35 @@ async def admin_obtener_retiros_agentes(
 ):
     """Admin: Obtiene todas las solicitudes de retiro de agentes"""
     
+@app.get("/api/admin/retiros-agentes", tags=["Admin - Agentes"])
+async def admin_obtener_retiros_agentes(
+    usuario=Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db)
+):
+    """
+    ⚠️ DEPRECATED: Use /api/admin/solicitudes-credito instead
+    Admin: Obtiene solicitudes de retiro de agentes (usa tabla consolidada)
+    """
+    
     result = db.execute(text("""
         SELECT 
-            sra.id,
-            sra.agente_id,
+            sc.id,
+            sc.beneficiario_id as agente_id,
             a.nombre,
             a.email,
             a.credito_disponible,
             a.credito_retirado,
-            sra.monto,
-            sra.estado,
-            sra.notas_agente,
-            sra.comentarios_admin,
-            sra.created_at,
-            sra.updated_at
-        FROM solicitudes_retiro_agentes sra
-        INNER JOIN agentes a ON a.id = sra.agente_id
+            sc.monto,
+            sc.estado,
+            sc.notas,
+            sc.fecha_solicitud,
+            sc.fecha_respuesta
+        FROM solicitudes_credito sc
+        INNER JOIN agentes a ON a.id = sc.beneficiario_id
+        WHERE sc.beneficiario_tipo = 'agente'
         ORDER BY 
-            CASE WHEN sra.estado = 'pendiente' THEN 0 ELSE 1 END,
-            sra.created_at DESC
+            CASE WHEN sc.estado = 'pendiente' THEN 0 ELSE 1 END,
+            sc.fecha_solicitud DESC
     """)).fetchall()
     
     return [
@@ -8503,10 +9604,9 @@ async def admin_obtener_retiros_agentes(
             "credito_retirado": float(row[5] or 0),
             "monto": float(row[6]),
             "estado": row[7],
-            "notas_agente": row[8],
-            "comentarios_admin": row[9],
-            "fecha_solicitud": row[10].isoformat() if row[10] else None,
-            "fecha_respuesta": row[11].isoformat() if row[11] else None
+            "notas": row[8],
+            "fecha_solicitud": row[9].isoformat() if row[9] else None,
+            "fecha_respuesta": row[10].isoformat() if row[10] else None
         }
         for row in result
     ]
@@ -8519,83 +9619,79 @@ async def admin_aprobar_retiro_agente(
     usuario=Depends(obtener_usuario_actual),
     db: Session = Depends(get_db)
 ):
-    """Admin: Aprueba o rechaza solicitud de retiro de agente"""
+    """
+    ⚠️ DEPRECATED: Use /api/admin/solicitudes-credito/{id}/responder instead
+    Admin: Aprueba o rechaza solicitud de retiro de agente (ahora usa tabla consolidada)
+    """
     
     accion = datos.get('accion')  # 'aprobar' o 'rechazar'
-    comentarios = datos.get('comentarios', '')
+    notas = datos.get('notas', datos.get('comentarios', ''))
     
     if accion not in ['aprobar', 'rechazar']:
         raise HTTPException(status_code=400, detail="Acción debe ser 'aprobar' o 'rechazar'")
     
     try:
-        # Obtener solicitud
+        # Obtener solicitud desde tabla consolidada
         solicitud = db.execute(text("""
-            SELECT sra.agente_id, sra.monto, a.nombre, a.email, a.credito_disponible
-            FROM solicitudes_retiro_agentes sra
-            INNER JOIN agentes a ON a.id = sra.agente_id
-            WHERE sra.id = :id AND sra.estado = 'pendiente'
+            SELECT sc.beneficiario_id, sc.monto, sc.estado
+            FROM solicitudes_credito sc
+            WHERE sc.id = :id AND sc.beneficiario_tipo = 'agente'
         """), {"id": solicitud_id}).fetchone()
         
         if not solicitud:
-            raise HTTPException(status_code=404, detail="Solicitud no encontrada o ya procesada")
+            raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+        
+        if solicitud[2] != 'pendiente':
+            raise HTTPException(status_code=400, detail="La solicitud ya fue procesada")
         
         agente_id = solicitud[0]
         monto = float(solicitud[1])
-        agente_nombre = solicitud[2]
-        agente_email = solicitud[3]
-        credito_disponible = float(solicitud[4] or 0)
         
         if accion == 'aprobar':
-            # Validar que tenga crédito suficiente
+            # Validar crédito
+            credito_check = db.execute(text("""
+                SELECT COALESCE(credito_disponible, 0) FROM agentes WHERE id = :id
+            """), {"id": agente_id}).fetchone()
+            
+            credito_disponible = float(credito_check[0]) if credito_check else 0
+            
             if credito_disponible < monto:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"El agente no tiene crédito suficiente. Disponible: {credito_disponible}€"
+                    detail=f"Crédito insuficiente. Disponible: {credito_disponible:.2f}€"
                 )
             
-            # Actualizar crédito del agente
+            # Descontar crédito
             db.execute(text("""
-                UPDATE agentes
+                UPDATE agentes 
                 SET credito_disponible = credito_disponible - :monto,
                     credito_retirado = COALESCE(credito_retirado, 0) + :monto
                 WHERE id = :id
             """), {"monto": monto, "id": agente_id})
             
-            estado_final = 'aprobado'
+            estado_final = 'aprobada'
         else:
-            estado_final = 'rechazado'
+            estado_final = 'rechazada'
         
-        # Actualizar solicitud
+        # Actualizar solicitud en tabla consolidada
         db.execute(text("""
-            UPDATE solicitudes_retiro_agentes
+            UPDATE solicitudes_credito
             SET estado = :estado,
-                comentarios_admin = :comentarios,
-                updated_at = CURRENT_TIMESTAMP
+                fecha_respuesta = CURRENT_TIMESTAMP,
+                notas = :notas
             WHERE id = :id
-        """), {"estado": estado_final, "comentarios": comentarios, "id": solicitud_id})
+        """), {"estado": estado_final, "notas": notas, "id": solicitud_id})
         
         db.commit()
         
-        # Notificar al agente
-        try:
-            from api.notificaciones_admin import NotificacionesAprobaciones
-            NotificacionesAprobaciones.notificar_aprobacion_retiro(
-                agente_id=agente_id,
-                tipo='retiro',
-                estado=estado_final,
-                monto=monto,
-                comentarios_admin=comentarios
-            )
-        except Exception as e:
-            print(f"⚠️ Error enviando notificación: {e}")
-        
-        return {"message": f"Retiro {estado_final} exitosamente"}
+        return {"message": f"Retiro {estado_final}"}
         
     except HTTPException:
         db.rollback()
         raise
     except Exception as e:
         db.rollback()
+        logger.error(f"Error procesando retiro de agente: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -8759,7 +9855,7 @@ async def admin_obtener_solicitudes_credito(
         SELECT 
             sc.id,
             sc.estudiante_id,
-            sc.beneficiario_tipo,
+            COALESCE(sc.beneficiario_tipo, 'estudiante') as beneficiario_tipo,
             sc.beneficiario_id,
             sc.tipo,
             sc.monto,
@@ -8767,12 +9863,21 @@ async def admin_obtener_solicitudes_credito(
             sc.fecha_solicitud,
             sc.fecha_respuesta,
             sc.notas,
-            COALESCE(e.nombre, a.nombre) as nombre,
-            COALESCE(e.email, a.email) as email,
-            COALESCE(e.credito_disponible, a.credito_disponible) as credito_disponible
+            CASE 
+                WHEN COALESCE(sc.beneficiario_tipo, 'estudiante') = 'agente' THEN a.nombre
+                ELSE e.nombre
+            END as nombre,
+            CASE 
+                WHEN COALESCE(sc.beneficiario_tipo, 'estudiante') = 'agente' THEN a.email
+                ELSE e.email
+            END as email,
+            CASE 
+                WHEN COALESCE(sc.beneficiario_tipo, 'estudiante') = 'agente' THEN a.credito_disponible
+                ELSE e.credito_disponible
+            END as credito_disponible
         FROM solicitudes_credito sc
         LEFT JOIN estudiantes e ON sc.estudiante_id = e.id
-        LEFT JOIN agentes a ON sc.beneficiario_tipo = 'agente' AND sc.beneficiario_id = a.id
+        LEFT JOIN agentes a ON COALESCE(sc.beneficiario_tipo, 'estudiante') = 'agente' AND sc.beneficiario_id = a.id
         ORDER BY 
             CASE sc.estado 
                 WHEN 'pendiente' THEN 1

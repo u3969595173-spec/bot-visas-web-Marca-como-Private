@@ -441,12 +441,12 @@ async def solicitar_retiro(
             detail=f"Crédito insuficiente. Disponible: {perfil[0] if perfil else 0}€"
         )
     
-    # Crear solicitud en tabla específica de agentes
+    # Crear solicitud en tabla consolidada de solicitudes_credito
     db.execute(text("""
-        INSERT INTO solicitudes_retiro_agentes (
-            agente_id, monto, estado, notas_agente, created_at
+        INSERT INTO solicitudes_credito (
+            beneficiario_tipo, beneficiario_id, tipo, monto, estado, notas, fecha_solicitud
         )
-        VALUES (:agente_id, :monto, 'pendiente', :notas, CURRENT_TIMESTAMP)
+        VALUES ('agente', :agente_id, 'retiro', :monto, 'pendiente', :notas, CURRENT_TIMESTAMP)
     """), {"agente_id": agente["id"], "monto": monto, "notas": notas})
     
     db.commit()
@@ -475,10 +475,10 @@ async def obtener_retiros(
     """Obtener historial de retiros del agente"""
     
     result = db.execute(text("""
-        SELECT id, monto, estado, notas_agente, comentarios_admin, 
-               created_at, updated_at
-        FROM solicitudes_retiro_agentes
-        WHERE agente_id = :agente_id
+        SELECT id, monto, estado, notas, 
+               created_at as fecha_solicitud, updated_at as fecha_respuesta
+        FROM solicitudes_credito
+        WHERE beneficiario_tipo = 'agente' AND beneficiario_id = :agente_id
         ORDER BY created_at DESC
     """), {"agente_id": agente["id"]})
     
@@ -486,12 +486,11 @@ async def obtener_retiros(
     for row in result.fetchall():
         retiros.append({
             'id': row[0],
-            'monto': float(row[1]),
+            'monto': float(row[1]) if row[1] else 0,
             'estado': row[2],
-            'notas_agente': row[3],
-            'comentarios_admin': row[4],
-            'fecha_solicitud': row[5].isoformat() if row[5] else None,
-            'fecha_respuesta': row[6].isoformat() if row[6] else None
+            'notas': row[3],
+            'fecha_solicitud': row[4].isoformat() if row[4] else None,
+            'fecha_respuesta': row[5].isoformat() if row[5] else None
         })
     
     return retiros

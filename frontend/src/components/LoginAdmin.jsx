@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import './LoginEstudiante.css'
 
 function LoginAdmin({ onLogin }) {
   const [formData, setFormData] = useState({
@@ -11,11 +12,16 @@ function LoginAdmin({ onLogin }) {
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
+  const getApiUrl = () => {
+    if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL
+    const hostname = window.location.hostname
+    return (hostname === 'localhost' || hostname === '127.0.0.1')
+      ? 'http://localhost:8000'
+      : `http://${hostname}:8000`
+  }
+
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
+    setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
   const handleSubmit = async (e) => {
@@ -23,42 +29,78 @@ function LoginAdmin({ onLogin }) {
     setLoading(true)
     setError('')
 
+    const username = (formData.usuario || '').trim()
+    const password = (formData.password || '').trim()
+
+    if (!username || !password) {
+      setError('Usuario y contraseña requeridos.')
+      setLoading(false)
+      return
+    }
+
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-      const response = await axios.post(`${apiUrl}/api/login`, formData)
-      
-      // Guardar token
-      localStorage.setItem('token', response.data.token)
-      localStorage.setItem('usuario', response.data.usuario)
-      
-      // Configurar axios para usar el token en futuras peticiones
-      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`
-      
-      onLogin()
-      navigate('/admin/dashboard')
+      const apiUrl = getApiUrl()
+      const response = await axios.post(`${apiUrl}/api/admin/login`, {
+        usuario: username,
+        password: password
+      }, { timeout: 8000 })
+
+      const { token, usuario, role } = response.data
+
+      localStorage.setItem('token', token)
+      localStorage.setItem('usuario', usuario)
+      localStorage.setItem('capital_trade_user', JSON.stringify({
+        id: 'admin-1',
+        name: usuario,
+        email: username,
+        role: role || 'admin'
+      }))
+
+      window.dispatchEvent(new Event('capital-trade-sync'))
+
+      if (typeof onLogin === 'function') {
+        onLogin({ id: 'admin-1', name: usuario, email: username, role: role || 'admin' })
+      }
+
+      navigate('/admin')
     } catch (err) {
-      setError(
-        err.response?.data?.detail || 'Error al iniciar sesión. Verifica tus credenciales.'
-      )
+      let errorMsg = 'Error al iniciar sesión. Verifica tus credenciales.'
+
+      if (err.code === 'ECONNABORTED') {
+        errorMsg = 'El servidor tardó demasiado. Verifica tu conexión de red.'
+      } else if (err.response?.status === 401 || err.response?.status === 403) {
+        errorMsg = 'Credenciales incorrectas. Verifica usuario y contraseña.'
+      } else if (err.response?.data?.detail) {
+        errorMsg = Array.isArray(err.response.data.detail)
+          ? err.response.data.detail[0]?.msg || errorMsg
+          : err.response.data.detail
+      } else if (err.code === 'ERR_NETWORK') {
+        errorMsg = 'No se puede conectar al servidor. ¿Está en línea?'
+      }
+
+      setError(errorMsg)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="container">
-      <div className="card" style={{ maxWidth: '450px', margin: '80px auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <div style={{ fontSize: '64px', marginBottom: '15px' }}>🔐</div>
-          <h2>Acceso Administrador</h2>
-          <p style={{ color: '#718096', marginTop: '10px' }}>
-            Ingresa tus credenciales para acceder al panel
-          </p>
+    <div className="login-estudiante-container">
+      <div className="login-estudiante-card">
+        <div className="login-header">
+          <p className="section-label">Panel admin</p>
+          <h1>Acceso administrativo</h1>
+          <p>Control del portafolio, operaciones, documentos y seguimiento comercial.</p>
         </div>
 
-        {error && <div className="error">{error}</div>}
+        <div className="portal-cta-group">
+          <button className="portal-cta btn-secondary" onClick={() => navigate('/login')}>Inversor</button>
+          <button className="portal-cta btn-primary">Administrador</button>
+        </div>
 
-        <form onSubmit={handleSubmit}>
+        {error && <div className="alert alert-error">⚠️ {error}</div>}
+
+        <form onSubmit={handleSubmit} className="login-form">
           <div className="form-group">
             <label>Usuario</label>
             <input
@@ -67,7 +109,7 @@ function LoginAdmin({ onLogin }) {
               value={formData.usuario}
               onChange={handleChange}
               required
-              placeholder="admin"
+              placeholder="Tu usuario"
               autoComplete="username"
             />
           </div>
@@ -85,13 +127,8 @@ function LoginAdmin({ onLogin }) {
             />
           </div>
 
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={loading}
-            style={{ width: '100%', marginTop: '10px' }}
-          >
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          <button type="submit" className="btn btn-primary btn-block" disabled={loading}>
+            {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
           </button>
         </form>
       </div>

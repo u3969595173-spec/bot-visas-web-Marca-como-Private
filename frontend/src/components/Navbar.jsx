@@ -1,18 +1,42 @@
 import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { User, Menu } from 'lucide-react';
-import Notificaciones from './Notificaciones';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import './Navbar.css';
 
-const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
-  const navigate = useNavigate();
+const Navbar = ({ isAuthenticated, setCurrentUser }) => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [currentUser, setUserState] = React.useState(null);
+
+  React.useEffect(() => {
+    const syncUser = () => {
+      const saved = localStorage.getItem('capital_trade_user');
+      if (saved) {
+        try {
+          setUserState(JSON.parse(saved));
+        } catch {
+          setUserState(null);
+        }
+      } else {
+        setUserState(null);
+      }
+    };
+
+    syncUser();
+    window.addEventListener('storage', syncUser);
+    window.addEventListener('capital-trade-sync', syncUser);
+
+    return () => {
+      window.removeEventListener('storage', syncUser);
+      window.removeEventListener('capital-trade-sync', syncUser);
+    };
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('estudiante_id');
-    localStorage.removeItem('codigo_acceso');
-    if (setEstudianteId) setEstudianteId(null);
+    localStorage.removeItem('capital_trade_user');
+    localStorage.removeItem('token');
+    setUserState(null);
+    if (setCurrentUser) setCurrentUser();
     window.location.href = '/';
   };
 
@@ -24,128 +48,86 @@ const Navbar = ({ estudianteId, isAuthenticated, setEstudianteId }) => {
     setMobileMenuOpen(false);
   };
 
+  const userIsAuthenticated = isAuthenticated || !!currentUser;
+  const isAdmin = currentUser?.role === 'admin';
+
   return (
     <header className="navbar">
       <div className="navbar-container">
-        {/* Logo */}
         <Link to="/" className="navbar-logo">
           <div className="logo-box">
-            <span className="logo-text-short">AE</span>
+            <span className="logo-text-short">CT</span>
           </div>
-          <span className="logo-text-full">Agencia Educativa España</span>
+          <span className="logo-text-full">Capital Trade Iberia</span>
         </Link>
 
-        {/* Navigation Links - Desktop */}
         <nav className="navbar-links">
-          {estudianteId && <Notificaciones estudianteId={estudianteId} />}
+          <Link to="/como-funciona" className={`nav-link ${isActive('/como-funciona')}`}>Cómo funciona</Link>
+          <Link to="/operaciones" className={`nav-link ${isActive('/operaciones')}`}>Operaciones</Link>
+          <Link to="/sobre-nosotros" className={`nav-link ${isActive('/sobre-nosotros')}`}>Nosotros</Link>
+          <Link to="/contacto" className={`nav-link ${isActive('/contacto')}`}>Contacto</Link>
 
-          {/* Menú cuando hay estudiante logueado */}
-          {estudianteId && (
+          {!userIsAuthenticated && (
             <>
-              <Link to="/estudiante/dashboard" className={`nav-link ${isActive('/estudiante/dashboard')}`}>
-                Mi Portal
-              </Link>
-              <Link to="/estudiante/simulador" className={`nav-link ${isActive('/estudiante/simulador')}`}>
-                Simulador
-              </Link>
-              <Link to="/estudiante/calculadora-fondos" className={`nav-link ${isActive('/estudiante/calculadora-fondos')}`}>
-                Calculadora
-              </Link>
-              <Link to="/estudiante/documentos" className={`nav-link ${isActive('/estudiante/documentos')}`}>
-                Documentos
-              </Link>
+              <Link to="/login" className={`nav-link ${isActive('/login')}`}>Acceso</Link>
+              <Link to="/registro" className={`nav-link ${isActive('/registro')}`}>Registro</Link>
             </>
           )}
 
-          {/* Enlaces cuando NO hay estudiante logueado */}
-          {!estudianteId && (
+          {userIsAuthenticated && !isAdmin && (
             <>
-              <Link to="/estudiante/login" className={`nav-link ${isActive('/estudiante/login')}`}>
-                Acceso
-              </Link>
-              <Link to="/registro" className={`nav-link ${isActive('/registro')}`}>
-                Registro
-              </Link>
+              <Link to="/dashboard" className={`nav-link ${isActive('/dashboard')}`}>Dashboard</Link>
+              <Link to="/comunidad" className={`nav-link ${isActive('/comunidad')}`}>Comunidad</Link>
+              <Link to="/perfil" className={`nav-link ${isActive('/perfil')}`}>Perfil</Link>
+              <button onClick={handleLogout} className="logout-btn">Salir</button>
             </>
           )}
 
-          {/* Botón Cerrar Sesión al final */}
-          {estudianteId && (
-            <button
-              onClick={handleLogout}
-              className="logout-btn"
-            >
-              Salir
-            </button>
+          {isAdmin && (
+            <>
+              <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Panel Admin</Link>
+              <Link to="/comunidad" className={`nav-link ${isActive('/comunidad')}`}>Comunidad</Link>
+              <button onClick={handleLogout} className="logout-btn">Salir</button>
+            </>
           )}
         </nav>
 
-        {/* Mobile Menu Button */}
         <div className="navbar-actions">
-          <button 
-            className="icon-btn mobile-menu-btn"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
+          <button className="icon-btn mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             <Menu size={20} />
           </button>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="mobile-menu">
           <div className="mobile-menu-content">
-            {estudianteId && (
+            <Link to="/como-funciona" className="mobile-menu-link" onClick={closeMobileMenu}>Cómo funciona</Link>
+            <Link to="/operaciones" className="mobile-menu-link" onClick={closeMobileMenu}>Operaciones</Link>
+            <Link to="/sobre-nosotros" className="mobile-menu-link" onClick={closeMobileMenu}>Nosotros</Link>
+            <Link to="/contacto" className="mobile-menu-link" onClick={closeMobileMenu}>Contacto</Link>
+
+            {!userIsAuthenticated && (
               <>
-                <Link to="/estudiante/dashboard" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Mi Portal
-                </Link>
-                <Link to="/estudiante/simulador" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Simulador
-                </Link>
-                <Link to="/estudiante/calculadora-fondos" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Calculadora
-                </Link>
-                <Link to="/estudiante/alertas" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Alertas
-                </Link>
-                <Link to="/estudiante/documentos" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Documentos
-                </Link>
-                <Link to="/estudiante/universidades" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Universidades
-                </Link>
-                <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">
-                  Cerrar Sesión
-                </button>
+                <Link to="/login" className="mobile-menu-link" onClick={closeMobileMenu}>Acceso</Link>
+                <Link to="/registro" className="mobile-menu-link" onClick={closeMobileMenu}>Registro</Link>
               </>
             )}
 
-            {!estudianteId && (
+            {userIsAuthenticated && !isAdmin && (
               <>
-                <Link to="/estudiante/login" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Acceso Estudiantes
-                </Link>
-                <Link to="/registro" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Registrarse
-                </Link>
-                <Link to="/portal" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Consultar Estado
-                </Link>
+                <Link to="/dashboard" className="mobile-menu-link" onClick={closeMobileMenu}>Dashboard</Link>
+                <Link to="/comunidad" className="mobile-menu-link" onClick={closeMobileMenu}>Comunidad</Link>
+                <Link to="/perfil" className="mobile-menu-link" onClick={closeMobileMenu}>Perfil</Link>
+                <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">Cerrar sesión</button>
               </>
             )}
 
-            {isAuthenticated && (
+            {isAdmin && (
               <>
-                <Link to="/admin/chats" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Chats
-                </Link>
-                <Link to="/admin/analytics" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Analytics
-                </Link>
-                <Link to="/admin/documentos" className="mobile-menu-link" onClick={closeMobileMenu}>
-                  Documentos
-                </Link>
+                <Link to="/admin" className="mobile-menu-link" onClick={closeMobileMenu}>Panel Admin</Link>
+                <Link to="/comunidad" className="mobile-menu-link" onClick={closeMobileMenu}>Comunidad</Link>
+                <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">Cerrar sesión</button>
               </>
             )}
           </div>

@@ -12,39 +12,35 @@ const PoliticaPrivacidad = () => {
           ← Volver
         </button>
         <h1>Política de Privacidad</h1>
-        <p className="fecha-actualizacion">Última actualización: 27 de noviembre de 2025</p>
+        <p className="fecha-actualizacion">Última actualización: 17 de agosto de 2026</p>
       </div>
 
       <div className="politica-content">
         <section>
           <h2>1. INFORMACIÓN GENERAL</h2>
           <p>
-            En <strong>Estudia en España</strong> (en adelante, "la Plataforma"), respetamos tu privacidad y 
-            estamos comprometidos con la protección de tus datos personales. Esta Política de Privacidad describe 
-            cómo recopilamos, usamos, almacenamos y protegemos tu información personal de acuerdo con el 
+            En <strong>Capital Trade Iberia</strong> (en adelante, "la Plataforma"), respetamos tu privacidad y
+            estamos comprometidos con la protección de tus datos personales. Esta Política de Privacidad describe
+            cómo recopilamos, usamos, almacenamos y protegemos tu información personal de acuerdo con el
             Reglamento General de Protección de Datos (RGPD) de la Unión Europea.
           </p>
         </section>
 
         <section>
           <h2>2. RESPONSABLE DEL TRATAMIENTO</h2>
-          <p><strong>Identidad:</strong> Estudia en España</p>
-          <p><strong>Email de contacto:</strong> privacidad@botvisasestudio.com</p>
-          <p><strong>Finalidad:</strong> Asesoramiento y gestión de solicitudes de visa de estudiante para España</p>
+          <p><strong>Identidad:</strong> Capital Trade Iberia</p>
+          <p><strong>Email de contacto:</strong> privacidad@capitaltradeiberia.com</p>
+          <p><strong>Finalidad:</strong> Gestión de operaciones comerciales entre España y Cuba, coordinación de capital y participaciones de inversores</p>
         </section>
 
         <section>
           <h2>3. DATOS QUE RECOPILAMOS</h2>
           <p>Recopilamos la siguiente información personal cuando te registras en nuestra plataforma:</p>
-          
+
           <h3>3.1 Datos de Identificación Personal</h3>
           <ul>
             <li>Nombre completo</li>
-            <li>Fecha de nacimiento</li>
-            <li>Edad</li>
-            <li>Nacionalidad</li>
-            <li>País y ciudad de origen</li>
-            <li>Número de pasaporte</li>
+            <li>Nacionalidad y país de residencia</li>
           </ul>
 
           <h3>3.2 Datos de Contacto</h3>
@@ -53,25 +49,11 @@ const PoliticaPrivacidad = () => {
             <li>Número de teléfono</li>
           </ul>
 
-          <h3>3.3 Datos Académicos</h3>
+          <h3>3.3 Datos de Participación</h3>
           <ul>
-            <li>Carrera deseada</li>
-            <li>Especialidad</li>
-            <li>Nivel de español</li>
-            <li>Tipo de visa solicitada</li>
-          </ul>
-
-          <h3>3.4 Datos Financieros</h3>
-          <ul>
-            <li>Fondos disponibles</li>
-            <li>Fecha estimada de inicio de estudios</li>
-          </ul>
-
-          <h3>3.5 Documentos</h3>
-          <ul>
-            <li>Título académico (escaneado)</li>
-            <li>Copia del pasaporte</li>
-            <li>Extractos bancarios</li>
+            <li>Capital disponible para participar en operaciones</li>
+            <li>País de origen de los fondos</li>
+            <li>Historial de operaciones</li>
           </ul>
         </section>
 
@@ -79,12 +61,11 @@ const PoliticaPrivacidad = () => {
           <h2>4. FINALIDAD DEL TRATAMIENTO</h2>
           <p>Utilizamos tus datos personales para las siguientes finalidades:</p>
           <ul>
-            <li><strong>Gestión de tu solicitud:</strong> Procesar y gestionar tu solicitud de visa de estudiante</li>
-            <li><strong>Asesoramiento personalizado:</strong> Proporcionarte recomendaciones de cursos y universidades</li>
-            <li><strong>Evaluación de elegibilidad:</strong> Calcular tu probabilidad de éxito en la solicitud de visa</li>
-            <li><strong>Generación de documentos:</strong> Crear borradores de cartas y documentación necesaria</li>
-            <li><strong>Comunicación:</strong> Enviarte actualizaciones sobre tu proceso y responder tus consultas</li>
-            <li><strong>Cumplimiento legal:</strong> Cumplir con obligaciones legales y regulatorias</li>
+            <li><strong>Gestión de participaciones:</strong> Procesar y gestionar tu participación en operaciones comerciales</li>
+            <li><strong>Información de operaciones:</strong> Enviarte información sobre operaciones activas, capital disponible y condiciones</li>
+            <li><strong>Seguimiento:</strong> Actualizar el estado de tus participaciones y movimientos</li>
+            <li><strong>Comunicación:</strong> Enviarte actualizaciones y responder tus consultas</li>
+            <li><strong>Cumplimiento legal:</strong> Cumplir con obligaciones legales y regulatorias aplicables</li>
           </ul>
         </section>
 
@@ -102,10 +83,9 @@ const PoliticaPrivacidad = () => {
           <h2>6. DESTINATARIOS DE LOS DATOS</h2>
           <p>Tus datos personales pueden ser compartidos con:</p>
           <ul>
-            <li><strong>Instituciones educativas:</strong> Universidades y escuelas de idiomas con las que colaboramos</li>
-            <li><strong>Autoridades:</strong> Consulados y embajadas de España cuando sea necesario para tu solicitud</li>
+            <li><strong>Socios comerciales:</strong> Contrapartes y operadores en las operaciones comerciales cuando sea estrictamente necesario</li>
             <li><strong>Proveedores de servicios:</strong> Empresas que nos ayudan a operar la plataforma (hosting, email, etc.)</li>
-            <li><strong>Asesores legales:</strong> Cuando sea necesario para cumplir con obligaciones legales</li>
+            <li><strong>Asesores legales y financieros:</strong> Cuando sea necesario para cumplir con obligaciones legales</li>
           </ul>
           <p>
             <strong>Nota importante:</strong> Nunca vendemos ni alquilamos tus datos personales a terceros con fines comerciales.
@@ -115,8 +95,8 @@ const PoliticaPrivacidad = () => {
         <section>
           <h2>7. TRANSFERENCIAS INTERNACIONALES</h2>
           <p>
-            Tus datos pueden ser transferidos y procesados fuera del Espacio Económico Europeo (EEE). 
-            En estos casos, garantizamos que se aplican medidas de seguridad adecuadas conforme al RGPD, 
+            Tus datos pueden ser transferidos y procesados fuera del Espacio Económico Europeo (EEE).
+            En estos casos, garantizamos que se aplican medidas de seguridad adecuadas conforme al RGPD,
             como cláusulas contractuales tipo aprobadas por la Comisión Europea.
           </p>
         </section>
@@ -134,7 +114,7 @@ const PoliticaPrivacidad = () => {
         <section>
           <h2>9. TUS DERECHOS</h2>
           <p>De acuerdo con el RGPD, tienes los siguientes derechos:</p>
-          
+
           <div className="derechos-grid">
             <div className="derecho-item">
               <h4>🔍 Derecho de Acceso</h4>
@@ -163,8 +143,8 @@ const PoliticaPrivacidad = () => {
           </div>
 
           <p>
-            Para ejercer cualquiera de estos derechos, contacta con nosotros en: 
-            <strong> privacidad@botvisasestudio.com</strong>
+            Para ejercer cualquiera de estos derechos, contacta con nosotros en:
+            <strong> privacidad@capitaltradeiberia.com</strong>
           </p>
           <p>
             Responderemos a tu solicitud en un plazo máximo de <strong>30 días</strong>.
@@ -201,7 +181,7 @@ const PoliticaPrivacidad = () => {
         <section>
           <h2>12. MENORES DE EDAD</h2>
           <p>
-            Nuestra plataforma está destinada a personas mayores de 16 años. Si eres menor de 16 años, 
+            Nuestra plataforma está destinada a personas mayores de 16 años. Si eres menor de 16 años,
             necesitas el consentimiento de tus padres o tutores legales para utilizar nuestros servicios.
           </p>
         </section>
@@ -209,8 +189,8 @@ const PoliticaPrivacidad = () => {
         <section>
           <h2>13. CAMBIOS EN LA POLÍTICA DE PRIVACIDAD</h2>
           <p>
-            Nos reservamos el derecho de actualizar esta Política de Privacidad. Te notificaremos cualquier 
-            cambio significativo por email o mediante aviso destacado en la plataforma. La fecha de la última 
+            Nos reservamos el derecho de actualizar esta Política de Privacidad. Te notificaremos cualquier
+            cambio significativo por email o mediante aviso destacado en la plataforma. La fecha de la última
             actualización aparece al inicio de este documento.
           </p>
         </section>
@@ -218,7 +198,7 @@ const PoliticaPrivacidad = () => {
         <section>
           <h2>14. AUTORIDAD DE CONTROL</h2>
           <p>
-            Si consideras que tus derechos de protección de datos han sido vulnerados, puedes presentar una 
+            Si consideras que tus derechos de protección de datos han sido vulnerados, puedes presentar una
             reclamación ante la autoridad de control competente:
           </p>
           <p>
@@ -232,17 +212,16 @@ const PoliticaPrivacidad = () => {
           <h2>15. CONTACTO</h2>
           <p>Para cualquier consulta sobre esta Política de Privacidad o sobre el tratamiento de tus datos:</p>
           <div className="contacto-info">
-            <p>📧 <strong>Email:</strong> privacidad@botvisasestudio.com</p>
-            <p>📞 <strong>Teléfono:</strong> +34 XXX XXX XXX</p>
-            <p>🌐 <strong>Web:</strong> www.botvisasestudio.com</p>
+            <p>📧 <strong>Email:</strong> privacidad@capitaltradeiberia.com</p>
+            <p>🌐 <strong>Web:</strong> www.capitaltradeiberia.com</p>
           </div>
         </section>
 
         <div className="consentimiento-recordatorio">
           <h3>📋 Recordatorio sobre tu Consentimiento</h3>
           <p>
-            Al registrarte en nuestra plataforma y marcar la casilla de consentimiento, aceptas que tratemos 
-            tus datos personales conforme a esta Política de Privacidad. Puedes retirar tu consentimiento en 
+            Al registrarte en nuestra plataforma y marcar la casilla de consentimiento, aceptas que tratemos
+            tus datos personales conforme a esta Política de Privacidad. Puedes retirar tu consentimiento en
             cualquier momento contactándonos.
           </p>
         </div>
