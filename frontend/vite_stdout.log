@@ -1,0 +1,53 @@
+
+> bot-visas-frontend@1.0.0 dev
+> vite --host 0.0.0.0
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m447[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3005[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://192.168.1.17:[1m3005[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m21:49:46[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Navbar.jsx[22m
+[2m21:49:55[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Home.jsx[22m
+[2m21:50:22[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Navbar.jsx[22m
+[2m21:51:44[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m22:20:15[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m22:20:19[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m22:20:42[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m22:25:26[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:23:12[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:23:20[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:23:30[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:25:33[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:25:39[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:27:19[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardAdminExpandido.jsx[22m
+[2m23:27:23[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardAdminExpandido.jsx[22m
+[2m23:27:40[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardAdminExpandido.jsx[22m
+[2m23:29:43[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardAdminExpandido.jsx[22m
+[2m23:36:11[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:36:27[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:37:36[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:53:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardAdminExpandido.jsx[22m
+[2m23:53:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/App.jsx[22m
+[2m23:53:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Navbar.jsx[22m
+[2m23:53:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m23:53:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ComoFunciona.jsx[22m
+[2m23:53:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/CatalogoOperaciones.jsx[22m
+[2m23:53:34[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Home.jsx[22m
+[2m0:05:00[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m0:05:02[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Home.jsx[22m
+[2m0:05:44[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/ComoFunciona.jsx[22m
+[2m0:06:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/index.css[22m
+[2m0:11:06[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Home.css[22m
+[2m0:11:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Home.jsx[22m
+[2m0:12:37[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Home.css[22m
+[2m0:14:15[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/LoginEstudiante.css[22m
+[2m0:15:04[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/RegistroEstudiante.css[22m
+[2m0:16:40[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardAdminExpandido.css[22m
+[2m0:17:02[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardAdminExpandido.css[22m
+[2m0:17:40[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m0:18:10[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
+[2m0:19:41[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Platform.css[22m
+[2m0:19:43[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardAdminExpandido.css[22m
+[2m0:22:22[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/DashboardInversionista.jsx[22m
