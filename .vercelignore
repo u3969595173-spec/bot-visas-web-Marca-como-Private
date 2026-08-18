@@ -1,6 +1,28 @@
-requirements.txt
-api_simple.py
-api/
+# Python files and directories - ignore all Python in root
 *.py
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv
+
+# Backend files
+api/
+api_simple.py
+requirements.txt
+requirements-backend.txt
+Dockerfile
+docker-compose.yml
 render.yaml
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# Test files
+test_*.py
+*_test.py
