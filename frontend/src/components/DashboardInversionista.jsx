@@ -513,7 +513,7 @@ function DashboardInversionista() {
           <button className={`sidebar-tab ${activeTab === 'resumen' ? 'active' : ''}`} onClick={() => setActiveTab('resumen')}>
             <div className="tab-indicator" /> <span className="tab-label">📊 Mi Cartera</span>
           </button>
-          <button className={`sidebar-tab ${activeTab === 'billetera' ? 'active' : ''}`} onClick={() => setActiveTab('billetera')}>
+          <button className={`sidebar-tab ${activeTab === 'retirar' ? 'active' : ''}`} onClick={() => setActiveTab('retirar')}>
             <div className="tab-indicator" /> <span className="tab-label">💳 Billetera / Retiros</span>
           </button>
 
