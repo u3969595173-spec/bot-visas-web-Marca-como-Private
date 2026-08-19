@@ -180,8 +180,10 @@ async def login_inversor(datos: InversorLoginRequest):
 
 
 @app.post("/api/admin/login")
-async def admin_login(usuario: str, password: str):
+async def admin_login(datos: dict):
     """Login de admin"""
+    usuario = datos.get("usuario", "")
+    password = datos.get("password", "")
     ADMIN_USER = os.getenv("ADMIN_USUARIO", "admin")
     ADMIN_PASS = os.getenv("ADMIN_PASSWORD", "")
     
