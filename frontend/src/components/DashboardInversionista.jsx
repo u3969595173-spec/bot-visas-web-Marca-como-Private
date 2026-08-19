@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './Platform.css';
+import './DashboardAdminExpandido.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -496,17 +497,75 @@ function DashboardInversionista() {
   }
 
   return (
-    <div className="platform-page">
-      <div className="platform-card">
-        <div className="platform-header">
-          <div>
-            <p className="section-label">Panel de inversor</p>
-            <h1>Mi cartera</h1>
+    <div className="admin-futuristic-layout">
+      {/* SIDEBAR NAVIGATION */}
+      <aside className="admin-sidebar" style={{ borderRight: '1px solid rgba(0, 240, 255, 0.15)' }}>
+        <div className="sidebar-brand">
+          <div className="brand-icon" style={{ color: '#f6c453', textShadow: '0 0 15px rgba(246,196,83,0.5)' }}>✧</div>
+          <div className="brand-text">
+            <span className="glow-text" style={{ background: 'linear-gradient(to right, #fff, #f6c453)' }}>Capital Trade</span>
+            <span className="badge-admin" style={{ color: '#00f0ff' }}>INVERSOR</span>
           </div>
-          <div className="platform-actions">
-            <button className="secondary-btn" onClick={() => {
+        </div>
+
+        <nav className="sidebar-nav">
+          <div className="nav-group-title">PORTAFOLIO</div>
+          <button className={`sidebar-tab ${activeTab === 'resumen' ? 'active' : ''}`} onClick={() => setActiveTab('resumen')}>
+            <div className="tab-indicator" /> <span className="tab-label">📊 Mi Cartera</span>
+          </button>
+          <button className={`sidebar-tab ${activeTab === 'billetera' ? 'active' : ''}`} onClick={() => setActiveTab('billetera')}>
+            <div className="tab-indicator" /> <span className="tab-label">💳 Billetera / Retiros</span>
+          </button>
+
+          <div className="nav-divider"></div>
+          <div className="nav-group-title">ACTIVIDAD</div>
+          <button className={`sidebar-tab ${activeTab === 'operaciones' ? 'active' : ''}`} onClick={() => setActiveTab('operaciones')}>
+            <div className="tab-indicator" /> <span className="tab-label">💼 Ops. Compartidas</span>
+          </button>
+          <button className={`sidebar-tab ${activeTab === 'referidos' ? 'active' : ''}`} onClick={() => setActiveTab('referidos')}>
+            <div className="tab-indicator" /> <span className="tab-label">👥 Mis Referidos</span>
+          </button>
+          <button className={`sidebar-tab ${activeTab === 'solicitudes' ? 'active' : ''}`} onClick={() => setActiveTab('solicitudes')}>
+            <div className="tab-indicator" /> <span className="tab-label">📝 Mis Solicitudes</span>
+          </button>
+
+          <div className="nav-divider"></div>
+          <div className="nav-group-title">EXTRAS</div>
+
+          <Link to="/comunidad" className="sidebar-tab highlight" style={{ textDecoration: 'none' }}>
+            <div className="tab-indicator" />
+            <span className="tab-label">🌐 Comunidad Interna</span>
+          </Link>
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="user-profile">
+            <div className="avatar" style={{ background: 'linear-gradient(135deg, #f6c453, #00f0ff)' }}>{(currentUser?.name || currentUser?.nombre || 'U')[0].toUpperCase()}</div>
+            <div className="user-info">
+              <span className="user-name">{currentUser?.name || currentUser?.nombre || 'Inversor'}</span>
+              <small className="user-role" style={{ color: '#00f0ff' }}>Online</small>
+            </div>
+          </div>
+          {/* Action Buttons specific to investor */}
+          <button className="btn-logout-sidebar" style={{ background: 'rgba(246, 196, 83, 0.1)', color: '#f6c453', borderColor: 'rgba(246, 196, 83, 0.2)', marginBottom: '8px' }} onClick={() => setShowInversionModal(true)}>
+            + Nueva Inversión
+          </button>
+          <button className="btn-logout-sidebar" style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7', borderColor: 'rgba(168, 85, 247, 0.2)' }} onClick={() => setShowRangosModal(true)}>
+            🏆 Mis Rangos
+          </button>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <main className="admin-main-content">
+        <header className="topbar">
+          <div className="topbar-left">
+            <h1>{activeTab === 'resumen' ? 'Mi Cartera' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+            <p className="subtitle">Gestión de capital y participación operativa</p>
+          </div>
+          <div className="topbar-actions">
+            <button onClick={() => {
               setShowChatModal(true)
-              // Marcar mensajes del admin como leídos
               const stored = readStorage('capital_trade_mensajes', [])
               const updated = stored.map(m => {
                 if (m.tipo === 'admin' && m.usuarioId === (currentUser?.id || 'anon')) {
@@ -515,1242 +574,1222 @@ function DashboardInversionista() {
                 return m
               })
               localStorage.setItem('capital_trade_mensajes', JSON.stringify(updated))
-            }} style={{ position: 'relative', display: 'inline-block' }}>
+            }} style={{ position: 'relative', display: 'inline-block', padding: '10px 20px', background: 'rgba(0,240,255,0.1)', border: '1px solid rgba(0,240,255,0.3)', color: '#00f0ff', borderRadius: '12px', cursor: 'pointer', fontWeight: 600 }}>
               💬 Chat con Admin
               {mensajes.filter(m => m.tipo === 'admin' && !m.leido && m.usuarioId === (currentUser?.id || 'anon')).length > 0 && (
                 <span style={{
-                  position: 'absolute',
-                  top: '-8px',
-                  right: '-8px',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '24px',
-                  height: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  border: '2px solid white'
+                  position: 'absolute', top: '-8px', right: '-8px', backgroundColor: '#ef4444', color: 'white', borderRadius: '50%',
+                  width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold'
                 }}>
                   {mensajes.filter(m => m.tipo === 'admin' && !m.leido && m.usuarioId === (currentUser?.id || 'anon')).length}
                 </span>
               )}
             </button>
-            <button className="primary-btn" onClick={() => setShowInversionModal(true)}>💰 Invertir</button>
-            <button className="primary-btn" style={{ backgroundColor: '#a855f7' }} onClick={() => setShowRangosModal(true)}>🏆 Rangos</button>
-            <Link to="/comunidad" className="primary-btn" style={{ backgroundColor: '#0e7490', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>🌐 Comunidad</Link>
           </div>
-        </div>
+        </header>
 
-        <div className="tab-switcher" role="tablist" aria-label="Dashboard investor tabs">
-          <button className={activeTab === 'resumen' ? 'tab active' : 'tab'} onClick={() => setActiveTab('resumen')}>Resumen</button>
-          <button className={activeTab === 'referidos' ? 'tab active' : 'tab'} onClick={() => setActiveTab('referidos')}>Mis Referidos</button>
-          <button className={activeTab === 'solicitudes' ? 'tab active' : 'tab'} onClick={() => setActiveTab('solicitudes')}>Mis Solicitudes</button>
-          <button className={activeTab === 'retirar' ? 'tab active' : 'tab'} onClick={() => setActiveTab('retirar')}>Retirar</button>
-          <Link to="/comunidad" className="tab" style={{ textDecoration: 'none' }}>💬 Comunidad</Link>
-        </div>
+        <div className="content-scroll">
 
-        <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-          {/* Inversión Activa - Gradiente Azul */}
-          <div style={{
-            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            color: 'white',
-            boxShadow: '0 8px 16px rgba(2, 132, 199, 0.3)',
-            border: '2px solid rgba(255,255,255,0.2)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
-            <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalAportado, 'EUR')}</p>
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital invertido</p>
-          </div>
+          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+            {/* Inversión Activa - Gradiente Azul */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              color: 'white',
+              boxShadow: '0 8px 16px rgba(2, 132, 199, 0.3)',
+              border: '2px solid rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalAportado, 'EUR')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital invertido</p>
+            </div>
 
-          {/* Ganancias Posibles - Gradiente Verde */}
-          <div style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            color: 'white',
-            boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
-            border: '2px solid rgba(255,255,255,0.2)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>📈 Ganancias Posibles</p>
-            <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalGananciasPosibles, 'EUR')}</p>
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Pool disponible</p>
-          </div>
+            {/* Ganancias Posibles - Gradiente Verde */}
+            <div style={{
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              color: 'white',
+              boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
+              border: '2px solid rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>📈 Ganancias Posibles</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalGananciasPosibles, 'EUR')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Pool disponible</p>
+            </div>
 
-          {/* Saldo Disponible - Gradiente Púrpura */}
-          <div style={{
-            background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            color: 'white',
-            boxShadow: '0 8px 16px rgba(168, 85, 247, 0.3)',
-            border: '2px solid rgba(255,255,255,0.2)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💵 Saldo Disponible</p>
-            <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(capitalDisponible, 'EUR')}</p>
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Para retirar</p>
-          </div>
+            {/* Saldo Disponible - Gradiente Púrpura */}
+            <div style={{
+              background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              color: 'white',
+              boxShadow: '0 8px 16px rgba(168, 85, 247, 0.3)',
+              border: '2px solid rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💵 Saldo Disponible</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(capitalDisponible, 'EUR')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Para retirar</p>
+            </div>
 
-          {/* Total Retirado - Gradiente Naranja */}
-          <div style={{
-            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            color: 'white',
-            boxShadow: '0 8px 16px rgba(245, 158, 11, 0.3)',
-            border: '2px solid rgba(255,255,255,0.2)',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>✅ Total Retirado</p>
-            <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalRetirado, 'EUR')}</p>
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido</p>
-          </div>
-        </div>
-
-        {activeTab === 'resumen' && (
-          <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
-            <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.3rem', fontWeight: '700' }}>💼 Mis Inversiones</h2>
-
-            {userAportaciones.length > 0 ? (
-              userAportaciones.map((item, idx) => {
-                const capitalInvertido = Number(item.importe || 0)
-                const poolTotal = capitalInvertido * 3
-                const gananciasDis = item.gananciasDisponibles !== undefined ? Number(item.gananciasDisponibles) : poolTotal
-                const ganado = poolTotal - gananciasDis
-                const porcentaje = poolTotal > 0 ? Math.min((ganado / poolTotal) * 100, 100) : 0
-                const completado = porcentaje >= 100
-
-                return (
-                  <div key={item.id || idx} style={{
-                    background: 'rgba(10, 17, 30, 0.7)',
-                    backdropFilter: 'blur(16px)',
-                    border: '1px solid rgba(148, 163, 184, 0.12)',
-                    borderRadius: '20px',
-                    padding: '1.5rem',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)'
-                  }}>
-                    {/* Header de la inversión */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <div>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                          Inversión #{idx + 1}
-                        </p>
-                        <p style={{ margin: '0.3rem 0 0', fontSize: '1.5rem', fontWeight: '800', color: '#f8fafc' }}>
-                          {formatCurrency(capitalInvertido, item.moneda || 'EUR')}
-                        </p>
-                      </div>
-                      <span style={{
-                        padding: '0.35rem 0.9rem',
-                        borderRadius: '999px',
-                        fontSize: '0.72rem',
-                        fontWeight: '700',
-                        letterSpacing: '0.04em',
-                        textTransform: 'uppercase',
-                        background: completado
-                          ? 'rgba(16, 185, 129, 0.15)'
-                          : item.estado === 'Activa' || item.estado === 'Validada'
-                            ? 'rgba(246, 196, 83, 0.12)'
-                            : 'rgba(239, 68, 68, 0.12)',
-                        color: completado
-                          ? '#86efac'
-                          : item.estado === 'Activa' || item.estado === 'Validada'
-                            ? '#f6c453'
-                            : '#fca5a5',
-                        border: `1px solid ${completado ? 'rgba(16, 185, 129, 0.25)' : item.estado === 'Activa' || item.estado === 'Validada' ? 'rgba(246, 196, 83, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
-                      }}>
-                        {completado ? '✓ Completada' : item.estado}
-                      </span>
-                    </div>
-
-                    {/* Barra de progreso */}
-                    <div style={{ marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: '600' }}>Progreso de ganancias</span>
-                        <span style={{ fontSize: '0.85rem', color: completado ? '#86efac' : '#f6c453', fontWeight: '800' }}>{porcentaje.toFixed(1)}%</span>
-                      </div>
-                      <div style={{
-                        width: '100%',
-                        height: '12px',
-                        backgroundColor: 'rgba(148, 163, 184, 0.08)',
-                        borderRadius: '999px',
-                        overflow: 'hidden',
-                        border: '1px solid rgba(148, 163, 184, 0.08)'
-                      }}>
-                        <div style={{
-                          width: `${porcentaje}%`,
-                          height: '100%',
-                          borderRadius: '999px',
-                          background: completado
-                            ? 'linear-gradient(90deg, #10b981, #34d399)'
-                            : porcentaje > 50
-                              ? 'linear-gradient(90deg, #f6c453, #dba93a, #10b981)'
-                              : 'linear-gradient(90deg, #f6c453, #dba93a)',
-                          transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                          boxShadow: completado
-                            ? '0 0 12px rgba(16, 185, 129, 0.4)'
-                            : '0 0 12px rgba(246, 196, 83, 0.3)'
-                        }} />
-                      </div>
-                    </div>
-
-                    {/* Detalles numéricos */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                      <div style={{
-                        background: 'rgba(246, 196, 83, 0.06)',
-                        border: '1px solid rgba(246, 196, 83, 0.1)',
-                        borderRadius: '12px',
-                        padding: '0.8rem',
-                        textAlign: 'center'
-                      }}>
-                        <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pool total</p>
-                        <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#f6c453' }}>{formatCurrency(poolTotal, 'EUR')}</p>
-                      </div>
-                      <div style={{
-                        background: 'rgba(16, 185, 129, 0.06)',
-                        border: '1px solid rgba(16, 185, 129, 0.1)',
-                        borderRadius: '12px',
-                        padding: '0.8rem',
-                        textAlign: 'center'
-                      }}>
-                        <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ganado</p>
-                        <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#86efac' }}>{formatCurrency(ganado, 'EUR')}</p>
-                      </div>
-                      <div style={{
-                        background: 'rgba(148, 163, 184, 0.04)',
-                        border: '1px solid rgba(148, 163, 184, 0.08)',
-                        borderRadius: '12px',
-                        padding: '0.8rem',
-                        textAlign: 'center'
-                      }}>
-                        <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Disponible</p>
-                        <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#e2e8f0' }}>{formatCurrency(gananciasDis, 'EUR')}</p>
-                      </div>
-                    </div>
-
-                    {/* Fecha */}
-                    <p style={{ margin: '0.8rem 0 0', fontSize: '0.72rem', color: '#64748b', textAlign: 'right' }}>
-                      📅 {item.fechaUltimoPago ? `Último pago: ${new Date(item.fechaUltimoPago).toLocaleDateString('es-ES')}` : `Registrada: ${new Date(item.createdAt || Date.now()).toLocaleDateString('es-ES')}`}
-                    </p>
-                  </div>
-                )
-              })
-            ) : (
-              <div style={{
-                padding: '3rem 2rem',
-                background: 'rgba(10, 17, 30, 0.5)',
-                borderRadius: '20px',
-                textAlign: 'center',
-                border: '1px solid rgba(148, 163, 184, 0.08)'
-              }}>
-                <p style={{ fontSize: '2.5rem', margin: '0 0 0.8rem' }}>💰</p>
-                <p style={{ color: '#94a3b8', fontSize: '0.95rem', margin: 0 }}>Aún no tienes inversiones registradas. ¡Comienza a invertir!</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'retirar' && (
-          <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-            {/* Panel de Solicitud de Retiro */}
+            {/* Total Retirado - Gradiente Naranja */}
             <div style={{
               background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
               borderRadius: '12px',
-              padding: '2rem',
+              padding: '1.5rem',
               color: 'white',
               boxShadow: '0 8px 16px rgba(245, 158, 11, 0.3)',
-              border: '2px solid rgba(255,255,255,0.2)'
+              border: '2px solid rgba(255,255,255,0.2)',
+              backdropFilter: 'blur(10px)'
             }}>
-              <h2 style={{ marginTop: 0 }}>🏦 Solicitar Retiro</h2>
-              <p style={{ opacity: 0.9, marginBottom: '1.5rem' }}>Saldo disponible: <strong style={{ fontSize: '20px' }}>{formatCurrency(capitalDisponible, 'EUR')}</strong></p>
-
-              <form onSubmit={handleRetiroSubmit} style={{ display: 'grid', gap: '1rem' }}>
-                <div>
-                  <label htmlFor="monto-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Importe a retirar</label>
-                  <input
-                    id="monto-retiro"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={montoRetiro}
-                    onChange={(e) => setMontoRetiro(e.target.value)}
-                    placeholder="Ej. 2500"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      color: 'white',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="notas-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Notas (opcional)</label>
-                  <textarea
-                    id="notas-retiro"
-                    value={notasRetiro}
-                    onChange={(e) => setNotasRetiro(e.target.value)}
-                    placeholder="Cuenta destino o información adicional"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      color: 'white',
-                      fontFamily: 'inherit',
-                      minHeight: '80px',
-                      boxSizing: 'border-box',
-                      resize: 'vertical'
-                    }}
-                  />
-                </div>
-
-                {errorRetiro && <div style={{
-                  backgroundColor: 'rgba(0,0,0,0.2)',
-                  color: '#fef3c7',
-                  padding: '0.75rem',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>⚠️ {errorRetiro}</div>}
-                {successRetiro && <div style={{
-                  backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                  color: '#dcfce7',
-                  padding: '0.75rem',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>✅ {successRetiro}</div>}
-
-                <button type="submit" style={{
-                  padding: '0.75rem',
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  color: 'white',
-                  border: '2px solid rgba(255,255,255,0.4)',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '15px',
-                  transition: 'all 0.3s'
-                }}>
-                  💰 Enviar Solicitud
-                </button>
-              </form>
+              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>✅ Total Retirado</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalRetirado, 'EUR')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido</p>
             </div>
+          </div>
 
-            {/* Panel de Historial de Retiros */}
-            <div style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.8)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-              border: '1px solid rgba(148, 163, 184, 0.12)'
-            }}>
-              <h2 style={{ marginTop: 0, color: '#f8fafc' }}>📋 Historial de Retiros</h2>
-              {userRetiros.length ? (
-                <div style={{ display: 'grid', gap: '1rem' }}>
-                  {userRetiros.map((item) => (
-                    <div key={item.id} style={{
-                      padding: '1rem',
-                      backgroundColor: item.estado === 'Procesado' ? 'rgba(16, 185, 129, 0.1)' : item.estado === 'Pendiente' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                      borderRadius: '8px',
-                      borderLeft: `4px solid ${item.estado === 'Procesado' ? '#10b981' : item.estado === 'Pendiente' ? '#f59e0b' : '#ef4444'}`,
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
+          {activeTab === 'resumen' && (
+            <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
+              <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.3rem', fontWeight: '700' }}>💼 Mis Inversiones</h2>
+
+              {userAportaciones.length > 0 ? (
+                userAportaciones.map((item, idx) => {
+                  const capitalInvertido = Number(item.importe || 0)
+                  const poolTotal = capitalInvertido * 3
+                  const gananciasDis = item.gananciasDisponibles !== undefined ? Number(item.gananciasDisponibles) : poolTotal
+                  const ganado = poolTotal - gananciasDis
+                  const porcentaje = poolTotal > 0 ? Math.min((ganado / poolTotal) * 100, 100) : 0
+                  const completado = porcentaje >= 100
+
+                  return (
+                    <div key={item.id || idx} style={{
+                      background: 'rgba(10, 17, 30, 0.7)',
+                      backdropFilter: 'blur(16px)',
+                      border: '1px solid rgba(148, 163, 184, 0.12)',
+                      borderRadius: '20px',
+                      padding: '1.5rem',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)'
                     }}>
-                      <div>
-                        <p style={{ margin: 0, fontWeight: '600', color: '#e2e8f0' }}>Retiro #{item.id.substring(0, 8)}</p>
-                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>{item.fecha || 'Sin fecha'}</p>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <p style={{ margin: 0, fontWeight: '600', color: '#e2e8f0', fontSize: '16px' }}>
-                          {formatCurrency(Number(item.importe || 0), item.moneda || 'EUR')}
-                        </p>
+                      {/* Header de la inversión */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.2rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <div>
+                          <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                            Inversión #{idx + 1}
+                          </p>
+                          <p style={{ margin: '0.3rem 0 0', fontSize: '1.5rem', fontWeight: '800', color: '#f8fafc' }}>
+                            {formatCurrency(capitalInvertido, item.moneda || 'EUR')}
+                          </p>
+                        </div>
                         <span style={{
-                          display: 'inline-block',
-                          marginTop: '0.25rem',
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          backgroundColor: item.estado === 'Procesado' ? '#10b981' : item.estado === 'Pendiente' ? '#f59e0b' : '#ef4444',
-                          color: 'white'
+                          padding: '0.35rem 0.9rem',
+                          borderRadius: '999px',
+                          fontSize: '0.72rem',
+                          fontWeight: '700',
+                          letterSpacing: '0.04em',
+                          textTransform: 'uppercase',
+                          background: completado
+                            ? 'rgba(16, 185, 129, 0.15)'
+                            : item.estado === 'Activa' || item.estado === 'Validada'
+                              ? 'rgba(246, 196, 83, 0.12)'
+                              : 'rgba(239, 68, 68, 0.12)',
+                          color: completado
+                            ? '#86efac'
+                            : item.estado === 'Activa' || item.estado === 'Validada'
+                              ? '#f6c453'
+                              : '#fca5a5',
+                          border: `1px solid ${completado ? 'rgba(16, 185, 129, 0.25)' : item.estado === 'Activa' || item.estado === 'Validada' ? 'rgba(246, 196, 83, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
                         }}>
-                          {item.estado}
+                          {completado ? '✓ Completada' : item.estado}
                         </span>
                       </div>
+
+                      {/* Barra de progreso */}
+                      <div style={{ marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                          <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: '600' }}>Progreso de ganancias</span>
+                          <span style={{ fontSize: '0.85rem', color: completado ? '#86efac' : '#f6c453', fontWeight: '800' }}>{porcentaje.toFixed(1)}%</span>
+                        </div>
+                        <div style={{
+                          width: '100%',
+                          height: '12px',
+                          backgroundColor: 'rgba(148, 163, 184, 0.08)',
+                          borderRadius: '999px',
+                          overflow: 'hidden',
+                          border: '1px solid rgba(148, 163, 184, 0.08)'
+                        }}>
+                          <div style={{
+                            width: `${porcentaje}%`,
+                            height: '100%',
+                            borderRadius: '999px',
+                            background: completado
+                              ? 'linear-gradient(90deg, #10b981, #34d399)'
+                              : porcentaje > 50
+                                ? 'linear-gradient(90deg, #f6c453, #dba93a, #10b981)'
+                                : 'linear-gradient(90deg, #f6c453, #dba93a)',
+                            transition: 'width 1.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                            boxShadow: completado
+                              ? '0 0 12px rgba(16, 185, 129, 0.4)'
+                              : '0 0 12px rgba(246, 196, 83, 0.3)'
+                          }} />
+                        </div>
+                      </div>
+
+                      {/* Detalles numéricos */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                        <div style={{
+                          background: 'rgba(246, 196, 83, 0.06)',
+                          border: '1px solid rgba(246, 196, 83, 0.1)',
+                          borderRadius: '12px',
+                          padding: '0.8rem',
+                          textAlign: 'center'
+                        }}>
+                          <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pool total</p>
+                          <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#f6c453' }}>{formatCurrency(poolTotal, 'EUR')}</p>
+                        </div>
+                        <div style={{
+                          background: 'rgba(16, 185, 129, 0.06)',
+                          border: '1px solid rgba(16, 185, 129, 0.1)',
+                          borderRadius: '12px',
+                          padding: '0.8rem',
+                          textAlign: 'center'
+                        }}>
+                          <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ganado</p>
+                          <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#86efac' }}>{formatCurrency(ganado, 'EUR')}</p>
+                        </div>
+                        <div style={{
+                          background: 'rgba(148, 163, 184, 0.04)',
+                          border: '1px solid rgba(148, 163, 184, 0.08)',
+                          borderRadius: '12px',
+                          padding: '0.8rem',
+                          textAlign: 'center'
+                        }}>
+                          <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Disponible</p>
+                          <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#e2e8f0' }}>{formatCurrency(gananciasDis, 'EUR')}</p>
+                        </div>
+                      </div>
+
+                      {/* Fecha */}
+                      <p style={{ margin: '0.8rem 0 0', fontSize: '0.72rem', color: '#64748b', textAlign: 'right' }}>
+                        📅 {item.fechaUltimoPago ? `Último pago: ${new Date(item.fechaUltimoPago).toLocaleDateString('es-ES')}` : `Registrada: ${new Date(item.createdAt || Date.now()).toLocaleDateString('es-ES')}`}
+                      </p>
                     </div>
-                  ))}
-                </div>
+                  )
+                })
               ) : (
-                <div style={{ padding: '2rem', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', textAlign: 'center', color: '#94a3b8' }}>
-                  <p>No tienes solicitudes de retiro aún.</p>
+                <div style={{
+                  padding: '3rem 2rem',
+                  background: 'rgba(10, 17, 30, 0.5)',
+                  borderRadius: '20px',
+                  textAlign: 'center',
+                  border: '1px solid rgba(148, 163, 184, 0.08)'
+                }}>
+                  <p style={{ fontSize: '2.5rem', margin: '0 0 0.8rem' }}>💰</p>
+                  <p style={{ color: '#94a3b8', fontSize: '0.95rem', margin: 0 }}>Aún no tienes inversiones registradas. ¡Comienza a invertir!</p>
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
 
-        {activeTab === 'solicitudes' && (
-          <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
-            <div>
-              <h2 style={{ color: '#f8fafc', marginBottom: '1.5rem' }}>📋 Mis Solicitudes de Inversión</h2>
-              {(() => {
-                const userSolicitudes = solicitudes.filter(s =>
-                  s.usuarioId === currentUser?.id ||
-                  s.usuarioNombre === (currentUser?.name || currentUser?.nombre)
-                )
+          {activeTab === 'retirar' && (
+            <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+              {/* Panel de Solicitud de Retiro */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                borderRadius: '12px',
+                padding: '2rem',
+                color: 'white',
+                boxShadow: '0 8px 16px rgba(245, 158, 11, 0.3)',
+                border: '2px solid rgba(255,255,255,0.2)'
+              }}>
+                <h2 style={{ marginTop: 0 }}>🏦 Solicitar Retiro</h2>
+                <p style={{ opacity: 0.9, marginBottom: '1.5rem' }}>Saldo disponible: <strong style={{ fontSize: '20px' }}>{formatCurrency(capitalDisponible, 'EUR')}</strong></p>
 
-                return userSolicitudes.length > 0 ? (
+                <form onSubmit={handleRetiroSubmit} style={{ display: 'grid', gap: '1rem' }}>
+                  <div>
+                    <label htmlFor="monto-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Importe a retirar</label>
+                    <input
+                      id="monto-retiro"
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={montoRetiro}
+                      onChange={(e) => setMontoRetiro(e.target.value)}
+                      placeholder="Ej. 2500"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        color: 'white',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="notas-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Notas (opcional)</label>
+                    <textarea
+                      id="notas-retiro"
+                      value={notasRetiro}
+                      onChange={(e) => setNotasRetiro(e.target.value)}
+                      placeholder="Cuenta destino o información adicional"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        color: 'white',
+                        fontFamily: 'inherit',
+                        minHeight: '80px',
+                        boxSizing: 'border-box',
+                        resize: 'vertical'
+                      }}
+                    />
+                  </div>
+
+                  {errorRetiro && <div style={{
+                    backgroundColor: 'rgba(0,0,0,0.2)',
+                    color: '#fef3c7',
+                    padding: '0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>⚠️ {errorRetiro}</div>}
+                  {successRetiro && <div style={{
+                    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                    color: '#dcfce7',
+                    padding: '0.75rem',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: '600'
+                  }}>✅ {successRetiro}</div>}
+
+                  <button type="submit" style={{
+                    padding: '0.75rem',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    border: '2px solid rgba(255,255,255,0.4)',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '15px',
+                    transition: 'all 0.3s'
+                  }}>
+                    💰 Enviar Solicitud
+                  </button>
+                </form>
+              </div>
+
+              {/* Panel de Historial de Retiros */}
+              <div style={{
+                backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(148, 163, 184, 0.12)'
+              }}>
+                <h2 style={{ marginTop: 0, color: '#f8fafc' }}>📋 Historial de Retiros</h2>
+                {userRetiros.length ? (
                   <div style={{ display: 'grid', gap: '1rem' }}>
-                    {userSolicitudes.map((sol) => (
-                      <div key={sol.id} style={{
-                        backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                        borderRadius: '12px',
-                        padding: '1.5rem',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                        border: `2px solid ${sol.estado === 'Pendiente' ? 'rgba(251, 191, 36, 0.3)' : sol.estado === 'Aprobado' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                        transition: 'all 0.3s'
+                    {userRetiros.map((item) => (
+                      <div key={item.id} style={{
+                        padding: '1rem',
+                        backgroundColor: item.estado === 'Procesado' ? 'rgba(16, 185, 129, 0.1)' : item.estado === 'Pendiente' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                        borderRadius: '8px',
+                        borderLeft: `4px solid ${item.estado === 'Procesado' ? '#10b981' : item.estado === 'Pendiente' ? '#f59e0b' : '#ef4444'}`,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
                       }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem' }}>
-                          <div>
-                            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Solicitud #{sol.id.substring(0, 8)}</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontSize: '20px', fontWeight: 'bold', color: '#f6c453' }}>
-                              {formatCurrency(Number(sol.importe), sol.moneda)}
-                            </p>
-                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
-                              📅 {sol.fecha}
-                            </p>
-                          </div>
-                          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '0.5rem 1rem',
-                              borderRadius: '20px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              backgroundColor: sol.estado === 'Pendiente' ? 'rgba(245, 158, 11, 0.15)' : sol.estado === 'Aprobado' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                              color: sol.estado === 'Pendiente' ? '#fcd34d' : sol.estado === 'Aprobado' ? '#86efac' : '#fca5a5'
-                            }}>
-                              {sol.estado === 'Pendiente' ? '⏳ ' : sol.estado === 'Aprobado' ? '✅ ' : '❌ '}
-                              {sol.estado}
-                            </span>
-                          </div>
+                        <div>
+                          <p style={{ margin: 0, fontWeight: '600', color: '#e2e8f0' }}>Retiro #{item.id.substring(0, 8)}</p>
+                          <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>{item.fecha || 'Sin fecha'}</p>
                         </div>
-
-                        {sol.estado === 'Pendiente' && !sol.justificante && (
-                          <button
-                            onClick={() => {
-                              setSolicitudSeleccionada(sol)
-                              setShowJustificante(true)
-                            }}
-                            style={{
-                              width: '100%',
-                              padding: '0.75rem',
-                              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              fontWeight: '600',
-                              fontSize: '14px',
-                              transition: 'all 0.3s'
-                            }}
-                          >
-                            📎 Subir comprobante de transferencia
-                          </button>
-                        )}
-
-                        {sol.justificante && (
-                          <div style={{
-                            backgroundColor: sol.justificante.estadoJustificante === 'Aprobado' ? '#d1fae5' : '#fef3c7',
-                            padding: '1rem',
-                            borderRadius: '8px',
-                            fontSize: '13px',
-                            borderLeft: `4px solid ${sol.justificante.estadoJustificante === 'Aprobado' ? '#10b981' : '#f59e0b'}`
+                        <div style={{ textAlign: 'right' }}>
+                          <p style={{ margin: 0, fontWeight: '600', color: '#e2e8f0', fontSize: '16px' }}>
+                            {formatCurrency(Number(item.importe || 0), item.moneda || 'EUR')}
+                          </p>
+                          <span style={{
+                            display: 'inline-block',
+                            marginTop: '0.25rem',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            backgroundColor: item.estado === 'Procesado' ? '#10b981' : item.estado === 'Pendiente' ? '#f59e0b' : '#ef4444',
+                            color: 'white'
                           }}>
-                            <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#374151' }}>
-                              {sol.justificante.estadoJustificante === 'Aprobado' ? '✅ Comprobante Aprobado' : '📋 Comprobante en Revisión'}
-                            </p>
-                            <p style={{ margin: '0.25rem 0', color: '#6b7280', fontSize: '12px' }}>📄 {sol.justificante.nombre}</p>
-                            <p style={{ margin: '0.25rem 0', color: '#6b7280', fontSize: '12px' }}>📅 {new Date(sol.justificante.fecha).toLocaleDateString('es-ES')}</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', fontWeight: '600', color: sol.justificante.estadoJustificante === 'Aprobado' ? '#10b981' : '#f59e0b' }}>
-                              🔍 {sol.justificante.estadoJustificante}
-                            </p>
-                          </div>
-                        )}
+                            {item.estado}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div style={{
-                    padding: '3rem 2rem',
-                    backgroundColor: 'linear-gradient(135deg, #f0f9ff 0%, #eff6ff 100%)',
-                    borderRadius: '12px',
-                    textAlign: 'center',
-                    color: '#0369a1',
-                    border: '2px dashed #0284c7'
-                  }}>
-                    <p style={{ fontSize: '18px', fontWeight: '600' }}>📭 No tienes solicitudes</p>
-                    <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>¡Comienza a invertir ahora mismo!</p>
+                  <div style={{ padding: '2rem', backgroundColor: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', textAlign: 'center', color: '#94a3b8' }}>
+                    <p>No tienes solicitudes de retiro aún.</p>
                   </div>
-                )
-              })()}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'referidos' && (
-          <div className="content-grid" style={{ display: 'grid', gap: '2rem' }}>
-            {/* Panel Principal de Referidos */}
-            <div style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              borderRadius: '12px',
-              padding: '2rem',
-              color: 'white',
-              boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
-              border: '2px solid rgba(255,255,255,0.2)'
-            }}>
-              <h2 style={{ marginTop: 0, fontSize: '24px' }}>🎯 Tu Programa de Referidos</h2>
-              <p style={{ opacity: 0.95, marginBottom: '1rem', fontSize: '15px' }}>Gana el <strong>10% de cada inversión</strong> que realicen tus referidos. Acelerado al 300%.</p>
-
-              <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                <input
-                  type="text"
-                  value={`https://capitaltradeiberia.com?ref=${getCodigoReferidoInversor().codigo}`}
-                  readOnly
-                  style={{
-                    flex: 1,
-                    minWidth: '200px',
-                    padding: '10px 12px',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderRadius: '8px',
-                    fontFamily: 'monospace',
-                    fontSize: '13px',
-                    backgroundColor: 'rgba(255,255,255,0.1)',
-                    color: 'white'
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`https://capitaltradeiberia.com?ref=${getCodigoReferidoInversor().codigo}`)
-                    setSuccessRetiro('✅ Enlace copiado')
-                    setTimeout(() => setSuccessRetiro(''), 2000)
-                  }}
-                  style={{
-                    padding: '10px 20px',
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    color: 'white',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    whiteSpace: 'nowrap',
-                    transition: 'all 0.3s'
-                  }}
-                >
-                  📋 Copiar
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-                <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>👥 Referidos Activos</p>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>{getReferidosDelInversor().length}</p>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>💰 Comisiones Ganadas</p>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>€{getReferidosDelInversor().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}</p>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                  <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>📊 Inversión Total</p>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>€{getReferidosDelInversor().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Tabla o Gráfica de Referidos */}
-            {getReferidosDelInversor().length > 0 ? (
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                border: '2px solid #e5e7eb'
-              }}>
-                <h3 style={{ marginTop: 0, color: '#374151' }}>📈 Mis Referidos</h3>
-
-                {/* Gráfica de inversiones */}
-                {getReferidosDelInversor().length > 0 && (
-                  <ResponsiveContainer width="100%" height={250}>
-                    <BarChart data={getReferidosDelInversor().map((ref, idx) => ({
-                      nombre: `Ref ${idx + 1}`,
-                      inversion: ref.inversionTotal || 0,
-                      comision: (ref.inversionTotal || 0) * 0.1
-                    }))}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="nombre" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => `€${value.toFixed(2)}`} />
-                      <Legend />
-                      <Bar dataKey="inversion" fill="#0284c7" name="Inversión" />
-                      <Bar dataKey="comision" fill="#10b981" name="Comisión 10%" />
-                    </BarChart>
-                  </ResponsiveContainer>
                 )}
-
-                <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                    <thead>
-                      <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Referido</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>🎁 Comisión</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>📅 Fecha</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {getReferidosDelInversor().map((ref, idx) => {
-                        const comision = (ref.inversionTotal || 0) * 0.1
-                        return (
-                          <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
-                            <td style={{ padding: '12px' }}><strong>{ref.nombreReferido || 'Usuario'}</strong></td>
-                            <td style={{ padding: '12px', textAlign: 'right', color: '#0284c7', fontWeight: '600' }}>€{Number(ref.inversionTotal || 0).toLocaleString('es-ES')}</td>
-                            <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981', fontSize: '15px' }}>€{comision.toFixed(2)}</td>
-                            <td style={{ padding: '12px', color: '#6b7280', fontSize: '12px' }}>{new Date(ref.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
-                          </tr>
-                        )
-                      })}
-                    </tbody>
-                  </table>
-                </div>
               </div>
-            ) : (
-              <div style={{
-                padding: '3rem 2rem',
-                backgroundColor: 'linear-gradient(135deg, #f0fdf4 0%, #f0fdf4 100%)',
-                borderRadius: '12px',
-                textAlign: 'center',
-                color: '#065f46',
-                border: '2px dashed #10b981'
-              }}>
-                <p style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>👥 Aún no tienes referidos</p>
-                <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>¡Comparte tu enlace arriba para empezar a ganar comisiones!</p>
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Modal de Chat */}
-        {showChatModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: 0,
-              maxWidth: '600px',
-              width: '90%',
-              height: '80vh',
-              maxHeight: '700px',
-              boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)',
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              {/* Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-                <h2 style={{ margin: 0 }}>💬 Chat con Administrador</h2>
-                <button onClick={() => {
-                  setShowChatModal(false)
-                  setMensajeChat('')
-                  setErrorChat('')
-                }} style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#6b7280'
-                }}>×</button>
-              </div>
-
-              {/* Historial de conversación */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {activeTab === 'solicitudes' && (
+            <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
+              <div>
+                <h2 style={{ color: '#f8fafc', marginBottom: '1.5rem' }}>📋 Mis Solicitudes de Inversión</h2>
                 {(() => {
-                  const misMensajes = mensajes.filter(m => m.usuarioId === (currentUser?.id || 'anon'))
-                  return misMensajes.length === 0 ? (
-                    <div style={{ color: '#9ca3af', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}>
-                      <p style={{ fontSize: '16px' }}>Sin mensajes aún</p>
-                      <p style={{ fontSize: '14px' }}>Envía tu primer mensaje al administrador</p>
+                  const userSolicitudes = solicitudes.filter(s =>
+                    s.usuarioId === currentUser?.id ||
+                    s.usuarioNombre === (currentUser?.name || currentUser?.nombre)
+                  )
+
+                  return userSolicitudes.length > 0 ? (
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                      {userSolicitudes.map((sol) => (
+                        <div key={sol.id} style={{
+                          backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                          borderRadius: '12px',
+                          padding: '1.5rem',
+                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                          border: `2px solid ${sol.estado === 'Pendiente' ? 'rgba(251, 191, 36, 0.3)' : sol.estado === 'Aprobado' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                          transition: 'all 0.3s'
+                        }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem' }}>
+                            <div>
+                              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Solicitud #{sol.id.substring(0, 8)}</p>
+                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '20px', fontWeight: 'bold', color: '#f6c453' }}>
+                                {formatCurrency(Number(sol.importe), sol.moneda)}
+                              </p>
+                              <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                                📅 {sol.fecha}
+                              </p>
+                            </div>
+                            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '0.5rem 1rem',
+                                borderRadius: '20px',
+                                fontSize: '12px',
+                                fontWeight: '600',
+                                backgroundColor: sol.estado === 'Pendiente' ? 'rgba(245, 158, 11, 0.15)' : sol.estado === 'Aprobado' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                                color: sol.estado === 'Pendiente' ? '#fcd34d' : sol.estado === 'Aprobado' ? '#86efac' : '#fca5a5'
+                              }}>
+                                {sol.estado === 'Pendiente' ? '⏳ ' : sol.estado === 'Aprobado' ? '✅ ' : '❌ '}
+                                {sol.estado}
+                              </span>
+                            </div>
+                          </div>
+
+                          {sol.estado === 'Pendiente' && !sol.justificante && (
+                            <button
+                              onClick={() => {
+                                setSolicitudSeleccionada(sol)
+                                setShowJustificante(true)
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                transition: 'all 0.3s'
+                              }}
+                            >
+                              📎 Subir comprobante de transferencia
+                            </button>
+                          )}
+
+                          {sol.justificante && (
+                            <div style={{
+                              backgroundColor: sol.justificante.estadoJustificante === 'Aprobado' ? '#d1fae5' : '#fef3c7',
+                              padding: '1rem',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              borderLeft: `4px solid ${sol.justificante.estadoJustificante === 'Aprobado' ? '#10b981' : '#f59e0b'}`
+                            }}>
+                              <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#374151' }}>
+                                {sol.justificante.estadoJustificante === 'Aprobado' ? '✅ Comprobante Aprobado' : '📋 Comprobante en Revisión'}
+                              </p>
+                              <p style={{ margin: '0.25rem 0', color: '#6b7280', fontSize: '12px' }}>📄 {sol.justificante.nombre}</p>
+                              <p style={{ margin: '0.25rem 0', color: '#6b7280', fontSize: '12px' }}>📅 {new Date(sol.justificante.fecha).toLocaleDateString('es-ES')}</p>
+                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', fontWeight: '600', color: sol.justificante.estadoJustificante === 'Aprobado' ? '#10b981' : '#f59e0b' }}>
+                                🔍 {sol.justificante.estadoJustificante}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   ) : (
-                    misMensajes.map(msg => (
-                      <div
-                        key={msg.id}
-                        style={{
-                          display: 'flex',
-                          justifyContent: msg.tipo === 'inversor' ? 'flex-start' : 'flex-end'
-                        }}
-                      >
-                        <div
-                          style={{
-                            backgroundColor: msg.tipo === 'inversor' ? '#e5e7eb' : '#dbeafe',
-                            padding: '0.75rem 1rem',
-                            borderRadius: '12px',
-                            maxWidth: '70%',
-                            wordWrap: 'break-word'
-                          }}
-                        >
-                          <div style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '0.25rem' }}>
-                            {msg.tipo === 'inversor' ? 'Tú' : 'Admin'}
-                          </div>
-                          <div style={{ fontSize: '14px', color: '#1f2937', lineHeight: '1.5' }}>
-                            {msg.mensaje}
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '0.5rem', opacity: 0.8 }}>
-                            {msg.fecha}
-                          </div>
-                        </div>
-                      </div>
-                    ))
+                    <div style={{
+                      padding: '3rem 2rem',
+                      backgroundColor: 'linear-gradient(135deg, #f0f9ff 0%, #eff6ff 100%)',
+                      borderRadius: '12px',
+                      textAlign: 'center',
+                      color: '#0369a1',
+                      border: '2px dashed #0284c7'
+                    }}>
+                      <p style={{ fontSize: '18px', fontWeight: '600' }}>📭 No tienes solicitudes</p>
+                      <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>¡Comienza a invertir ahora mismo!</p>
+                    </div>
                   )
                 })()}
               </div>
+            </div>
+          )}
 
-              {/* Área de entrada */}
-              {errorChat && (
+          {activeTab === 'referidos' && (
+            <div className="content-grid" style={{ display: 'grid', gap: '2rem' }}>
+              {/* Panel Principal de Referidos */}
+              <div style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                borderRadius: '12px',
+                padding: '2rem',
+                color: 'white',
+                boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
+                border: '2px solid rgba(255,255,255,0.2)'
+              }}>
+                <h2 style={{ marginTop: 0, fontSize: '24px' }}>🎯 Tu Programa de Referidos</h2>
+                <p style={{ opacity: 0.95, marginBottom: '1rem', fontSize: '15px' }}>Gana el <strong>10% de cada inversión</strong> que realicen tus referidos. Acelerado al 300%.</p>
+
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    value={`https://capitaltradeiberia.com?ref=${getCodigoReferidoInversor().codigo}`}
+                    readOnly
+                    style={{
+                      flex: 1,
+                      minWidth: '200px',
+                      padding: '10px 12px',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderRadius: '8px',
+                      fontFamily: 'monospace',
+                      fontSize: '13px',
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      color: 'white'
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://capitaltradeiberia.com?ref=${getCodigoReferidoInversor().codigo}`)
+                      setSuccessRetiro('✅ Enlace copiado')
+                      setTimeout(() => setSuccessRetiro(''), 2000)
+                    }}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      color: 'white',
+                      border: '2px solid rgba(255,255,255,0.3)',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    📋 Copiar
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+                  <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>👥 Referidos Activos</p>
+                    <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>{getReferidosDelInversor().length}</p>
+                  </div>
+                  <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>💰 Comisiones Ganadas</p>
+                    <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>€{getReferidosDelInversor().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}</p>
+                  </div>
+                  <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>📊 Inversión Total</p>
+                    <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>€{getReferidosDelInversor().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tabla o Gráfica de Referidos */}
+              {getReferidosDelInversor().length > 0 ? (
                 <div style={{
-                  backgroundColor: '#fee2e2',
-                  color: '#991b1b',
-                  padding: '0.75rem 1.5rem',
-                  borderBottom: '1px solid #e5e7eb',
-                  fontSize: '14px'
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                  border: '2px solid #e5e7eb'
                 }}>
-                  ⚠️ {errorChat}
+                  <h3 style={{ marginTop: 0, color: '#374151' }}>📈 Mis Referidos</h3>
+
+                  {/* Gráfica de inversiones */}
+                  {getReferidosDelInversor().length > 0 && (
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={getReferidosDelInversor().map((ref, idx) => ({
+                        nombre: `Ref ${idx + 1}`,
+                        inversion: ref.inversionTotal || 0,
+                        comision: (ref.inversionTotal || 0) * 0.1
+                      }))}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="nombre" />
+                        <YAxis />
+                        <Tooltip formatter={(value) => `€${value.toFixed(2)}`} />
+                        <Legend />
+                        <Bar dataKey="inversion" fill="#0284c7" name="Inversión" />
+                        <Bar dataKey="comision" fill="#10b981" name="Comisión 10%" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+
+                  <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Referido</th>
+                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
+                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>🎁 Comisión</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>📅 Fecha</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getReferidosDelInversor().map((ref, idx) => {
+                          const comision = (ref.inversionTotal || 0) * 0.1
+                          return (
+                            <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
+                              <td style={{ padding: '12px' }}><strong>{ref.nombreReferido || 'Usuario'}</strong></td>
+                              <td style={{ padding: '12px', textAlign: 'right', color: '#0284c7', fontWeight: '600' }}>€{Number(ref.inversionTotal || 0).toLocaleString('es-ES')}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981', fontSize: '15px' }}>€{comision.toFixed(2)}</td>
+                              <td style={{ padding: '12px', color: '#6b7280', fontSize: '12px' }}>{new Date(ref.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  padding: '3rem 2rem',
+                  backgroundColor: 'linear-gradient(135deg, #f0fdf4 0%, #f0fdf4 100%)',
+                  borderRadius: '12px',
+                  textAlign: 'center',
+                  color: '#065f46',
+                  border: '2px dashed #10b981'
+                }}>
+                  <p style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>👥 Aún no tienes referidos</p>
+                  <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>¡Comparte tu enlace arriba para empezar a ganar comisiones!</p>
                 </div>
               )}
+            </div>
+          )}
 
-              <div style={{ padding: '1.5rem', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '0.75rem' }}>
-                <textarea
-                  value={mensajeChat}
-                  onChange={(e) => setMensajeChat(e.target.value)}
-                  placeholder="Escribe tu mensaje..."
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontFamily: 'inherit',
-                    minHeight: '60px',
-                    maxHeight: '100px',
-                    resize: 'vertical'
-                  }}
-                />
-                <button
-                  onClick={enviarMensajeChat}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
+          {/* Modal de Chat */}
+          {showChatModal && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000
+            }}>
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                padding: 0,
+                maxWidth: '600px',
+                width: '90%',
+                height: '80vh',
+                maxHeight: '700px',
+                boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)',
+                display: 'flex',
+                flexDirection: 'column'
+              }}>
+                {/* Header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
+                  <h2 style={{ margin: 0 }}>💬 Chat con Administrador</h2>
+                  <button onClick={() => {
+                    setShowChatModal(false)
+                    setMensajeChat('')
+                    setErrorChat('')
+                  }} style={{
+                    background: 'none',
                     border: 'none',
-                    borderRadius: '6px',
+                    fontSize: '24px',
                     cursor: 'pointer',
-                    fontWeight: '600',
-                    alignSelf: 'flex-end',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  Enviar
-                </button>
+                    color: '#6b7280'
+                  }}>×</button>
+                </div>
+
+                {/* Historial de conversación */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {(() => {
+                    const misMensajes = mensajes.filter(m => m.usuarioId === (currentUser?.id || 'anon'))
+                    return misMensajes.length === 0 ? (
+                      <div style={{ color: '#9ca3af', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}>
+                        <p style={{ fontSize: '16px' }}>Sin mensajes aún</p>
+                        <p style={{ fontSize: '14px' }}>Envía tu primer mensaje al administrador</p>
+                      </div>
+                    ) : (
+                      misMensajes.map(msg => (
+                        <div
+                          key={msg.id}
+                          style={{
+                            display: 'flex',
+                            justifyContent: msg.tipo === 'inversor' ? 'flex-start' : 'flex-end'
+                          }}
+                        >
+                          <div
+                            style={{
+                              backgroundColor: msg.tipo === 'inversor' ? '#e5e7eb' : '#dbeafe',
+                              padding: '0.75rem 1rem',
+                              borderRadius: '12px',
+                              maxWidth: '70%',
+                              wordWrap: 'break-word'
+                            }}
+                          >
+                            <div style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '0.25rem' }}>
+                              {msg.tipo === 'inversor' ? 'Tú' : 'Admin'}
+                            </div>
+                            <div style={{ fontSize: '14px', color: '#1f2937', lineHeight: '1.5' }}>
+                              {msg.mensaje}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '0.5rem', opacity: 0.8 }}>
+                              {msg.fecha}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )
+                  })()}
+                </div>
+
+                {/* Área de entrada */}
+                {errorChat && (
+                  <div style={{
+                    backgroundColor: '#fee2e2',
+                    color: '#991b1b',
+                    padding: '0.75rem 1.5rem',
+                    borderBottom: '1px solid #e5e7eb',
+                    fontSize: '14px'
+                  }}>
+                    ⚠️ {errorChat}
+                  </div>
+                )}
+
+                <div style={{ padding: '1.5rem', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '0.75rem' }}>
+                  <textarea
+                    value={mensajeChat}
+                    onChange={(e) => setMensajeChat(e.target.value)}
+                    placeholder="Escribe tu mensaje..."
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontFamily: 'inherit',
+                      minHeight: '60px',
+                      maxHeight: '100px',
+                      resize: 'vertical'
+                    }}
+                  />
+                  <button
+                    onClick={enviarMensajeChat}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      backgroundColor: '#3b82f6',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      alignSelf: 'flex-end',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Enviar
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Modal de Justificante */}
-        {showJustificante && solicitudSeleccionada && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
+          {/* Modal de Justificante */}
+          {showJustificante && solicitudSeleccionada && (
             <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '2rem',
-              maxWidth: '500px',
-              width: '90%',
-              boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ margin: 0 }}>📎 Subir Comprobante</h2>
-                <button onClick={() => {
-                  setShowJustificante(false)
-                  setSolicitudSeleccionada(null)
-                  setArchivoJustificante(null)
-                  setErrorJustificante('')
-                }} style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#6b7280'
-                }}>×</button>
-              </div>
-
-              <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
-                Solicitud: {formatCurrency(Number(solicitudSeleccionada.importe), solicitudSeleccionada.moneda)}
-              </p>
-
-              {/* Mostrar cuenta bancaria de referencia */}
-              <div style={{ backgroundColor: '#f59e0b', border: '4px solid #f59e0b', borderRadius: '12px', padding: '2rem', marginBottom: '1.5rem', color: 'white' }}>
-                <p style={{ margin: '0 0 1.5rem 0', fontWeight: 'bold', fontSize: '18px' }}>📌 Referencia de transferencia</p>
-                {(() => {
-                  const cuentasAdmin = readStorage('capital_trade_demo_bank_accounts', [
-                    { moneda: 'EUR', banco: 'Banco de España', titular: 'Capital Trade Iberia', cuenta: 'ES91 2100 0418 4502 0005 1332', instrucciones: 'Transferencia previa a la validación.', estado: 'Activo' },
-                    { moneda: 'CUP', banco: 'Banco local autorizado', titular: 'Capital Trade Iberia', cuenta: 'CU24 0000 0000 0000 0000 0000', instrucciones: 'Pago en moneda local con referencia de operación.', estado: 'Activo' },
-                    { moneda: 'MLC', banco: 'Banco MLC autorizado', titular: 'Capital Trade Iberia', cuenta: 'MLC 0000 0000 0000 0000 0000', instrucciones: 'Referencia obligatoria en la transferencia.', estado: 'Activo' }
-                  ])
-                  const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === solicitudSeleccionada.moneda)
-                  return cuentaSeleccionada ? (
-                    <div style={{ display: 'grid', gap: '1.2rem' }}>
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                        <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🏦 BANCO</p>
-                        <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.banco}</p>
-                      </div>
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                        <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
-                        <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
-                      </div>
-                      <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                        <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>💳 NÚMERO DE CUENTA</p>
-                        <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px' }}>{cuentaSeleccionada.cuenta}</p>
-                      </div>
-                    </div>
-                  ) : <p style={{ margin: 0, color: '#ffffff', fontWeight: 'bold', fontSize: '16px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada</p>
-                })()}
-              </div>
-
-              {errorJustificante && (
-                <div style={{
-                  backgroundColor: '#fee2e2',
-                  color: '#991b1b',
-                  padding: '0.75rem',
-                  borderRadius: '6px',
-                  marginBottom: '1rem',
-                  fontSize: '14px'
-                }}>
-                  {errorJustificante}
-                </div>
-              )}
-
               <div style={{
-                border: '2px dashed #d1d5db',
-                borderRadius: '8px',
+                backgroundColor: 'white',
+                borderRadius: '12px',
                 padding: '2rem',
-                textAlign: 'center',
-                backgroundColor: '#f9fafb',
-                marginBottom: '1.5rem'
+                maxWidth: '500px',
+                width: '90%',
+                boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
               }}>
-                <input
-                  type="file"
-                  id="archivo-justificante"
-                  onChange={(e) => setArchivoJustificante(e.target.files?.[0] || null)}
-                  accept="image/*,.pdf"
-                  style={{ display: 'none' }}
-                />
-                <label htmlFor="archivo-justificante" style={{ cursor: 'pointer', display: 'block' }}>
-                  <p style={{ fontSize: '32px', margin: '0' }}>📁</p>
-                  <p style={{ margin: '0.5rem 0', fontWeight: '600', color: '#374151' }}>
-                    {archivoJustificante ? archivoJustificante.name : 'Haz clic para seleccionar archivo'}
-                  </p>
-                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', color: '#6b7280' }}>
-                    o arrastra un archivo aquí
-                  </p>
-                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '11px', color: '#9ca3af' }}>
-                    JPG, PNG, PDF - Máximo 10MB
-                  </p>
-                </label>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <button
-                  onClick={() => {
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ margin: 0 }}>📎 Subir Comprobante</h2>
+                  <button onClick={() => {
                     setShowJustificante(false)
                     setSolicitudSeleccionada(null)
                     setArchivoJustificante(null)
                     setErrorJustificante('')
-                  }}
-                  style={{
-                    padding: '0.75rem',
-                    backgroundColor: '#e5e7eb',
+                  }} style={{
+                    background: 'none',
                     border: 'none',
-                    borderRadius: '6px',
+                    fontSize: '24px',
                     cursor: 'pointer',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={subirJustificante}
-                  style={{
-                    padding: '0.75rem',
-                    backgroundColor: '#10b981',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Subir comprobante
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal de Programa de Aceleración (Rangos) */}
-        {showRangosModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '1rem'
-          }}>
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '2rem',
-              maxWidth: '650px',
-              width: '95%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 style={{ margin: 0, color: '#111827' }}>🏆 Programa de Aceleración</h2>
-                <button onClick={() => setShowRangosModal(false)} style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#6b7280'
-                }}>×</button>
-              </div>
-
-              <p style={{ color: '#4b5563', fontSize: '14px', marginBottom: '1.5rem', fontWeight: 'bold' }}>
-                Cuanto mayor sea tu participación y mayor sea tu red de referidos activos, mayor será tu nivel dentro del programa de aceleración.
-              </p>
-
-              {(() => {
-                const rangoActual = getRangoActual()
-                const referidosActivos = getReferidosActivosCount()
-                const proximo = getProximoRango()
-                const textColor = rangoActual ? 'white' : '#111827'
-                return (
-                  <div style={{
-                    backgroundColor: rangoActual ? '#111827' : '#f3f4f6',
-                    color: textColor,
-                    borderRadius: '10px',
-                    padding: '1rem',
-                    marginBottom: '1.5rem',
-                    textAlign: 'center'
-                  }}>
-                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', opacity: 0.85, color: textColor }}>TU RANGO ACTUAL</p>
-                    <p style={{ margin: '0.4rem 0', fontSize: '22px', fontWeight: 'bold', color: textColor }}>
-                      {rangoActual ? `${rangoActual.emoji} ${rangoActual.nombre}` : '🔒 Sin rango todavía'}
-                    </p>
-                    <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', color: textColor }}>
-                      Tu inversión: {formatCurrency(totalAportado, 'EUR')} · Referidos activos: {referidosActivos}
-                    </p>
-                    {proximo && (
-                      <div style={{
-                        marginTop: '0.75rem',
-                        paddingTop: '0.75rem',
-                        borderTop: rangoActual ? '1px solid rgba(255,255,255,0.2)' : '1px solid #d1d5db'
-                      }}>
-                        <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', color: textColor }}>
-                          Para llegar a {proximo.rango.emoji} {proximo.rango.nombre} te falta:
-                        </p>
-                        <p style={{ margin: '0.4rem 0 0 0', fontSize: '13px', fontWeight: 'bold', color: textColor }}>
-                          {proximo.faltaInversion > 0 ? `💰 ${formatCurrency(proximo.faltaInversion, 'EUR')} de inversión` : '💰 Inversión completa'}
-                          {' · '}
-                          {proximo.faltaReferidos > 0 ? `👥 ${proximo.faltaReferidos} referido${proximo.faltaReferidos === 1 ? '' : 's'} activo${proximo.faltaReferidos === 1 ? '' : 's'} más` : '👥 Referidos completos'}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )
-              })()}
-
-              <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ border: '2px solid #22c55e', borderRadius: '10px', padding: '1rem', backgroundColor: '#f0fdf4' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#15803d', fontWeight: 'bold' }}>🟢 Partner</h3>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 1.000 €</p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 5 a 9</p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 50 € mensuales x 2 meses</p>
+                    color: '#6b7280'
+                  }}>×</button>
                 </div>
 
-                <div style={{ border: '2px solid #3b82f6', borderRadius: '10px', padding: '1rem', backgroundColor: '#eff6ff' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#1d4ed8', fontWeight: 'bold' }}>🔵 Advisor</h3>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 2.000 €</p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 10 a 14</p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 100 € mensuales x 3 meses</p>
-                </div>
-
-                <div style={{ border: '2px solid #a855f7', borderRadius: '10px', padding: '1rem', backgroundColor: '#faf5ff' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#7e22ce', fontWeight: 'bold' }}>🟣 Senior Partner</h3>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 3.500 €</p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 15 a 19</p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 150 € mensuales x 5 meses</p>
-                </div>
-
-                <div style={{ border: '2px solid #f59e0b', borderRadius: '10px', padding: '1rem', backgroundColor: '#fffbeb' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontWeight: 'bold' }}>🟠 Agent</h3>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 5.000 €</p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 20 o más</p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 200 € mensuales x 7 meses</p>
-                </div>
-              </div>
-
-              <div style={{ backgroundColor: '#f3f4f6', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
-                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>¿Cómo funciona?</h3>
-                <p style={{ margin: '0.25rem 0', fontSize: '14px', color: '#374151', fontWeight: 'bold' }}>
-                  Cada referido debe cumplir las condiciones establecidas para considerarse activo, es decir, tener una inversión activa mínima de 100 $. Solo esos referidos cuentan para el programa.
+                <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
+                  Solicitud: {formatCurrency(Number(solicitudSeleccionada.importe), solicitudSeleccionada.moneda)}
                 </p>
-                <p style={{ margin: '0.25rem 0', fontSize: '14px', color: '#374151', fontWeight: 'bold' }}>
-                  El nivel se determina según tu inversión propia, el número de referidos y mantener a esos referidos activos junto con tu propia inversión.
-                </p>
-              </div>
 
-              <div style={{ backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '10px', padding: '1rem' }}>
-                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', color: '#92400e', fontWeight: 'bold' }}>⚠️ Bonificación aparte</h3>
-                <p style={{ margin: 0, fontSize: '14px', color: '#78350f', fontWeight: 'bold' }}>
-                  Esto no forma parte del programa de aceleración, es una bonificación aparte. Cuando el beneficio se venza y no subas de rango, tendrás otros beneficios que se te explicarán en su momento.
-                </p>
-              </div>
-
-              <div style={{ marginTop: '1.5rem' }}>
-                <button
-                  onClick={() => setShowRangosModal(false)}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    backgroundColor: '#a855f7',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal de Inversión */}
-        {showInversionModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '2rem',
-              maxWidth: '500px',
-              width: '90%',
-              boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                <h2 style={{ margin: 0, color: '#111827' }}>💰 Invertir</h2>
-                <button onClick={() => setShowInversionModal(false)} style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#6b7280'
-                }}>×</button>
-              </div>
-
-              {errorInversion && (
-                <div style={{
-                  backgroundColor: '#fee2e2',
-                  color: '#991b1b',
-                  padding: '0.75rem',
-                  borderRadius: '6px',
-                  marginBottom: '1rem',
-                  fontSize: '14px'
-                }}>
-                  {errorInversion}
-                </div>
-              )}
-
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Moneda de inversión</label>
-                <select
-                  value={monedaInversion}
-                  onChange={(e) => setMonedaInversion(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px'
-                  }}
-                >
-                  <option value="EUR">EUR - €</option>
-                  <option value="CUP">CUP - Pesos Cubanos</option>
-                  <option value="MLC">MLC - Moneda Libremente Convertible</option>
-                </select>
-              </div>
-
-              {/* Mostrar cuentas bancarias */}
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold', color: '#374151', fontSize: '16px' }}>💳 Datos de transferencia</label>
-                {(() => {
-                  const cuentasAdmin = readStorage('capital_trade_demo_bank_accounts', [
-                    { moneda: 'EUR', banco: 'Banco de España', titular: 'Capital Trade Iberia', cuenta: 'ES91 2100 0418 4502 0005 1332', instrucciones: 'Transferencia previa a la validación.', estado: 'Activo' },
-                    { moneda: 'CUP', banco: 'Banco local autorizado', titular: 'Capital Trade Iberia', cuenta: 'CU24 0000 0000 0000 0000 0000', instrucciones: 'Pago en moneda local con referencia de operación.', estado: 'Activo' },
-                    { moneda: 'MLC', banco: 'Banco MLC autorizado', titular: 'Capital Trade Iberia', cuenta: 'MLC 0000 0000 0000 0000 0000', instrucciones: 'Referencia obligatoria en la transferencia.', estado: 'Activo' }
-                  ])
-                  const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === monedaInversion)
-                  return cuentaSeleccionada ? (
-                    <div style={{ backgroundColor: '#0284c7', border: '4px solid #0284c7', padding: '2rem', borderRadius: '12px', fontSize: '16px', color: 'white' }}>
+                {/* Mostrar cuenta bancaria de referencia */}
+                <div style={{ backgroundColor: '#f59e0b', border: '4px solid #f59e0b', borderRadius: '12px', padding: '2rem', marginBottom: '1.5rem', color: 'white' }}>
+                  <p style={{ margin: '0 0 1.5rem 0', fontWeight: 'bold', fontSize: '18px' }}>📌 Referencia de transferencia</p>
+                  {(() => {
+                    const cuentasAdmin = readStorage('capital_trade_demo_bank_accounts', [
+                      { moneda: 'EUR', banco: 'Banco de España', titular: 'Capital Trade Iberia', cuenta: 'ES91 2100 0418 4502 0005 1332', instrucciones: 'Transferencia previa a la validación.', estado: 'Activo' },
+                      { moneda: 'CUP', banco: 'Banco local autorizado', titular: 'Capital Trade Iberia', cuenta: 'CU24 0000 0000 0000 0000 0000', instrucciones: 'Pago en moneda local con referencia de operación.', estado: 'Activo' },
+                      { moneda: 'MLC', banco: 'Banco MLC autorizado', titular: 'Capital Trade Iberia', cuenta: 'MLC 0000 0000 0000 0000 0000', instrucciones: 'Referencia obligatoria en la transferencia.', estado: 'Activo' }
+                    ])
+                    const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === solicitudSeleccionada.moneda)
+                    return cuentaSeleccionada ? (
                       <div style={{ display: 'grid', gap: '1.2rem' }}>
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
                           <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🏦 BANCO</p>
                           <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.banco}</p>
                         </div>
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
                           <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
                           <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
                         </div>
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                        <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
                           <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>💳 NÚMERO DE CUENTA</p>
                           <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px' }}>{cuentaSeleccionada.cuenta}</p>
                         </div>
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
-                          <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📋 INSTRUCCIONES</p>
-                          <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.instrucciones}</p>
-                        </div>
                       </div>
-                    </div>
-                  ) : <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '16px', backgroundColor: '#fee2e2', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada para esta moneda</p>
-                })()}
-              </div>
-
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Monto a invertir</label>
-                <input
-                  type="number"
-                  value={montoInversion}
-                  onChange={(e) => setMontoInversion(e.target.value)}
-                  placeholder="Ej: 1000"
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    boxSizing: 'border-box'
-                  }}
-                />
-                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0.5rem 0 0 0' }}>
-                  Mínimo: {(() => {
-                    const minimos = readStorage('capital_trade_minimos', { EUR: 100, CUP: 500, MLC: 100 })
-                    return formatCurrency(minimos[monedaInversion] || 100, monedaInversion)
+                    ) : <p style={{ margin: 0, color: '#ffffff', fontWeight: 'bold', fontSize: '16px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada</p>
                   })()}
-                </p>
-              </div>
+                </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <button
-                  onClick={() => setShowInversionModal(false)}
-                  style={{
+                {errorJustificante && (
+                  <div style={{
+                    backgroundColor: '#fee2e2',
+                    color: '#991b1b',
                     padding: '0.75rem',
-                    backgroundColor: '#e5e7eb',
-                    border: 'none',
                     borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={crearSolicitudInversion}
-                  style={{
-                    padding: '0.75rem',
-                    backgroundColor: '#10b981',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600'
-                  }}
-                >
-                  Solicitar inversión
-                </button>
+                    marginBottom: '1rem',
+                    fontSize: '14px'
+                  }}>
+                    {errorJustificante}
+                  </div>
+                )}
+
+                <div style={{
+                  border: '2px dashed #d1d5db',
+                  borderRadius: '8px',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  backgroundColor: '#f9fafb',
+                  marginBottom: '1.5rem'
+                }}>
+                  <input
+                    type="file"
+                    id="archivo-justificante"
+                    onChange={(e) => setArchivoJustificante(e.target.files?.[0] || null)}
+                    accept="image/*,.pdf"
+                    style={{ display: 'none' }}
+                  />
+                  <label htmlFor="archivo-justificante" style={{ cursor: 'pointer', display: 'block' }}>
+                    <p style={{ fontSize: '32px', margin: '0' }}>📁</p>
+                    <p style={{ margin: '0.5rem 0', fontWeight: '600', color: '#374151' }}>
+                      {archivoJustificante ? archivoJustificante.name : 'Haz clic para seleccionar archivo'}
+                    </p>
+                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                      o arrastra un archivo aquí
+                    </p>
+                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '11px', color: '#9ca3af' }}>
+                      JPG, PNG, PDF - Máximo 10MB
+                    </p>
+                  </label>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <button
+                    onClick={() => {
+                      setShowJustificante(false)
+                      setSolicitudSeleccionada(null)
+                      setArchivoJustificante(null)
+                      setErrorJustificante('')
+                    }}
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: '#e5e7eb',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={subirJustificante}
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Subir comprobante
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-      </div>
+          {/* Modal de Programa de Aceleración (Rangos) */}
+          {showRangosModal && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+              padding: '1rem'
+            }}>
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                padding: '2rem',
+                maxWidth: '650px',
+                width: '95%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h2 style={{ margin: 0, color: '#111827' }}>🏆 Programa de Aceleración</h2>
+                  <button onClick={() => setShowRangosModal(false)} style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    color: '#6b7280'
+                  }}>×</button>
+                </div>
+
+                <p style={{ color: '#4b5563', fontSize: '14px', marginBottom: '1.5rem', fontWeight: 'bold' }}>
+                  Cuanto mayor sea tu participación y mayor sea tu red de referidos activos, mayor será tu nivel dentro del programa de aceleración.
+                </p>
+
+                {(() => {
+                  const rangoActual = getRangoActual()
+                  const referidosActivos = getReferidosActivosCount()
+                  const proximo = getProximoRango()
+                  const textColor = rangoActual ? 'white' : '#111827'
+                  return (
+                    <div style={{
+                      backgroundColor: rangoActual ? '#111827' : '#f3f4f6',
+                      color: textColor,
+                      borderRadius: '10px',
+                      padding: '1rem',
+                      marginBottom: '1.5rem',
+                      textAlign: 'center'
+                    }}>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', opacity: 0.85, color: textColor }}>TU RANGO ACTUAL</p>
+                      <p style={{ margin: '0.4rem 0', fontSize: '22px', fontWeight: 'bold', color: textColor }}>
+                        {rangoActual ? `${rangoActual.emoji} ${rangoActual.nombre}` : '🔒 Sin rango todavía'}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', color: textColor }}>
+                        Tu inversión: {formatCurrency(totalAportado, 'EUR')} · Referidos activos: {referidosActivos}
+                      </p>
+                      {proximo && (
+                        <div style={{
+                          marginTop: '0.75rem',
+                          paddingTop: '0.75rem',
+                          borderTop: rangoActual ? '1px solid rgba(255,255,255,0.2)' : '1px solid #d1d5db'
+                        }}>
+                          <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', color: textColor }}>
+                            Para llegar a {proximo.rango.emoji} {proximo.rango.nombre} te falta:
+                          </p>
+                          <p style={{ margin: '0.4rem 0 0 0', fontSize: '13px', fontWeight: 'bold', color: textColor }}>
+                            {proximo.faltaInversion > 0 ? `💰 ${formatCurrency(proximo.faltaInversion, 'EUR')} de inversión` : '💰 Inversión completa'}
+                            {' · '}
+                            {proximo.faltaReferidos > 0 ? `👥 ${proximo.faltaReferidos} referido${proximo.faltaReferidos === 1 ? '' : 's'} activo${proximo.faltaReferidos === 1 ? '' : 's'} más` : '👥 Referidos completos'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div style={{ border: '2px solid #22c55e', borderRadius: '10px', padding: '1rem', backgroundColor: '#f0fdf4' }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#15803d', fontWeight: 'bold' }}>🟢 Partner</h3>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 1.000 €</p>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 5 a 9</p>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 50 € mensuales x 2 meses</p>
+                  </div>
+
+                  <div style={{ border: '2px solid #3b82f6', borderRadius: '10px', padding: '1rem', backgroundColor: '#eff6ff' }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#1d4ed8', fontWeight: 'bold' }}>🔵 Advisor</h3>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 2.000 €</p>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 10 a 14</p>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 100 € mensuales x 3 meses</p>
+                  </div>
+
+                  <div style={{ border: '2px solid #a855f7', borderRadius: '10px', padding: '1rem', backgroundColor: '#faf5ff' }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#7e22ce', fontWeight: 'bold' }}>🟣 Senior Partner</h3>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 3.500 €</p>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 15 a 19</p>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 150 € mensuales x 5 meses</p>
+                  </div>
+
+                  <div style={{ border: '2px solid #f59e0b', borderRadius: '10px', padding: '1rem', backgroundColor: '#fffbeb' }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontWeight: 'bold' }}>🟠 Agent</h3>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 5.000 €</p>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 20 o más</p>
+                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 200 € mensuales x 7 meses</p>
+                  </div>
+                </div>
+
+                <div style={{ backgroundColor: '#f3f4f6', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>¿Cómo funciona?</h3>
+                  <p style={{ margin: '0.25rem 0', fontSize: '14px', color: '#374151', fontWeight: 'bold' }}>
+                    Cada referido debe cumplir las condiciones establecidas para considerarse activo, es decir, tener una inversión activa mínima de 100 $. Solo esos referidos cuentan para el programa.
+                  </p>
+                  <p style={{ margin: '0.25rem 0', fontSize: '14px', color: '#374151', fontWeight: 'bold' }}>
+                    El nivel se determina según tu inversión propia, el número de referidos y mantener a esos referidos activos junto con tu propia inversión.
+                  </p>
+                </div>
+
+                <div style={{ backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '10px', padding: '1rem' }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', color: '#92400e', fontWeight: 'bold' }}>⚠️ Bonificación aparte</h3>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#78350f', fontWeight: 'bold' }}>
+                    Esto no forma parte del programa de aceleración, es una bonificación aparte. Cuando el beneficio se venza y no subas de rango, tendrás otros beneficios que se te explicarán en su momento.
+                  </p>
+                </div>
+
+                <div style={{ marginTop: '1.5rem' }}>
+                  <button
+                    onClick={() => setShowRangosModal(false)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      backgroundColor: '#a855f7',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal de Inversión */}
+          {showInversionModal && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000
+            }}>
+              <div style={{
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                padding: '2rem',
+                maxWidth: '500px',
+                width: '90%',
+                boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ margin: 0, color: '#111827' }}>💰 Invertir</h2>
+                  <button onClick={() => setShowInversionModal(false)} style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    color: '#6b7280'
+                  }}>×</button>
+                </div>
+
+                {errorInversion && (
+                  <div style={{
+                    backgroundColor: '#fee2e2',
+                    color: '#991b1b',
+                    padding: '0.75rem',
+                    borderRadius: '6px',
+                    marginBottom: '1rem',
+                    fontSize: '14px'
+                  }}>
+                    {errorInversion}
+                  </div>
+                )}
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Moneda de inversión</label>
+                  <select
+                    value={monedaInversion}
+                    onChange={(e) => setMonedaInversion(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    <option value="EUR">EUR - €</option>
+                    <option value="CUP">CUP - Pesos Cubanos</option>
+                    <option value="MLC">MLC - Moneda Libremente Convertible</option>
+                  </select>
+                </div>
+
+                {/* Mostrar cuentas bancarias */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold', color: '#374151', fontSize: '16px' }}>💳 Datos de transferencia</label>
+                  {(() => {
+                    const cuentasAdmin = readStorage('capital_trade_demo_bank_accounts', [
+                      { moneda: 'EUR', banco: 'Banco de España', titular: 'Capital Trade Iberia', cuenta: 'ES91 2100 0418 4502 0005 1332', instrucciones: 'Transferencia previa a la validación.', estado: 'Activo' },
+                      { moneda: 'CUP', banco: 'Banco local autorizado', titular: 'Capital Trade Iberia', cuenta: 'CU24 0000 0000 0000 0000 0000', instrucciones: 'Pago en moneda local con referencia de operación.', estado: 'Activo' },
+                      { moneda: 'MLC', banco: 'Banco MLC autorizado', titular: 'Capital Trade Iberia', cuenta: 'MLC 0000 0000 0000 0000 0000', instrucciones: 'Referencia obligatoria en la transferencia.', estado: 'Activo' }
+                    ])
+                    const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === monedaInversion)
+                    return cuentaSeleccionada ? (
+                      <div style={{ backgroundColor: '#0284c7', border: '4px solid #0284c7', padding: '2rem', borderRadius: '12px', fontSize: '16px', color: 'white' }}>
+                        <div style={{ display: 'grid', gap: '1.2rem' }}>
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🏦 BANCO</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.banco}</p>
+                          </div>
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
+                          </div>
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>💳 NÚMERO DE CUENTA</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px' }}>{cuentaSeleccionada.cuenta}</p>
+                          </div>
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📋 INSTRUCCIONES</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.instrucciones}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '16px', backgroundColor: '#fee2e2', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada para esta moneda</p>
+                  })()}
+                </div>
+
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Monto a invertir</label>
+                  <input
+                    type="number"
+                    value={montoInversion}
+                    onChange={(e) => setMontoInversion(e.target.value)}
+                    placeholder="Ej: 1000"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0.5rem 0 0 0' }}>
+                    Mínimo: {(() => {
+                      const minimos = readStorage('capital_trade_minimos', { EUR: 100, CUP: 500, MLC: 100 })
+                      return formatCurrency(minimos[monedaInversion] || 100, monedaInversion)
+                    })()}
+                  </p>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <button
+                    onClick={() => setShowInversionModal(false)}
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: '#e5e7eb',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={crearSolicitudInversion}
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Solicitar inversión
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </main>
     </div>
   );
 }

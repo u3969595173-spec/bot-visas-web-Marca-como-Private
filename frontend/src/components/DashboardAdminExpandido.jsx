@@ -723,984 +723,1009 @@ function DashboardAdminExpandido({ onLogout }) {
   }
 
   return (
-    <div className="dashboard-admin-futurista">
-      <div className="dashboard-header dashboard-header-premium">
-        <div className="dashboard-title-wrap">
-          <span className="eyebrow">Capital Trade Iberia</span>
-          <h1>Panel de administración</h1>
-          <p className="bienvenida">Bienvenido, {localStorage.getItem('usuario') || 'Administrador'}</p>
-        </div>
-
-        <div className="dashboard-header-actions">
-          <div className="header-pill">
-            <span className="dot-live" />
-            Portafolio activo
+    <div className="admin-futuristic-layout">
+      {/* SIDEBAR NAVIGATION */}
+      <aside className="admin-sidebar">
+        <div className="sidebar-brand">
+          <div className="brand-icon">✧</div>
+          <div className="brand-text">
+            <span className="glow-text">Capital Trade</span>
+            <span className="badge-admin">Admin Center</span>
           </div>
-          <button onClick={() => navigate('/comunidad')} className="btn-logout" style={{ backgroundColor: '#0e7490', borderColor: '#0e7490' }}>🌐 Comunidad</button>
-          <button onClick={handleLogout} className="btn-logout">Cerrar sesión</button>
         </div>
-      </div>
 
-      {mensaje && (
-        <div style={{
-          padding: '12px 16px',
-          backgroundColor: '#d1fae5',
-          color: '#065f46',
-          borderRadius: '6px',
-          margin: '12px 16px',
-          fontSize: '14px',
-          fontWeight: '500',
-          border: '1px solid #a7f3d0'
-        }}>
-          {mensaje}
-        </div>
-      )}
+        <nav className="sidebar-nav">
+          <div className="nav-group-title">MENÚ PRINCIPAL</div>
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              className={`sidebar-tab ${activeTab === tab.key ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              <div className="tab-indicator" />
+              <span className="tab-label">{tab.label}</span>
+            </button>
+          ))}
 
-      <div className="tabs-container">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            className={`tab ${activeTab === tab.key ? 'tab-active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
+          <div className="nav-divider"></div>
+          <div className="nav-group-title">EXTRAS</div>
+
+          <button onClick={() => navigate('/comunidad')} className="sidebar-tab highlight">
+            <div className="tab-indicator" />
+            <span className="tab-label">💬 Comunidad Interna</span>
           </button>
-        ))}
-        <Link to="/comunidad" className="tab" style={{ textDecoration: 'none' }}>💬 Comunidad</Link>
-      </div>
+        </nav>
 
-      {activeTab === 'resumen' && (
-        <>
-          <div className="estadisticas-grid">
-            {summaryCards.map((card) => {
-              const isExpanded = expandedCard === card.label
-              const statClass = getStatClass(card.label)
-
-              // Preparar datos para cada tarjeta
-              let details = []
-              if (card.label === 'Aportaciones pendientes') {
-                details = aportacionesNormalizadas.filter(a => a.estado === 'Pendiente de validación')
-              } else if (card.label === 'Retiros en revisión') {
-                details = retiros.filter(r => r.estado === 'Pendiente' || r.estado === 'En revisión')
-              } else if (card.label === 'Aportaciones rechazadas') {
-                details = aportacionesNormalizadas.filter(a => a.estado === 'Rechazada')
-              }
-
-              return (
-                <div key={card.label}>
-                  <div
-                    className={`stat-card ${statClass}`}
-                    onClick={() => setExpandedCard(isExpanded ? null : card.label)}
-                    style={{ cursor: 'pointer', position: 'relative' }}
-                  >
-                    <div className="stat-icon">{card.icon}</div>
-                    <div className="stat-info">
-                      <h3>{card.value}</h3>
-                      <p>{card.label}</p>
-                    </div>
-                    {details.length > 0 && (
-                      <div style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '18px', cursor: 'pointer' }}>
-                        {isExpanded ? '▼' : '▶'}
-                      </div>
-                    )}
-                  </div>
-
-                  {isExpanded && details.length > 0 && (
-                    <div style={{
-                      marginTop: '8px',
-                      padding: '12px',
-                      backgroundColor: '#f3f4f6',
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb',
-                      fontSize: '14px',
-                      maxHeight: '300px',
-                      overflowY: 'auto'
-                    }}>
-                      {details.map((item, idx) => (
-                        <div key={idx} style={{
-                          padding: '8px',
-                          borderBottom: idx < details.length - 1 ? '1px solid #d1d5db' : 'none',
-                          marginBottom: '4px'
-                        }}>
-                          <strong>{item.usuario || item.nombre || 'N/A'}</strong>
-                          <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                            {card.label.includes('Aportaciones') ? (
-                              <>
-                                <div>💵 {item.importe ? `${item.importe} ${item.moneda}` : 'N/A'}</div>
-                                <div>📅 {item.fecha || 'N/A'}</div>
-                                <div>📝 {item.estado || 'N/A'}</div>
-                              </>
-                            ) : (
-                              <>
-                                <div>💰 Monto: {item.monto || 'N/A'}</div>
-                                <div>📅 {item.fecha_solicitud ? new Date(item.fecha_solicitud).toLocaleDateString('es-ES') : 'N/A'}</div>
-                                <div>📝 {item.estado || 'N/A'}</div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="card panel-summary">
-            <div className="section-header">
-              <h2>Resumen operativo</h2>
-              <span className="section-tag">Últimas 24h</span>
-            </div>
-            <div className="summary-mini-grid">
-              {[
-                ['Aportaciones pendientes', String(totalAportacionesPendientes)],
-                ['Aportaciones validadas', String(aportaciones.filter((item) => item.estado === 'Activa' || item.estado === 'Validada').length || usuariosRegistrados.length)],
-                ['Retiros pendientes', String(totalRetirosRevision)],
-                ['Retiros aprobados', String(retiros.filter((item) => item.estado === 'Aprobado' || item.estado === 'Procesado').length)],
-                ['Capital activo', formatCurrency(totalCapitalActivo, 'EUR')]
-              ].map(([label, value]) => (
-                <div key={label} className="summary-mini-card">
-                  <div className="mini-label">{label}</div>
-                  <div className="mini-value">{value}</div>
-                </div>
-              ))}
+        <div className="sidebar-footer">
+          <div className="user-profile">
+            <div className="avatar">{(localStorage.getItem('usuario') || 'A')[0].toUpperCase()}</div>
+            <div className="user-info">
+              <span className="user-name">{localStorage.getItem('usuario') || 'Administrador'}</span>
+              <small className="user-role">Super Admin</small>
             </div>
           </div>
+          <button onClick={handleLogout} className="btn-logout-sidebar">
+            Cerrar Sesión
+          </button>
+        </div>
+      </aside>
 
-          <div className="two-column-grid">
-            <div className="card">
-              <div className="section-header">
-                <h2>Aportaciones recientes</h2>
+      {/* MAIN CONTENT AREA */}
+      <main className="admin-main-content">
+        <header className="topbar">
+          <div className="topbar-left">
+            <h1>{tabs.find(t => t.key === activeTab)?.label || 'Panel'}</h1>
+            <p className="subtitle">Gestión institucional y analítica avanzada</p>
+          </div>
+          <div className="topbar-actions">
+            {mensaje && (
+              <div className="status-message fade-in">
+                {mensaje}
               </div>
-              {table(
-                ['Usuario', 'Importe', 'Moneda', 'Estado'],
-                aportacionesNormalizadas.slice(0, 4).map((item) => [item.usuario, formatCurrency(Number(item.importe || 0), item.moneda), item.moneda, item.estado])
-              )}
-            </div>
-
-            <div className="card">
-              <div className="section-header">
-                <h2>Actividad reciente</h2>
-              </div>
-              <div className="activity-list">
-                {aportacionesNormalizadas.length ? (
-                  aportacionesNormalizadas.slice(0, 4).map((item) => (
-                    <div key={item.id} className="activity-item">
-                      {item.fecha} · {item.usuario} · {item.estado} · {item.moneda} {formatCurrency(Number(item.importe || 0), item.moneda)}
-                    </div>
-                  ))
-                ) : (
-                  <div className="activity-item">No hay actividad registrada todavía.</div>
-                )}
-              </div>
+            )}
+            <div className="header-pill status-live">
+              <span className="dot-live" />
+              <span>Portafolio En Línea</span>
             </div>
           </div>
-        </>
-      )}
+        </header>
 
-      {activeTab === 'aportaciones' && (
-        <div className="card">
-          <div className="section-header"><h2>Aportaciones</h2></div>
-          <table className="tabla-estudiantes">
-            <thead>
-              <tr>
-                <th>Usuario</th>
-                <th>Importe</th>
-                <th>Moneda</th>
-                <th>Fecha</th>
-                <th>Cuenta</th>
-                <th>Justificante</th>
-                <th>Estado</th>
-                <th>Comentario</th>
-                <th>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {aportacionesNormalizadas.length ? aportacionesNormalizadas.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.usuario}</td>
-                  <td>{formatCurrency(Number(item.importe || 0), item.moneda)}</td>
-                  <td>{item.moneda}</td>
-                  <td>{item.fecha}</td>
-                  <td>{item.cuenta}</td>
-                  <td>
-                    {item.justificanteData ? (
-                      <a href={item.justificanteData.dataUrl || '#'} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>
-                        {item.justificante}
-                      </a>
-                    ) : (
-                      item.justificante
-                    )}
-                  </td>
-                  <td>{item.estado}</td>
-                  <td>{item.comentarios || 'Sin comentarios'}</td>
-                  <td>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <button
-                        className="btn-action"
-                        onClick={() => updateAportacionStatus(item.id, 'Activa', 'Aportación validada manualmente por el administrador.')}
-                        disabled={item.estado === 'Activa'}
-                        style={{
-                          opacity: item.estado === 'Activa' ? 0.6 : 1,
-                          cursor: item.estado === 'Activa' ? 'default' : 'pointer',
-                          backgroundColor: item.estado === 'Activa' ? '#10b981' : undefined,
-                          color: item.estado === 'Activa' ? 'white' : undefined
-                        }}
-                      >
-                        {item.estado === 'Activa' ? '✓ Validada' : 'Validar'}
-                      </button>
-                      <button
-                        className="btn-action"
-                        onClick={() => updateAportacionStatus(item.id, 'Rechazada', 'La aportación fue rechazada por documentación no válida.')}
-                        disabled={item.estado === 'Rechazada'}
-                        style={{
-                          opacity: item.estado === 'Rechazada' ? 0.6 : 1,
-                          cursor: item.estado === 'Rechazada' ? 'default' : 'pointer',
-                          backgroundColor: item.estado === 'Rechazada' ? '#ef4444' : undefined,
-                          color: item.estado === 'Rechazada' ? 'white' : undefined
-                        }}
-                      >
-                        {item.estado === 'Rechazada' ? '✗ Rechazada' : 'Rechazar'}
-                      </button>
-                      <button
-                        className="btn-action"
-                        onClick={() => updateAportacionStatus(item.id, 'Información solicitada', 'Se solicita información adicional.')}
-                        disabled={item.estado === 'Información solicitada'}
-                        style={{
-                          opacity: item.estado === 'Información solicitada' ? 0.6 : 1,
-                          cursor: item.estado === 'Información solicitada' ? 'default' : 'pointer',
-                          backgroundColor: item.estado === 'Información solicitada' ? '#f59e0b' : undefined,
-                          color: item.estado === 'Información solicitada' ? 'white' : undefined
-                        }}
-                      >
-                        {item.estado === 'Información solicitada' ? '⏱ Información solicitada' : 'Solicitar información'}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )) : (
-                <tr><td colSpan="9">No hay aportaciones registradas.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+        <div className="content-scroll">
 
-      {activeTab === 'retiros' && (
-        <RetirosCreditoPanel />
-      )}
+          {activeTab === 'resumen' && (
+            <>
+              <div className="estadisticas-grid">
+                {summaryCards.map((card) => {
+                  const isExpanded = expandedCard === card.label
+                  const statClass = getStatClass(card.label)
 
-      {activeTab === 'solicitudes' && (
-        <div className="card">
-          <div className="section-header"><h2>Solicitudes de inversores</h2></div>
-          {table(
-            ['Nombre', 'Email', 'Teléfono', 'País', 'Fecha', 'Estado', 'Acción'],
-            solicitudesPendientes.length
-              ? solicitudesPendientes.map((solicitud) => [
-                solicitud.nombre || 'Sin nombre',
-                solicitud.email || '—',
-                solicitud.telefono || '—',
-                solicitud.pais || '—',
-                solicitud.fecha || '—',
-                solicitud.estado || 'Pendiente de validación',
-                <div key={solicitud.id} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  <button
-                    className="btn-action"
-                    onClick={() => updateSolicitud(solicitud.id, 'Validada')}
-                    disabled={solicitud.estado === 'Validada'}
-                    style={{
-                      opacity: solicitud.estado === 'Validada' ? 0.6 : 1,
-                      cursor: solicitud.estado === 'Validada' ? 'default' : 'pointer',
-                      backgroundColor: solicitud.estado === 'Validada' ? '#10b981' : undefined,
-                      color: solicitud.estado === 'Validada' ? 'white' : undefined
-                    }}
-                  >
-                    {solicitud.estado === 'Validada' ? '✓ Validada' : 'Validar'}
-                  </button>
-                  <button
-                    className="btn-action"
-                    onClick={() => updateSolicitud(solicitud.id, 'Rechazada')}
-                    disabled={solicitud.estado === 'Rechazada'}
-                    style={{
-                      opacity: solicitud.estado === 'Rechazada' ? 0.6 : 1,
-                      cursor: solicitud.estado === 'Rechazada' ? 'default' : 'pointer',
-                      backgroundColor: solicitud.estado === 'Rechazada' ? '#ef4444' : undefined,
-                      color: solicitud.estado === 'Rechazada' ? 'white' : undefined
-                    }}
-                  >
-                    {solicitud.estado === 'Rechazada' ? '✗ Rechazada' : 'Rechazar'}
-                  </button>
-                </div>
-              ])
-              : [['Sin solicitudes', '—', '—', '—', '—', 'Sin datos', '—']]
-          )}
-        </div>
-      )}
+                  // Preparar datos para cada tarjeta
+                  let details = []
+                  if (card.label === 'Aportaciones pendientes') {
+                    details = aportacionesNormalizadas.filter(a => a.estado === 'Pendiente de validación')
+                  } else if (card.label === 'Retiros en revisión') {
+                    details = retiros.filter(r => r.estado === 'Pendiente' || r.estado === 'En revisión')
+                  } else if (card.label === 'Aportaciones rechazadas') {
+                    details = aportacionesNormalizadas.filter(a => a.estado === 'Rechazada')
+                  }
 
-      {activeTab === 'usuarios' && (
-        <div className="card">
-          <div className="section-header"><h2>Usuarios</h2></div>
-          {table(
-            ['Nombre', 'Email', 'Teléfono', 'País', 'Fecha', 'Rol', 'Estado', 'Acción'],
-            usuariosRegistrados.length
-              ? usuariosRegistrados.map((usuario) => [
-                usuario.name || 'Sin nombre',
-                usuario.email || '—',
-                usuario.telefono || '—',
-                usuario.pais || '—',
-                usuario.fecha || '—',
-                usuario.role || 'inversor',
-                'Activo',
-                <button
-                  key={`chat-${usuario.id}`}
-                  className="btn-action"
-                  onClick={() => { setSeleccionadoChat(usuario.name || 'Sin nombre'); setActiveTab('chat') }}
-                  style={{ backgroundColor: '#0284c7', color: 'white' }}
-                >
-                  💬 Chat
-                </button>
-              ])
-              : [['Sin registros', '—', '—', '—', '—', '—', 'Sin datos', '—']]
-          )}
-        </div>
-      )}
-      {activeTab === 'operaciones' && (
-        <div className="card">
-          <div className="section-header"><h2>💰 Pagos de Rentabilidad Semanal</h2></div>
-          <div style={{ marginTop: '1.5rem', padding: '1.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
-            <h4 style={{ marginTop: 0, color: '#374151' }}>📊 Inversiones elegibles para pagar hoy:</h4>
-            {getInversionesElegibles().length > 0 ? (
-              <div style={{ display: 'grid', gap: '0.75rem' }}>
-                {getInversionesElegibles().map(aportacion => {
-                  const proximoPago = calcularProximoPago(aportacion.fechaUltimoPago, aportacion.fechaOriginal)
-                  const proximoPagoFormato = proximoPago.toLocaleDateString('es-ES')
                   return (
-                    <div key={aportacion.id} style={{ padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
-                      <div>
-                        <strong>{aportacion.usuario}</strong>
-                        <div style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>📅 Inicio: {new Date(aportacion.fechaOriginal).toLocaleDateString('es-ES')}{aportacion.fechaUltimoPago && ` · Últm pago: ${new Date(aportacion.fechaUltimoPago).toLocaleDateString('es-ES')}`}</div>
-                        <div style={{ color: '#6b7280', fontSize: '12px' }}>💰 Capital: €{aportacion.importe} {aportacion.moneda} · Próx pago: {proximoPagoFormato}</div>
+                    <div key={card.label}>
+                      <div
+                        className={`stat-card ${statClass}`}
+                        onClick={() => setExpandedCard(isExpanded ? null : card.label)}
+                        style={{ cursor: 'pointer', position: 'relative' }}
+                      >
+                        <div className="stat-icon">{card.icon}</div>
+                        <div className="stat-info">
+                          <h3>{card.value}</h3>
+                          <p>{card.label}</p>
+                        </div>
+                        {details.length > 0 && (
+                          <div style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '18px', cursor: 'pointer' }}>
+                            {isExpanded ? '▼' : '▶'}
+                          </div>
+                        )}
                       </div>
+
+                      {isExpanded && details.length > 0 && (
+                        <div style={{
+                          marginTop: '8px',
+                          padding: '12px',
+                          backgroundColor: '#f3f4f6',
+                          borderRadius: '8px',
+                          border: '1px solid #e5e7eb',
+                          fontSize: '14px',
+                          maxHeight: '300px',
+                          overflowY: 'auto'
+                        }}>
+                          {details.map((item, idx) => (
+                            <div key={idx} style={{
+                              padding: '8px',
+                              borderBottom: idx < details.length - 1 ? '1px solid #d1d5db' : 'none',
+                              marginBottom: '4px'
+                            }}>
+                              <strong>{item.usuario || item.nombre || 'N/A'}</strong>
+                              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                                {card.label.includes('Aportaciones') ? (
+                                  <>
+                                    <div>💵 {item.importe ? `${item.importe} ${item.moneda}` : 'N/A'}</div>
+                                    <div>📅 {item.fecha || 'N/A'}</div>
+                                    <div>📝 {item.estado || 'N/A'}</div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div>💰 Monto: {item.monto || 'N/A'}</div>
+                                    <div>📅 {item.fecha_solicitud ? new Date(item.fecha_solicitud).toLocaleDateString('es-ES') : 'N/A'}</div>
+                                    <div>📝 {item.estado || 'N/A'}</div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )
                 })}
               </div>
-            ) : (
-              <div style={{ color: '#6b7280', fontStyle: 'italic' }}>No hay inversores activos</div>
-            )}
-            <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #d1d5db' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Porcentaje semanal (%):</label>
-              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <input type="number" value={porcentajeSemanal} onChange={(e) => setPorcentajeSemanal(e.target.value)} placeholder="Ej: 0.5" min="0" step="0.01" style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', flex: 1, maxWidth: '150px' }} />
-                <button onClick={pagarRentabilidadSemanal} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap' }}>
-                  💳 Pagar rentabilidad
-                </button>
-              </div>
-              <div style={{ marginTop: '1rem', fontSize: '12px', color: '#6b7280' }}>
-                Inversiones elegibles: {getInversionesElegibles().length}
-              </div>
-              {porcentajeSemanal && getInversionesElegibles().length > 0 && (
-                <div style={{ marginTop: '1rem', padding: '12px', backgroundColor: '#ecfdf5', borderRadius: '6px', border: '2px solid #10b981', display: 'flex', justifyContent: 'space-between' }}>
-                  <strong style={{ color: '#065f46' }}>Total a pagar:</strong>
-                  <strong style={{ color: '#10b981', fontSize: '16px' }}>
-                    €{(getInversionesElegibles().reduce((sum, a) => sum + (Number(a.importe) * Number(porcentajeSemanal) / 100), 0).toFixed(2))}
-                  </strong>
+
+              <div className="card panel-summary">
+                <div className="section-header">
+                  <h2>Resumen operativo</h2>
+                  <span className="section-tag">Últimas 24h</span>
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      {activeTab === 'capital' && (
-        <div className="card">
-          <div className="section-header"><h2>Capital y movimientos</h2></div>
-
-          {/* Tabla de Capital por Usuario */}
-          {table(
-            ['Usuario', 'Capital Total', 'Pool Activo (300%)', 'Total Retiros'],
-            (() => {
-              const usuariosMap = new Map()
-
-              // Agrupar aportaciones por usuario
-              aportacionesNormalizadas.forEach(aport => {
-                if (!usuariosMap.has(aport.usuario)) {
-                  usuariosMap.set(aport.usuario, {
-                    capital: 0,
-                    ganancias: 0,
-                    retiros: 0,
-                    aportaciones: []
-                  })
-                }
-                const user = usuariosMap.get(aport.usuario)
-                const importe = Number(aport.importe || 0)
-                user.capital += importe
-                user.aportaciones.push(aport)
-                // Pool Activo = capital × 3 (si es activa)
-                if (aport.estado === 'Activa' || aport.estado === 'Validada') {
-                  user.ganancias += importe * 3 // pool total es importe × 3
-                }
-              })
-
-              // Agrupar retiros por usuario
-              retiros.forEach(retiro => {
-                if (usuariosMap.has(retiro.usuario)) {
-                  const user = usuariosMap.get(retiro.usuario)
-                  if (retiro.estado === 'Aprobado' || retiro.estado === 'Procesado') {
-                    user.retiros += Number(retiro.monto || 0)
-                  }
-                }
-              })
-
-              // Convertir a array y mapear a filas de tabla
-              return Array.from(usuariosMap.entries()).map(([usuario, data]) => {
-                return [
-                  usuario,
-                  formatCurrency(data.capital, 'EUR'),
-                  formatCurrency(data.ganancias, 'EUR'),
-                  formatCurrency(data.retiros, 'EUR')
-                ]
-              })
-            })()
-          )}
-        </div>
-      )}
-      {activeTab === 'referidos' && (
-        <div className="card">
-          <div className="section-header"><h2>🎯 Sistema de Referidos</h2></div>
-
-          {/* Tu código de referido */}
-          <div style={{ marginTop: '1.5rem', padding: '1.5rem', backgroundColor: '#fef3c7', borderRadius: '8px', border: '2px solid #f59e0b' }}>
-            <h3 style={{ marginTop: 0, color: '#92400e' }}>📌 Tu Enlace de Referido</h3>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
-              <input
-                type="text"
-                value={`https://capitaltradeiberia.com?ref=${getCodigoReferidoAdmin().codigo}`}
-                readOnly
-                style={{ flex: 1, padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontFamily: 'monospace', fontSize: '14px' }}
-              />
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`https://capitaltradeiberia.com?ref=${getCodigoReferidoAdmin().codigo}`)
-                  setMensaje('✅ Enlace copiado al portapapeles')
-                  setTimeout(() => setMensaje(''), 2000)
-                }}
-                style={{ padding: '10px 16px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-              >
-                📋 Copiar
-              </button>
-            </div>
-            <p style={{ color: '#78350f', fontSize: '14px', margin: 0 }}>Comparte este enlace. Cada usuario que se registre con él, tú ganas 10% de su inversión.</p>
-          </div>
-
-          {/* Estadísticas de referidos */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
-            <div style={{ padding: '1rem', backgroundColor: '#ecfdf5', borderRadius: '8px', border: '1px solid #86efac' }}>
-              <h4 style={{ marginTop: 0, color: '#065f46' }}>👥 Referidos activos</h4>
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>{getReferidosDelAdmin().length}</p>
-            </div>
-            <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
-              <h4 style={{ marginTop: 0, color: '#065f46' }}>💰 Comisiones Ganadas (10%)</h4>
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>
-                €{getReferidosDelAdmin().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}
-              </p>
-            </div>
-            <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
-              <h4 style={{ marginTop: 0, color: '#065f46' }}>📊 Inversión total de referidos</h4>
-              <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>
-                €{getReferidosDelAdmin().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}
-              </p>
-            </div>
-          </div>
-
-          {/* Tabla de inversiones activas con ganancias disponibles */}
-          <div style={{ marginTop: '2rem' }}>
-            <h3 style={{ color: '#374151', marginBottom: '1rem' }}>📋 Inversiones Activas (Pool de Ganancias)</h3>
-            {aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length > 0 ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Usuario</th>
-                      <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
-                      <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>📊 Ganancias Disponibles</th>
-                      <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>⚡ % Restante</th>
-                      <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600' }}>📅 Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').map((aportacion, idx) => {
-                      const gananciasDisp = Number(aportacion.gananciasDisponibles || aportacion.importe * 3)
-                      const totalGanancias = aportacion.importe * 3
-                      const porcentajeRestante = ((gananciasDisp / totalGanancias) * 100).toFixed(1)
-                      const colorBarra = porcentajeRestante > 66 ? '#10b981' : porcentajeRestante > 33 ? '#f59e0b' : '#ef4444'
-                      return (
-                        <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
-                          <td style={{ padding: '12px' }}><strong>{aportacion.usuario}</strong></td>
-                          <td style={{ padding: '12px', textAlign: 'right' }}>€{Number(aportacion.importe).toLocaleString('es-ES')}</td>
-                          <td style={{ padding: '12px', textAlign: 'right' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                              <div style={{ width: '100px', height: '20px', backgroundColor: '#e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
-                                <div style={{ width: `${porcentajeRestante}%`, height: '100%', backgroundColor: colorBarra, transition: 'width 0.3s ease' }}></div>
-                              </div>
-                              <span style={{ fontWeight: '600', minWidth: '80px' }}>€{gananciasDisp.toFixed(2)}</span>
-                            </div>
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: colorBarra }}>{porcentajeRestante}%</td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <span style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
-                              {aportacion.estado}
-                            </span>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>No hay inversiones activas</p>
-            )}
-          </div>
-
-          {/* Tabla de referidos */}
-          <div style={{ marginTop: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ color: '#374151', margin: 0 }}>🌐 Historial de Referidos</h3>
-              <button
-                onClick={pagarComisionesReferidos}
-                style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
-              >
-                💳 Pagar Comisiones
-              </button>
-            </div>
-            {getReferidosDelAdmin().length > 0 ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Referido</th>
-                      <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
-                      <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>🎁 Comisión (10%)</th>
-                      <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>📅 Fecha</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getReferidosDelAdmin().map((referido, idx) => {
-                      const comision = referido.inversionTotal * 0.1
-                      return (
-                        <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
-                          <td style={{ padding: '12px' }}><strong>{referido.nombreReferido || 'Usuario'}</strong></td>
-                          <td style={{ padding: '12px', textAlign: 'right' }}>€{Number(referido.inversionTotal || 0).toLocaleString('es-ES')}</td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>€{comision.toFixed(2)}</td>
-                          <td style={{ padding: '12px', color: '#6b7280', fontSize: '12px' }}>{new Date(referido.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>Aún no tienes referidos. Comparte tu enlace para empezar a ganar.</p>
-            )}
-          </div>
-
-          {/* Gráfico de distribución de ganancias */}
-          <div style={{ marginTop: '2rem', padding: '1.5rem', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-            <h3 style={{ marginTop: 0, color: '#374151' }}>📈 Análisis de Ganancias</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
-              {/* Pie chart simple */}
-              <div style={{ textAlign: 'center' }}>
-                <h4 style={{ color: '#6b7280' }}>Distribución de Ganancias</h4>
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '12px', height: '200px', marginTop: '1rem' }}>
-                  <div style={{ width: '60px', backgroundColor: '#10b981', borderRadius: '8px 8px 0 0', height: `${(getReferidosDelAdmin().length / (aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length || 1)) * 100 || 10}%`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
-                    Referidos
-                  </div>
-                  <div style={{ width: '60px', backgroundColor: '#3b82f6', borderRadius: '8px 8px 0 0', height: '70%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
-                    Activos
-                  </div>
+                <div className="summary-mini-grid">
+                  {[
+                    ['Aportaciones pendientes', String(totalAportacionesPendientes)],
+                    ['Aportaciones validadas', String(aportaciones.filter((item) => item.estado === 'Activa' || item.estado === 'Validada').length || usuariosRegistrados.length)],
+                    ['Retiros pendientes', String(totalRetirosRevision)],
+                    ['Retiros aprobados', String(retiros.filter((item) => item.estado === 'Aprobado' || item.estado === 'Procesado').length)],
+                    ['Capital activo', formatCurrency(totalCapitalActivo, 'EUR')]
+                  ].map(([label, value]) => (
+                    <div key={label} className="summary-mini-card">
+                      <div className="mini-label">{label}</div>
+                      <div className="mini-value">{value}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Resumen de pagos */}
-              <div style={{ textAlign: 'center' }}>
-                <h4 style={{ color: '#6b7280' }}>Resumen</h4>
-                <div style={{ marginTop: '1rem', textAlign: 'left', backgroundColor: 'white', padding: '1rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
-                    <span style={{ color: '#6b7280' }}>Total Referidos:</span>
-                    <strong style={{ color: '#10b981' }}>{getReferidosDelAdmin().length}</strong>
+              <div className="two-column-grid">
+                <div className="card">
+                  <div className="section-header">
+                    <h2>Aportaciones recientes</h2>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
-                    <span style={{ color: '#6b7280' }}>Inv. Total Referidos:</span>
-                    <strong style={{ color: '#3b82f6' }}>€{getReferidosDelAdmin().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}</strong>
+                  {table(
+                    ['Usuario', 'Importe', 'Moneda', 'Estado'],
+                    aportacionesNormalizadas.slice(0, 4).map((item) => [item.usuario, formatCurrency(Number(item.importe || 0), item.moneda), item.moneda, item.estado])
+                  )}
+                </div>
+
+                <div className="card">
+                  <div className="section-header">
+                    <h2>Actividad reciente</h2>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: '#6b7280' }}>Comisiones Totales (10%):</span>
-                    <strong style={{ color: '#f59e0b' }}>€{getReferidosDelAdmin().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}</strong>
+                  <div className="activity-list">
+                    {aportacionesNormalizadas.length ? (
+                      aportacionesNormalizadas.slice(0, 4).map((item) => (
+                        <div key={item.id} className="activity-item">
+                          {item.fecha} · {item.usuario} · {item.estado} · {item.moneda} {formatCurrency(Number(item.importe || 0), item.moneda)}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="activity-item">No hay actividad registrada todavía.</div>
+                    )}
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {activeTab === 'rangos' && (
-        <div className="card">
-          <div className="section-header"><h2>🏆 Programa de Aceleración - Rangos</h2></div>
-          <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-            Inversores que alcanzaron un rango según su inversión propia y sus referidos activos (mínimo 100 $ de inversión cada uno). Aquí ves cuánto hay que pagarles mensualmente.
-          </p>
-
-          {getRangosInversores().length > 0 ? (
-            <>
-              <div className="table-container">
-                <table className="tabla-estudiantes">
-                  <thead>
-                    <tr>
-                      <th>Inversor</th>
-                      <th>Rango</th>
-                      <th>Inversión propia</th>
-                      <th>Referidos activos</th>
-                      <th>Beneficio mensual</th>
-                      <th>Duración</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getRangosInversores().map((item, idx) => (
-                      <tr key={idx}>
-                        <td>{item.nombreInversor}</td>
-                        <td>{item.rango.emoji} {item.rango.nombre}</td>
-                        <td>€{item.inversionPropia.toFixed(2)}</td>
-                        <td>{item.referidosActivos}</td>
-                        <td style={{ fontWeight: '700', color: '#10b981' }}>€{item.rango.beneficioMensual} / mes</td>
-                        <td>{item.rango.meses} meses</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f0fdf4', border: '1px solid #22c55e', borderRadius: '10px' }}>
-                <strong style={{ color: '#15803d' }}>💰 Total a pagar este mes a todos los rangos: </strong>
-                <span style={{ fontWeight: '700', color: '#15803d' }}>
-                  €{getRangosInversores().reduce((sum, item) => sum + item.rango.beneficioMensual, 0).toFixed(2)}
-                </span>
               </div>
             </>
-          ) : (
-            <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>Aún ningún inversor ha alcanzado un rango del programa de aceleración.</p>
           )}
-        </div>
-      )}
-      {activeTab === 'configuracion' && (
-        <div className="card">
-          <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>Configuración de cuentas y monedas</h2>
-            <button onClick={async () => {
-              try {
-                const token = localStorage.getItem('token')
-                const response = await fetch('http://localhost:8000/api/admin/config', {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                  body: JSON.stringify({ minimos })
-                })
-                if (response.ok) {
-                  setMensaje('✅ Configuración guardada correctamente')
-                } else {
-                  setMensaje('❌ Error guardando configuración')
-                }
-              } catch (error) {
-                console.error('Error:', error)
-                setMensaje('❌ Error guardando configuración')
-              }
-              setTimeout(() => setMensaje(''), 2000)
-            }} style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>
-              💾 Guardar cambios
-            </button>
-          </div>
-          <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
-            {cuentas.map((account, index) => (
-              <div key={account.moneda} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', border: '1px solid #dfe3ea', padding: '1rem', borderRadius: '12px' }}>
-                <input value={account.moneda} onChange={(e) => updateBankAccount(index, 'moneda', e.target.value)} placeholder="Moneda" />
-                <input value={account.banco} onChange={(e) => updateBankAccount(index, 'banco', e.target.value)} placeholder="Banco" />
-                <input value={account.titular} onChange={(e) => updateBankAccount(index, 'titular', e.target.value)} placeholder="Titular" />
-                <input value={account.cuenta} onChange={(e) => updateBankAccount(index, 'cuenta', e.target.value)} placeholder="Cuenta / IBAN" />
-                <input value={account.instrucciones} onChange={(e) => updateBankAccount(index, 'instrucciones', e.target.value)} placeholder="Instrucciones" />
-                <input value={account.estado} onChange={(e) => updateBankAccount(index, 'estado', e.target.value)} placeholder="Estado" />
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: '1.5rem' }}>
-            <h3>Mínimos por moneda</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
-              {Object.entries(minimos).map(([moneda, minimo]) => (
-                <div key={moneda} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  <label>{moneda}</label>
-                  <input value={minimo} onChange={(e) => updateMinimo(moneda, e.target.value)} />
+
+          {activeTab === 'aportaciones' && (
+            <div className="card">
+              <div className="section-header"><h2>Aportaciones</h2></div>
+              <table className="tabla-estudiantes">
+                <thead>
+                  <tr>
+                    <th>Usuario</th>
+                    <th>Importe</th>
+                    <th>Moneda</th>
+                    <th>Fecha</th>
+                    <th>Cuenta</th>
+                    <th>Justificante</th>
+                    <th>Estado</th>
+                    <th>Comentario</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {aportacionesNormalizadas.length ? aportacionesNormalizadas.map((item) => (
+                    <tr key={item.id}>
+                      <td>{item.usuario}</td>
+                      <td>{formatCurrency(Number(item.importe || 0), item.moneda)}</td>
+                      <td>{item.moneda}</td>
+                      <td>{item.fecha}</td>
+                      <td>{item.cuenta}</td>
+                      <td>
+                        {item.justificanteData ? (
+                          <a href={item.justificanteData.dataUrl || '#'} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>
+                            {item.justificante}
+                          </a>
+                        ) : (
+                          item.justificante
+                        )}
+                      </td>
+                      <td>{item.estado}</td>
+                      <td>{item.comentarios || 'Sin comentarios'}</td>
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <button
+                            className="btn-action"
+                            onClick={() => updateAportacionStatus(item.id, 'Activa', 'Aportación validada manualmente por el administrador.')}
+                            disabled={item.estado === 'Activa'}
+                            style={{
+                              opacity: item.estado === 'Activa' ? 0.6 : 1,
+                              cursor: item.estado === 'Activa' ? 'default' : 'pointer',
+                              backgroundColor: item.estado === 'Activa' ? '#10b981' : undefined,
+                              color: item.estado === 'Activa' ? 'white' : undefined
+                            }}
+                          >
+                            {item.estado === 'Activa' ? '✓ Validada' : 'Validar'}
+                          </button>
+                          <button
+                            className="btn-action"
+                            onClick={() => updateAportacionStatus(item.id, 'Rechazada', 'La aportación fue rechazada por documentación no válida.')}
+                            disabled={item.estado === 'Rechazada'}
+                            style={{
+                              opacity: item.estado === 'Rechazada' ? 0.6 : 1,
+                              cursor: item.estado === 'Rechazada' ? 'default' : 'pointer',
+                              backgroundColor: item.estado === 'Rechazada' ? '#ef4444' : undefined,
+                              color: item.estado === 'Rechazada' ? 'white' : undefined
+                            }}
+                          >
+                            {item.estado === 'Rechazada' ? '✗ Rechazada' : 'Rechazar'}
+                          </button>
+                          <button
+                            className="btn-action"
+                            onClick={() => updateAportacionStatus(item.id, 'Información solicitada', 'Se solicita información adicional.')}
+                            disabled={item.estado === 'Información solicitada'}
+                            style={{
+                              opacity: item.estado === 'Información solicitada' ? 0.6 : 1,
+                              cursor: item.estado === 'Información solicitada' ? 'default' : 'pointer',
+                              backgroundColor: item.estado === 'Información solicitada' ? '#f59e0b' : undefined,
+                              color: item.estado === 'Información solicitada' ? 'white' : undefined
+                            }}
+                          >
+                            {item.estado === 'Información solicitada' ? '⏱ Información solicitada' : 'Solicitar información'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan="9">No hay aportaciones registradas.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {activeTab === 'retiros' && (
+            <RetirosCreditoPanel />
+          )}
+
+          {activeTab === 'solicitudes' && (
+            <div className="card">
+              <div className="section-header"><h2>Solicitudes de inversores</h2></div>
+              {table(
+                ['Nombre', 'Email', 'Teléfono', 'País', 'Fecha', 'Estado', 'Acción'],
+                solicitudesPendientes.length
+                  ? solicitudesPendientes.map((solicitud) => [
+                    solicitud.nombre || 'Sin nombre',
+                    solicitud.email || '—',
+                    solicitud.telefono || '—',
+                    solicitud.pais || '—',
+                    solicitud.fecha || '—',
+                    solicitud.estado || 'Pendiente de validación',
+                    <div key={solicitud.id} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        className="btn-action"
+                        onClick={() => updateSolicitud(solicitud.id, 'Validada')}
+                        disabled={solicitud.estado === 'Validada'}
+                        style={{
+                          opacity: solicitud.estado === 'Validada' ? 0.6 : 1,
+                          cursor: solicitud.estado === 'Validada' ? 'default' : 'pointer',
+                          backgroundColor: solicitud.estado === 'Validada' ? '#10b981' : undefined,
+                          color: solicitud.estado === 'Validada' ? 'white' : undefined
+                        }}
+                      >
+                        {solicitud.estado === 'Validada' ? '✓ Validada' : 'Validar'}
+                      </button>
+                      <button
+                        className="btn-action"
+                        onClick={() => updateSolicitud(solicitud.id, 'Rechazada')}
+                        disabled={solicitud.estado === 'Rechazada'}
+                        style={{
+                          opacity: solicitud.estado === 'Rechazada' ? 0.6 : 1,
+                          cursor: solicitud.estado === 'Rechazada' ? 'default' : 'pointer',
+                          backgroundColor: solicitud.estado === 'Rechazada' ? '#ef4444' : undefined,
+                          color: solicitud.estado === 'Rechazada' ? 'white' : undefined
+                        }}
+                      >
+                        {solicitud.estado === 'Rechazada' ? '✗ Rechazada' : 'Rechazar'}
+                      </button>
+                    </div>
+                  ])
+                  : [['Sin solicitudes', '—', '—', '—', '—', 'Sin datos', '—']]
+              )}
+            </div>
+          )}
+
+          {activeTab === 'usuarios' && (
+            <div className="card">
+              <div className="section-header"><h2>Usuarios</h2></div>
+              {table(
+                ['Nombre', 'Email', 'Teléfono', 'País', 'Fecha', 'Rol', 'Estado', 'Acción'],
+                usuariosRegistrados.length
+                  ? usuariosRegistrados.map((usuario) => [
+                    usuario.name || 'Sin nombre',
+                    usuario.email || '—',
+                    usuario.telefono || '—',
+                    usuario.pais || '—',
+                    usuario.fecha || '—',
+                    usuario.role || 'inversor',
+                    'Activo',
+                    <button
+                      key={`chat-${usuario.id}`}
+                      className="btn-action"
+                      onClick={() => { setSeleccionadoChat(usuario.name || 'Sin nombre'); setActiveTab('chat') }}
+                      style={{ backgroundColor: '#0284c7', color: 'white' }}
+                    >
+                      💬 Chat
+                    </button>
+                  ])
+                  : [['Sin registros', '—', '—', '—', '—', '—', 'Sin datos', '—']]
+              )}
+            </div>
+          )}
+          {activeTab === 'operaciones' && (
+            <div className="card">
+              <div className="section-header"><h2>💰 Pagos de Rentabilidad Semanal</h2></div>
+              <div style={{ marginTop: '1.5rem', padding: '1.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
+                <h4 style={{ marginTop: 0, color: '#374151' }}>📊 Inversiones elegibles para pagar hoy:</h4>
+                {getInversionesElegibles().length > 0 ? (
+                  <div style={{ display: 'grid', gap: '0.75rem' }}>
+                    {getInversionesElegibles().map(aportacion => {
+                      const proximoPago = calcularProximoPago(aportacion.fechaUltimoPago, aportacion.fechaOriginal)
+                      const proximoPagoFormato = proximoPago.toLocaleDateString('es-ES')
+                      return (
+                        <div key={aportacion.id} style={{ padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
+                          <div>
+                            <strong>{aportacion.usuario}</strong>
+                            <div style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>📅 Inicio: {new Date(aportacion.fechaOriginal).toLocaleDateString('es-ES')}{aportacion.fechaUltimoPago && ` · Últm pago: ${new Date(aportacion.fechaUltimoPago).toLocaleDateString('es-ES')}`}</div>
+                            <div style={{ color: '#6b7280', fontSize: '12px' }}>💰 Capital: €{aportacion.importe} {aportacion.moneda} · Próx pago: {proximoPagoFormato}</div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ color: '#6b7280', fontStyle: 'italic' }}>No hay inversores activos</div>
+                )}
+                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #d1d5db' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Porcentaje semanal (%):</label>
+                  <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                    <input type="number" value={porcentajeSemanal} onChange={(e) => setPorcentajeSemanal(e.target.value)} placeholder="Ej: 0.5" min="0" step="0.01" style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', flex: 1, maxWidth: '150px' }} />
+                    <button onClick={pagarRentabilidadSemanal} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap' }}>
+                      💳 Pagar rentabilidad
+                    </button>
+                  </div>
+                  <div style={{ marginTop: '1rem', fontSize: '12px', color: '#6b7280' }}>
+                    Inversiones elegibles: {getInversionesElegibles().length}
+                  </div>
+                  {porcentajeSemanal && getInversionesElegibles().length > 0 && (
+                    <div style={{ marginTop: '1rem', padding: '12px', backgroundColor: '#ecfdf5', borderRadius: '6px', border: '2px solid #10b981', display: 'flex', justifyContent: 'space-between' }}>
+                      <strong style={{ color: '#065f46' }}>Total a pagar:</strong>
+                      <strong style={{ color: '#10b981', fontSize: '16px' }}>
+                        €{(getInversionesElegibles().reduce((sum, a) => sum + (Number(a.importe) * Number(porcentajeSemanal) / 100), 0).toFixed(2))}
+                      </strong>
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'depositos' && (
-        <div className="card">
-          <div className="section-header"><h2>Solicitudes de Depósito Pendientes</h2></div>
-          {table(
-            ['ID', 'Nombre', 'Email', 'Importe', 'Moneda', 'Fecha', 'Estado', 'Acción'],
-            solicitudesInversion.length
-              ? solicitudesInversion.map((solicitud) => [
-                solicitud.id,
-                solicitud.nombre || '—',
-                solicitud.email || '—',
-                formatCurrency(solicitud.importe, solicitud.moneda),
-                solicitud.moneda,
-                new Date(solicitud.fecha).toLocaleDateString('es-ES'),
-                solicitud.estado || 'Pendiente',
-                <button
-                  className="btn-action"
-                  style={{ backgroundColor: '#10b981', color: 'white' }}
-                >
-                  ✓ Validar depósito
-                </button>
-              ])
-              : [['Sin solicitudes', '—', '—', '—', '—', '—', '—', '—']]
-          )}
-        </div>
-      )}
-
-      {activeTab === 'chat' && (
-        <div className="card">
-          <div className="section-header">
-            <h2>💬 Sistema de chat con inversores</h2>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>
-              Total de mensajes sin leer: <strong>{mensajes.filter(m => m.tipo === 'inversor' && !m.leido).length}</strong>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: seleccionadoChat ? '250px 1fr' : '1fr', gap: '1rem', minHeight: '600px' }}>
-            {/* Panel de inversores */}
-            <div style={{
-              border: '1px solid #dfe3ea',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              display: 'flex',
-              flexDirection: 'column'
-            }}>
-              <div style={{
-                backgroundColor: '#f3f4f6',
-                padding: '1rem',
-                borderBottom: '1px solid #dfe3ea',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                📧 Conversaciones
               </div>
+            </div>
+          )}
+          {activeTab === 'capital' && (
+            <div className="card">
+              <div className="section-header"><h2>Capital y movimientos</h2></div>
 
-              <div style={{ overflowY: 'auto', flex: 1 }}>
-                {(() => {
-                  const inversoresUnicos = {}
-                  mensajes.forEach(msg => {
-                    if (msg.tipo === 'inversor') {
-                      if (!inversoresUnicos[msg.usuarioNombre]) {
-                        inversoresUnicos[msg.usuarioNombre] = []
-                      }
-                      inversoresUnicos[msg.usuarioNombre].push(msg)
+              {/* Tabla de Capital por Usuario */}
+              {table(
+                ['Usuario', 'Capital Total', 'Pool Activo (300%)', 'Total Retiros'],
+                (() => {
+                  const usuariosMap = new Map()
+
+                  // Agrupar aportaciones por usuario
+                  aportacionesNormalizadas.forEach(aport => {
+                    if (!usuariosMap.has(aport.usuario)) {
+                      usuariosMap.set(aport.usuario, {
+                        capital: 0,
+                        ganancias: 0,
+                        retiros: 0,
+                        aportaciones: []
+                      })
+                    }
+                    const user = usuariosMap.get(aport.usuario)
+                    const importe = Number(aport.importe || 0)
+                    user.capital += importe
+                    user.aportaciones.push(aport)
+                    // Pool Activo = capital × 3 (si es activa)
+                    if (aport.estado === 'Activa' || aport.estado === 'Validada') {
+                      user.ganancias += importe * 3 // pool total es importe × 3
                     }
                   })
 
-                  return Object.entries(inversoresUnicos).length === 0 ? (
-                    <div style={{ padding: '1rem', color: '#6b7280', textAlign: 'center', marginTop: '2rem' }}>
-                      Sin mensajes aún
-                    </div>
-                  ) : (
-                    Object.entries(inversoresUnicos).map(([nombre, msgs]) => {
-                      const noLeidos = msgs.filter(m => !m.leido).length
-                      const ultimoMsg = msgs[msgs.length - 1]
-                      return (
-                        <div
-                          key={nombre}
-                          onClick={() => setSeleccionadoChat(nombre)}
-                          style={{
-                            padding: '1rem',
-                            borderBottom: '1px solid #e5e7eb',
-                            cursor: 'pointer',
-                            backgroundColor: seleccionadoChat === nombre ? '#eff6ff' : 'white',
-                            borderLeft: seleccionadoChat === nombre ? '4px solid #0284c7' : 'none'
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
-                            <div style={{ fontWeight: '600', color: '#1f2937' }}>{nombre}</div>
-                            {noLeidos > 0 && (
-                              <span style={{
-                                backgroundColor: '#ef4444',
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: '20px',
-                                height: '20px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: '12px',
-                                fontWeight: 'bold'
-                              }}>
-                                {noLeidos}
-                              </span>
-                            )}
-                          </div>
-                          <div style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {ultimoMsg.mensaje.substring(0, 40)}...
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '0.25rem' }}>
-                            {ultimoMsg.fecha}
-                          </div>
-                        </div>
-                      )
-                    })
-                  )
-                })()}
-              </div>
+                  // Agrupar retiros por usuario
+                  retiros.forEach(retiro => {
+                    if (usuariosMap.has(retiro.usuario)) {
+                      const user = usuariosMap.get(retiro.usuario)
+                      if (retiro.estado === 'Aprobado' || retiro.estado === 'Procesado') {
+                        user.retiros += Number(retiro.monto || 0)
+                      }
+                    }
+                  })
+
+                  // Convertir a array y mapear a filas de tabla
+                  return Array.from(usuariosMap.entries()).map(([usuario, data]) => {
+                    return [
+                      usuario,
+                      formatCurrency(data.capital, 'EUR'),
+                      formatCurrency(data.ganancias, 'EUR'),
+                      formatCurrency(data.retiros, 'EUR')
+                    ]
+                  })
+                })()
+              )}
             </div>
+          )}
+          {activeTab === 'referidos' && (
+            <div className="card">
+              <div className="section-header"><h2>🎯 Sistema de Referidos</h2></div>
 
-            {/* Panel de mensajes */}
-            {seleccionadoChat ? (
-              <div style={{
-                border: '1px solid #dfe3ea',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                display: 'flex',
-                flexDirection: 'column'
-              }}>
-                <div style={{
-                  backgroundColor: '#f3f4f6',
-                  padding: '1rem',
-                  borderBottom: '1px solid #dfe3ea',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  {seleccionadoChat}
-                </div>
-
-                <div style={{ overflowY: 'auto', flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {(() => {
-                    const msgsDelInversor = mensajes.filter(m => m.usuarioNombre === seleccionadoChat)
-                    return msgsDelInversor.length === 0 ? (
-                      <div style={{ color: '#6b7280', textAlign: 'center', marginTop: '2rem' }}>
-                        Sin mensajes
-                      </div>
-                    ) : (
-                      msgsDelInversor.map(msg => (
-                        <div
-                          key={msg.id}
-                          style={{
-                            backgroundColor: msg.tipo === 'inversor' ? '#e5e7eb' : '#dbeafe',
-                            padding: '0.75rem 1rem',
-                            borderRadius: '8px',
-                            maxWidth: '80%',
-                            alignSelf: msg.tipo === 'inversor' ? 'flex-start' : 'flex-end',
-                            wordWrap: 'break-word'
-                          }}
-                        >
-                          <div style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '0.25rem' }}>
-                            {msg.tipo === 'inversor' ? msg.usuarioNombre : 'Tú (Admin)'}
-                          </div>
-                          <div style={{ fontSize: '14px', color: '#1f2937' }}>
-                            {msg.mensaje}
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '0.5rem' }}>
-                            {msg.fecha}
-                          </div>
-                        </div>
-                      ))
-                    )
-                  })()}
-                </div>
-
-                <div style={{
-                  borderTop: '1px solid #dfe3ea',
-                  padding: '1rem',
-                  display: 'flex',
-                  gap: '0.5rem'
-                }}>
-                  <textarea
-                    value={respuesta}
-                    onChange={(e) => setRespuesta(e.target.value)}
-                    placeholder="Escribe tu respuesta..."
-                    style={{
-                      flex: 1,
-                      padding: '0.75rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      fontFamily: 'inherit',
-                      minHeight: '80px',
-                      resize: 'vertical'
-                    }}
+              {/* Tu código de referido */}
+              <div style={{ marginTop: '1.5rem', padding: '1.5rem', backgroundColor: '#fef3c7', borderRadius: '8px', border: '2px solid #f59e0b' }}>
+                <h3 style={{ marginTop: 0, color: '#92400e' }}>📌 Tu Enlace de Referido</h3>
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
+                  <input
+                    type="text"
+                    value={`https://capitaltradeiberia.com?ref=${getCodigoReferidoAdmin().codigo}`}
+                    readOnly
+                    style={{ flex: 1, padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontFamily: 'monospace', fontSize: '14px' }}
                   />
                   <button
-                    onClick={async () => {
-                      if (!respuesta.trim()) {
-                        alert('Escribe un mensaje')
-                        return
-                      }
-                      try {
-                        const token = localStorage.getItem('token')
-                        const response = await fetch('http://localhost:8000/api/comunidad/mensajes', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                          },
-                          body: JSON.stringify({
-                            mensaje: respuesta.trim(),
-                            destinatario: seleccionadoChat
-                          })
-                        })
-                        if (response.ok) {
-                          setRespuesta('')
-                          setMensaje('✅ Respuesta enviada')
-                        } else {
-                          setMensaje('❌ Error enviando respuesta')
-                        }
-                      } catch (error) {
-                        console.error('Error:', error)
-                        setMensaje('❌ Error enviando respuesta')
-                      }
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://capitaltradeiberia.com?ref=${getCodigoReferidoAdmin().codigo}`)
+                      setMensaje('✅ Enlace copiado al portapapeles')
                       setTimeout(() => setMensaje(''), 2000)
                     }}
-                    style={{
-                      padding: '0.75rem 1.5rem',
-                      backgroundColor: '#3b82f6',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      alignSelf: 'flex-end'
-                    }}
+                    style={{ padding: '10px 16px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
                   >
-                    Enviar
+                    📋 Copiar
                   </button>
                 </div>
+                <p style={{ color: '#78350f', fontSize: '14px', margin: 0 }}>Comparte este enlace. Cada usuario que se registre con él, tú ganas 10% de su inversión.</p>
               </div>
-            ) : (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#6b7280',
-                fontSize: '16px'
-              }}>
-                Selecciona una conversación para ver los mensajes
+
+              {/* Estadísticas de referidos */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
+                <div style={{ padding: '1rem', backgroundColor: '#ecfdf5', borderRadius: '8px', border: '1px solid #86efac' }}>
+                  <h4 style={{ marginTop: 0, color: '#065f46' }}>👥 Referidos activos</h4>
+                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>{getReferidosDelAdmin().length}</p>
+                </div>
+                <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
+                  <h4 style={{ marginTop: 0, color: '#065f46' }}>💰 Comisiones Ganadas (10%)</h4>
+                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>
+                    €{getReferidosDelAdmin().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}
+                  </p>
+                </div>
+                <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
+                  <h4 style={{ marginTop: 0, color: '#065f46' }}>📊 Inversión total de referidos</h4>
+                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>
+                    €{getReferidosDelAdmin().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      )}
+
+              {/* Tabla de inversiones activas con ganancias disponibles */}
+              <div style={{ marginTop: '2rem' }}>
+                <h3 style={{ color: '#374151', marginBottom: '1rem' }}>📋 Inversiones Activas (Pool de Ganancias)</h3>
+                {aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length > 0 ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Usuario</th>
+                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
+                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>📊 Ganancias Disponibles</th>
+                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>⚡ % Restante</th>
+                          <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600' }}>📅 Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').map((aportacion, idx) => {
+                          const gananciasDisp = Number(aportacion.gananciasDisponibles || aportacion.importe * 3)
+                          const totalGanancias = aportacion.importe * 3
+                          const porcentajeRestante = ((gananciasDisp / totalGanancias) * 100).toFixed(1)
+                          const colorBarra = porcentajeRestante > 66 ? '#10b981' : porcentajeRestante > 33 ? '#f59e0b' : '#ef4444'
+                          return (
+                            <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
+                              <td style={{ padding: '12px' }}><strong>{aportacion.usuario}</strong></td>
+                              <td style={{ padding: '12px', textAlign: 'right' }}>€{Number(aportacion.importe).toLocaleString('es-ES')}</td>
+                              <td style={{ padding: '12px', textAlign: 'right' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                                  <div style={{ width: '100px', height: '20px', backgroundColor: '#e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${porcentajeRestante}%`, height: '100%', backgroundColor: colorBarra, transition: 'width 0.3s ease' }}></div>
+                                  </div>
+                                  <span style={{ fontWeight: '600', minWidth: '80px' }}>€{gananciasDisp.toFixed(2)}</span>
+                                </div>
+                              </td>
+                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: colorBarra }}>{porcentajeRestante}%</td>
+                              <td style={{ padding: '12px', textAlign: 'center' }}>
+                                <span style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
+                                  {aportacion.estado}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>No hay inversiones activas</p>
+                )}
+              </div>
+
+              {/* Tabla de referidos */}
+              <div style={{ marginTop: '2rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3 style={{ color: '#374151', margin: 0 }}>🌐 Historial de Referidos</h3>
+                  <button
+                    onClick={pagarComisionesReferidos}
+                    style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
+                  >
+                    💳 Pagar Comisiones
+                  </button>
+                </div>
+                {getReferidosDelAdmin().length > 0 ? (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Referido</th>
+                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
+                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>🎁 Comisión (10%)</th>
+                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>📅 Fecha</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getReferidosDelAdmin().map((referido, idx) => {
+                          const comision = referido.inversionTotal * 0.1
+                          return (
+                            <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
+                              <td style={{ padding: '12px' }}><strong>{referido.nombreReferido || 'Usuario'}</strong></td>
+                              <td style={{ padding: '12px', textAlign: 'right' }}>€{Number(referido.inversionTotal || 0).toLocaleString('es-ES')}</td>
+                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>€{comision.toFixed(2)}</td>
+                              <td style={{ padding: '12px', color: '#6b7280', fontSize: '12px' }}>{new Date(referido.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>Aún no tienes referidos. Comparte tu enlace para empezar a ganar.</p>
+                )}
+              </div>
+
+              {/* Gráfico de distribución de ganancias */}
+              <div style={{ marginTop: '2rem', padding: '1.5rem', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <h3 style={{ marginTop: 0, color: '#374151' }}>📈 Análisis de Ganancias</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
+                  {/* Pie chart simple */}
+                  <div style={{ textAlign: 'center' }}>
+                    <h4 style={{ color: '#6b7280' }}>Distribución de Ganancias</h4>
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '12px', height: '200px', marginTop: '1rem' }}>
+                      <div style={{ width: '60px', backgroundColor: '#10b981', borderRadius: '8px 8px 0 0', height: `${(getReferidosDelAdmin().length / (aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length || 1)) * 100 || 10}%`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
+                        Referidos
+                      </div>
+                      <div style={{ width: '60px', backgroundColor: '#3b82f6', borderRadius: '8px 8px 0 0', height: '70%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
+                        Activos
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Resumen de pagos */}
+                  <div style={{ textAlign: 'center' }}>
+                    <h4 style={{ color: '#6b7280' }}>Resumen</h4>
+                    <div style={{ marginTop: '1rem', textAlign: 'left', backgroundColor: 'white', padding: '1rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
+                        <span style={{ color: '#6b7280' }}>Total Referidos:</span>
+                        <strong style={{ color: '#10b981' }}>{getReferidosDelAdmin().length}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
+                        <span style={{ color: '#6b7280' }}>Inv. Total Referidos:</span>
+                        <strong style={{ color: '#3b82f6' }}>€{getReferidosDelAdmin().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}</strong>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#6b7280' }}>Comisiones Totales (10%):</span>
+                        <strong style={{ color: '#f59e0b' }}>€{getReferidosDelAdmin().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeTab === 'rangos' && (
+            <div className="card">
+              <div className="section-header"><h2>🏆 Programa de Aceleración - Rangos</h2></div>
+              <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
+                Inversores que alcanzaron un rango según su inversión propia y sus referidos activos (mínimo 100 $ de inversión cada uno). Aquí ves cuánto hay que pagarles mensualmente.
+              </p>
+
+              {getRangosInversores().length > 0 ? (
+                <>
+                  <div className="table-container">
+                    <table className="tabla-estudiantes">
+                      <thead>
+                        <tr>
+                          <th>Inversor</th>
+                          <th>Rango</th>
+                          <th>Inversión propia</th>
+                          <th>Referidos activos</th>
+                          <th>Beneficio mensual</th>
+                          <th>Duración</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getRangosInversores().map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.nombreInversor}</td>
+                            <td>{item.rango.emoji} {item.rango.nombre}</td>
+                            <td>€{item.inversionPropia.toFixed(2)}</td>
+                            <td>{item.referidosActivos}</td>
+                            <td style={{ fontWeight: '700', color: '#10b981' }}>€{item.rango.beneficioMensual} / mes</td>
+                            <td>{item.rango.meses} meses</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f0fdf4', border: '1px solid #22c55e', borderRadius: '10px' }}>
+                    <strong style={{ color: '#15803d' }}>💰 Total a pagar este mes a todos los rangos: </strong>
+                    <span style={{ fontWeight: '700', color: '#15803d' }}>
+                      €{getRangosInversores().reduce((sum, item) => sum + item.rango.beneficioMensual, 0).toFixed(2)}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>Aún ningún inversor ha alcanzado un rango del programa de aceleración.</p>
+              )}
+            </div>
+          )}
+          {activeTab === 'configuracion' && (
+            <div className="card">
+              <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2>Configuración de cuentas y monedas</h2>
+                <button onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('token')
+                    const response = await fetch('http://localhost:8000/api/admin/config', {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({ minimos })
+                    })
+                    if (response.ok) {
+                      setMensaje('✅ Configuración guardada correctamente')
+                    } else {
+                      setMensaje('❌ Error guardando configuración')
+                    }
+                  } catch (error) {
+                    console.error('Error:', error)
+                    setMensaje('❌ Error guardando configuración')
+                  }
+                  setTimeout(() => setMensaje(''), 2000)
+                }} style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>
+                  💾 Guardar cambios
+                </button>
+              </div>
+              <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
+                {cuentas.map((account, index) => (
+                  <div key={account.moneda} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', border: '1px solid #dfe3ea', padding: '1rem', borderRadius: '12px' }}>
+                    <input value={account.moneda} onChange={(e) => updateBankAccount(index, 'moneda', e.target.value)} placeholder="Moneda" />
+                    <input value={account.banco} onChange={(e) => updateBankAccount(index, 'banco', e.target.value)} placeholder="Banco" />
+                    <input value={account.titular} onChange={(e) => updateBankAccount(index, 'titular', e.target.value)} placeholder="Titular" />
+                    <input value={account.cuenta} onChange={(e) => updateBankAccount(index, 'cuenta', e.target.value)} placeholder="Cuenta / IBAN" />
+                    <input value={account.instrucciones} onChange={(e) => updateBankAccount(index, 'instrucciones', e.target.value)} placeholder="Instrucciones" />
+                    <input value={account.estado} onChange={(e) => updateBankAccount(index, 'estado', e.target.value)} placeholder="Estado" />
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: '1.5rem' }}>
+                <h3>Mínimos por moneda</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
+                  {Object.entries(minimos).map(([moneda, minimo]) => (
+                    <div key={moneda} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <label>{moneda}</label>
+                      <input value={minimo} onChange={(e) => updateMinimo(moneda, e.target.value)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'depositos' && (
+            <div className="card">
+              <div className="section-header"><h2>Solicitudes de Depósito Pendientes</h2></div>
+              {table(
+                ['ID', 'Nombre', 'Email', 'Importe', 'Moneda', 'Fecha', 'Estado', 'Acción'],
+                solicitudesInversion.length
+                  ? solicitudesInversion.map((solicitud) => [
+                    solicitud.id,
+                    solicitud.nombre || '—',
+                    solicitud.email || '—',
+                    formatCurrency(solicitud.importe, solicitud.moneda),
+                    solicitud.moneda,
+                    new Date(solicitud.fecha).toLocaleDateString('es-ES'),
+                    solicitud.estado || 'Pendiente',
+                    <button
+                      className="btn-action"
+                      style={{ backgroundColor: '#10b981', color: 'white' }}
+                    >
+                      ✓ Validar depósito
+                    </button>
+                  ])
+                  : [['Sin solicitudes', '—', '—', '—', '—', '—', '—', '—']]
+              )}
+            </div>
+          )}
+
+          {activeTab === 'chat' && (
+            <div className="card">
+              <div className="section-header">
+                <h2>💬 Sistema de chat con inversores</h2>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  Total de mensajes sin leer: <strong>{mensajes.filter(m => m.tipo === 'inversor' && !m.leido).length}</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: seleccionadoChat ? '250px 1fr' : '1fr', gap: '1rem', minHeight: '600px' }}>
+                {/* Panel de inversores */}
+                <div style={{
+                  border: '1px solid #dfe3ea',
+                  borderRadius: '12px',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <div style={{
+                    backgroundColor: '#f3f4f6',
+                    padding: '1rem',
+                    borderBottom: '1px solid #dfe3ea',
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    📧 Conversaciones
+                  </div>
+
+                  <div style={{ overflowY: 'auto', flex: 1 }}>
+                    {(() => {
+                      const inversoresUnicos = {}
+                      mensajes.forEach(msg => {
+                        if (msg.tipo === 'inversor') {
+                          if (!inversoresUnicos[msg.usuarioNombre]) {
+                            inversoresUnicos[msg.usuarioNombre] = []
+                          }
+                          inversoresUnicos[msg.usuarioNombre].push(msg)
+                        }
+                      })
+
+                      return Object.entries(inversoresUnicos).length === 0 ? (
+                        <div style={{ padding: '1rem', color: '#6b7280', textAlign: 'center', marginTop: '2rem' }}>
+                          Sin mensajes aún
+                        </div>
+                      ) : (
+                        Object.entries(inversoresUnicos).map(([nombre, msgs]) => {
+                          const noLeidos = msgs.filter(m => !m.leido).length
+                          const ultimoMsg = msgs[msgs.length - 1]
+                          return (
+                            <div
+                              key={nombre}
+                              onClick={() => setSeleccionadoChat(nombre)}
+                              style={{
+                                padding: '1rem',
+                                borderBottom: '1px solid #e5e7eb',
+                                cursor: 'pointer',
+                                backgroundColor: seleccionadoChat === nombre ? '#eff6ff' : 'white',
+                                borderLeft: seleccionadoChat === nombre ? '4px solid #0284c7' : 'none'
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
+                                <div style={{ fontWeight: '600', color: '#1f2937' }}>{nombre}</div>
+                                {noLeidos > 0 && (
+                                  <span style={{
+                                    backgroundColor: '#ef4444',
+                                    color: 'white',
+                                    borderRadius: '50%',
+                                    width: '20px',
+                                    height: '20px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold'
+                                  }}>
+                                    {noLeidos}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {ultimoMsg.mensaje.substring(0, 40)}...
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '0.25rem' }}>
+                                {ultimoMsg.fecha}
+                              </div>
+                            </div>
+                          )
+                        })
+                      )
+                    })()}
+                  </div>
+                </div>
+
+                {/* Panel de mensajes */}
+                {seleccionadoChat ? (
+                  <div style={{
+                    border: '1px solid #dfe3ea',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column'
+                  }}>
+                    <div style={{
+                      backgroundColor: '#f3f4f6',
+                      padding: '1rem',
+                      borderBottom: '1px solid #dfe3ea',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {seleccionadoChat}
+                    </div>
+
+                    <div style={{ overflowY: 'auto', flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {(() => {
+                        const msgsDelInversor = mensajes.filter(m => m.usuarioNombre === seleccionadoChat)
+                        return msgsDelInversor.length === 0 ? (
+                          <div style={{ color: '#6b7280', textAlign: 'center', marginTop: '2rem' }}>
+                            Sin mensajes
+                          </div>
+                        ) : (
+                          msgsDelInversor.map(msg => (
+                            <div
+                              key={msg.id}
+                              style={{
+                                backgroundColor: msg.tipo === 'inversor' ? '#e5e7eb' : '#dbeafe',
+                                padding: '0.75rem 1rem',
+                                borderRadius: '8px',
+                                maxWidth: '80%',
+                                alignSelf: msg.tipo === 'inversor' ? 'flex-start' : 'flex-end',
+                                wordWrap: 'break-word'
+                              }}
+                            >
+                              <div style={{ fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '0.25rem' }}>
+                                {msg.tipo === 'inversor' ? msg.usuarioNombre : 'Tú (Admin)'}
+                              </div>
+                              <div style={{ fontSize: '14px', color: '#1f2937' }}>
+                                {msg.mensaje}
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '0.5rem' }}>
+                                {msg.fecha}
+                              </div>
+                            </div>
+                          ))
+                        )
+                      })()}
+                    </div>
+
+                    <div style={{
+                      borderTop: '1px solid #dfe3ea',
+                      padding: '1rem',
+                      display: 'flex',
+                      gap: '0.5rem'
+                    }}>
+                      <textarea
+                        value={respuesta}
+                        onChange={(e) => setRespuesta(e.target.value)}
+                        placeholder="Escribe tu respuesta..."
+                        style={{
+                          flex: 1,
+                          padding: '0.75rem',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          fontFamily: 'inherit',
+                          minHeight: '80px',
+                          resize: 'vertical'
+                        }}
+                      />
+                      <button
+                        onClick={async () => {
+                          if (!respuesta.trim()) {
+                            alert('Escribe un mensaje')
+                            return
+                          }
+                          try {
+                            const token = localStorage.getItem('token')
+                            const response = await fetch('http://localhost:8000/api/comunidad/mensajes', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                              },
+                              body: JSON.stringify({
+                                mensaje: respuesta.trim(),
+                                destinatario: seleccionadoChat
+                              })
+                            })
+                            if (response.ok) {
+                              setRespuesta('')
+                              setMensaje('✅ Respuesta enviada')
+                            } else {
+                              setMensaje('❌ Error enviando respuesta')
+                            }
+                          } catch (error) {
+                            console.error('Error:', error)
+                            setMensaje('❌ Error enviando respuesta')
+                          }
+                          setTimeout(() => setMensaje(''), 2000)
+                        }}
+                        style={{
+                          padding: '0.75rem 1.5rem',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          alignSelf: 'flex-end'
+                        }}
+                      >
+                        Enviar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#6b7280',
+                    fontSize: '16px'
+                  }}>
+                    Selecciona una conversación para ver los mensajes
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div> {/* end content-scroll */}
+      </main>
     </div>
   )
 }
