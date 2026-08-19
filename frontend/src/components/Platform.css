@@ -512,3 +512,232 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===============================================================
+   FUTURISTIC REDESIGN OVERRIDES (INSTITUTIONAL TRADING TERMINAL)
+   =============================================================== */
+
+.platform-page {
+  background-color: #030408 !important;
+}
+
+.platform-page::before {
+  background:
+    radial-gradient(ellipse at 15% 50%, rgba(0, 240, 255, 0.08), transparent 45%),
+    radial-gradient(ellipse at 85% 30%, rgba(246, 196, 83, 0.06), transparent 45%),
+    linear-gradient(180deg, #05070f 0%, #020306 100%) !important;
+}
+
+.platform-page::after {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px) !important;
+  background-size: 40px 40px !important;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+}
+
+.platform-card {
+  background: rgba(12, 16, 28, 0.75) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  border: 1px solid rgba(0, 240, 255, 0.15) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 40px rgba(0, 240, 255, 0.05) !important;
+  position: relative;
+}
+
+.platform-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #00f0ff, #f6c453, transparent);
+  box-shadow: 0 0 10px #00f0ff, 0 0 20px #f6c453;
+}
+
+.platform-header h1 {
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 2.8rem !important;
+  letter-spacing: -0.03em !important;
+  background: linear-gradient(135deg, #fff 0%, #a4b4cb 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.section-label {
+  font-family: 'Space Grotesk', sans-serif !important;
+  color: #00f0ff !important;
+  letter-spacing: 2px !important;
+  background: rgba(0, 240, 255, 0.05) !important;
+  border: 1px solid rgba(0, 240, 255, 0.2) !important;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.1) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 100px;
+}
+
+.section-label::before {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  background-color: #00f0ff;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00f0ff;
+}
+
+.primary-btn {
+  background: #f6c453 !important;
+  color: #000 !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 4px 15px rgba(246, 196, 83, 0.3) !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.primary-btn:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 0 8px 25px rgba(246, 196, 83, 0.5) !important;
+  background: #FFF !important;
+}
+
+.secondary-btn,
+.ghost-btn {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  transition: all 0.3s ease !important;
+}
+
+.secondary-btn:hover,
+.ghost-btn:hover {
+  border-color: #00f0ff !important;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.tab-switcher {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+.tab {
+  transition: all 0.4s ease !important;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #fff !important;
+}
+
+.tab.active {
+  background: #00f0ff !important;
+  color: #000 !important;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.4) !important;
+}
+
+.participation-modal {
+  background: rgba(10, 14, 23, 0.95) !important;
+  border: 1px solid #00f0ff !important;
+  box-shadow: 0 0 50px rgba(0, 240, 255, 0.15) !important;
+  backdrop-filter: blur(24px) !important;
+}
+
+.participation-modal h3,
+.participation-modal p {
+  font-family: 'Space Grotesk', sans-serif !important;
+}
+
+input,
+textarea,
+select {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  transition: all 0.3s ease !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #00f0ff !important;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2) !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  outline: none !important;
+}
+
+/* React Inline Styles Overrides */
+div[style*="background: linear-gradient(135deg, #0284c7"],
+div[style*="background: linear-gradient(135deg, #10b981"],
+div[style*="background: linear-gradient(135deg, #a855f7"],
+div[style*="background: linear-gradient(135deg, #f59e0b"] {
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+div[style*="background: linear-gradient(135deg"]:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  z-index: 2;
+}
+
+div[style*="background: linear-gradient(135deg"]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transform: skewX(-25deg);
+  transition: left 0.7s ease;
+  z-index: 3;
+  pointer-events: none;
+}
+
+div[style*="background: linear-gradient(135deg"]:hover::after {
+  left: 200%;
+}
+
+div[style*="background: linear-gradient(135deg"] p:nth-of-type(1) {
+  font-family: 'Space Grotesk', sans-serif !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  font-size: 0.85rem !important;
+}
+
+div[style*="background: linear-gradient(135deg"] p:nth-of-type(2) {
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 2.2rem !important;
+  font-weight: 700 !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+div[style*="rgba(10, 17, 30, 0.7)"],
+div[style*="rgba(10, 17, 30, 0.5)"] {
+  background: rgba(14, 19, 32, 0.8) !important;
+  border: 1px solid rgba(0, 240, 255, 0.1) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 20px !important;
+  transition: all 0.3s ease !important;
+}
+
+div[style*="rgba(10, 17, 30, 0.7)"]:hover {
+  border-color: rgba(0, 240, 255, 0.4) !important;
+  box-shadow: 0 10px 40px rgba(0, 240, 255, 0.1) !important;
+  transform: translateY(-3px) !important;
+}

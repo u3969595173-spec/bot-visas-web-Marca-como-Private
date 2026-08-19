@@ -1652,3 +1652,278 @@
     flex-wrap: wrap;
   }
 }
+
+/* ===============================================================
+   FUTURISTIC REDESIGN OVERRIDES (ADMIN DASHBOARD / COMMAND CENTER)
+   =============================================================== */
+
+.dashboard-admin-futurista {
+  background-color: #030509 !important;
+}
+
+.dashboard-admin-futurista::before {
+  background:
+    radial-gradient(circle at 80% -10%, rgba(168, 85, 247, 0.1), transparent 50%),
+    radial-gradient(circle at 20% 110%, rgba(0, 240, 255, 0.08), transparent 50%),
+    linear-gradient(180deg, #030509 0%, #060913 100%) !important;
+}
+
+.dashboard-admin-futurista::after {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px) !important;
+  background-size: 50px 50px !important;
+  opacity: 0.6 !important;
+}
+
+.dashboard-header {
+  background: rgba(9, 12, 20, 0.85) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
+  border: 1px solid rgba(168, 85, 247, 0.15) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(168, 85, 247, 0.05) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #a855f7, #00f0ff, transparent);
+  box-shadow: 0 0 15px #a855f7;
+}
+
+.dashboard-title-wrap h1 {
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 2.8rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  background: linear-gradient(to right, #fff, #d8b4fe) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.eyebrow {
+  color: #00f0ff !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  letter-spacing: 3px !important;
+  padding: 4px 12px !important;
+  background: rgba(0, 240, 255, 0.05) !important;
+  border: 1px solid rgba(0, 240, 255, 0.2) !important;
+  border-radius: 50px !important;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.1) !important;
+}
+
+.header-pill {
+  background: rgba(0, 255, 102, 0.05) !important;
+  border: 1px solid rgba(0, 255, 102, 0.2) !important;
+  color: #00ff66 !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+}
+
+.dot-live {
+  background: #00ff66 !important;
+  box-shadow: 0 0 10px #00ff66 !important;
+}
+
+.btn-logout {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  text-transform: uppercase !important;
+  font-weight: 700 !important;
+  transition: all 0.3s ease !important;
+}
+
+.btn-logout:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3) !important;
+  transform: translateY(-2px) !important;
+}
+
+.tabs-container {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+.tab {
+  background: transparent !important;
+  border: none !important;
+  color: #8b9bb4 !important;
+  font-family: 'Outfit', sans-serif !important;
+  transition: all 0.3s ease !important;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #fff !important;
+}
+
+.tab-active {
+  background: #a855f7 !important;
+  color: #fff !important;
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.5) !important;
+  font-weight: 700 !important;
+}
+
+.stat-card,
+div[style*="linear-gradient(135deg, rgba(51, 65, 85, 0.9)"] {
+  background: rgba(14, 19, 32, 0.8) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
+  border-radius: 20px !important;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+.stat-card:hover,
+div[style*="linear-gradient(135deg, rgba(51, 65, 85, 0.9)"]:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.6) !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+}
+
+.stat-icon {
+  background: rgba(0, 0, 0, 0.3) !important;
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.stat-total .stat-icon {
+  border-color: #00f0ff !important;
+  color: #00f0ff !important;
+}
+
+.stat-aprobados .stat-icon {
+  border-color: #00ff66 !important;
+  color: #00ff66 !important;
+}
+
+.stat-pendientes .stat-icon {
+  border-color: #f6c453 !important;
+  color: #f6c453 !important;
+}
+
+.stat-rechazados .stat-icon {
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.estudiantes-section,
+.controles {
+  background: rgba(9, 12, 20, 0.85) !important;
+  border: 1px solid rgba(168, 85, 247, 0.15) !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
+}
+
+.tabla-estudiantes {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.tabla-estudiantes th {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border-bottom: 2px solid rgba(168, 85, 247, 0.2) !important;
+  color: #00f0ff !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  text-transform: uppercase !important;
+  letter-spacing: 1px !important;
+}
+
+.tabla-estudiantes td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #d1d5db !important;
+  background: rgba(255, 255, 255, 0.01) !important;
+}
+
+.tabla-estudiantes tr:hover td {
+  background: rgba(168, 85, 247, 0.05) !important;
+}
+
+.modal-content {
+  background: rgba(9, 12, 20, 0.95) !important;
+  border: 1px solid #a855f7 !important;
+  box-shadow: 0 0 50px rgba(168, 85, 247, 0.2) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  border-radius: 24px !important;
+}
+
+.btn-confirmar {
+  background: #a855f7 !important;
+  color: #fff !important;
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.5) !important;
+  text-transform: uppercase !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  border: none !important;
+}
+
+.btn-confirmar:hover {
+  background: #fff !important;
+  color: #000 !important;
+  box-shadow: 0 0 25px rgba(255, 255, 255, 0.5) !important;
+}
+
+.btn-cancelar {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+}
+
+.btn-aprobar {
+  background: rgba(0, 255, 102, 0.1) !important;
+  color: #00ff66 !important;
+  border: 1px solid rgba(0, 255, 102, 0.3) !important;
+}
+
+.btn-aprobar:hover {
+  background: #00ff66 !important;
+  color: #000 !important;
+  box-shadow: 0 0 15px rgba(0, 255, 102, 0.4) !important;
+}
+
+.btn-rechazar {
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
+}
+
+.btn-rechazar:hover {
+  background: #ef4444 !important;
+  color: #fff !important;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4) !important;
+}
+
+.buscador,
+input,
+textarea,
+select {
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  border-radius: 12px !important;
+}
+
+.buscador:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #00f0ff !important;
+  box-shadow: 0 0 15px rgba(0, 240, 255, 0.2) !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  outline: none !important;
+}

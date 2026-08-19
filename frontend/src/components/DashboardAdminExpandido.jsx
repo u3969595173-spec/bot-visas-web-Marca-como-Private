@@ -723,7 +723,7 @@ function DashboardAdminExpandido({ onLogout }) {
   }
 
   return (
-    <div className="dashboard-admin-expandido">
+    <div className="dashboard-admin-futurista">
       <div className="dashboard-header dashboard-header-premium">
         <div className="dashboard-title-wrap">
           <span className="eyebrow">Capital Trade Iberia</span>
