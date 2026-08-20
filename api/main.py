@@ -1095,6 +1095,74 @@ class ReferidoRequest(BaseModel):
     referido_por: str = None
 
 
+class ReferidoUpsertRequest(BaseModel):
+    id: str
+    codigo: str
+    nombreInversor: str
+    usuarioId: str = ""
+    referidoPor: Optional[str] = None
+    inversionTotal: float = 0
+    pagado: bool = False
+    esAdmin: bool = False
+
+
+@app.get("/api/referidos", tags=["Referidos"])
+async def obtener_referidos(usuario=Depends(obtener_usuario_actual)):
+    """Obtiene todos los referidos (usados por el programa de líderes)"""
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT id, codigo, nombre_inversor, usuario_id, referido_por, inversion_total, pagado, es_admin
+            FROM referidos_inversores ORDER BY fecha_creacion ASC
+        """)
+        filas = cur.fetchall()
+        cur.close()
+        conn.close()
+        referidos = [{
+            "id": fila[0],
+            "codigo": fila[1],
+            "nombreInversor": fila[2],
+            "usuarioId": fila[3],
+            "referidoPor": fila[4],
+            "inversionTotal": float(fila[5] or 0),
+            "pagado": fila[6],
+            "esAdmin": fila[7]
+        } for fila in filas]
+        return {"referidos": referidos}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.post("/api/referidos", tags=["Referidos"])
+async def crear_o_actualizar_referido(datos: ReferidoUpsertRequest, usuario=Depends(obtener_usuario_actual)):
+    """Crea o actualiza un registro de referido (código propio o comisión pagada)"""
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO referidos_inversores (id, codigo, nombre_inversor, usuario_id, referido_por, inversion_total, pagado, es_admin)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                nombre_inversor = EXCLUDED.nombre_inversor,
+                referido_por = EXCLUDED.referido_por,
+                inversion_total = EXCLUDED.inversion_total,
+                pagado = EXCLUDED.pagado,
+                es_admin = EXCLUDED.es_admin
+        """, (
+            datos.id, datos.codigo, datos.nombreInversor, datos.usuarioId,
+            datos.referidoPor, datos.inversionTotal, datos.pagado, datos.esAdmin
+        ))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 @app.post("/api/aportaciones", tags=["Aportaciones"])
 async def crear_aportacion(
     datos: AportacionRequest,

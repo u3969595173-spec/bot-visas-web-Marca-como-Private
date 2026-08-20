@@ -195,7 +195,7 @@ function DashboardInversionista() {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch(`${API_URL}/api/operaciones/aportaciones`, {
+        const response = await fetch(`${API_URL}/api/aportaciones`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 

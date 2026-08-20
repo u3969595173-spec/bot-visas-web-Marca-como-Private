@@ -459,9 +459,18 @@ async def crear_aportacion(datos: AportacionRequest, usuario = Depends(obtener_u
                 tasa_diaria DECIMAL(5,2),
                 ganancia_acelerada DECIMAL(12,2) DEFAULT 0,
                 ganancia_rentabilidad DECIMAL(12,2) DEFAULT 0,
-                ultima_fecha_pago DATE
+                ultima_fecha_pago DATE,
+                comprobante_base64 TEXT,
+                comprobante_tipo VARCHAR(100)
             )
         """)
+        conn.commit()
+
+        cur.execute("""
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS comprobante_base64 TEXT;
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS comprobante_tipo VARCHAR(100);
+        """)
+        conn.commit()
         conn.commit()
 
         cur.execute("""
@@ -492,6 +501,12 @@ async def subir_justificante(id: int, datos: JustificanteRequest, usuario = Depe
             resultado = cur.fetchone()
             if not resultado or resultado[0] != usuario.get('inversor_id'):
                 raise HTTPException(status_code=403, detail="Aportación no encontrada o no autorizada")
+
+        cur.execute("""
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS comprobante_base64 TEXT;
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS comprobante_tipo VARCHAR(100);
+        """)
+        conn.commit()
 
         cur.execute("""
             UPDATE aportaciones 
@@ -625,6 +640,11 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
                 inversor_id, importe = inversion_data
                 monto_acelerador = float(importe) * 0.10
                 
+                cur.execute("""
+                    ALTER TABLE inversores ADD COLUMN IF NOT EXISTS referido_por VARCHAR(100);
+                    ALTER TABLE inversores ADD COLUMN IF NOT EXISTS codigo_referido VARCHAR(50);
+                """)
+                conn.commit()
                 # Buscar si el inversor fue referido por alguien (aún falta la tabla, previendo logica)
                 cur.execute("SELECT referido_por FROM inversores WHERE id = %s", (inversor_id,))
                 ref_row = cur.fetchone()
@@ -945,6 +965,99 @@ async def subir_justificante(solicitud_id: str, datos: dict, usuario=Depends(obt
             cur.execute("INSERT INTO justificantes (origen_id, justificante_base64, nombre_archivo) VALUES (%s, %s, %s)",
                        (solicitud_id, datos.get('justificante'), datos.get('nombreArchivo', 'documento')))
             
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
+# ENDPOINTS - REFERIDOS
+# ============================================================================
+
+class ReferidoRequest(BaseModel):
+    id: str
+    codigo: str
+    nombreInversor: str
+    usuarioId: str = ""
+    referidoPor: Optional[str] = None
+    inversionTotal: float = 0
+    pagado: bool = False
+    esAdmin: bool = False
+
+
+def _ensure_referidos_table(cur, conn):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS referidos (
+            id VARCHAR(100) PRIMARY KEY,
+            codigo VARCHAR(50) UNIQUE NOT NULL,
+            nombre_inversor VARCHAR(200),
+            usuario_id VARCHAR(100),
+            referido_por VARCHAR(50),
+            inversion_total DECIMAL(12,2) DEFAULT 0,
+            pagado BOOLEAN DEFAULT FALSE,
+            es_admin BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+
+
+@app.get("/api/referidos")
+async def obtener_referidos(usuario = Depends(obtener_usuario_actual)):
+    """Obtiene todos los referidos (usados por el programa de líderes)"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        _ensure_referidos_table(cur, conn)
+
+        cur.execute("""
+            SELECT id, codigo, nombre_inversor, usuario_id, referido_por, inversion_total, pagado, es_admin
+            FROM referidos ORDER BY created_at ASC
+        """)
+        filas = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        referidos = [{
+            "id": fila[0],
+            "codigo": fila[1],
+            "nombreInversor": fila[2],
+            "usuarioId": fila[3],
+            "referidoPor": fila[4],
+            "inversionTotal": float(fila[5] or 0),
+            "pagado": fila[6],
+            "esAdmin": fila[7]
+        } for fila in filas]
+
+        return {"referidos": referidos}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.post("/api/referidos")
+async def crear_o_actualizar_referido(datos: ReferidoRequest, usuario = Depends(obtener_usuario_actual)):
+    """Crea o actualiza un registro de referido (código propio o comisión pagada)"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        _ensure_referidos_table(cur, conn)
+
+        cur.execute("""
+            INSERT INTO referidos (id, codigo, nombre_inversor, usuario_id, referido_por, inversion_total, pagado, es_admin)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                nombre_inversor = EXCLUDED.nombre_inversor,
+                referido_por = EXCLUDED.referido_por,
+                inversion_total = EXCLUDED.inversion_total,
+                pagado = EXCLUDED.pagado,
+                es_admin = EXCLUDED.es_admin
+        """, (
+            datos.id, datos.codigo, datos.nombreInversor, datos.usuarioId,
+            datos.referidoPor, datos.inversionTotal, datos.pagado, datos.esAdmin
+        ))
         conn.commit()
         cur.close()
         conn.close()
