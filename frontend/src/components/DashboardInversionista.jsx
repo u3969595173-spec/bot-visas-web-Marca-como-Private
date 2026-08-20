@@ -51,12 +51,12 @@ const formatCurrency = (value, moneda = 'EUR') => {
 }
 
 const PROGRAMA_LIDERES = [
-  { nombre: 'Founding Leader', minReferidos: 500, emoji: '🏆', bonus: 400 },
-  { nombre: 'Executive Leader', minReferidos: 300, emoji: '👑', bonus: 350 },
-  { nombre: 'Elite Leader', minReferidos: 100, emoji: '⭐', bonus: 150 },
-  { nombre: 'Senior Leader', minReferidos: 50, emoji: '📈', bonus: 100 },
-  { nombre: 'Leader', minReferidos: 20, emoji: '🎯', bonus: 50 },
-  { nombre: 'Community', minReferidos: 5, emoji: '👥', bonus: 15 },
+  { nombre: 'Founding Leader', minReferidos: 500, emoji: '🏆', bonus: 400, duracion: 12 },
+  { nombre: 'Executive Leader', minReferidos: 200, emoji: '👑', bonus: 250, duracion: 12 },
+  { nombre: 'Elite Leader', minReferidos: 100, emoji: '💎', bonus: 150, duracion: 6 },
+  { nombre: 'Senior Leader', minReferidos: 50, emoji: '🔥', bonus: 100, duracion: 4 },
+  { nombre: 'Leader', minReferidos: 25, emoji: '⭐', bonus: 50, duracion: 3 },
+  { nombre: 'Community', minReferidos: 5, emoji: '🌱', bonus: 25, duracion: 2 },
 ]
 
 const PROGRAMA_PARTNER = [
@@ -627,12 +627,12 @@ function DashboardInversionista() {
   ];
 
   const NIVELES_COMUNIDAD = [
-    { emoji: '🏆', nombre: 'Founding Leader', min: 500, bonus: '400 USDT Únicos' },
-    { emoji: '👑', nombre: 'Executive Leader', min: 200, bonus: '250 USDT Únicos' },
-    { emoji: '💎', nombre: 'Elite Leader', min: 100, bonus: '150 USDT Únicos' },
-    { emoji: '🔥', nombre: 'Senior Leader', min: 50, bonus: '100 USDT Únicos' },
-    { emoji: '⭐', nombre: 'Leader', min: 25, bonus: '50 USDT Únicos' },
-    { emoji: '🌱', nombre: 'Community', min: 5, bonus: '25 USDT Únicos' },
+    { emoji: '🏆', nombre: 'Founding Leader', min: 500, bonus: '400 USDT/mes (x 12 meses)' },
+    { emoji: '👑', nombre: 'Executive Leader', min: 200, bonus: '250 USDT/mes (x 12 meses)' },
+    { emoji: '💎', nombre: 'Elite Leader', min: 100, bonus: '150 USDT/mes (x 6 meses)' },
+    { emoji: '🔥', nombre: 'Senior Leader', min: 50, bonus: '100 USDT/mes (x 4 meses)' },
+    { emoji: '⭐', nombre: 'Leader', min: 25, bonus: '50 USDT/mes (x 3 meses)' },
+    { emoji: '🌱', nombre: 'Community', min: 5, bonus: '25 USDT/mes (x 2 meses)' },
   ];
 
   // Calcula el rango de Capital (solo inversión)

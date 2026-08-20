@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const NIVELES = [
-  { emoji: '🌱', nombre: 'Community', min: 5, max: 24, cupo: '2%', beneficio: '25 USDT de bonus único', color: '#4ade80', ejemplo: { usdt: 200, benef: 60 } },
-  { emoji: '⭐', nombre: 'Leader', min: 25, max: 49, cupo: '5%', beneficio: '50 USDT de bonus único', color: '#facc15', ejemplo: { usdt: 500, benef: 150 } },
-  { emoji: '🔥', nombre: 'Senior Leader', min: 50, max: 99, cupo: '10%', beneficio: '100 USDT de bonus único', color: '#fb923c', ejemplo: { usdt: 1000, benef: 300 } },
-  { emoji: '💎', nombre: 'Elite Leader', min: 100, max: 199, cupo: '15%', beneficio: '150 USDT de bonus único', color: '#60a5fa', ejemplo: { usdt: 1500, benef: 450 } },
-  { emoji: '👑', nombre: 'Executive Leader', min: 200, max: 499, cupo: '25%', beneficio: '250 USDT de bonus único', color: '#c084fc', ejemplo: { usdt: 2500, benef: 750 } },
-  { emoji: '🏆', nombre: 'Founding Leader', min: 500, max: null, cupo: '43%', beneficio: '400 USDT de bonus único', color: '#f6c453', ejemplo: { usdt: 4300, benef: 1290 } },
+  { emoji: '🌱', nombre: 'Community', min: 5, max: 24, cupo: '2%', beneficio: '25 USDT/mes', duracion: '2 meses', color: '#4ade80', ejemplo: { usdt: 200, benef: 60 } },
+  { emoji: '⭐', nombre: 'Leader', min: 25, max: 49, cupo: '5%', beneficio: '50 USDT/mes', duracion: '3 meses', color: '#facc15', ejemplo: { usdt: 500, benef: 150 } },
+  { emoji: '🔥', nombre: 'Senior Leader', min: 50, max: 99, cupo: '10%', beneficio: '100 USDT/mes', duracion: '4 meses', color: '#fb923c', ejemplo: { usdt: 1000, benef: 300 } },
+  { emoji: '💎', nombre: 'Elite Leader', min: 100, max: 199, cupo: '15%', beneficio: '150 USDT/mes', duracion: '6 meses', color: '#60a5fa', ejemplo: { usdt: 1500, benef: 450 } },
+  { emoji: '👑', nombre: 'Executive Leader', min: 200, max: 499, cupo: '25%', beneficio: '250 USDT/mes', duracion: '12 meses', color: '#c084fc', ejemplo: { usdt: 2500, benef: 750 } },
+  { emoji: '🏆', nombre: 'Founding Leader', min: 500, max: null, cupo: '43%', beneficio: '400 USDT/mes', duracion: '12 meses', color: '#f6c453', ejemplo: { usdt: 4300, benef: 1290 } },
 ];
 
 const BENEFICIOS = [
@@ -72,14 +72,14 @@ export default function Programa() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '1rem', fontWeight: 700, color: n.color }}>Cupo máximo: {n.cupo}</div>
-                      <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>{n.beneficio}</div>
+                      <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>{n.beneficio} (x {n.duracion})</div>
                     </div>
                   </div>
                   {i > 0 && <div style={{ fontSize: 12, color: 'rgba(148,163,184,0.5)', marginTop: '0.8rem' }}>✓ Incluye todo lo del nivel anterior</div>}
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: 12, color: 'rgba(148,163,184,0.4)', marginTop: '1.5rem' }}>* Los cupos son máximos y están sujetos a las condiciones y disponibilidad de cada operación. Los bonus de comunidad son pagos únicos asociados al desbloqueo de cada nivel.</p>
+            <p style={{ fontSize: 12, color: 'rgba(148,163,184,0.4)', marginTop: '1.5rem' }}>* Los cupos son máximos y están sujetos a las condiciones y disponibilidad de cada operación. Los beneficios mensuales de comunidad están sujetos a las condiciones del programa.</p>
           </div>
         )}
 
