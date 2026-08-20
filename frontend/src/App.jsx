@@ -241,14 +241,9 @@ function App() {
           <Route path="/terminos" element={<TerminosCondiciones />} />
 
           {/* RUTAS INVERSOR */}
+          {/* RUTAS INVERSOR */}
           <Route path="/login" element={<LoginInversor />} />
           <Route path="/registro" element={<RegistroInversor />} />
-          <Route path="/comunidad" element={
-            <ProtectedRoute>
-              <Comunidad />
-            </ProtectedRoute>
-          } />
-
           <Route path="/programa-combinado" element={<ProgramaCombinado />} />
           <Route
             path="/dashboard"
