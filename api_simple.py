@@ -637,7 +637,7 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
                         patrocinador_id = patr_row[0]
                         # Repartir acelerador en sus inversiones activas en cascada (FIFO)
                         cur.execute("""
-                            SELECT id, importe, (COALESCE(ganancia_acelerada, 0)) as ganac, fecha_aprobacion, tasa_diaria
+                            SELECT id, importe, COALESCE(ganancia_acelerada, 0) as ganac, COALESCE(ganancia_rentabilidad, 0) as rent, fecha_aprobacion
                             FROM aportaciones 
                             WHERE inversor_id = %s AND (estado = 'Aprobada' OR estado = 'Activa')
                             ORDER BY fecha_aprobacion ASC
@@ -646,10 +646,6 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
                         
                         monto_restante = monto_acelerador
                         
-                        # Extraer calculo logico de horas
-                        from datetime import datetime, timezone
-                        ahora = datetime.now(timezone.utc)
-                        
                         for inv in invs_activas:
                             if monto_restante <= 0:
                                 break
@@ -657,20 +653,22 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
                             inv_id = inv[0]
                             inv_importe = float(inv[1])
                             inv_ganac = float(inv[2])
-                            inv_fecha = inv[3]
-                            inv_tasa = float(inv[4])
+                            inv_rent = float(inv[3])
                             
                             meta = inv_importe * 3.0
                             
-                            delta = ahora - inv_fecha.replace(tzinfo=timezone.utc)
-                            horas_activas = max(0, delta.total_seconds() / 3600.0 - 72.0)
-                            ganancia_diaria = (horas_activas / 24.0) * (inv_tasa / 100.0) * inv_importe
-                            
-                            espacio_libre = meta - (ganancia_diaria + inv_ganac)
+                            # Validar espacio libre teniendo en cuenta TODO lo ganado hasta el momento
+                            espacio_libre = meta - (inv_rent + inv_ganac)
                             
                             if espacio_libre > 0:
                                 abs_ganado = min(monto_restante, espacio_libre)
-                                cur.execute("UPDATE aportaciones SET ganancia_acelerada = ganancia_acelerada + %s WHERE id = %s", (abs_ganado, inv_id))
+                                
+                                estado = 'Activa'
+                                # Si este pago llena la meta al 300%, completamos el contrato.
+                                if (inv_rent + inv_ganac + abs_ganado) >= meta:
+                                    estado = 'Completada (300%)'
+
+                                cur.execute("UPDATE aportaciones SET ganancia_acelerada = ganancia_acelerada + %s, estado = %s WHERE id = %s", (abs_ganado, estado, inv_id))
                                 monto_restante -= abs_ganado
         else:
             cur.execute("UPDATE aportaciones SET estado = %s WHERE id = %s", (estado, aportacion_id))
