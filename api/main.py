@@ -637,14 +637,6 @@ async def startup_event():
         import traceback
         traceback.print_exc()
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # En producción: especificar dominio exacto
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 security = HTTPBearer()
 
 
@@ -1339,6 +1331,54 @@ async def crear_solicitud_participacion(datos: dict):
         cur.close()
         conn.close()
         return {"id": solicitud_id, "success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/solicitudes-participacion", tags=["Solicitudes"])
+async def listar_solicitudes_participacion(usuario=Depends(obtener_usuario_actual)):
+    """Lista las solicitudes de participación recibidas del formulario público (solo admin)"""
+    import psycopg2
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("SELECT to_regclass('solicitudes_participacion')")
+        if not cur.fetchone()[0]:
+            cur.close()
+            conn.close()
+            return {"solicitudes": []}
+        cur.execute("""
+            SELECT id, nombre, email, telefono, pais, importe, moneda, estado, created_at
+            FROM solicitudes_participacion ORDER BY created_at DESC
+        """)
+        filas = cur.fetchall()
+        cur.close()
+        conn.close()
+        return {"solicitudes": [{
+            "id": f[0], "nombre": f[1], "email": f[2], "telefono": f[3], "pais": f[4],
+            "importe": float(f[5] or 0), "moneda": f[6], "estado": f[7],
+            "fecha": f[8].isoformat() if f[8] else None
+        } for f in filas]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/solicitudes-participacion/{solicitud_id}", tags=["Solicitudes"])
+async def actualizar_solicitud_participacion(solicitud_id: int, datos: dict, usuario=Depends(obtener_usuario_actual)):
+    """Actualiza el estado de una solicitud de participación (solo admin)"""
+    import psycopg2
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("UPDATE solicitudes_participacion SET estado = %s WHERE id = %s", (datos.get('estado'), solicitud_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
@@ -13199,6 +13239,174 @@ async def validar_aportacion_operacion(aportacion_id: str, payload: ValidarOpera
         
         db.commit()
         return {"success": True, "message": f"Aportación a operación procesada como {payload.estado}"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# CATÁLOGO DE OPERACIONES
+# ==========================================
+
+OPERACIONES_SEED = [
+    ("🌾", "Exportaciones de alimentos", "Agricultura y exportación", "Agricultura y exportación", "€120.000", "Participación en la exportación de alimentos hacia mercados internacionales."),
+    ("🏗️", "Compra y venta de cemento en Cuba", "Materiales de construcción", "Materiales de construcción", "€95.000", "Compra y distribución de cemento con estructura de participación por tramo."),
+    ("💸", "Remesas desde el exterior", "Servicios financieros", "Servicios financieros", "€85.000", "Gestión de remesas desde el exterior con condiciones y plazos definidos."),
+    ("📊", "Financiación a MYPIMEs y TCP", "Financiamiento", "Financiamiento", "€150.000", "Financiación a pequeñas y medianas empresas y trabajadores por cuenta propia."),
+    ("📈", "Inversiones en MYPIMEs y TCP propias", "Participación accionaria", "Participación accionaria", "€110.000", "Participación accionaria directa en negocios propios en desarrollo."),
+    ("🌍", "Inversiones en el extranjero", "Mercados internacionales", "Mercados internacionales", "€200.000", "Participación en operaciones comerciales en mercados internacionales."),
+]
+
+CONDICIONES_DEFAULT = [
+    "Participación por tramos según capital aportado.",
+    "No se ofrece rentabilidad garantizada.",
+    "Los plazos y condiciones se especifican en el anexo legal antes de formalizar la aportación."
+]
+
+
+def _ensure_operaciones_table(db: Session):
+    db.execute(text("""
+        CREATE TABLE IF NOT EXISTS operaciones (
+            id SERIAL PRIMARY KEY,
+            icono VARCHAR(10) DEFAULT '',
+            nombre VARCHAR(255) NOT NULL,
+            tipo VARCHAR(150),
+            categoria VARCHAR(150),
+            estado VARCHAR(50) DEFAULT 'Activa',
+            capital VARCHAR(50),
+            comprometido VARCHAR(50) DEFAULT '€0',
+            disponible VARCHAR(50),
+            plazo VARCHAR(100),
+            riesgo VARCHAR(100) DEFAULT 'Medio',
+            rendimiento TEXT,
+            descripcion TEXT,
+            condiciones TEXT,
+            fecha_inicio VARCHAR(50),
+            fecha_fin_estimada VARCHAR(50),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """))
+    db.commit()
+
+    total = db.execute(text("SELECT COUNT(*) FROM operaciones")).scalar()
+    if total == 0:
+        for icono, nombre, tipo, categoria, capital, descripcion in OPERACIONES_SEED:
+            db.execute(text("""
+                INSERT INTO operaciones (icono, nombre, tipo, categoria, capital, disponible, plazo, rendimiento, descripcion, condiciones)
+                VALUES (:icono, :nombre, :tipo, :categoria, :capital, :disponible, :plazo, :rendimiento, :descripcion, :condiciones)
+            """), {
+                "icono": icono, "nombre": nombre, "tipo": tipo, "categoria": categoria,
+                "capital": capital, "disponible": capital, "plazo": "Por definir",
+                "rendimiento": "Variable según cierre comercial", "descripcion": descripcion,
+                "condiciones": json.dumps(CONDICIONES_DEFAULT)
+            })
+        db.commit()
+
+
+def _fila_a_operacion(fila):
+    try:
+        condiciones = json.loads(fila.condiciones) if fila.condiciones else CONDICIONES_DEFAULT
+    except Exception:
+        condiciones = CONDICIONES_DEFAULT
+    return {
+        "id": fila.id, "icono": fila.icono, "nombre": fila.nombre, "tipo": fila.tipo,
+        "categoria": fila.categoria, "estado": fila.estado, "capital": fila.capital,
+        "comprometido": fila.comprometido, "disponible": fila.disponible, "plazo": fila.plazo,
+        "riesgo": fila.riesgo, "rendimiento": fila.rendimiento, "descripcion": fila.descripcion,
+        "condiciones": condiciones, "fechaInicio": fila.fecha_inicio, "fechaFinEstimada": fila.fecha_fin_estimada
+    }
+
+
+@app.get("/api/operaciones", tags=["Operaciones Públicas"])
+async def listar_operaciones(db: Session = Depends(get_db)):
+    """Catálogo público de operaciones (sin autenticación)"""
+    try:
+        _ensure_operaciones_table(db)
+        filas = db.execute(text("SELECT * FROM operaciones ORDER BY id ASC")).fetchall()
+        return {"operaciones": [_fila_a_operacion(f) for f in filas]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class OperacionCatalogoRequest(BaseModel):
+    icono: str = ""
+    nombre: str
+    tipo: str = ""
+    categoria: str = ""
+    estado: str = "Activa"
+    capital: str = ""
+    comprometido: str = "€0"
+    disponible: str = ""
+    plazo: str = ""
+    riesgo: str = "Medio"
+    rendimiento: str = ""
+    descripcion: str = ""
+    condiciones: List[str] = []
+    fechaInicio: Optional[str] = None
+    fechaFinEstimada: Optional[str] = None
+
+
+@app.post("/api/operaciones", tags=["Operaciones Públicas"])
+async def crear_operacion(datos: OperacionCatalogoRequest, usuario=Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    """Crea una operación del catálogo (solo admin)"""
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        _ensure_operaciones_table(db)
+        result = db.execute(text("""
+            INSERT INTO operaciones (icono, nombre, tipo, categoria, estado, capital, comprometido,
+                disponible, plazo, riesgo, rendimiento, descripcion, condiciones, fecha_inicio, fecha_fin_estimada)
+            VALUES (:icono, :nombre, :tipo, :categoria, :estado, :capital, :comprometido,
+                :disponible, :plazo, :riesgo, :rendimiento, :descripcion, :condiciones, :fecha_inicio, :fecha_fin_estimada)
+            RETURNING id
+        """), {
+            "icono": datos.icono, "nombre": datos.nombre, "tipo": datos.tipo, "categoria": datos.categoria,
+            "estado": datos.estado, "capital": datos.capital, "comprometido": datos.comprometido,
+            "disponible": datos.disponible, "plazo": datos.plazo, "riesgo": datos.riesgo,
+            "rendimiento": datos.rendimiento, "descripcion": datos.descripcion,
+            "condiciones": json.dumps(datos.condiciones or CONDICIONES_DEFAULT),
+            "fecha_inicio": datos.fechaInicio, "fecha_fin_estimada": datos.fechaFinEstimada
+        })
+        operacion_id = result.scalar()
+        db.commit()
+        return {"id": operacion_id, "success": True}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/operaciones/{operacion_id}", tags=["Operaciones Públicas"])
+async def actualizar_operacion(operacion_id: int, datos: dict, usuario=Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    """Actualiza una operación del catálogo (solo admin)"""
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        _ensure_operaciones_table(db)
+
+        campos = {
+            "icono": "icono", "nombre": "nombre", "tipo": "tipo", "categoria": "categoria",
+            "estado": "estado", "capital": "capital", "comprometido": "comprometido",
+            "disponible": "disponible", "plazo": "plazo", "riesgo": "riesgo",
+            "rendimiento": "rendimiento", "descripcion": "descripcion",
+            "fechaInicio": "fecha_inicio", "fechaFinEstimada": "fecha_fin_estimada"
+        }
+        sets, params = [], {"id": operacion_id}
+        for clave_frontend, columna in campos.items():
+            if clave_frontend in datos:
+                sets.append(f"{columna} = :{columna}")
+                params[columna] = datos[clave_frontend]
+        if "condiciones" in datos:
+            sets.append("condiciones = :condiciones")
+            params["condiciones"] = json.dumps(datos["condiciones"])
+
+        if not sets:
+            return {"success": True, "message": "Nada que actualizar"}
+
+        sets.append("updated_at = CURRENT_TIMESTAMP")
+        db.execute(text(f"UPDATE operaciones SET {', '.join(sets)} WHERE id = :id"), params)
+        db.commit()
+        return {"success": True}
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

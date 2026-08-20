@@ -9,7 +9,7 @@ function ComoFunciona() {
     {
       numero: 1,
       titulo: 'Crea tu cuenta',
-      descripcion: 'Regístrate en Soporte Capital y accede a tu área personal.',
+      descripcion: 'Regístrate en Capital Trade Iberia y accede a tu área personal.',
       icono: '👤'
     },
     {

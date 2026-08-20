@@ -2,52 +2,63 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import './Platform.css';
 
-const operaciones = [
-  {
-    id: 1,
-    nombre: 'Compra y exportación de cemento',
-    tipo: 'Material de construcción',
-    capitalNecesario: '€80.000',
-    capitalDisponible: '€48.000',
-    capitalPendiente: '€32.000',
-    plazo: '6 a 10 meses',
-    inicio: '15 Sep 2026',
-    finEst: '30 Abr 2027',
-    estado: 'Activa',
-    rendimiento: 'Condicionado a resultados y estructura definida',
-    riesgo: 'Medio. El rendimiento final depende del cierre operativo, de la logística y de la comercialización del producto.',
-    descripcion: 'Operación de compra y logística para la distribución de cemento desde España hacia Cuba con planificación comercial y seguimiento operativo.',
-    condiciones: [
-      'Participación por tramos según capital aportado.',
-      'No se ofrece rentabilidad garantizada.',
-      'Los plazos y condiciones se especifican en el anexo legal antes de formalizar la aportación.'
-    ]
-  },
-  {
-    id: 2,
-    nombre: 'Compra y exportación de paneles',
-    tipo: 'Construcción',
-    capitalNecesario: '€95.000',
-    capitalDisponible: '€36.000',
-    capitalPendiente: '€59.000',
-    plazo: '7 a 12 meses',
-    inicio: '22 Sep 2026',
-    finEst: '15 May 2027',
-    estado: 'Pendiente',
-    rendimiento: 'Basado en condiciones de la operación y participación',
-    riesgo: 'Medio-alto. La operación depende de logística, demanda y plazos de ejecución.',
-    descripcion: 'Oportunidad para participar en la compra y exportación de paneles para construcción, con un esquema de aportación definido por operación.',
-    condiciones: [
-      'Se requiere validación previa del administrador.',
-      'La participación depende del tramo disponible.',
-      'La documentación completa debe revisarse antes de confirmar la aportación.'
-    ]
-  }
-];
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+const OPERACION_VACIA = {
+  nombre: 'Cargando…',
+  tipo: '',
+  capitalNecesario: '—',
+  capitalDisponible: '—',
+  capitalPendiente: '—',
+  plazo: '—',
+  inicio: 'Por definir',
+  finEst: 'Por definir',
+  estado: 'Activa',
+  rendimiento: '—',
+  riesgo: '—',
+  descripcion: '',
+  condiciones: []
+};
+
+function formatearEuros(valor) {
+  return `€${Number(valor || 0).toLocaleString('es-ES')}`;
+}
+
+function adaptarOperacion(op) {
+  const parseNumero = (str) => Number(String(str || '0').replace(/[^0-9]/g, '')) || 0;
+  const pendiente = Math.max(0, parseNumero(op.capital) - parseNumero(op.disponible));
+  return {
+    id: op.id,
+    nombre: op.nombre,
+    tipo: op.tipo,
+    capitalNecesario: op.capital,
+    capitalDisponible: op.disponible,
+    capitalPendiente: formatearEuros(pendiente),
+    plazo: op.plazo,
+    inicio: op.fechaInicio || 'Por definir',
+    finEst: op.fechaFinEstimada || 'Por definir',
+    estado: op.estado,
+    rendimiento: op.rendimiento,
+    riesgo: op.riesgo,
+    descripcion: op.descripcion,
+    condiciones: op.condiciones && op.condiciones.length ? op.condiciones : []
+  };
+}
 
 function OperacionDetalle() {
   const { id } = useParams();
-  const op = operaciones.find((item) => String(item.id) === String(id)) || operaciones[0];
+  const [op, setOp] = React.useState(OPERACION_VACIA);
+
+  React.useEffect(() => {
+    fetch(`${API}/api/operaciones`)
+      .then((res) => res.json())
+      .then((data) => {
+        const encontrada = (data.operaciones || []).find((item) => String(item.id) === String(id));
+        if (encontrada) setOp(adaptarOperacion(encontrada));
+      })
+      .catch(() => {});
+  }, [id]);
+
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [form, setForm] = React.useState({
     importe: '',

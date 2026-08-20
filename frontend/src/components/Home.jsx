@@ -2,14 +2,21 @@ import React from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import './Home.css'
 
-const opDestacadas = [
-  { id: 1, icon: '🌾', nombre: 'Exportaciones de alimentos', cat: 'Agricultura y exportación', capital: '€120.000' },
-  { id: 2, icon: '📊', nombre: 'Financiación a MYPIMEs y TCP', cat: 'Financiamiento', capital: '€150.000' },
-  { id: 3, icon: '🌍', nombre: 'Inversiones en el extranjero', cat: 'Mercados internacionales', capital: '€200.000' },
-]
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function Home() {
   const navigate = useNavigate()
+  const [operaciones, setOperaciones] = React.useState([])
+
+  React.useEffect(() => {
+    fetch(`${API}/api/operaciones`)
+      .then((res) => res.json())
+      .then((data) => setOperaciones(data.operaciones || []))
+      .catch(() => setOperaciones([]))
+  }, [])
+
+  const opDestacadas = operaciones.slice(0, 3)
+  const totalCapital = operaciones.reduce((sum, op) => sum + (Number(String(op.capital || '0').replace(/[^0-9]/g, '')) || 0), 0)
 
   return (
     <div className="home-container">
@@ -73,11 +80,11 @@ function Home() {
       <section className="home-stats">
         <div className="home-stats-inner">
           <div className="stat-item">
-            <span className="stat-number">€760k</span>
+            <span className="stat-number">€{totalCapital > 0 ? Math.round(totalCapital / 1000) + 'k' : '0'}</span>
             <span className="stat-label">Capital total</span>
           </div>
           <div className="stat-item">
-            <span className="stat-number">6</span>
+            <span className="stat-number">{operaciones.length}</span>
             <span className="stat-label">Operaciones</span>
           </div>
           <div className="stat-item">
@@ -100,9 +107,9 @@ function Home() {
 
         <div className="ops-grid">
           {opDestacadas.map((op) => (
-            <div key={op.id} className="op-card">
-              <span className="op-card-icon">{op.icon}</span>
-              <span className="op-card-cat">{op.cat}</span>
+            <div key={op.id} className="op-card" onClick={() => navigate(`/operacion/${op.id}`)} style={{ cursor: 'pointer' }}>
+              <span className="op-card-icon">{op.icono}</span>
+              <span className="op-card-cat">{op.categoria}</span>
               <span className="op-card-name">{op.nombre}</span>
               <span className="op-card-capital">{op.capital}</span>
             </div>

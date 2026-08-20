@@ -20,7 +20,7 @@ const BENEFICIOS = [
   'Eventos y experiencias',
   'Apoyo promocional',
   'Patrocinios',
-  'Colaboraciones con Soporte Capital',
+  'Colaboraciones con Capital Trade Iberia',
   'Condiciones especiales para niveles superiores',
 ];
 
@@ -34,7 +34,7 @@ export default function Programa() {
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #0e1b2d, #1a2538)', borderBottom: '2px solid #f6c453', padding: '3rem 1.5rem 2rem' }}>
         <div style={{ maxWidth: 800, margin: '0 auto' }}>
-          <p style={{ color: '#f6c453', fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 0.5rem' }}>Soporte Capital</p>
+          <p style={{ color: '#f6c453', fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 0.5rem' }}>Capital Trade Iberia</p>
           <h1 style={{ margin: '0 0 0.8rem', fontSize: 'clamp(1.8rem,4vw,2.8rem)', fontWeight: 900, color: '#fff' }}>👑 Programa de Comunidad y Líderes</h1>
           <p style={{ margin: 0, color: '#94a3b8', fontSize: '1.05rem', maxWidth: 600 }}>
             Construye tu comunidad, hazla crecer y desbloquea nuevas oportunidades de participación.
@@ -58,7 +58,7 @@ export default function Programa() {
         {/* TAB: NIVELES */}
         {tab === 'niveles' && (
           <div>
-            <p style={{ color: '#94a3b8', marginBottom: '1.5rem' }}>En Soporte Capital creemos que una comunidad fuerte genera más oportunidades. Cada líder puede construir su propia comunidad y desbloquear progresivamente beneficios, promociones y mayor capacidad de participación.</p>
+            <p style={{ color: '#94a3b8', marginBottom: '1.5rem' }}>En Capital Trade Iberia creemos que una comunidad fuerte genera más oportunidades. Cada líder puede construir su propia comunidad y desbloquear progresivamente beneficios, promociones y mayor capacidad de participación.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {NIVELES.map((n, i) => (
                 <div key={n.nombre} style={{ background: 'rgba(15,23,42,0.8)', border: `1px solid ${n.color}33`, borderLeft: `4px solid ${n.color}`, borderRadius: 14, padding: '1.4rem 1.5rem' }}>
@@ -179,7 +179,7 @@ export default function Programa() {
           <div>
             <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc', marginBottom: '0.4rem' }}>¿Quieres crear tu comunidad?</div>
             <p style={{ margin: 0, color: '#94a3b8', fontSize: 14, maxWidth: 440 }}>
-              Contacta con Soporte Capital y te habilitamos tu propio panel de control de comunidad con acceso a todas las herramientas de gestión.
+              Contacta con Capital Trade Iberia y te habilitamos tu propio panel de control de comunidad con acceso a todas las herramientas de gestión.
             </p>
           </div>
           <a href="mailto:contacto@capitaltradeiberia.com" style={{ background: 'linear-gradient(135deg, #f6c453, #dba93a)', color: '#0a0f1a', textDecoration: 'none', padding: '0.9rem 2rem', borderRadius: 12, fontWeight: 800, fontSize: 15, whiteSpace: 'nowrap', display: 'inline-block' }}>

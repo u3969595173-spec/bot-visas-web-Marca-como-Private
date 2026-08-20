@@ -1,50 +1,7 @@
 import React from 'react';
 import './Platform.css';
 
-const initialOperations = [
-  {
-    id: 1,
-    nombre: 'Compra y exportación de cemento',
-    tipo: 'Material de construcción',
-    categoria: 'Infraestructura',
-    estado: 'Activa',
-    capital: '€80.000',
-    comprometido: '€48.000',
-    disponible: '€32.000',
-    plazo: '6-10 meses',
-    riesgo: 'Medio',
-    rendimiento: 'Variable según cierre comercial y estructura',
-    descripcion: 'Compra de cemento para distribución y exportación con estructura de participación por tramo.'
-  },
-  {
-    id: 2,
-    nombre: 'Paneles para construcción',
-    tipo: 'Construcción',
-    categoria: 'Materiales de edificación',
-    estado: 'Pendiente',
-    capital: '€95.000',
-    comprometido: '€36.000',
-    disponible: '€59.000',
-    plazo: '7-12 meses',
-    riesgo: 'Medio-alto',
-    rendimiento: 'A definir según condiciones finales de la operación',
-    descripcion: 'Operación en análisis para abastecer logística y distribución de paneles hacia destino final.'
-  },
-  {
-    id: 3,
-    nombre: 'Materiales de construcción',
-    tipo: 'Insumos',
-    categoria: 'Abastecimiento',
-    estado: 'Cerrada',
-    capital: '€60.000',
-    comprometido: '€60.000',
-    disponible: '€0',
-    plazo: '4-9 meses',
-    riesgo: 'Variable',
-    rendimiento: 'Resultado final según cierre comercial',
-    descripcion: 'Cierre de operación con seguimiento documental finalizado.'
-  }
-];
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const emptyForm = {
   nombre: '',
@@ -61,14 +18,47 @@ const emptyForm = {
 };
 
 function AdminOperaciones() {
-  const [ops, setOps] = React.useState(initialOperations);
+  const [ops, setOps] = React.useState([]);
   const [form, setForm] = React.useState(emptyForm);
   const [editingId, setEditingId] = React.useState(null);
   const [solicitudes, setSolicitudes] = React.useState([]);
+  const [mensaje, setMensaje] = React.useState('');
+
+  const cargarOperaciones = async () => {
+    try {
+      const response = await fetch(`${API}/api/operaciones`);
+      if (response.ok) {
+        const data = await response.json();
+        setOps(data.operaciones || []);
+      }
+    } catch (error) {
+      console.log('Error cargando operaciones:', error);
+    }
+  };
+
+  const cargarSolicitudes = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API}/api/solicitudes-participacion`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSolicitudes(data.solicitudes || []);
+      }
+    } catch (error) {
+      console.log('Error cargando solicitudes:', error);
+    }
+  };
 
   React.useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('solicitudes_participacion') || '[]');
-    setSolicitudes(stored);
+    cargarOperaciones();
+    cargarSolicitudes();
+    const intervalo = setInterval(() => {
+      cargarOperaciones();
+      cargarSolicitudes();
+    }, 10000);
+    return () => clearInterval(intervalo);
   }, []);
 
   const handleChange = (e) => {
@@ -81,7 +71,7 @@ function AdminOperaciones() {
     setEditingId(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!form.nombre.trim() || !form.capital.trim()) {
@@ -89,17 +79,31 @@ function AdminOperaciones() {
       return;
     }
 
-    if (editingId !== null) {
-      setOps((current) => current.map((op) => op.id === editingId ? { ...op, ...form } : op));
-    } else {
-      const newOp = {
-        id: Date.now(),
-        ...form
-      };
-      setOps((current) => [newOp, ...current]);
+    try {
+      const token = localStorage.getItem('token');
+      if (editingId !== null) {
+        const response = await fetch(`${API}/api/operaciones/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(form)
+        });
+        if (!response.ok) throw new Error('Error al guardar cambios');
+        setMensaje('✅ Operación actualizada');
+      } else {
+        const response = await fetch(`${API}/api/operaciones`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(form)
+        });
+        if (!response.ok) throw new Error('Error al crear la operación');
+        setMensaje('✅ Operación creada');
+      }
+      await cargarOperaciones();
+      resetForm();
+    } catch (error) {
+      alert(error.message);
     }
-
-    resetForm();
+    setTimeout(() => setMensaje(''), 2000);
   };
 
   const handleEdit = (op) => {
@@ -119,24 +123,41 @@ function AdminOperaciones() {
     });
   };
 
-  const toggleEstado = (id) => {
-    setOps((current) => current.map((op) => {
-      if (op.id !== id) return op;
-      const next = op.estado === 'Activa' ? 'Pendiente' : op.estado === 'Pendiente' ? 'Cerrada' : 'Activa';
-      return { ...op, estado: next };
-    }));
+  const toggleEstado = async (op) => {
+    const next = op.estado === 'Activa' ? 'Pendiente' : op.estado === 'Pendiente' ? 'Cerrada' : 'Activa';
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API}/api/operaciones/${op.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ estado: next })
+      });
+      if (response.ok) {
+        setOps((current) => current.map((item) => item.id === op.id ? { ...item, estado: next } : item));
+      }
+    } catch (error) {
+      console.log('Error actualizando estado:', error);
+    }
   };
 
   const totalCapital = ops.reduce((sum, op) => sum + Number((op.capital || '0').replace(/[^0-9]/g, '')), 0);
   const totalComprometido = ops.reduce((sum, op) => sum + Number((op.comprometido || '0').replace(/[^0-9]/g, '')), 0);
   const activos = ops.filter((op) => op.estado === 'Activa').length;
 
-  const actualizarEstadoSolicitud = (id, nuevoEstado) => {
-    const updated = solicitudes.map((solicitud) =>
-      solicitud.id === id ? { ...solicitud, estado: nuevoEstado } : solicitud
-    );
-    setSolicitudes(updated);
-    localStorage.setItem('solicitudes_participacion', JSON.stringify(updated));
+  const actualizarEstadoSolicitud = async (id, nuevoEstado) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API}/api/solicitudes-participacion/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ estado: nuevoEstado })
+      });
+      if (response.ok) {
+        setSolicitudes((current) => current.map((s) => s.id === id ? { ...s, estado: nuevoEstado } : s));
+      }
+    } catch (error) {
+      console.log('Error actualizando solicitud:', error);
+    }
   };
 
   return (
@@ -148,6 +169,7 @@ function AdminOperaciones() {
             <h1>Operaciones</h1>
           </div>
           <div className="platform-actions">
+            {mensaje && <span style={{ marginRight: '1rem', color: '#10b981', fontWeight: 600 }}>{mensaje}</span>}
             <button className="ghost-btn" onClick={resetForm}>Nueva operación</button>
           </div>
         </div>
@@ -224,7 +246,7 @@ function AdminOperaciones() {
                     <td>{op.capital}</td>
                     <td className="tab-actions">
                       <button className="inline-btn" onClick={() => handleEdit(op)}>Editar</button>
-                      <button className="inline-btn" onClick={() => toggleEstado(op.id)}>Estado</button>
+                      <button className="inline-btn" onClick={() => toggleEstado(op)}>Estado</button>
                     </td>
                   </tr>
                 ))}
@@ -242,14 +264,13 @@ function AdminOperaciones() {
               {solicitudes.map((solicitud) => (
                 <div className="admin-request-item" key={solicitud.id}>
                   <div className="admin-request-item-head">
-                    <strong>{solicitud.usuarioNombre || 'Usuario'}</strong>
+                    <strong>{solicitud.nombre || 'Usuario'}</strong>
                     <span className={`status-badge ${solicitud.estado === 'Pendiente' ? 'pending' : solicitud.estado === 'Aprobada' ? 'active' : 'closed'}`}>
                       {solicitud.estado || 'Pendiente'}
                     </span>
                   </div>
-                  <p><strong>Operación:</strong> {solicitud.operacionNombre}</p>
-                  <p><strong>Importe:</strong> €{Number(solicitud.importe || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                  {solicitud.comentario && <p><strong>Comentario:</strong> {solicitud.comentario}</p>}
+                  <p><strong>Contacto:</strong> {solicitud.email} · {solicitud.telefono} · {solicitud.pais}</p>
+                  <p><strong>Importe:</strong> {Number(solicitud.importe || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {solicitud.moneda}</p>
                   <div style={{ marginTop: '0.75rem' }}>
                     <label>Estado</label>
                     <select

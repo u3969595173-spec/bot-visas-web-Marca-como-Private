@@ -1687,7 +1687,7 @@ function DashboardInversionista() {
                 </div>
 
                 <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
-                  En Soporte Capital puedes crecer de dos formas: mediante tu propia participación de capital o desarrollando una comunidad de red protegida.
+                  En Capital Trade Iberia puedes crecer de dos formas: mediante tu propia participación de capital o desarrollando una comunidad de red protegida.
                 </p>
 
                 {(() => {

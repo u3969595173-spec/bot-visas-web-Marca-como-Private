@@ -1,47 +1,22 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Platform.css';
 
-const operaciones = [
-  {
-    id: 1,
-    nombre: '🌾 Exportaciones de alimentos',
-    categoria: 'Agricultura y exportación',
-    capital: '€120.000'
-  },
-  {
-    id: 2,
-    nombre: '🏗️ Compra y venta de cemento en Cuba',
-    categoria: 'Materiales de construcción',
-    capital: '€95.000'
-  },
-  {
-    id: 3,
-    nombre: '💸 Remesas desde el exterior',
-    categoria: 'Servicios financieros',
-    capital: '€85.000'
-  },
-  {
-    id: 4,
-    nombre: '📊 Financiación a MYPIMEs y TCP',
-    categoria: 'Financiamiento',
-    capital: '€150.000'
-  },
-  {
-    id: 5,
-    nombre: '📈 Inversiones en MYPIMEs y TCP propias',
-    categoria: 'Participación accionaria',
-    capital: '€110.000'
-  },
-  {
-    id: 6,
-    nombre: '🌍 Inversiones en el extranjero',
-    categoria: 'Mercados internacionales',
-    capital: '€200.000'
-  }
-];
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 function CatalogoOperaciones() {
+  const navigate = useNavigate();
+  const [operaciones, setOperaciones] = React.useState([]);
+  const [cargando, setCargando] = React.useState(true);
+
+  React.useEffect(() => {
+    fetch(`${API}/api/operaciones`)
+      .then((res) => res.json())
+      .then((data) => setOperaciones(data.operaciones || []))
+      .catch(() => setOperaciones([]))
+      .finally(() => setCargando(false));
+  }, []);
+
   return (
     <div className="platform-page">
       <div className="platform-card">
@@ -65,13 +40,19 @@ function CatalogoOperaciones() {
               </tr>
             </thead>
             <tbody>
-              {operaciones.map((op) => (
-                <tr key={op.id}>
-                  <td>{op.nombre}</td>
-                  <td>{op.categoria}</td>
-                  <td>{op.capital}</td>
-                </tr>
-              ))}
+              {cargando ? (
+                <tr><td colSpan="3">Cargando operaciones…</td></tr>
+              ) : operaciones.length === 0 ? (
+                <tr><td colSpan="3">No hay operaciones disponibles.</td></tr>
+              ) : (
+                operaciones.map((op) => (
+                  <tr key={op.id} onClick={() => navigate(`/operacion/${op.id}`)} style={{ cursor: 'pointer' }}>
+                    <td>{op.icono} {op.nombre}</td>
+                    <td>{op.categoria}</td>
+                    <td>{op.capital}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
