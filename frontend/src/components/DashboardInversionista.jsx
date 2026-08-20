@@ -808,7 +808,20 @@ function DashboardInversionista() {
 
           {activeTab === 'resumen' && (
             <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
-              <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.3rem', fontWeight: '700' }}>💼 Mis Inversiones</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.3rem', fontWeight: '700' }}>💼 Mis Inversiones</h2>
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  maxWidth: '400px'
+                }}>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#fca5a5', fontWeight: '600', lineHeight: '1.4' }}>
+                    ⚠️ NORMATIVA: Todo saldo disponible en su billetera debe ser retirado obligatoriamente hacia sus métodos de pago externos. No se permite la reinversión directa desde su saldo interno.
+                  </p>
+                </div>
+              </div>
 
               {perfil && (
                 <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(212, 175, 55, 0.1)', border: '1px dashed #d4af37', borderRadius: '12px' }}>
@@ -997,7 +1010,10 @@ function DashboardInversionista() {
                       }}
                       required
                     />
-                    <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#f59e0b', fontWeight: 'bold' }}>⚠️ Nota: Se aplicará una deducción del 5% del importe retirado destinado a comisiones de red o comisiones bancarias de la administración (Gas Fee).</p>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#f59e0b', fontWeight: 'bold' }}>
+                      ⚠️ ATENCIÓN: Todo saldo disponible debe ser retirado a su cuenta externa personal. No está permitida la reinversión de capital interno directo (Normativa Financiera).<br /><br />
+                      Nota: Se aplicará una deducción del 5% del importe retirado destinado a comisiones de red o comisiones bancarias de la administración (Gas Fee).
+                    </p>
                   </div>
 
                   <div>
