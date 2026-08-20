@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './RegistroEstudiante.css';
@@ -20,8 +20,18 @@ const RegistroInversor = () => {
     pais: 'España',
     password: '',
     confirmarPassword: '',
-    acepto_terminos: false
+    acepto_terminos: false,
+    codigo_patrocinio: ''
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      setFormData(prev => ({ ...prev, codigo_patrocinio: ref }));
+    }
+  }, []);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -70,7 +80,8 @@ const RegistroInversor = () => {
         email: email.toLowerCase(),
         telefono,
         pais: formData.pais.trim() || 'España',
-        password
+        password,
+        codigo_patrocinio: formData.codigo_patrocinio.trim()
       }, { timeout: 10000 });
 
       const { token, inversor } = response.data;
@@ -174,6 +185,15 @@ const RegistroInversor = () => {
                 <input id="confirmarPassword" name="confirmarPassword" type="password" value={formData.confirmarPassword} onChange={handleChange} required placeholder="Repite tu contraseña" autoComplete="new-password" />
               </div>
             </div>
+
+            {formData.codigo_patrocinio && (
+              <div className="form-row">
+                <div className="form-group" style={{ width: '100%' }}>
+                  <label htmlFor="codigo_patrocinio" style={{ color: '#d4af37' }}>Afiliado por el Patrocinador VIP:</label>
+                  <input id="codigo_patrocinio" value={formData.codigo_patrocinio} disabled style={{ backgroundColor: 'rgba(212,175,55,0.1)', color: '#d4af37', border: '1px dashed #d4af37', fontWeight: 'bold' }} />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-section">

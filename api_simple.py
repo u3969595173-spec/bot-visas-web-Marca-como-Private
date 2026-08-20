@@ -6,6 +6,7 @@ from fastapi import FastAPI, Depends, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import bcrypt
@@ -44,26 +45,94 @@ class InversorRegistroRequest(BaseModel):
     password: str
     telefono: str = ""
     pais: str = "España"
+    codigo_patrocinio: str = ""
 
 class InversorLoginRequest(BaseModel):
     email: str
     password: str
 
-class AportacionRequest(BaseModel):
+# --- ADMIN ENDPOINT: REPARTIR RENDIMIENTO DIARIO ---
+class PayoutRequest(BaseModel):
+    porcentaje: float
+
+@app.post("/api/admin/repartir_diario")
+async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    conn = None
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        # Buscar todas las aportaciones activas cuyas 72 horas ya vencieron (y que no se hayan pagado hoy)
+        cur.execute("""
+            SELECT id, importe, ganancia_rentabilidad, (COALESCE(ganancia_acelerada, 0)) as accel
+            FROM aportaciones
+            WHERE (estado = 'Aprobada' OR estado = 'Activa') 
+              AND fecha_aprobacion IS NOT NULL
+              AND fecha_aprobacion + INTERVAL '72 hours' <= CURRENT_TIMESTAMP
+              AND (ultima_fecha_pago IS NULL OR ultima_fecha_pago < CURRENT_DATE)
+        """)
+        oportunidades = cur.fetchall()
+        
+        pagados = 0
+        total_repartido = 0
+        
+        for apo in oportunidades:
+            a_id = apo[0]
+            importe = float(apo[1])
+            ganado = float(apo[2] if apo[2] is not None else 0)
+            acelerada = float(apo[3])
+            
+            meta_limite = importe * 3.0
+            saldo_pre_pago = ganado + acelerada
+            
+            if saldo_pre_pago < meta_limite:
+                pago_de_hoy = importe * (float(datos.porcentaje) / 100.0)
+                nuevo_ganado = ganado + pago_de_hoy
+                
+                estado = 'Activa'
+                if (nuevo_ganado + acelerada) >= meta_limite:
+                    # Limitar si se pasó del 300% y expirar
+                    nuevo_ganado = meta_limite - acelerada
+                    estado = 'Completada (300%)'
+                
+                cur.execute("""
+                    UPDATE aportaciones
+                    SET ganancia_rentabilidad = %s, ultima_fecha_pago = CURRENT_DATE, estado = %s
+                    WHERE id = %s
+                """, (nuevo_ganado, estado, a_id))
+                pagados += 1
+                total_repartido += pago_de_hoy
+
+        conn.commit()
+        return {"mensaje": f"Reparto completado. {pagados} contratos procesados.", "total_pagado": total_repartido}
+    except Exception as e:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+class TransaccionBase(BaseModel):
     inversor_id: int
     nombre: str
     email: str
     importe: float
     moneda: str
+
+class AportacionRequest(TransaccionBase):
     estado: str = "Pendiente de validación"
 
-class RetiroRequest(BaseModel):
-    inversor_id: int
-    nombre: str
-    email: str
-    importe: float
-    moneda: str
+class RetiroRequest(TransaccionBase):
     estado: str = "Pendiente de validación"
+
+class JustificanteRequest(BaseModel):
+    justificante: str
+    nombreArchivo: Optional[str] = None
+    tipoArchivo: Optional[str] = None
 
 # ============================================================================
 # FUNCIONES AUXILIARES
@@ -117,7 +186,9 @@ async def registro_inversor(datos: InversorRegistroRequest):
                 pais VARCHAR(100) DEFAULT 'España',
                 password_hash VARCHAR(255) NOT NULL,
                 estado VARCHAR(50) DEFAULT 'pendiente',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                referido_por VARCHAR(100),
+                codigo_referido VARCHAR(50)
             )
         """)
         conn.commit()
@@ -127,12 +198,17 @@ async def registro_inversor(datos: InversorRegistroRequest):
 
         # Insertar inversor
         cur.execute("""
-            INSERT INTO inversores (nombre, email, telefono, pais, password_hash)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO inversores (nombre, email, telefono, pais, password_hash, referido_por)
+            VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id
-        """, (datos.nombre, datos.email, datos.telefono, datos.pais, password_hash))
+        """, (datos.nombre, datos.email, datos.telefono, datos.pais, password_hash, datos.codigo_patrocinio))
         
         inversor_id = cur.fetchone()[0]
+        
+        # Generar su codigo propio tipo ALAN13 para invitar
+        codigo_propio = f"{datos.nombre[:3].upper()}{inversor_id}{datos.telefono[-2:] if len(datos.telefono)>2 else '99'}"
+        cur.execute("UPDATE inversores SET codigo_referido = %s WHERE id = %s", (codigo_propio, inversor_id))
+        
         conn.commit()
         cur.close()
         conn.close()
@@ -194,7 +270,7 @@ async def get_perfil(usuario=Depends(obtener_usuario_actual)):
         """)
         conn.commit()
         cur.execute(
-            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada FROM inversores WHERE id = %s",
+            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada, codigo_referido FROM inversores WHERE id = %s",
             (usuario.get("inversor_id"),)
         )
         row = cur.fetchone()
@@ -205,7 +281,9 @@ async def get_perfil(usuario=Depends(obtener_usuario_actual)):
         return {
             "id": row[0], "nombre": row[1], "email": row[2],
             "telefono": row[3], "pais": row[4], "estado": row[5],
-            "foto_perfil": row[6], "foto_portada": row[7]
+            "foto_perfil": row[6],
+            "foto_portada": row[7],
+            "codigo_referido": row[8]
         }
     except HTTPException:
         raise
@@ -375,7 +453,12 @@ async def crear_aportacion(datos: AportacionRequest, usuario = Depends(obtener_u
                 importe DECIMAL(12,2),
                 moneda VARCHAR(10),
                 estado VARCHAR(50),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                fecha_aprobacion TIMESTAMP,
+                tasa_diaria DECIMAL(5,2),
+                ganancia_acelerada DECIMAL(12,2) DEFAULT 0,
+                ganancia_rentabilidad DECIMAL(12,2) DEFAULT 0,
+                ultima_fecha_pago DATE
             )
         """)
         conn.commit()
@@ -395,6 +478,68 @@ async def crear_aportacion(datos: AportacionRequest, usuario = Depends(obtener_u
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+@app.post("/api/aportaciones/{id}/justificante")
+async def subir_justificante(id: int, datos: JustificanteRequest, usuario = Depends(obtener_usuario_actual)):
+    """Sube un justificante Base64 a una aportación existente"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        # Verificar que la aportación exista y sea del usuario (o admin)
+        if usuario.get('rol') != 'admin':
+            cur.execute("SELECT inversor_id FROM aportaciones WHERE id = %s", (id,))
+            resultado = cur.fetchone()
+            if not resultado or resultado[0] != usuario.get('inversor_id'):
+                raise HTTPException(status_code=403, detail="Aportación no encontrada o no autorizada")
+
+        cur.execute("""
+            UPDATE aportaciones 
+            SET comprobante_base64 = %s, comprobante_tipo = %s
+            WHERE id = %s
+        """, (datos.justificante, datos.tipoArchivo, id))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"mensaje": "Justificante subido correctamente"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.get("/api/aportaciones/{id}/justificante")
+async def obtener_justificante(id: int, usuario = Depends(obtener_usuario_actual)):
+    """Devuelve el Base64 del justificante para que no cargue la lista general"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        # Admin ve todo, Inversor solo suyo
+        if usuario.get('rol') == 'admin':
+             cur.execute("SELECT comprobante_base64, comprobante_tipo FROM aportaciones WHERE id = %s", (id,))
+        else:
+             cur.execute("SELECT comprobante_base64, comprobante_tipo FROM aportaciones WHERE id = %s AND inversor_id = %s", (id, usuario.get('inversor_id')))
+             
+        resultado = cur.fetchone()
+        cur.close()
+        conn.close()
+        
+        if not resultado:
+             raise HTTPException(status_code=404, detail="Justificante no encontrado o sin acceso")
+             
+        # Si resultado[0] es None, retornar algo vacío o 404
+        if not resultado[0]:
+             return {"justificante": None}
+             
+        return {
+             "justificante": resultado[0],
+             "tipoArchivo": resultado[1]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
 
 @app.get("/api/aportaciones")
 async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
@@ -404,30 +549,51 @@ async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
         cur = conn.cursor()
 
         if usuario.get('rol') == 'admin':
-            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM aportaciones ORDER BY created_at DESC")
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, fecha_aprobacion, ganancia_acelerada, ganancia_rentabilidad, ultima_fecha_pago FROM aportaciones ORDER BY created_at DESC")
         else:
             inversor_id = usuario.get('inversor_id')
-            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM aportaciones WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, fecha_aprobacion, ganancia_acelerada, ganancia_rentabilidad, ultima_fecha_pago FROM aportaciones WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
         
         resultados = cur.fetchall()
         cur.close()
         conn.close()
-
+        
         aportaciones = []
         for row in resultados:
+            aportacion_id = row[0]
+            importe = float(row[4])
+            estado = row[6]
+            fecha = row[7]
+            fecha_aprobacion = row[8]
+            ganancia_acelerada = float(row[9] or 0)
+            ganancia_rentabilidad = float(row[10] or 0)
+            
+            meta_ganancia = importe * 3.0
+            ganancia_acumulada = ganancia_rentabilidad + ganancia_acelerada
+            
+            # Limitar al 300% exacto
+            if ganancia_acumulada >= meta_ganancia:
+                ganancia_acumulada = meta_ganancia
+            
             aportaciones.append({
-                "id": row[0],
+                "id": aportacion_id,
                 "inversor_id": row[1],
                 "nombre": row[2],
                 "email": row[3],
-                "importe": float(row[4]),
+                "importe": importe,
                 "moneda": row[5],
-                "estado": row[6],
-                "fecha": row[7].isoformat() if row[7] else None
+                "estado": estado,
+                "fecha": fecha.isoformat() if fecha else None,
+                "fecha_aprobacion": fecha_aprobacion.isoformat() if fecha_aprobacion else None,
+                "ultima_fecha_pago": row[11].isoformat() if row[11] else None,
+                "ganancia_total": ganancia_acumulada,
+                "meta_ganancia": meta_ganancia
             })
 
         return {"aportaciones": aportaciones}
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
@@ -441,7 +607,73 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cur = conn.cursor()
 
-        cur.execute("UPDATE aportaciones SET estado = %s WHERE id = %s", (datos.get('estado'), aportacion_id))
+        estado = datos.get('estado')
+        tasa_diaria = datos.get('tasa_diaria', 0.5)
+
+        if estado == 'Aprobada' or estado == 'Activa':
+            cur.execute("""
+                UPDATE aportaciones 
+                SET estado = %s, fecha_aprobacion = CURRENT_TIMESTAMP, tasa_diaria = %s 
+                WHERE id = %s
+                RETURNING inversor_id, importe
+            """, (estado, tasa_diaria, aportacion_id))
+            
+            inversion_data = cur.fetchone()
+            if inversion_data:
+                # Disparar acelerador para el patrocinador (10% de importe)
+                inversor_id, importe = inversion_data
+                monto_acelerador = float(importe) * 0.10
+                
+                # Buscar si el inversor fue referido por alguien (aún falta la tabla, previendo logica)
+                cur.execute("SELECT referido_por FROM inversores WHERE id = %s", (inversor_id,))
+                ref_row = cur.fetchone()
+                if ref_row and ref_row[0]:
+                    patrocinador_codigo = ref_row[0]
+                    # Encontrar al patrocinador
+                    cur.execute("SELECT id FROM inversores WHERE codigo_referido = %s", (patrocinador_codigo,))
+                    patr_row = cur.fetchone()
+                    if patr_row:
+                        patrocinador_id = patr_row[0]
+                        # Repartir acelerador en sus inversiones activas en cascada (FIFO)
+                        cur.execute("""
+                            SELECT id, importe, (COALESCE(ganancia_acelerada, 0)) as ganac, fecha_aprobacion, tasa_diaria
+                            FROM aportaciones 
+                            WHERE inversor_id = %s AND (estado = 'Aprobada' OR estado = 'Activa')
+                            ORDER BY fecha_aprobacion ASC
+                        """, (patrocinador_id,))
+                        invs_activas = cur.fetchall()
+                        
+                        monto_restante = monto_acelerador
+                        
+                        # Extraer calculo logico de horas
+                        from datetime import datetime, timezone
+                        ahora = datetime.now(timezone.utc)
+                        
+                        for inv in invs_activas:
+                            if monto_restante <= 0:
+                                break
+                            
+                            inv_id = inv[0]
+                            inv_importe = float(inv[1])
+                            inv_ganac = float(inv[2])
+                            inv_fecha = inv[3]
+                            inv_tasa = float(inv[4])
+                            
+                            meta = inv_importe * 3.0
+                            
+                            delta = ahora - inv_fecha.replace(tzinfo=timezone.utc)
+                            horas_activas = max(0, delta.total_seconds() / 3600.0 - 72.0)
+                            ganancia_diaria = (horas_activas / 24.0) * (inv_tasa / 100.0) * inv_importe
+                            
+                            espacio_libre = meta - (ganancia_diaria + inv_ganac)
+                            
+                            if espacio_libre > 0:
+                                abs_ganado = min(monto_restante, espacio_libre)
+                                cur.execute("UPDATE aportaciones SET ganancia_acelerada = ganancia_acelerada + %s WHERE id = %s", (abs_ganado, inv_id))
+                                monto_restante -= abs_ganado
+        else:
+            cur.execute("UPDATE aportaciones SET estado = %s WHERE id = %s", (estado, aportacion_id))
+
         conn.commit()
         cur.close()
         conn.close()

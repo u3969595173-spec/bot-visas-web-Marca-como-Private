@@ -88,6 +88,10 @@ function DashboardAdminExpandido({ onLogout }) {
   const [ofertasAportaciones, setOfertasAportaciones] = useState([])
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  const [modalJustificanteVisible, setModalJustificanteVisible] = useState(false)
+  const [justificanteActual, setJustificanteActual] = useState(null)
+  const [loadingJustificante, setLoadingJustificante] = useState(false)
+
   // Formularios de admin para ofertas
   const [nuevaOferta, setNuevaOferta] = useState({
     nombre: '', descripcion: '', condiciones: '',
@@ -95,6 +99,28 @@ function DashboardAdminExpandido({ onLogout }) {
     inversorIdEspecial: '', importeMaximo: ''
   })
 
+  const fetchJustificante = async (id) => {
+    try {
+      setLoadingJustificante(true)
+      setModalJustificanteVisible(true)
+      setJustificanteActual(null)
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API}/api/aportaciones/${id}/justificante`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setJustificanteActual(data.justificante || 'empty')
+      } else {
+        setJustificanteActual('empty')
+      }
+    } catch {
+      alert('Error de conexión al cargar justificante')
+      setModalJustificanteVisible(false)
+    } finally {
+      setLoadingJustificante(false)
+    }
+  }
 
   React.useEffect(() => {
     // Cargar config del admin (minimos)
@@ -526,6 +552,18 @@ function DashboardAdminExpandido({ onLogout }) {
   const updateAportacionStatus = async (id, estado, comentario = '') => {
     try {
       const token = localStorage.getItem('token')
+      let bodyData = { estado }
+
+      if (estado === 'Activa' || estado === 'Aprobada') {
+        const respuesta = prompt("Ingresa la tasa diaria para esta inversión (Ej: 0.5 o 1.5):", "0.5")
+        if (respuesta === null) return; // Cancelado por el admin
+        const tasa = parseFloat(respuesta)
+        if (isNaN(tasa) || tasa < 0) {
+          alert("Por favor ingresa un número válido")
+          return;
+        }
+        bodyData.tasa_diaria = tasa
+      }
 
       const response = await fetch(`${API}/api/aportaciones/${id}`, {
         method: 'PUT',
@@ -533,7 +571,7 @@ function DashboardAdminExpandido({ onLogout }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ estado })
+        body: JSON.stringify(bodyData)
       })
 
       if (response.ok) {
@@ -871,70 +909,42 @@ function DashboardAdminExpandido({ onLogout }) {
     return aportacionesNormalizadas.filter(a => esInversionElegible(a))
   }
 
-  const pagarRentabilidadSemanal = () => {
+  const repartirRentabilidadDiaria = async () => {
     if (!porcentajeSemanal || isNaN(porcentajeSemanal) || Number(porcentajeSemanal) <= 0) {
-      alert('Ingresa un porcentaje válido')
+      alert('Ingresa un porcentaje válido para el rendimiento de hoy.')
       return
     }
 
-    const inversionesElegibles = getInversionesElegibles()
-    if (inversionesElegibles.length === 0) {
-      alert('No hay inversiones elegibles para pagar hoy')
-      return
-    }
-
-    // Calcular pago semanal (10% simple, sin aceleración)
-    const pagosDetallados = inversionesElegibles.map(a => {
-      const pago = Number(a.importe) * Number(porcentajeSemanal) / 100
-      return { id: a.id, pago }
-    })
-
-    const totalAPagar = pagosDetallados.reduce((sum, p) => sum + p.pago, 0)
-
-    const confirmacion = confirm(
-      `Confirmar pago de rentabilidad:\n\n` +
-      `Inversores: ${inversionesElegibles.length}\n` +
-      `Porcentaje: ${porcentajeSemanal}%\n` +
-      `Total a pagar: €${totalAPagar.toFixed(2)}\n\n` +
-      `¿Proceder con el pago?`
-    )
+    const confirmacion = confirm(`¿Repartir ${porcentajeSemanal}% a todos los contratos activos con 72h cumplidas?`)
 
     if (confirmacion) {
-      let aportacionesActualizadas = aportaciones.map(aportacion => {
-        const pagoPorAportacion = pagosDetallados.find(p => p.id === aportacion.id)
-        if (pagoPorAportacion) {
-          const gananciasDisp = Number(aportacion.gananciasDisponibles || aportacion.importe * 3)
-          const gananciasRestantes = Math.max(0, gananciasDisp - pagoPorAportacion.pago)
-          const nuevoEstado = gananciasRestantes <= 0 ? 'Completada' : aportacion.estado
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(`${API}/api/admin/repartir_diario`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ porcentaje: Number(porcentajeSemanal) })
+        })
 
-          return {
-            ...aportacion,
-            fechaUltimoPago: new Date().toISOString(),
-            gananciasDisponibles: gananciasRestantes,
-            estado: nuevoEstado
-          }
+        if (!response.ok) {
+          alert('Error procesando el reparto.')
+          return
         }
-        return aportacion
-      })
 
-      setAportaciones(aportacionesActualizadas)
+        const data = await response.json()
+        setMensaje(`✅ ${data.mensaje} / Importe total pagado: €${data.total_pagado.toFixed(2)}`)
+        setTimeout(() => setMensaje(''), 4000)
+        setPorcentajeSemanal('')
 
-      const token = localStorage.getItem('token');
-      const updatePromises = pagosDetallados.map(p => {
-        const ap = aportacionesActualizadas.find(x => x.id === p.id);
-        if (ap) {
-          return fetch(`${API}/api/operaciones/aportaciones/${ap.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ estado: ap.estado, gananciasDisponibles: ap.gananciasDisponibles, fechaUltimoPago: ap.fechaUltimoPago })
-          })
-        }
-      });
-      Promise.all(updatePromises.filter(Boolean)).catch(console.error);
-
-      setMensaje(`✅ Pagos procesados: €${totalAPagar.toFixed(2)} a ${inversionesElegibles.length} inversores (saldo disponible actualizado)`)
-      setTimeout(() => setMensaje(''), 3000)
-      setPorcentajeSemanal('')
+        // Recargar aportaciones para ver saldos actualizados
+        cargarAportaciones()
+      } catch (err) {
+        console.error("Error al repartir:", err)
+        alert('Ocurrió un error al contactar al servidor.')
+      }
     }
   }
 
@@ -1170,13 +1180,12 @@ function DashboardAdminExpandido({ onLogout }) {
                       <td>{item.fecha}</td>
                       <td>{item.cuenta}</td>
                       <td>
-                        {item.justificanteData ? (
-                          <a href={item.justificanteData.dataUrl || '#'} target="_blank" rel="noreferrer" style={{ color: '#2563eb' }}>
-                            {item.justificante}
-                          </a>
-                        ) : (
-                          item.justificante
-                        )}
+                        <button
+                          onClick={() => fetchJustificante(item.id)}
+                          style={{ padding: '6px 12px', background: '#3b82f6', color: 'white', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                          🧾 Ver Comprobante
+                        </button>
                       </td>
                       <td>{item.estado}</td>
                       <td>{item.comentarios || 'Sin comentarios'}</td>
@@ -1318,47 +1327,20 @@ function DashboardAdminExpandido({ onLogout }) {
           )}
           {activeTab === 'operaciones' && (
             <div className="card">
-              <div className="section-header"><h2>💰 Pagos de Rentabilidad Semanal</h2></div>
+              <div className="section-header"><h2>💰 Reparto de Rendimientos Diarios</h2></div>
               <div style={{ marginTop: '1.5rem', padding: '1.5rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
-                <h4 style={{ marginTop: 0, color: '#374151' }}>📊 Inversiones elegibles para pagar hoy:</h4>
-                {getInversionesElegibles().length > 0 ? (
-                  <div style={{ display: 'grid', gap: '0.75rem' }}>
-                    {getInversionesElegibles().map(aportacion => {
-                      const proximoPago = calcularProximoPago(aportacion.fechaUltimoPago, aportacion.fechaOriginal)
-                      const proximoPagoFormato = proximoPago.toLocaleDateString('es-ES')
-                      return (
-                        <div key={aportacion.id} style={{ padding: '12px', backgroundColor: 'white', borderRadius: '6px', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px' }}>
-                          <div>
-                            <strong>{aportacion.usuario}</strong>
-                            <div style={{ color: '#6b7280', fontSize: '12px', marginTop: '4px' }}>📅 Inicio: {new Date(aportacion.fechaOriginal).toLocaleDateString('es-ES')}{aportacion.fechaUltimoPago && ` · Últm pago: ${new Date(aportacion.fechaUltimoPago).toLocaleDateString('es-ES')}`}</div>
-                            <div style={{ color: '#6b7280', fontSize: '12px' }}>💰 Capital: €{aportacion.importe} {aportacion.moneda} · Próx pago: {proximoPagoFormato}</div>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ color: '#6b7280', fontStyle: 'italic' }}>No hay inversores activos</div>
-                )}
+                <h4 style={{ marginTop: 0, color: '#374151', fontSize: '13px' }}>En este panel se paga la rentabilidad masivamente a todas las inversiones aprobadas con fecha de expiración congelada de 72 horas cumplida (según lo dicta el backend central). El capital de ganancia se acumula físicamente y respeta el límite del 300%.</h4>
                 <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #d1d5db' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Porcentaje semanal (%):</label>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Porcentaje de Rentabilidad General Diario (%):</label>
                   <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                    <input type="number" value={porcentajeSemanal} onChange={(e) => setPorcentajeSemanal(e.target.value)} placeholder="Ej: 0.5" min="0" step="0.01" style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', flex: 1, maxWidth: '150px' }} />
-                    <button onClick={pagarRentabilidadSemanal} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap' }}>
-                      💳 Pagar rentabilidad
+                    <input type="number" value={porcentajeSemanal} onChange={(e) => setPorcentajeSemanal(e.target.value)} placeholder="Ej: 0.5 o 1.2" min="0" step="0.01" style={{ padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', flex: 1, maxWidth: '180px' }} />
+                    <button onClick={repartirRentabilidadDiaria} style={{ padding: '8px 16px', backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '15px' }}>
+                      💳 Repartir a toda la red hoy
                     </button>
                   </div>
-                  <div style={{ marginTop: '1rem', fontSize: '12px', color: '#6b7280' }}>
-                    Inversiones elegibles: {getInversionesElegibles().length}
+                  <div style={{ marginTop: '1rem', fontSize: '11px', color: '#6b7280' }}>
+                    Nota: Se denegarán cuentas en bloqueo de 72 horas o cuentas que ya hayan recibido fondos en el mismo día natural.
                   </div>
-                  {porcentajeSemanal && getInversionesElegibles().length > 0 && (
-                    <div style={{ marginTop: '1rem', padding: '12px', backgroundColor: '#ecfdf5', borderRadius: '6px', border: '2px solid #10b981', display: 'flex', justifyContent: 'space-between' }}>
-                      <strong style={{ color: '#065f46' }}>Total a pagar:</strong>
-                      <strong style={{ color: '#10b981', fontSize: '16px' }}>
-                        €{(getInversionesElegibles().reduce((sum, a) => sum + (Number(a.importe) * Number(porcentajeSemanal) / 100), 0).toFixed(2))}
-                      </strong>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -2204,9 +2186,43 @@ function DashboardAdminExpandido({ onLogout }) {
 
         </div>
       </main>
+
+      {/* Modal Justificante */}
+      {modalJustificanteVisible && (
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="modal-content" style={{ maxWidth: '600px', width: '90%' }}>
+            <h2>Recibo Bancario / Comprobante</h2>
+            <div style={{ minHeight: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              {loadingJustificante ? (
+                <p>Cargando justificante...</p>
+              ) : justificanteActual === 'empty' ? (
+                <p style={{ color: '#ef4444', fontWeight: 'bold' }}>⚠️ El inversor no adjuntó comprobante para esta operación.</p>
+              ) : justificanteActual ? (
+                <img src={justificanteActual} alt="Comprobante" style={{ maxWidth: '100%', maxHeight: '60vh', borderRadius: '8px', objectFit: 'contain' }} />
+              ) : null}
+            </div>
+            <div className="modal-actions" style={{ marginTop: '20px' }}>
+              <button
+                onClick={() => setModalJustificanteVisible(false)}
+                style={{
+                  background: '#ef4444',
+                  color: 'white',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                Cerrar Visor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
 
 export default DashboardAdminExpandido
-

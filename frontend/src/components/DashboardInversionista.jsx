@@ -452,28 +452,8 @@ function DashboardInversionista() {
     try {
       const token = localStorage.getItem('token')
 
-      // 1. Guardar solicitud de inversión en la BD
-      const response1 = await fetch(`${API_URL}/api/solicitudes-inversion`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          importe: Number(importe),
-          moneda: monedaInversion,
-          nombre: nombreUsuario,
-          email: correoUsuario,
-          telefono: telefonoUsuario,
-          pais: paisUsuario
-        })
-      })
-
-      if (!response1.ok) throw new Error('Error guardando solicitud de inversión')
-      const data1 = await response1.json()
-
-      // 2. Guardar aportación en la BD
-      const response2 = await fetch(`${API_URL}/api/aportaciones`, {
+      // 1. Guardar aportación en la BD
+      const response = await fetch(`${API_URL}/api/aportaciones`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -489,11 +469,12 @@ function DashboardInversionista() {
         })
       })
 
-      if (!response2.ok) throw new Error('Error guardando aportación')
+      if (!response.ok) throw new Error('Error guardando aportación')
+      const data = await response.json()
 
       // Cerrar modal y abrir justificante
       const nuevaSolicitud = {
-        id: data1.solicitud_id,
+        id: data.id,
         usuarioId: currentUser?.id || 'anon',
         nombre: nombreUsuario,
         usuarioNombre: nombreUsuario,
@@ -537,7 +518,7 @@ function DashboardInversionista() {
         const dataUrl = e.target.result
 
         // Llamada a la API para subir el justificante
-        const response = await fetch(`${API_URL}/api/solicitudes-inversion/${solicitudSeleccionada.id}/justificante`, {
+        const response = await fetch(`${API_URL}/api/aportaciones/${solicitudSeleccionada.id}/justificante`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -818,14 +799,24 @@ function DashboardInversionista() {
             <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
               <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.3rem', fontWeight: '700' }}>💼 Mis Inversiones</h2>
 
+              {perfil && (
+                <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(212, 175, 55, 0.1)', border: '1px dashed #d4af37', borderRadius: '12px' }}>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#d4af37' }}><strong>Tu Enlace de Referido:</strong></p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#cbd5e1', userSelect: 'all' }}>
+                    {perfil.codigo_referido ? `https://${window.location.host}/registro?ref=${perfil.codigo_referido}` : 'Generando...'}
+                  </p>
+                  <p style={{ margin: '5px 0 0 0', fontSize: '11px', color: '#64748b' }}>El 10% de lo que inviertan será para acelerar directamente tus contratos activos hasta el 300% de fondo.</p>
+                </div>
+              )}
+
               {userAportaciones.length > 0 ? (
                 userAportaciones.map((item, idx) => {
                   const capitalInvertido = Number(item.importe || 0)
-                  const poolTotal = capitalInvertido * 3
-                  const gananciasDis = item.gananciasDisponibles !== undefined ? Number(item.gananciasDisponibles) : poolTotal
-                  const ganado = poolTotal - gananciasDis
+                  const poolTotal = Number(item.meta_ganancia || (capitalInvertido * 3))
+                  const ganado = Number(item.ganancia_total || 0)
                   const porcentaje = poolTotal > 0 ? Math.min((ganado / poolTotal) * 100, 100) : 0
                   const completado = porcentaje >= 100
+                  const gananciasDis = poolTotal - ganado
 
                   return (
                     <div key={item.id || idx} style={{
@@ -930,7 +921,7 @@ function DashboardInversionista() {
                           padding: '0.8rem',
                           textAlign: 'center'
                         }}>
-                          <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Disponible</p>
+                          <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Por Completar</p>
                           <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#e2e8f0' }}>{formatCurrency(gananciasDis, 'EUR')}</p>
                         </div>
                       </div>
@@ -988,11 +979,14 @@ function DashboardInversionista() {
                         border: '2px solid rgba(255,255,255,0.3)',
                         borderRadius: '8px',
                         fontSize: '14px',
-                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        backgroundColor: 'transparent',
                         color: 'white',
+                        outline: 'none',
                         boxSizing: 'border-box'
                       }}
+                      required
                     />
+                    <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#f59e0b', fontWeight: 'bold' }}>⚠️ Nota: Se aplicará una deducción del 5% del importe retirado destinado a comisiones de red o comisiones bancarias de la administración (Gas Fee).</p>
                   </div>
 
                   <div>
