@@ -986,7 +986,10 @@ async def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obten
             if usuario.get('rol') == 'admin':
                 cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE destinatario IS NOT NULL AND destinatario <> '' ORDER BY created_at DESC LIMIT 100")
             else:
-                cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE autor_id = %s OR destinatario IN ('admin', %s) ORDER BY created_at DESC LIMIT 100", (usuario.get('inversor_id'), usuario.get('email', '')))
+                cur.execute("SELECT nombre FROM inversores WHERE id = %s OR email = %s LIMIT 1", (usuario.get('inversor_id'), usuario.get('email', '')))
+                inversor = cur.fetchone()
+                nombre_inversor = inversor[0] if inversor else ''
+                cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE autor_id = %s OR destinatario IN ('admin', %s, %s, %s) ORDER BY created_at DESC LIMIT 100", (usuario.get('inversor_id'), usuario.get('email', ''), nombre_inversor, str(usuario.get('inversor_id', ''))))
         else:
             cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE destinatario IS NULL OR destinatario = '' ORDER BY created_at DESC LIMIT 100")
         resultados = cur.fetchall()
