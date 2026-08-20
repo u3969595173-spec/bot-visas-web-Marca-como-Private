@@ -49,7 +49,7 @@ function SolicitudParticipacion() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -64,11 +64,24 @@ function SolicitudParticipacion() {
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${API}/api/solicitudes-participacion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form)
+      });
+      if (response.ok) {
+        setSuccess(true);
+      } else {
+        const data = await response.json().catch(() => ({}));
+        setError(data.detail || 'Error al enviar la solicitud. Inténtalo de nuevo.');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('No se pudo conectar con el servidor. Verifica tu conexión.');
+    } finally {
       setLoading(false);
-      setSuccess(true);
-      localStorage.setItem('solicitud_participacion', JSON.stringify(form));
-    }, 600);
+    }
   };
 
   if (success) {

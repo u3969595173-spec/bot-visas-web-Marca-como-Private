@@ -111,13 +111,15 @@ function OperacionDetalle() {
 
     const reader = new FileReader();
     reader.onload = () => {
-      setForm((prev) => ({ ...prev, justificante: {
-        nombre: file.name,
-        tipo: file.type,
-        tamaño: file.size,
-        dataUrl: reader.result,
-        cargadoEn: new Date().toISOString()
-      }}));
+      setForm((prev) => ({
+        ...prev, justificante: {
+          nombre: file.name,
+          tipo: file.type,
+          tamaño: file.size,
+          dataUrl: reader.result,
+          cargadoEn: new Date().toISOString()
+        }
+      }));
     };
     reader.readAsDataURL(file);
     setError('');
@@ -148,7 +150,6 @@ function OperacionDetalle() {
     const storedUser = JSON.parse(localStorage.getItem('capital_trade_user') || 'null');
     const usuarioId = storedUser?.id || localStorage.getItem('estudiante_id') || 'anon';
     const usuarioNombre = storedUser?.name || localStorage.getItem('usuario') || 'Usuario';
-    const aportacionesExistentes = JSON.parse(localStorage.getItem('capital_trade_aportaciones') || '[]');
 
     const nuevaAportacion = {
       id: `ap-${Date.now()}`,
@@ -156,38 +157,41 @@ function OperacionDetalle() {
       operacionNombre: op.nombre,
       usuarioId,
       usuarioNombre,
-      importe: Number(importe).toFixed(2),
+      importe: Number(importe),
       moneda: form.moneda,
       metodoPago: form.metodoPago,
       cuentaDestino: form.cuentaDestino,
       comentario: form.comentario.trim(),
       estado: 'Pendiente de validación',
-      createdAt: new Date().toISOString(),
-      justificante: {
-        nombre: form.justificante.nombre,
-        tipo: form.justificante.tipo,
-        tamaño: form.justificante.tamaño,
-        dataUrl: form.justificante.dataUrl,
-        cargadoEn: form.justificante.cargadoEn
-      }
+      justificante: form.justificante ? form.justificante.dataUrl : ''
     };
 
-    aportacionesExistentes.push(nuevaAportacion);
-    localStorage.setItem('capital_trade_aportaciones', JSON.stringify(aportacionesExistentes));
-    localStorage.dispatchEvent?.(new Event('storage'));
-    window.dispatchEvent(new Event('capital-trade-sync'));
-
-    setSuccess(`Tu aportación para ${op.nombre} ha quedado registrada con justificante adjunto y está pendiente de validación por el administrador.`);
-    setError('');
-    setForm({
-      importe: '',
-      moneda: 'EUR',
-      metodoPago: 'transferencia',
-      cuentaDestino: 'ES91 2100 0418 4502 0005 1332',
-      comentario: '',
-      justificante: null
-    });
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    fetch(import.meta.env.VITE_API_URL + '/api/operaciones/aportaciones', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(nuevaAportacion)
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Error en el servidor');
+        setSuccess(`Tu aportación para ${op.nombre} ha quedado registrada con justificante adjunto y está pendiente de validación por el administrador.`);
+        setError('');
+        setForm({
+          importe: '',
+          moneda: 'EUR',
+          metodoPago: 'transferencia',
+          cuentaDestino: 'ES91 2100 0418 4502 0005 1332',
+          comentario: '',
+          justificante: null
+        });
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      })
+      .catch(err => {
+        console.error(err);
+        setError('Ocurrió un error la enviar tu solicitud. Verifica tu conexión.');
+      });
   };
 
   return (
