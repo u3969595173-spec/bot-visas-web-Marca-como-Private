@@ -562,9 +562,38 @@ app.add_middleware(
 security = HTTPBearer()
 
 
-# ============================================================================
-# AUTENTICACIÓN
-# ============================================================================
+def obtener_usuario_actual(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Verifica token JWT y retorna usuario"""
+    token = credentials.credentials
+    payload = verificar_token(token)
+
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido o expirado"
+        )
+
+    return payload
+
+
+def verificar_admin(
+    usuario = Depends(obtener_usuario_actual)
+):
+    """Verifica que el usuario sea administrador"""
+    logger.info(f"verificar_admin llamado. Usuario payload: {usuario}")
+    rol = usuario.get('rol')
+    logger.info(f"Rol del usuario: {rol}")
+    if rol != 'admin':
+        logger.warning(f"Acceso denegado. Rol requerido: 'admin', rol actual: '{rol}'")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Se requieren permisos de administrador"
+        )
+    return usuario
+
+
 
 # Incluir routers de blog y testimonios
 app.include_router(blog_router, prefix="/api")
@@ -1659,38 +1688,6 @@ async def obtener_inversores_validados(
         return {"inversores": inversores}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
-
-
-def obtener_usuario_actual(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Verifica token JWT y retorna usuario"""
-    token = credentials.credentials
-    payload = verificar_token(token)
-    
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido o expirado"
-        )
-    
-    return payload
-
-
-def verificar_admin(
-    usuario = Depends(obtener_usuario_actual)
-):
-    """Verifica que el usuario sea administrador"""
-    logger.info(f"verificar_admin llamado. Usuario payload: {usuario}")
-    rol = usuario.get('rol')
-    logger.info(f"Rol del usuario: {rol}")
-    if rol != 'admin':
-        logger.warning(f"Acceso denegado. Rol requerido: 'admin', rol actual: '{rol}'")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Se requieren permisos de administrador"
-        )
-    return usuario
 
 
 # ─── COMUNIDAD ────────────────────────────────────────────────────────────────
