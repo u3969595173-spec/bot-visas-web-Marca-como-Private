@@ -1010,10 +1010,14 @@ function DashboardInversionista() {
                       }}
                       required
                     />
-                    <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#f59e0b', fontWeight: 'bold' }}>
-                      ⚠️ ATENCIÓN: Todo saldo disponible debe ser retirado a su cuenta externa personal. No está permitida la reinversión de capital interno directo (Normativa Financiera).<br /><br />
-                      Nota: Se aplicará una deducción del 5% del importe retirado destinado a comisiones de red o comisiones bancarias de la administración (Gas Fee).
-                    </p>
+                    <div style={{ margin: '15px 0 0 0', padding: '12px', backgroundColor: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                      <p style={{ margin: 0, fontSize: '13px', color: '#ffffff', fontWeight: 'bold', lineHeight: '1.4' }}>
+                        ⚠️ ATENCIÓN: Todo saldo disponible debe ser retirado a su cuenta externa personal. No está permitida la reinversión de capital interno directo (Normativa Financiera).
+                      </p>
+                      <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#fef3c7' }}>
+                        * Nota: Se aplicará una deducción del 5% del importe retirado destinado a comisiones bancarias o de red de la administración (Gas Fee).
+                      </p>
+                    </div>
                   </div>
 
                   <div>
