@@ -714,6 +714,9 @@ function DashboardInversionista() {
             </div>
           </div>
           {/* Action Buttons specific to investor */}
+          <button className="btn-logout-sidebar" style={{ background: 'rgba(16, 185, 129, 0.12)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.25)', marginBottom: '8px' }} onClick={() => setActiveTab('ofertas')}>
+            🎁 Mis Ofertas
+          </button>
           <button className="btn-logout-sidebar" style={{ background: 'rgba(246, 196, 83, 0.1)', color: '#f6c453', borderColor: 'rgba(246, 196, 83, 0.2)', marginBottom: '8px' }} onClick={() => setShowInversionModal(true)}>
             + Nueva Inversión
           </button>
