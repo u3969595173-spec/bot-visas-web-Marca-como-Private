@@ -1163,6 +1163,249 @@ async def crear_o_actualizar_referido(datos: ReferidoUpsertRequest, usuario=Depe
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
+# ============================================================================
+# PERFIL DE INVERSOR (faltaban en este backend)
+# ============================================================================
+
+class ActualizarPerfilRequest(BaseModel):
+    nombre: Optional[str] = None
+    telefono: Optional[str] = None
+    pais: Optional[str] = None
+
+
+class FotoPerfilRequest(BaseModel):
+    foto: str
+
+
+@app.get("/api/inversores/perfil", tags=["Inversores"])
+async def get_perfil_inversor(usuario=Depends(obtener_usuario_actual)):
+    """Devuelve el perfil completo del inversor autenticado"""
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("""
+            ALTER TABLE inversores
+            ADD COLUMN IF NOT EXISTS foto_perfil TEXT,
+            ADD COLUMN IF NOT EXISTS foto_portada TEXT
+        """)
+        conn.commit()
+        cur.execute(
+            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada FROM inversores WHERE id = %s",
+            (usuario.get("inversor_id"),)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        return {
+            "id": row[0], "nombre": row[1], "email": row[2],
+            "telefono": row[3], "pais": row[4], "estado": row[5],
+            "foto_perfil": row[6], "foto_portada": row[7]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/inversores/perfil/actualizar", tags=["Inversores"])
+async def actualizar_perfil_inversor(datos: ActualizarPerfilRequest, usuario=Depends(obtener_usuario_actual)):
+    """Actualiza nombre, teléfono y país del inversor autenticado"""
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE inversores SET
+                nombre = COALESCE(%s, nombre),
+                telefono = COALESCE(%s, telefono),
+                pais = COALESCE(%s, pais)
+            WHERE id = %s
+        """, (datos.nombre, datos.telefono, datos.pais, usuario.get("inversor_id")))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/inversores/perfil/foto", tags=["Inversores"])
+async def actualizar_foto_perfil(datos: FotoPerfilRequest, usuario=Depends(obtener_usuario_actual)):
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("UPDATE inversores SET foto_perfil = %s WHERE id = %s", (datos.foto, usuario.get("inversor_id")))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/inversores/perfil/portada", tags=["Inversores"])
+async def actualizar_foto_portada(datos: FotoPerfilRequest, usuario=Depends(obtener_usuario_actual)):
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("UPDATE inversores SET foto_portada = %s WHERE id = %s", (datos.foto, usuario.get("inversor_id")))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
+# MÉTODOS DE PAGO Y SOLICITUD PÚBLICA DE PARTICIPACIÓN (faltaban en este backend)
+# ============================================================================
+
+METODOS_PAGO_DEFAULT = [
+    {"moneda": "MLC", "tipo": "tarjeta", "titular": "", "numero": "", "banco": "", "instrucciones": ""},
+    {"moneda": "CUP", "tipo": "tarjeta", "titular": "", "numero": "", "banco": "", "instrucciones": ""},
+    {"moneda": "USDT BEP-20", "tipo": "wallet", "wallet": "", "red": "BEP-20 (BSC)", "instrucciones": ""},
+]
+
+
+@app.get("/api/metodos-pago", tags=["Configuración de pagos"])
+async def get_metodos_pago_publico():
+    """Métodos de pago visibles para el inversor al hacer una aportación (sin auth)"""
+    import json
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS configuracion_pagos (
+                id SERIAL PRIMARY KEY,
+                clave VARCHAR(100) UNIQUE NOT NULL,
+                valor TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        cur.execute("SELECT valor FROM configuracion_pagos WHERE clave = 'metodos_pago'")
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if row:
+            return {"metodos": json.loads(row[0])}
+        return {"metodos": METODOS_PAGO_DEFAULT}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/solicitudes-participacion", tags=["Solicitudes"])
+async def crear_solicitud_participacion(datos: dict):
+    """Guarda una solicitud de participación de un usuario no registrado (formulario público)"""
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS solicitudes_participacion (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(200),
+                email VARCHAR(200),
+                telefono VARCHAR(100),
+                pais VARCHAR(100),
+                importe DECIMAL(12,2),
+                moneda VARCHAR(10),
+                estado VARCHAR(50) DEFAULT 'Pendiente',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        cur.execute("""
+            INSERT INTO solicitudes_participacion (nombre, email, telefono, pais, importe, moneda)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            datos.get('nombre', 'Desconocido'),
+            datos.get('email', ''),
+            datos.get('telefono', ''),
+            datos.get('pais', ''),
+            float(datos.get('importe', 0)),
+            datos.get('moneda', 'EUR')
+        ))
+        solicitud_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"id": solicitud_id, "success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
+# JUSTIFICANTES DE APORTACIÓN (faltaban en este backend)
+# ============================================================================
+
+class JustificanteRequest(BaseModel):
+    justificante: str
+    nombreArchivo: Optional[str] = None
+    tipoArchivo: Optional[str] = None
+
+
+@app.post("/api/aportaciones/{id}/justificante", tags=["Aportaciones"])
+async def subir_justificante_aportacion(id: int, datos: JustificanteRequest, usuario=Depends(obtener_usuario_actual)):
+    """Sube un justificante en base64 a una aportación existente"""
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        if usuario.get('rol') != 'admin':
+            cur.execute("SELECT inversor_id FROM aportaciones WHERE id = %s", (id,))
+            resultado = cur.fetchone()
+            if not resultado or resultado[0] != usuario.get('inversor_id'):
+                raise HTTPException(status_code=403, detail="Aportación no encontrada o no autorizada")
+        cur.execute("""
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS comprobante_base64 TEXT;
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS comprobante_tipo VARCHAR(100);
+        """)
+        conn.commit()
+        cur.execute("""
+            UPDATE aportaciones SET comprobante_base64 = %s, comprobante_tipo = %s WHERE id = %s
+        """, (datos.justificante, datos.tipoArchivo, id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"mensaje": "Justificante subido correctamente"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/aportaciones/{id}/justificante", tags=["Aportaciones"])
+async def obtener_justificante_aportacion(id: int, usuario=Depends(obtener_usuario_actual)):
+    """Devuelve el base64 del justificante de una aportación"""
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        if usuario.get('rol') == 'admin':
+            cur.execute("SELECT comprobante_base64, comprobante_tipo FROM aportaciones WHERE id = %s", (id,))
+        else:
+            cur.execute("SELECT comprobante_base64, comprobante_tipo FROM aportaciones WHERE id = %s AND inversor_id = %s", (id, usuario.get('inversor_id')))
+        resultado = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not resultado:
+            raise HTTPException(status_code=404, detail="Justificante no encontrado o sin acceso")
+        return {"justificante": resultado[0], "tipoArchivo": resultado[1]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 @app.post("/api/aportaciones", tags=["Aportaciones"])
 async def crear_aportacion(
     datos: AportacionRequest,
@@ -1216,11 +1459,17 @@ async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
         cur = conn.cursor()
 
+        cur.execute("""
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS ganancia_acelerada DECIMAL(12,2) DEFAULT 0;
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS ganancia_rentabilidad DECIMAL(12,2) DEFAULT 0;
+        """)
+        conn.commit()
+
         if usuario.get('rol') == 'admin':
-            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM aportaciones ORDER BY created_at DESC")
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, ganancia_acelerada, ganancia_rentabilidad FROM aportaciones ORDER BY created_at DESC")
         else:
             inversor_id = usuario.get('inversor_id')
-            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM aportaciones WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, ganancia_acelerada, ganancia_rentabilidad FROM aportaciones WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
         
         resultados = cur.fetchall()
         cur.close()
@@ -1228,15 +1477,23 @@ async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
 
         aportaciones = []
         for row in resultados:
+            importe = float(row[4])
+            ganancia_acelerada = float(row[8] or 0)
+            ganancia_rentabilidad = float(row[9] or 0)
+            meta_ganancia = importe * 3.0
+            ganancia_total = min(ganancia_acelerada + ganancia_rentabilidad, meta_ganancia)
+
             aportaciones.append({
                 "id": row[0],
                 "inversor_id": row[1],
                 "nombre": row[2],
                 "email": row[3],
-                "importe": float(row[4]),
+                "importe": importe,
                 "moneda": row[5],
                 "estado": row[6],
-                "fecha": row[7].isoformat() if row[7] else None
+                "fecha": row[7].isoformat() if row[7] else None,
+                "ganancia_total": ganancia_total,
+                "meta_ganancia": meta_ganancia
             })
 
         return {"aportaciones": aportaciones}
@@ -1261,7 +1518,25 @@ async def actualizar_aportacion(
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
         cur = conn.cursor()
 
-        cur.execute("UPDATE aportaciones SET estado = %s WHERE id = %s", (datos.get('estado'), aportacion_id))
+        estado = datos.get('estado')
+        cur.execute("""
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS fecha_aprobacion TIMESTAMP;
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS tasa_diaria DECIMAL(5,2);
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS ganancia_acelerada DECIMAL(12,2) DEFAULT 0;
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS ganancia_rentabilidad DECIMAL(12,2) DEFAULT 0;
+            ALTER TABLE aportaciones ADD COLUMN IF NOT EXISTS ultima_fecha_pago DATE;
+        """)
+        conn.commit()
+
+        if estado in ('Aprobada', 'Activa'):
+            tasa_diaria = datos.get('tasa_diaria', 0.5)
+            cur.execute("""
+                UPDATE aportaciones
+                SET estado = %s, fecha_aprobacion = CURRENT_TIMESTAMP, tasa_diaria = %s
+                WHERE id = %s
+            """, (estado, tasa_diaria, aportacion_id))
+        else:
+            cur.execute("UPDATE aportaciones SET estado = %s WHERE id = %s", (estado, aportacion_id))
         conn.commit()
         cur.close()
         conn.close()
@@ -1269,6 +1544,74 @@ async def actualizar_aportacion(
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+class PayoutRequest(BaseModel):
+    porcentaje: float
+
+
+@app.post("/api/admin/repartir_diario", tags=["Aportaciones"])
+async def repartir_diario(datos: PayoutRequest, usuario=Depends(obtener_usuario_actual)):
+    """Reparte el rendimiento diario entre los contratos activos con 72h cumplidas (solo admin)"""
+    import psycopg2
+
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    conn = None
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT id, importe, ganancia_rentabilidad, COALESCE(ganancia_acelerada, 0) as accel
+            FROM aportaciones
+            WHERE (estado = 'Aprobada' OR estado = 'Activa')
+              AND fecha_aprobacion IS NOT NULL
+              AND fecha_aprobacion + INTERVAL '72 hours' <= CURRENT_TIMESTAMP
+              AND (ultima_fecha_pago IS NULL OR ultima_fecha_pago < CURRENT_DATE)
+        """)
+        oportunidades = cur.fetchall()
+
+        pagados = 0
+        total_repartido = 0
+
+        for apo in oportunidades:
+            a_id = apo[0]
+            importe = float(apo[1])
+            ganado = float(apo[2] if apo[2] is not None else 0)
+            acelerada = float(apo[3])
+
+            meta_limite = importe * 3.0
+            saldo_pre_pago = ganado + acelerada
+
+            if saldo_pre_pago < meta_limite:
+                pago_de_hoy = importe * (float(datos.porcentaje) / 100.0)
+                nuevo_ganado = ganado + pago_de_hoy
+
+                estado = 'Activa'
+                if (nuevo_ganado + acelerada) >= meta_limite:
+                    nuevo_ganado = meta_limite - acelerada
+                    estado = 'Completada (300%)'
+
+                cur.execute("""
+                    UPDATE aportaciones
+                    SET ganancia_rentabilidad = %s, ultima_fecha_pago = CURRENT_DATE, estado = %s
+                    WHERE id = %s
+                """, (nuevo_ganado, estado, a_id))
+                pagados += 1
+                total_repartido += pago_de_hoy
+
+        conn.commit()
+        return {"mensaje": f"Reparto completado. {pagados} contratos procesados.", "total_pagado": total_repartido}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
 
 
 @app.post("/api/retiros", tags=["Retiros"])

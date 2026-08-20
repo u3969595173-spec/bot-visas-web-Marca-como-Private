@@ -326,6 +326,33 @@ async def update_foto_portada(datos: FotoRequest, usuario=Depends(obtener_usuari
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
+class ActualizarPerfilRequest(BaseModel):
+    nombre: Optional[str] = None
+    telefono: Optional[str] = None
+    pais: Optional[str] = None
+
+
+@app.put("/api/inversores/perfil/actualizar")
+async def actualizar_perfil_inversor(datos: ActualizarPerfilRequest, usuario=Depends(obtener_usuario_actual)):
+    """Actualiza nombre, teléfono y país del inversor autenticado"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE inversores SET
+                nombre = COALESCE(%s, nombre),
+                telefono = COALESCE(%s, telefono),
+                pais = COALESCE(%s, pais)
+            WHERE id = %s
+        """, (datos.nombre, datos.telefono, datos.pais, usuario.get("inversor_id")))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 @app.post("/api/admin/login")
 async def admin_login(datos: dict):
     """Login de admin"""
@@ -1064,6 +1091,148 @@ async def crear_o_actualizar_referido(datos: ReferidoRequest, usuario = Depends(
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
+# ENDPOINTS - APORTACIONES A OPERACIONES PÚBLICAS (catálogo de operaciones)
+# ============================================================================
+
+class OperacionAportacionRequest(BaseModel):
+    id: str
+    operacionId: str
+    operacionNombre: str
+    usuarioId: str
+    usuarioNombre: str
+    importe: float
+    moneda: str = "EUR"
+    metodoPago: str = "transferencia"
+    cuentaDestino: str = ""
+    comentario: Optional[str] = ""
+    estado: str = "Pendiente de validación"
+    justificante: Optional[str] = ""
+
+
+def _ensure_operaciones_aportaciones_table(cur, conn):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS operaciones_aportaciones (
+            id VARCHAR(100) PRIMARY KEY,
+            operacion_id VARCHAR(100) NOT NULL,
+            operacion_nombre VARCHAR(255) NOT NULL,
+            usuario_id VARCHAR(100),
+            usuario_nombre VARCHAR(255),
+            importe DECIMAL(15, 2) NOT NULL,
+            moneda VARCHAR(10) DEFAULT 'EUR',
+            metodo_pago VARCHAR(50),
+            cuenta_destino VARCHAR(100),
+            comentario TEXT,
+            estado VARCHAR(50) DEFAULT 'Pendiente de validación',
+            justificante TEXT,
+            ganancias_disponibles DECIMAL(15, 2),
+            fecha_validacion TIMESTAMP,
+            fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+
+
+@app.post("/api/operaciones/aportaciones")
+async def crear_aportacion_operacion(datos: OperacionAportacionRequest, usuario=Depends(obtener_usuario_actual)):
+    """Registra una aportación a una operación del catálogo público"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        _ensure_operaciones_aportaciones_table(cur, conn)
+
+        cur.execute("""
+            INSERT INTO operaciones_aportaciones
+            (id, operacion_id, operacion_nombre, usuario_id, usuario_nombre, importe, moneda, metodo_pago, cuenta_destino, comentario, estado, justificante)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            datos.id, datos.operacionId, datos.operacionNombre, str(datos.usuarioId), datos.usuarioNombre,
+            datos.importe, datos.moneda, datos.metodoPago, datos.cuentaDestino, datos.comentario,
+            datos.estado, datos.justificante
+        ))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True, "message": "Aportación registrada."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/operaciones/aportaciones")
+async def obtener_aportaciones_operaciones(usuario=Depends(obtener_usuario_actual)):
+    """Lista las aportaciones registradas a operaciones del catálogo público"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        _ensure_operaciones_aportaciones_table(cur, conn)
+
+        cur.execute("""
+            SELECT id, operacion_id, operacion_nombre, usuario_id, usuario_nombre, importe, moneda,
+                   metodo_pago, cuenta_destino, comentario, estado, justificante, ganancias_disponibles,
+                   fecha_validacion, fecha_creacion
+            FROM operaciones_aportaciones
+        """)
+        filas = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        aportaciones = [{
+            "id": f[0], "operacionId": f[1], "operacionNombre": f[2],
+            "usuarioId": f[3], "usuarioNombre": f[4], "importe": float(f[5]),
+            "moneda": f[6], "metodoPago": f[7], "cuentaDestino": f[8],
+            "comentario": f[9], "estado": f[10], "justificante": f[11],
+            "gananciasDisponibles": float(f[12]) if f[12] else 0,
+            "fechaValidacion": f[13].isoformat() if f[13] else None,
+            "fechaCreacion": f[14].isoformat() if f[14] else None
+        } for f in filas]
+
+        return {"aportaciones": aportaciones}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class ValidarOperacionAportacionRequest(BaseModel):
+    estado: Optional[str] = None
+    gananciasDisponibles: Optional[float] = None
+    fechaUltimoPago: Optional[str] = None
+
+
+@app.put("/api/operaciones/aportaciones/{aportacion_id}")
+async def validar_aportacion_operacion(aportacion_id: str, datos: ValidarOperacionAportacionRequest, usuario=Depends(obtener_usuario_actual)):
+    """Valida o actualiza el saldo disponible de una aportación a operación (solo admin)"""
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Sin permisos")
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        _ensure_operaciones_aportaciones_table(cur, conn)
+
+        cur.execute("SELECT id FROM operaciones_aportaciones WHERE id = %s", (aportacion_id,))
+        if not cur.fetchone():
+            cur.close()
+            conn.close()
+            raise HTTPException(status_code=404, detail="No encontrada")
+
+        if datos.estado is not None:
+            cur.execute(
+                "UPDATE operaciones_aportaciones SET estado = %s, fecha_validacion = CURRENT_TIMESTAMP WHERE id = %s",
+                (datos.estado, aportacion_id)
+            )
+        if datos.gananciasDisponibles is not None:
+            cur.execute(
+                "UPDATE operaciones_aportaciones SET ganancias_disponibles = %s WHERE id = %s",
+                (datos.gananciasDisponibles, aportacion_id)
+            )
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True, "message": f"Aportación a operación procesada como {datos.estado}"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================================
