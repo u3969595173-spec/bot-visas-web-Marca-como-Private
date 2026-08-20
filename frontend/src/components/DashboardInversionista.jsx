@@ -27,6 +27,22 @@ const readStorage = (key, fallback) => {
   }
 }
 
+const METODOS_DEFAULT_INV = [
+  { moneda: 'MLC', numero: 'MLC 0000', minimo: 100, instrucciones: 'Referencia obligatoria en la transferencia.' },
+  { moneda: 'CUP', numero: 'CU24 0000', minimo: 500, instrucciones: 'Pago en moneda local con referencia.' },
+  { moneda: 'EUR', tipo: 'iban', titular: 'Capital Trade Iberia', iban: 'ES00...', concepto: 'Referencia de inversión', minimo: 500 },
+  { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.', minimo: 50 }
+]
+
+const getMergedCuentas = () => {
+  const fromStorage = readStorage('capital_trade_cuentas', [])
+  if (!fromStorage || fromStorage.length === 0) return METODOS_DEFAULT_INV;
+  return METODOS_DEFAULT_INV.map(defaultC => {
+    const existe = fromStorage.find(c => c.moneda === defaultC.moneda)
+    return existe ? { ...defaultC, ...existe } : defaultC
+  })
+}
+
 const formatCurrency = (value, moneda = 'EUR') => {
   if (!Number.isFinite(value)) return '€0'
   if (moneda === 'CUP') return `${Number(value).toLocaleString('es-ES')} CUP`
@@ -300,12 +316,7 @@ function DashboardInversionista() {
       return
     }
 
-    const cuentasAdmin = readStorage('capital_trade_cuentas', [
-      { moneda: 'MLC', minimo: 100 },
-      { moneda: 'CUP', minimo: 500 },
-      { moneda: 'EUR', minimo: 500 },
-      { moneda: 'USDT BEP-20', minimo: 50 }
-    ])
+    const cuentasAdmin = getMergedCuentas()
     const cuentaConfig = cuentasAdmin.find(c => c.moneda === monedaInversion)
     const minimoMoneda = cuentaConfig?.minimo ? Number(cuentaConfig.minimo) : 100
 
@@ -1381,13 +1392,7 @@ function DashboardInversionista() {
                 <div style={{ backgroundColor: '#f59e0b', border: '4px solid #f59e0b', borderRadius: '12px', padding: '2rem', marginBottom: '1.5rem', color: 'white' }}>
                   <p style={{ margin: '0 0 1.5rem 0', fontWeight: 'bold', fontSize: '18px' }}>📌 Referencia de transferencia</p>
                   {(() => {
-                    const METODOS_DEFAULT = [
-                      { moneda: 'MLC', numero: 'MLC 0000', instrucciones: 'Referencia obligatoria en la transferencia.' },
-                      { moneda: 'CUP', numero: 'CU24 0000', instrucciones: 'Pago en moneda local con referencia de operación.' },
-                      { moneda: 'EUR', tipo: 'iban', titular: 'Capital Trade Iberia', iban: 'ES00...', concepto: 'Referencia en concepto' },
-                      { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.' }
-                    ]
-                    const cuentasAdmin = readStorage('capital_trade_cuentas', METODOS_DEFAULT)
+                    const cuentasAdmin = getMergedCuentas()
                     const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === solicitudSeleccionada.moneda)
                     return cuentaSeleccionada ? (
                       <div style={{ display: 'grid', gap: '1.2rem' }}>
@@ -1717,13 +1722,7 @@ function DashboardInversionista() {
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold', color: '#374151', fontSize: '16px' }}>💳 Datos de transferencia</label>
                   {(() => {
-                    const METODOS_DEFAULT = [
-                      { moneda: 'MLC', numero: 'MLC 0000', instrucciones: 'Referencia obligatoria en la transferencia.' },
-                      { moneda: 'CUP', numero: 'CU24 0000', instrucciones: 'Pago en moneda local con referencia.' },
-                      { moneda: 'EUR', tipo: 'iban', titular: 'Capital Trade Iberia', iban: 'ES00...', concepto: 'Referencia en concepto' },
-                      { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.' }
-                    ]
-                    const cuentasAdmin = readStorage('capital_trade_cuentas', METODOS_DEFAULT)
+                    const cuentasAdmin = getMergedCuentas()
                     const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === monedaInversion)
                     return cuentaSeleccionada ? (
                       <div style={{ backgroundColor: '#0284c7', border: '4px solid #0284c7', padding: '1.5rem', borderRadius: '12px', fontSize: '16px', color: 'white' }}>
@@ -1783,12 +1782,7 @@ function DashboardInversionista() {
                   />
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0.5rem 0 0 0' }}>
                     Mínimo: {(() => {
-                      const cuentasAdmin = readStorage('capital_trade_cuentas', [
-                        { moneda: 'MLC', minimo: 100 },
-                        { moneda: 'CUP', minimo: 500 },
-                        { moneda: 'EUR', minimo: 500 },
-                        { moneda: 'USDT BEP-20', minimo: 50 }
-                      ])
+                      const cuentasAdmin = getMergedCuentas()
                       const cuentaConfig = cuentasAdmin.find(c => c.moneda === monedaInversion)
                       const val = cuentaConfig?.minimo ? Number(cuentaConfig.minimo) : 100
                       return formatCurrency(val, monedaInversion)

@@ -110,7 +110,17 @@ function DashboardAdminExpandido({ onLogout }) {
         })
         if (response.ok) {
           const data = await response.json()
-          setCuentas(data.cuentas && data.cuentas.length > 0 ? data.cuentas : METODOS_DEFAULT)
+          if (data.cuentas && data.cuentas.length > 0) {
+            const merged = METODOS_DEFAULT.map(defaultM => {
+              const fromAPI = data.cuentas.find(c => c.moneda === defaultM.moneda)
+              return fromAPI ? { ...defaultM, ...fromAPI } : defaultM
+            })
+            setCuentas(merged)
+            localStorage.setItem('capital_trade_cuentas', JSON.stringify(merged))
+          } else {
+            setCuentas(METODOS_DEFAULT)
+            localStorage.setItem('capital_trade_cuentas', JSON.stringify(METODOS_DEFAULT))
+          }
         }
       } catch (error) {
         console.log('Error cargando cuentas:', error)
