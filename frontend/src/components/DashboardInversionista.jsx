@@ -627,12 +627,12 @@ function DashboardInversionista() {
   ];
 
   const NIVELES_COMUNIDAD = [
-    { emoji: '🏆', nombre: 'Founding Leader', min: 500, bonus: '400 USDT/mes (x 2 meses)' },
-    { emoji: '👑', nombre: 'Executive Leader', min: 200, bonus: '250 USDT/mes (x 2 meses)' },
-    { emoji: '💎', nombre: 'Elite Leader', min: 100, bonus: '150 USDT/mes (x 2 meses)' },
-    { emoji: '🔥', nombre: 'Senior Leader', min: 50, bonus: '100 USDT/mes (x 2 meses)' },
-    { emoji: '⭐', nombre: 'Leader', min: 25, bonus: '50 USDT/mes (x 2 meses)' },
-    { emoji: '🌱', nombre: 'Community', min: 5, bonus: '25 USDT/mes (x 2 meses)' },
+    { emoji: '🏆', nombre: 'Founding Leader', min: 500, bonus: '400 USDT Únicos' },
+    { emoji: '👑', nombre: 'Executive Leader', min: 200, bonus: '250 USDT Únicos' },
+    { emoji: '💎', nombre: 'Elite Leader', min: 100, bonus: '150 USDT Únicos' },
+    { emoji: '🔥', nombre: 'Senior Leader', min: 50, bonus: '100 USDT Únicos' },
+    { emoji: '⭐', nombre: 'Leader', min: 25, bonus: '50 USDT Únicos' },
+    { emoji: '🌱', nombre: 'Community', min: 5, bonus: '25 USDT Únicos' },
   ];
 
   // Calcula el rango de Capital (solo inversión)
