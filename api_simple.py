@@ -1038,6 +1038,18 @@ async def crear_mensaje(datos: dict, privado: bool = Query(False), usuario = Dep
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+
+@app.get("/api/chat-admin/mensajes")
+async def obtener_mensajes_chat_admin(usuario = Depends(obtener_usuario_actual)):
+    """Obtiene solo la conversación privada entre el inversor y el admin."""
+    return await obtener_mensajes(privado=True, usuario=usuario)
+
+
+@app.post("/api/chat-admin/mensajes")
+async def crear_mensaje_chat_admin(datos: dict, usuario = Depends(obtener_usuario_actual)):
+    """Guarda un mensaje privado entre el inversor y el admin."""
+    return await crear_mensaje(datos, privado=True, usuario=usuario)
+
 # ============================================================================
 # ENDPOINT - HEALTH CHECK
 # ============================================================================
