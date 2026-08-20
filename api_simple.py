@@ -37,6 +37,37 @@ app.add_middleware(
 security = HTTPBearer()
 
 # ============================================================================
+# FUNCIONES AUXILIARES
+# ============================================================================
+def crear_token(data: dict):
+    """Crea JWT token"""
+    to_encode = data.copy()
+    to_encode["exp"] = datetime.utcnow() + timedelta(days=30)
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+def verificar_token(token: str):
+    """Verifica JWT token"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
+def obtener_usuario_actual(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Obtiene usuario desde JWT token"""
+    token = credentials.credentials
+    payload = verificar_token(token)
+    
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido o expirado"
+        )
+    
+    return payload
+
+# ============================================================================
 # MODELOS
 # ============================================================================
 class InversorRegistroRequest(BaseModel):
@@ -134,36 +165,6 @@ class JustificanteRequest(BaseModel):
     nombreArchivo: Optional[str] = None
     tipoArchivo: Optional[str] = None
 
-# ============================================================================
-# FUNCIONES AUXILIARES
-# ============================================================================
-def crear_token(data: dict):
-    """Crea JWT token"""
-    to_encode = data.copy()
-    to_encode["exp"] = datetime.utcnow() + timedelta(days=30)
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-def verificar_token(token: str):
-    """Verifica JWT token"""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except JWTError:
-        return None
-
-def obtener_usuario_actual(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Obtiene usuario desde JWT token"""
-    token = credentials.credentials
-    payload = verificar_token(token)
-    
-    if not payload:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido o expirado"
-        )
-    
-    return payload
 
 # ============================================================================
 # ENDPOINTS - AUTENTICACIÓN
