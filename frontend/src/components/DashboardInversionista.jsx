@@ -618,35 +618,43 @@ function DashboardInversionista() {
     return getReferidosDelInversor().filter(r => Number(r.inversionTotal || 0) >= 100).length
   }
 
-  const RANGOS = [
-    { nombre: 'Agent', emoji: '🟠', minInversion: 5000, minReferidos: 20 },
-    { nombre: 'Senior Partner', emoji: '🟣', minInversion: 3500, minReferidos: 15 },
-    { nombre: 'Advisor', emoji: '🔵', minInversion: 2000, minReferidos: 10 },
-    { nombre: 'Partner', emoji: '🟢', minInversion: 1000, minReferidos: 5 }
-  ]
+  const NIVELES_CAPITAL = [
+    { emoji: '🏆', nombre: 'Founding Partner', min: 10000, beneficio: '250 USDT/mes (x 12 meses)' },
+    { emoji: '👑', nombre: 'Strategic Partner', min: 5000, beneficio: '150 USDT/mes (x 6 meses)' },
+    { emoji: '💎', nombre: 'VIP Partner', min: 2500, beneficio: '100 USDT/mes (x 4 meses)' },
+    { emoji: '🔷', nombre: 'Premium Partner', min: 1000, beneficio: '50 USDT/mes (x 3 meses)' },
+    { emoji: '💠', nombre: 'Partner', min: 500, beneficio: '25 USDT/mes (x 2 meses)' },
+  ];
 
-  // Calcula el rango actual del inversor según su inversión propia y sus referidos activos
-  const getRangoActual = () => {
-    const referidosActivos = getReferidosActivosCount()
-    return RANGOS.find(r => totalAportado >= r.minInversion && referidosActivos >= r.minReferidos) || null
+  const NIVELES_COMUNIDAD = [
+    { emoji: '🏆', nombre: 'Founding Leader', min: 500, bonus: '400 USDT Únicos' },
+    { emoji: '👑', nombre: 'Executive Leader', min: 200, bonus: '250 USDT Únicos' },
+    { emoji: '💎', nombre: 'Elite Leader', min: 100, bonus: '150 USDT Únicos' },
+    { emoji: '🔥', nombre: 'Senior Leader', min: 50, bonus: '100 USDT Únicos' },
+    { emoji: '⭐', nombre: 'Leader', min: 25, bonus: '50 USDT Únicos' },
+    { emoji: '🌱', nombre: 'Community', min: 5, bonus: '25 USDT Únicos' },
+  ];
+
+  // Calcula el rango de Capital (solo inversión)
+  const getRangoCapital = () => {
+    return NIVELES_CAPITAL.find(r => totalAportado >= r.min) || null
   }
 
-  // Calcula el próximo rango a alcanzar y cuánto falta de inversión y de referidos
-  const getProximoRango = () => {
-    const referidosActivos = getReferidosActivosCount()
-    const actual = getRangoActual()
-    const ordenAscendente = [...RANGOS].reverse()
-    const siguiente = actual
-      ? ordenAscendente.find(r => r.minInversion > actual.minInversion)
-      : ordenAscendente.find(r => !(totalAportado >= r.minInversion && referidosActivos >= r.minReferidos))
+  // Calcula el próximo rango de Capital
+  const getProximoRangoCapital = () => {
+    return [...NIVELES_CAPITAL].reverse().find(r => totalAportado < r.min) || null
+  }
 
-    if (!siguiente) return null
+  // Calcula el rango de Comunidad (solo referidos)
+  const getRangoComunidad = () => {
+    const refs = getReferidosActivosCount()
+    return NIVELES_COMUNIDAD.find(r => refs >= r.min) || null
+  }
 
-    return {
-      rango: siguiente,
-      faltaInversion: Math.max(siguiente.minInversion - totalAportado, 0),
-      faltaReferidos: Math.max(siguiente.minReferidos - referidosActivos, 0)
-    }
+  // Calcula el próximo rango de Comunidad
+  const getProximoRangoComunidad = () => {
+    const refs = getReferidosActivosCount()
+    return [...NIVELES_COMUNIDAD].reverse().find(r => refs < r.min) || null
   }
 
   // Función para ir al chat de comunidad
@@ -667,7 +675,7 @@ function DashboardInversionista() {
         <div className="sidebar-brand">
           <div className="brand-icon" style={{ color: '#f6c453', textShadow: '0 0 15px rgba(246,196,83,0.5)' }}>✧</div>
           <div className="brand-text">
-            <span className="glow-text" style={{ background: 'linear-gradient(to right, #fff, #f6c453)' }}>Capital Trade</span>
+            <span className="glow-text" style={{ background: 'linear-gradient(to right, #fff, #f6c453)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }}>Capital Trade</span>
             <span className="badge-admin" style={{ color: '#00f0ff' }}>INVERSOR</span>
           </div>
         </div>
@@ -1803,7 +1811,7 @@ function DashboardInversionista() {
                 boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h2 style={{ margin: 0, color: '#111827' }}>🏆 Programa de Aceleración</h2>
+                  <h2 style={{ margin: 0, color: '#111827' }}>🏆 Programa Combinado</h2>
                   <button onClick={() => setShowRangosModal(false)} style={{
                     background: 'none',
                     border: 'none',
@@ -1814,87 +1822,81 @@ function DashboardInversionista() {
                 </div>
 
                 <p style={{ color: '#4b5563', fontSize: '14px', marginBottom: '1.5rem', fontWeight: 'bold' }}>
-                  Cuanto mayor sea tu participación y mayor sea tu red de referidos activos, mayor será tu nivel dentro del programa de aceleración.
+                  En Soporte Capital puedes crecer de dos formas: mediante tu propia participación de capital o desarrollando una comunidad de red protegida.
                 </p>
 
                 {(() => {
-                  const rangoActual = getRangoActual()
+                  const rCapital = getRangoCapital()
+                  const rComunidad = getRangoComunidad()
+                  const nextCapital = getProximoRangoCapital()
+                  const nextComunidad = getProximoRangoComunidad()
                   const referidosActivos = getReferidosActivosCount()
-                  const proximo = getProximoRango()
-                  const textColor = rangoActual ? 'white' : '#111827'
+
                   return (
-                    <div style={{
-                      backgroundColor: rangoActual ? '#111827' : '#f3f4f6',
-                      color: textColor,
-                      borderRadius: '10px',
-                      padding: '1rem',
-                      marginBottom: '1.5rem',
-                      textAlign: 'center'
-                    }}>
-                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', opacity: 0.85, color: textColor }}>TU RANGO ACTUAL</p>
-                      <p style={{ margin: '0.4rem 0', fontSize: '22px', fontWeight: 'bold', color: textColor }}>
-                        {rangoActual ? `${rangoActual.emoji} ${rangoActual.nombre}` : '🔒 Sin rango todavía'}
-                      </p>
-                      <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', color: textColor }}>
-                        Tu inversión: {formatCurrency(totalAportado, 'EUR')} · Referidos activos: {referidosActivos}
-                      </p>
-                      {proximo && (
-                        <div style={{
-                          marginTop: '0.75rem',
-                          paddingTop: '0.75rem',
-                          borderTop: rangoActual ? '1px solid rgba(255,255,255,0.2)' : '1px solid #d1d5db'
-                        }}>
-                          <p style={{ margin: 0, fontSize: '13px', fontWeight: 'bold', color: textColor }}>
-                            Para llegar a {proximo.rango.emoji} {proximo.rango.nombre} te falta:
-                          </p>
-                          <p style={{ margin: '0.4rem 0 0 0', fontSize: '13px', fontWeight: 'bold', color: textColor }}>
-                            {proximo.faltaInversion > 0 ? `💰 ${formatCurrency(proximo.faltaInversion, 'EUR')} de inversión` : '💰 Inversión completa'}
-                            {' · '}
-                            {proximo.faltaReferidos > 0 ? `👥 ${proximo.faltaReferidos} referido${proximo.faltaReferidos === 1 ? '' : 's'} activo${proximo.faltaReferidos === 1 ? '' : 's'} más` : '👥 Referidos completos'}
-                          </p>
-                        </div>
-                      )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                      <div style={{ backgroundColor: rCapital ? '#111827' : '#f3f4f6', color: rCapital ? 'white' : '#111827', borderRadius: '10px', padding: '1rem', textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold', opacity: 0.85 }}>💎 RANGO DE CAPITAL</p>
+                        <p style={{ margin: '0.4rem 0', fontSize: '18px', fontWeight: 'bold' }}>
+                          {rCapital ? `${rCapital.emoji} ${rCapital.nombre}` : '🔒 Sin rango'}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold' }}>Tu Inversión: {formatCurrency(totalAportado, 'EUR')}</p>
+                        {nextCapital && (
+                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: rCapital ? '1px solid rgba(255,255,255,0.2)' : '1px solid #d1d5db' }}>
+                            <p style={{ margin: '0 0 0.25rem 0', fontSize: '11px', fontWeight: '600' }}>Para {nextCapital.emoji} {nextCapital.nombre} te falta:</p>
+                            <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold' }}>💰 {formatCurrency(Math.max(0, nextCapital.min - totalAportado), 'EUR')} más</p>
+                          </div>
+                        )}
+                      </div>
+
+                      <div style={{ backgroundColor: rComunidad ? '#111827' : '#f3f4f6', color: rComunidad ? 'white' : '#111827', borderRadius: '10px', padding: '1rem', textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold', opacity: 0.85 }}>👥 RANGO DE COMUNIDAD</p>
+                        <p style={{ margin: '0.4rem 0', fontSize: '18px', fontWeight: 'bold' }}>
+                          {rComunidad ? `${rComunidad.emoji} ${rComunidad.nombre}` : '🔒 Sin rango'}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold' }}>Miembros Activos: {referidosActivos}</p>
+                        {nextComunidad && (
+                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: rComunidad ? '1px solid rgba(255,255,255,0.2)' : '1px solid #d1d5db' }}>
+                            <p style={{ margin: '0 0 0.25rem 0', fontSize: '11px', fontWeight: '600' }}>Para {nextComunidad.emoji} {nextComunidad.nombre} te falta:</p>
+                            <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold' }}>👤 {Math.max(0, nextComunidad.min - referidosActivos)} miembro{Math.max(0, nextComunidad.min - referidosActivos) === 1 ? '' : 's'}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )
                 })()}
 
-                <div style={{ display: 'grid', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div style={{ border: '2px solid #22c55e', borderRadius: '10px', padding: '1rem', backgroundColor: '#f0fdf4' }}>
-                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#15803d', fontWeight: 'bold' }}>🟢 Partner</h3>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 1.000 €</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 5 a 9</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 50 € mensuales x 2 meses</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#1f2937', fontSize: '15px' }}>💎 Top Niveles Capital</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {NIVELES_CAPITAL.slice(0, 3).map((nivel) => (
+                        <div key={nivel.nombre} style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.75rem', fontSize: '12px', backgroundColor: '#f9fafb' }}>
+                          <strong style={{ display: 'block', fontSize: '13px' }}>{nivel.emoji} {nivel.nombre}</strong>
+                          Min: {formatCurrency(nivel.min, 'USD')}<br />
+                          {nivel.beneficio}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div style={{ border: '2px solid #3b82f6', borderRadius: '10px', padding: '1rem', backgroundColor: '#eff6ff' }}>
-                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#1d4ed8', fontWeight: 'bold' }}>🔵 Advisor</h3>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 2.000 €</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 10 a 14</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 100 € mensuales x 3 meses</p>
-                  </div>
-
-                  <div style={{ border: '2px solid #a855f7', borderRadius: '10px', padding: '1rem', backgroundColor: '#faf5ff' }}>
-                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#7e22ce', fontWeight: 'bold' }}>🟣 Senior Partner</h3>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 3.500 €</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 15 a 19</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 150 € mensuales x 5 meses</p>
-                  </div>
-
-                  <div style={{ border: '2px solid #f59e0b', borderRadius: '10px', padding: '1rem', backgroundColor: '#fffbeb' }}>
-                    <h3 style={{ margin: '0 0 0.5rem 0', color: '#b45309', fontWeight: 'bold' }}>🟠 Agent</h3>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Inversión propia: desde 5.000 €</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Referidos activos: 20 o más</p>
-                    <p style={{ margin: '0.25rem 0', fontSize: '14px', fontWeight: 'bold', color: '#1f2937' }}>Beneficio: 200 € mensuales x 7 meses</p>
+                  <div>
+                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#1f2937', fontSize: '15px' }}>👥 Top Niveles Comunidad</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {NIVELES_COMUNIDAD.slice(0, 3).map((nivel) => (
+                        <div key={nivel.nombre} style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.75rem', fontSize: '12px', backgroundColor: '#f9fafb' }}>
+                          <strong style={{ display: 'block', fontSize: '13px' }}>{nivel.emoji} {nivel.nombre}</strong>
+                          Min: {nivel.min} reps.<br />
+                          {nivel.bonus}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 <div style={{ backgroundColor: '#f3f4f6', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', fontWeight: 'bold', color: '#111827' }}>¿Cómo funciona?</h3>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', color: '#374151', fontWeight: 'bold' }}>
-                    Cada referido debe cumplir las condiciones establecidas para considerarse activo, es decir, tener una inversión activa mínima de 100 $. Solo esos referidos cuentan para el programa.
-                  </p>
-                  <p style={{ margin: '0.25rem 0', fontSize: '14px', color: '#374151', fontWeight: 'bold' }}>
-                    El nivel se determina según tu inversión propia, el número de referidos y mantener a esos referidos activos junto con tu propia inversión.
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '15px', fontWeight: 'bold', color: '#111827' }}>¿Cómo funciona?</h3>
+                  <p style={{ margin: '0.25rem 0', fontSize: '13px', color: '#374151', lineHeight: '1.5' }}>
+                    <strong>Los programas son independientes.</strong> Tus retornos de Capital garantizan mensualidades basadas en tu inversión personal. Tu crecimiento en la Comunidad te recompensa con bonus únicos transferidos por logros de equipo. Un miembro afiliado se considera "Activo" a partir de $100.
                   </p>
                 </div>
 
