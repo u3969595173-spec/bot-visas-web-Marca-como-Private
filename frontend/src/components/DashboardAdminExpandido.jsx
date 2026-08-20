@@ -34,11 +34,13 @@ const formatCurrency = (value, moneda) => {
 }
 
 const formatDate = (value) => {
-  if (!value) return '—'
+  if (!value) return 'N/A'
   try {
-    return new Date(value).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    let parsed = typeof value === 'string' ? new Date(value.replace(' ', 'T').split('.')[0]) : new Date(value)
+    if (isNaN(parsed.getTime())) return String(value)
+    return parsed.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   } catch {
-    return value
+    return String(value)
   }
 }
 

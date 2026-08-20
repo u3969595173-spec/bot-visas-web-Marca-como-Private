@@ -1,0 +1,53 @@
+REVISIÓN EXACTA DE CONTENIDOS DE LA PLATAFORMA "CAPITAL TRADE IBERIA"
+========================================================================
+Basado 100% en el código fuente (Front-end y Back-end).
+
+1. ¿QUIÉNES SOMOS Y QUÉ HACEMOS?
+---------------------------------
+- Plataforma de GESTIÓN E INFORMACIÓN sobre operaciones comerciales internacionales. No entidad financiera y sin garantías directas de recuperación fijas, todo depende del mercado.
+- Las operaciones incluyen: Exportación alimentos, compra-venta de cemento, remesas, MYPIMEs y participación internacional.
+
+
+2. SISTEMA DE INVERSIÓN (LA REALIDAD TÉCNICA Y LÓGICA)
+---------------------------------
+Cada inversión es 100% independiente de las demás y dependiente del proyecto particular:
+
+A) RENTABILIDAD DIARIA Y EL TOPE DEL 300%
+(Fuente: Backend api_simple.py)
+- Toda aportación de capital entra a trabajar tras 72 horas de ser validada y aprobada.
+- Rentabilidad Diaria: Se distribuye una tasa diaria (ej. 0.5%) que va sumando paulatinamente al capital inicial hasta alcanzar un límite estricto de ganancias.
+- Límite del 300%: El tope máximo de ganancia que un inversor puede lograr por CADA aportación independiente es del 300% sobre el capital fondeado (el capital x 3.0). Una vez se alcanza este tope, el contrato se marca como "Completado".
+
+B) PROMOCIONES, OFERTAS ESPECIALES Y RANGOS
+(Fuente: Front-end Programa.jsx)
+- Los inversores con rangos altos (Ej. VIP Partner, Elite Leader, etc.) obtienen acceso exclusivo preferencial e información anticipada para "Ofertas Especiales".
+- Ejemplo de Oferta Especial (Fuera del modelo diario estándar): El contenedor de cemento que requiere 10.000 USDT y retorna 3.000 USDT inmediatos de beneficio neto por venta de mercancía. Este tipo de proyectos de rentabilidad por hito son un beneficio al que acceden mayormente quienes ostenten rangos de fidelización, siendo oportunidades únicas para capitalizar rápido.
+
+C) EL SISTEMA DE ACELERACIÓN DE REFERIDOS (10%)
+(Fuente: Backend api_simple.py)
+- Cada vez que un inversor trae un referido directo (usando su código ALAN13) y este referido hace una aportación, se activa la lógica de Aceleración.
+- El 10% del importe invertido por el referido NO se paga extra, sino que "inyecta velocidad" a las aportaciones que él patrocinador ya tiene activas.
+- Ese 10% acelera la curva de tiempo para llegar más rápido al famoso tope del 300%. Si ya estás en el 300%, no sumas más, simplemente es una forma en que los líderes llegan a resultados en tiempo récord ("ganancia acelerada").
+
+
+3. PROGRAMAS DE BONOS ADICIONALES MENSUALES (RANGOS)
+---------------------------------
+Funcionan independiente a los retornos del capital (son sueldos o bonos recurrentes):
+A) Programa Partner (Por Capital Propio Fondeado):
+- Inicias en Partner (500 USDT) cobrando 25$/mes x 2 meses. Llegas hasta Founding Partner (10,000 USDT) cobrando 250$/mes x 12 meses.
+B) Programa Comunidad (Por Afiliados Activos):
+- Inicias en Community (5) cobrando 25$/mes x 2 meses. Llegas a Founding Leader (500) cobrando 400$/mes x 12 meses.
+
+
+4. GESTIÓN Y RETIROS DE CAPITAL (WITHDRAWALS)
+---------------------------------
+(Fuente: Front-end y base de datos)
+- Todo es administrado mediante un ecosistema digital manual 100% auditable.
+- El inversor ve crecer su saldo diario o sus bonos. Puede pedir retiros cuando desee por MLC, CUP o USDT.
+- La administración verifica la solicitud ("Pendiente" -> "Aprobada") y procesa la transferencia asegurando máxima transparencia de capital y flujos.
+
+========================================================================
+
+PREGUNTA AL USUARIO:
+Aquí tienes detallado el tope del 300%, la aceleración del 10%, la rentabilidad diaria y cómo conviven las "ofertas especiales" (como el cemento) exclusivamente para personas con rango. 
+¿Esto es exactamente lo que deseas plasmar en el PDF final?

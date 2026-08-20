@@ -1,17 +1,23 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
-    <title>Capital Trade Iberia - Presentación Oficial</title>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>Capital Trade Iberia - Oportunidad de Inversión</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&family=Outfit:wght@300;400;600;800&display=swap"
+        rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f172a;
-            --text-color: #f8fafc;
-            --primary: #d4af37; /* Dorado */
-            --secondary: #10b981; /* Verde esmeralda */
-            --tertiary: #3b82f6; /* Azul brillante */
-            --accent: #f59e0b;
+            --bg-color: #0b1120;
+            --text-color: #f1f5f9;
+            --primary: #fbbf24;
+            /* Dorado neón */
+            --secondary: #10b981;
+            /* Verde esmeralda */
+            --tertiary: #3b82f6;
+            /* Azul brillante */
+            --accent-glow: rgba(251, 191, 36, 0.3);
         }
 
         * {
@@ -25,38 +31,112 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             width: 297mm;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
         }
 
-        /* Dimensiones de Slide en PDF (A4 Apaisado 297x210mm) */
         @page {
             size: A4 landscape;
             margin: 0;
         }
 
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .slide {
+                page-break-after: always;
+                height: 100vh;
+                overflow: hidden;
+            }
+        }
+
         .slide {
             width: 297mm;
             height: 210mm;
-            page-break-after: always;
             position: relative;
-            overflow: hidden;
             background-color: var(--bg-color);
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
-            padding: 40px 60px;
+            padding: 50px 70px;
+            overflow: hidden;
         }
 
-        /* Patrones de fondo elegantes */
-        .decor-circle {
+        /* Animaciones para el video interactivo (aunque no afectan al PDF) */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes drift {
+            from {
+                transform: rotate(0deg) translate(0, 0);
+            }
+
+            to {
+                transform: rotate(360deg) translate(20px, 20px);
+            }
+        }
+
+        .animate-fade {
+            animation: fadeInUp 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .delay-1 {
+            animation-delay: 0.2s;
+        }
+
+        .delay-2 {
+            animation-delay: 0.4s;
+        }
+
+        .delay-3 {
+            animation-delay: 0.6s;
+        }
+
+        .decor {
             position: absolute;
             border-radius: 50%;
-            filter: blur(100px);
-            z-index: 0;
+            filter: blur(120px);
+            z-index: 1;
             opacity: 0.15;
+            animation: drift 20s infinite alternate ease-in-out;
         }
-        .decor-1 { width: 500px; height: 500px; background: var(--primary); top: -100px; left: -100px; }
-        .decor-2 { width: 400px; height: 400px; background: var(--tertiary); bottom: -50px; right: -50px; }
+
+        .decor-gold {
+            background: var(--primary);
+            width: 600px;
+            height: 600px;
+            top: -150px;
+            left: -100px;
+        }
+
+        .decor-blue {
+            background: var(--tertiary);
+            width: 500px;
+            height: 500px;
+            bottom: -100px;
+            right: -50px;
+        }
+
+        .decor-green {
+            background: var(--secondary);
+            width: 400px;
+            height: 400px;
+            bottom: 30%;
+            left: 30%;
+            opacity: 0.1;
+        }
 
         .content {
             position: relative;
@@ -67,317 +147,384 @@
             flex-direction: column;
         }
 
-        h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
+        h1,
+        h2,
+        h3 {
+            font-family: 'Space Grotesk', sans-serif;
+        }
 
-        /* PORTADA */
-        .cover { text-align: center; justify-content: center; align-items: center; }
-        .cover h1 {
-            font-size: 64px;
-            background: linear-gradient(135deg, #fcd34d, #b45309);
+        .title-gradient {
+            background: linear-gradient(135deg, #fcd34d, #f59e0b, #d97706);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
         }
-        .cover p {
-            font-size: 24px;
-            color: #94a3b8;
+
+        .watermark {
+            position: absolute;
+            top: 40px;
+            right: 50px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.1);
+            text-transform: uppercase;
+        }
+
+        .header h2 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 30px rgba(251, 191, 36, 0.2);
+        }
+
+        .header hr {
+            border: none;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), transparent);
+            width: 150px;
+            margin-bottom: 1.5rem;
+        }
+
+        .body-text {
+            font-size: 1.35rem;
+            line-height: 1.6;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
             font-weight: 300;
         }
 
-        /* SLIDES INTERNOS */
-        .slide-header {
-            margin-bottom: 30px;
-            border-bottom: 2px solid rgba(212, 175, 55, 0.3);
-            padding-bottom: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-        }
-        .slide-header h2 {
-            font-size: 40px;
-            color: var(--primary);
-        }
-        .watermark {
-            font-size: 16px;
-            color: #64748b;
-            font-weight: 600;
-            letter-spacing: 1px;
-        }
-
-        .slide-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        p, li {
-            font-size: 20px;
-            line-height: 1.6;
-            color: #cbd5e1;
-        }
-
-        ul {
-            padding-left: 30px;
-        }
-        li {
-            margin-bottom: 12px;
-        }
-
-        /* Tarjetas de datos (Glassmorphism) */
-        .card-grid {
+        .grid-cards {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 25px;
-            margin-top: 20px;
+            gap: 30px;
+            margin-top: auto;
+            padding-bottom: 10px;
         }
-        .card, .table-card {
-            background: rgba(30, 41, 59, 0.7);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
             padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(16px);
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
         }
-        .card h3 {
-            color: var(--primary);
-            font-size: 24px;
+
+        .glass-card h3 {
+            font-size: 1.6rem;
+            margin-bottom: 15px;
+            color: var(--text-color);
+        }
+
+        .feature-icon {
+            font-size: 2.2rem;
             margin-bottom: 15px;
         }
 
-        /* Tablas exclusivas */
-        table {
+        .table-glass {
             width: 100%;
             border-collapse: collapse;
-            font-size: 18px;
-            margin-top: 10px;
+            margin-top: 15px;
+            font-size: 1.2rem;
         }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        th {
-            color: var(--secondary);
-            font-weight: 600;
-        }
-        tr:last-child td { border-bottom: none; }
 
-        .highlight { color: var(--secondary); font-weight: bold; }
-        .highlight-gold { color: var(--primary); font-weight: bold; }
-        
-        .footer-note {
-            margin-top: auto;
-            text-align: center;
-            font-size: 14px;
-            color: #475569;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.05);
+        .table-glass th,
+        .table-glass td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .table-glass th {
+            color: var(--secondary);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 1rem;
+        }
+
+        .highlight {
+            color: var(--primary);
+            font-weight: 600;
         }
     </style>
 </head>
+
 <body>
 
-    <!-- PORTADA -->
+    <!-- DIAPOSITIVA 1: PORTADA -->
     <div class="slide">
-        <div class="decor-circle decor-1"></div>
-        <div class="decor-circle decor-2"></div>
-        <div class="content cover">
-            <svg viewBox="0 0 100 100" width="100" height="100" style="margin-bottom: 20px;">
-                <path d="M50 5 L95 25 L95 75 L50 95 L5 75 L5 25 Z" fill="none" stroke="#d4af37" stroke-width="4"/>
-                <path d="M25 40 L50 20 L75 40 L75 70 L50 90 L25 70 Z" fill="none" stroke="#3b82f6" stroke-width="3"/>
-                <circle cx="50" cy="55" r="12" fill="#10b981"/>
+        <div class="decor decor-gold"></div>
+        <div class="decor decor-blue"></div>
+        <div class="content" style="align-items: center; justify-content: center; text-align: center;">
+            <svg class="animate-fade" viewBox="0 0 100 100" width="120" height="120" style="margin-bottom: 30px;">
+                <path d="M50 5 L95 25 L95 75 L50 95 L5 75 L5 25 Z" fill="rgba(251,191,36,0.1)" stroke="var(--primary)"
+                    stroke-width="3" />
+                <path d="M25 40 L50 20 L75 40 L75 70 L50 90 L25 70 Z" fill="none" stroke="var(--tertiary)"
+                    stroke-width="2" />
+                <circle cx="50" cy="55" r="10" fill="var(--secondary)" />
             </svg>
-            <h1>CAPITAL TRADE IBERIA</h1>
-            <p>El portal de inversión y comunidad financiera de élite.</p>
-            <div style="margin-top: 50px; font-size: 18px; color: #64748b; letter-spacing: 2px; text-transform: uppercase;">Presentación Oficial para Inversionistas</div>
+            <h1 class="animate-fade delay-1 title-gradient" style="font-size: 5rem; letter-spacing: 2px;">CAPITAL TRADE
+                IBERIA</h1>
+            <p class="animate-fade delay-2 body-text"
+                style="font-size: 2rem; margin-top: 20px; color: #94a3b8; font-weight:400;">
+                El club de Inversión y Rendimientos Exclusivos.
+            </p>
+            <div class="animate-fade delay-3"
+                style="margin-top: 40px; padding: 15px 40px; border-radius: 30px; background: rgba(251,191,36,0.1); border: 1px solid var(--primary); font-size: 1.2rem; letter-spacing: 2px; color: var(--primary);">
+                PRESENTACIÓN DE NEGOCIO 2026
+            </div>
         </div>
     </div>
 
-    <!-- DIAPOSITIVA 1: INTRODUCCIÓN -->
+    <!-- DIAPOSITIVA 2: ¿QUIÉNES SOMOS Y QUÉ HACEMOS? -->
     <div class="slide">
+        <div class="decor decor-green"></div>
+        <div class="watermark">01. NUESTRA VISIÓN</div>
         <div class="content">
-            <div class="slide-header">
-                <h2>El futuro de tu capital</h2>
-                <div class="watermark">Capital Trade Iberia</div>
+            <div class="header animate-fade">
+                <h2>¿Quiénes Somos?</h2>
+                <hr>
             </div>
-            <div class="slide-body">
-                <p>Bienvenidos a <strong>Capital Trade Iberia</strong>, una plataforma tecnológica exclusiva que une a mentes financieras, líderes de comunidades y grandes inversores en un ecosistema de rentabilidad compartida.</p>
-                <div class="card-grid" style="grid-template-columns: 1fr 1fr;">
-                    <div class="card">
-                        <h3>Oportunidad de Crecimiento</h3>
-                        <p>No somos solo un fondo, somos un ecosistema donde tu participación, tanto financiera como social, tiene recompensas tangibles mes a mes utilizando contratos precisos de distribución de capital.</p>
-                    </div>
-                    <div class="card">
-                        <h3>Transparencia Operativa</h3>
-                        <p>Mediante nuestro <strong>Dashboard de Inversionista</strong> privado, tendrás control y visibilidad del progreso, fechas de pago y tus aportaciones en tiempo real para tomar las mejores decisiones.</p>
-                    </div>
+            <p class="body-text animate-fade delay-1" style="max-width: 900px; font-size: 1.5rem;">
+                Somos un ecosistema de inversión radicado en España diseñado para <span class="highlight">multiplicar el
+                    capital de nuestra comunidad</span> sin las complejidades del mercado tradicional. Nuestro objetivo
+                es simple: generar rendimientos sólidos, constantes y transparentes todos los días.
+            </p>
+
+            <div class="grid-cards animate-fade delay-2" style="margin-top:20px;">
+                <div class="glass-card">
+                    <div class="feature-icon">🤝</div>
+                    <h3 style="color:var(--primary)">Libertad Financiera</h3>
+                    <p class="body-text">Tú aportas el capital, nosotros hacemos el trabajo pesado. Recibes ganancias
+                        directamente en tu panel de control, listo para ser retirado cuando lo desees.</p>
+                </div>
+                <div class="glass-card">
+                    <div class="feature-icon">💎</div>
+                    <h3 style="color:var(--tertiary)">Crecimiento Triplicado</h3>
+                    <p class="body-text">Tenemos una promesa clara: Cada euro invertido trabaja para ti hasta
+                        multiplicarse por tres. <span class="highlight">Tu objetivo está asegurado al 300%.</span></p>
+                </div>
+                <div class="glass-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3 style="color:var(--secondary)">Comunidad Global</h3>
+                    <p class="body-text">Más allá del dinero, premiamos a los inversores que nos ayudan a crecer.
+                        Nuestra estructura de líderes reparte jugosas recompensas a quienes atraen nuevos socios.</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- DIAPOSITIVA 2: LOS TRES PILARES -->
+    <!-- DIAPOSITIVA 3: FORMAS DE GANAR - CAPITAL -->
     <div class="slide">
-        <div class="decor-circle decor-2" style="background:#10b981;"></div>
+        <div class="decor decor-blue"></div>
+        <div class="watermark">02. MODELO DE NEGOCIO</div>
         <div class="content">
-            <div class="slide-header">
-                <h2>Los 3 Pilares de Inversión</h2>
-                <div class="watermark">Nuestros Programas</div>
+            <div class="header animate-fade">
+                <h2>¿Cómo vas a ganar dinero? (Paso a Paso)</h2>
+                <hr style="background: linear-gradient(90deg, var(--tertiary), transparent);">
             </div>
-            <div class="slide-body">
-                <p>Nuestra plataforma premia diferentes métricas de valor. Puedes participar en uno o varios programas dependiendo de tu enfoque:</p>
-                
-                <div class="card-grid">
-                    <div class="card" style="border-top: 4px solid var(--tertiary);">
-                        <h3 style="color:var(--tertiary)">Programa Comunidad</h3>
-                        <p style="font-size:16px;">Para aquellos líderes natos que ayudan a expandir la red atrayendo a nuevos miembros e inversores. Recibe bonos residuales mensuales durante cierto número de meses por crear una tribu fuerte.</p>
-                    </div>
-                    <div class="card" style="border-top: 4px solid var(--primary);">
-                        <h3 style="color:var(--primary)">Partner de Capital</h3>
-                        <p style="font-size:16px;">Para inversores de músculo financiero. Tu rentabilidad es 100% pasiva y proporcional a tu aportación y los beneficios del portafolio. Rindes directamente desde el Dashboard.</p>
-                    </div>
-                    <div class="card" style="border-top: 4px solid var(--secondary);">
-                        <h3 style="color:var(--secondary)">Programa Combinado</h3>
-                        <p style="font-size:16px;">El estatus definitivo. Aquellos que inyectan capital propio y a la vez construyen red (líderes) acceden a los porcentajes más altos de beneficio global, maximizando ganancias.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+            <p class="body-text animate-fade delay-1" style="max-width: 900px;">
+                En Capital Trade Iberia hemos diseñado un sistema donde tu dinero nunca duerme. Desde el momento de tu
+                depósito (y tras 72hrs de procesamiento), comienzas a generar rendimientos pasivos.
+            </p>
 
-    <!-- DIAPOSITIVA 3: REGLAS DE COMUNIDAD Y CAPITAL -->
-    <div class="slide">
-        <div class="content">
-            <div class="slide-header">
-                <h2>Programa de Líderes y Rentabilidad</h2>
-                <div class="watermark">Niveles y Beneficios</div>
-            </div>
-            <div class="slide-body">
-                <div style="display: flex; gap: 30px;">
-                    <!-- Tabla Comunidad -->
-                    <div class="table-card" style="flex: 1;">
-                        <h3>Rango: Inversor Privado</h3>
-                        <p style="font-size:15px; margin-bottom:10px;">Requisitos de inversión por cuenta individual (Programa de Capital):</p>
-                        <table>
-                            <tr><th>Nivel</th><th>Inversión Mín.</th><th>Tasa Estimada</th></tr>
-                            <tr><td>Inversor Básico</td><td>1,000 USDT</td><td><span class="highlight">~2% a 4% Mensual</span></td></tr>
-                            <tr><td>Inversor Avanzado</td><td>5,000 USDT</td><td><span class="highlight">~4.5% a 6% Mensual</span></td></tr>
-                            <tr><td>Inversor Élite</td><td>10,000 USDT</td><td><span class="highlight">~6.5% a 8% Mensual</span></td></tr>
-                            <tr><td>Inversor Pro</td><td>25,000+ USDT</td><td><span class="highlight">Acuerdo Privado</span></td></tr>
-                        </table>
-                    </div>
-
-                    <!-- Tabla Comb -->
-                    <div class="table-card" style="flex: 1;">
-                        <h3>Bonos por Comunidad</h3>
-                        <p style="font-size:15px; margin-bottom:10px;">Meses de rentabilidad activa tras alcanzar el meta de referidos:</p>
-                        <table>
-                            <tr><th>Rol (Rango)</th><th>Capital Red</th><th>Mensualidades</th></tr>
-                            <tr><td>Founding Leader</td><td>500 USDT</td><td>400 USDT <span class="highlight-gold">(12 meses)</span></td></tr>
-                            <tr><td>Global Director</td><td>2,000 USDT</td><td>400 USDT <span class="highlight-gold">(6 meses)</span></td></tr>
-                            <tr><td>Executive Leader</td><td>5,000 USDT</td><td>400 USDT <span class="highlight-gold">(4 meses)</span></td></tr>
-                            <tr><td>National Director</td><td>10,000 USDT</td><td>400 USDT <span class="highlight-gold">(3 meses)</span></td></tr>
-                            <tr><td>Regional Manager</td><td>25,000 USDT</td><td>400 USDT <span class="highlight-gold">(2 meses)</span></td></tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- DIAPOSITIVA 4: OFERTAS PRIVADAS -->
-    <div class="slide">
-        <div class="content">
-            <div class="slide-header">
-                <h2>Ofertas Privadas Restringidas</h2>
-                <div class="watermark">Exclusividad Garantizada</div>
-            </div>
-            <div class="slide-body" style="display:flex; flex-direction:row; align-items:center;">
-                <div style="flex:1;">
-                    <h3>El Privilegio de Pertenecer</h3>
-                    <p>Capital Trade Iberia lanza frecuentemente <strong>Levantamientos de Capital Restringidos</strong> (Flash Rounds) exclusivos para inversores que cuentan con un nivel determinado de comunidad o de socio.</p>
-                    <ul style="margin-top:15px;">
-                        <li><span class="highlight">Match de Rango:</span> El sistema detecta tu nivel y te da acceso a las ofertas.</li>
-                        <li><span class="highlight">Barra de Progreso en Vivo:</span> Sabrás en tiempo real cuánto capital falta para cerrar la ronda.</li>
-                        <li><span class="highlight">Rendimientos Premium:</span> Las ofertas privadas suelen tener acuerdos muy superiores a las tasas estándar del mercado.</li>
+            <div style="display:flex; gap:30px; margin-top:20px;">
+                <div class="glass-card animate-fade delay-2" style="flex:1; border-top-color:var(--primary);">
+                    <h3 style="color:var(--primary); font-size:2rem; margin-bottom:10px;">1. Rendimientos Diarios</h3>
+                    <p class="body-text">
+                        Nuestro equipo administrativo aplica un porcentaje de ganancia a tu capital todos los días,
+                        derivado de las operaciones globales. Al abrir tu plataforma, verás tu saldo crecer
+                        constantemente.
+                    </p>
+                    <ul style="color:#cbd5e1; font-size:1.2rem; padding-left:25px; margin-top:10px; line-height: 1.8;">
+                        <li>Porcentaje de ganancia flotante y realista.</li>
+                        <li>Transparencia total en tu panel de inversor.</li>
+                        <li><b>Límite Asegurado:</b> Ganarás sumas hasta haber <span class="highlight">multiplicado por
+                                un 300%</span> tu aportación inicial (Ej: Depositas $1,000, te detienes al cobrar $3,000
+                            en total).</li>
                     </ul>
                 </div>
-                <div style="flex:1; padding-left:40px;">
-                    <div class="card" style="background: linear-gradient(145deg, rgba(16,185,129,0.1), rgba(15,23,42,0.9)); border-color: rgba(16,185,129,0.3);">
-                        <h4 style="color:#10b981; margin-bottom:10px;">EJEMPLO: OFERTA GLOBAL</h4>
-                        <p style="font-size:14px; margin-bottom:15px;">Participación exclusiva para niveles "Global Director". Ventaja de 10% fijo extra tras cierre.</p>
-                        <div style="background: rgba(0,0,0,0.3); padding:15px; border-radius:8px;">
-                            <div style="display:flex; justify-content:space-between; font-size:14px;">
-                                <span>Recaudado:</span> <span style="color:#f8fafc; font-weight:bold;">15,500 / 25,000 USDT</span>
-                            </div>
-                            <div style="background: rgba(255,255,255,0.1); height:8px; border-radius:10px; margin-top:10px;">
-                                <div style="background: #10b981; height: 100%; width: 62%; border-radius:10px;"></div>
-                            </div>
-                        </div>
-                    </div>
+
+                <div class="glass-card animate-fade delay-3" style="flex:1; border-top-color:var(--secondary);">
+                    <h3 style="color:var(--secondary); font-size:2rem; margin-bottom:10px;">2. Niveles de Inversión</h3>
+                    <table class="table-glass">
+                        <tr>
+                            <th>Nivel</th>
+                            <th>Inversión (USDT/EUR)</th>
+                            <th>Tasa Estimada</th>
+                        </tr>
+                        <tr>
+                            <td><b>Inversor Básico</b></td>
+                            <td>1,000 a 4,999</td>
+                            <td>Moderada y Frecuente</td>
+                        </tr>
+                        <tr>
+                            <td><b>Inversor Avanzado</b></td>
+                            <td>5,000 a 9,999</td>
+                            <td>Aperatura Sólida</td>
+                        </tr>
+                        <tr>
+                            <td><b>Inversor Élite</b></td>
+                            <td>10,000 a 24,999</td>
+                            <td>Rendimientos Preferenciales</td>
+                        </tr>
+                        <tr>
+                            <td><b>Inversor PRO</b></td>
+                            <td>25,000 en adelante</td>
+                            <td>Gestión VIP</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- DIAPOSITIVA 5: ECOSISTEMA TECNOLÓGICO -->
+    <!-- DIAPOSITIVA 4: FORMAS DE GANAR - COMUNIDAD / REFERIDOS -->
     <div class="slide">
-        <div class="decor-circle decor-1" style="background:#3b82f6;"></div>
+        <div class="decor decor-gold" style="top:-100px;"></div>
+        <div class="watermark">03. PROGRAMA DE LÍDERES</div>
         <div class="content">
-            <div class="slide-header">
-                <h2>Tu Oficina Financiera (Dashboard)</h2>
-                <div class="watermark">Transparencia y Control</div>
+            <div class="header animate-fade">
+                <h2 style="color:var(--secondary);">Aceleradores de Red (Refiere y Gana)</h2>
+                <hr style="background: linear-gradient(90deg, var(--secondary), transparent);">
             </div>
-            <div class="slide-body">
-                <p>Nuestra plataforma ha sido desarrollada con los más altos estándares tecnológicos para garantizar seguridad y facilidad de uso a todos nuestros inversores.</p>
-                <div class="card-grid">
-                    <div class="card">
-                        <h3>Retiros a un Clic</h3>
-                        <p>Solicita tus ganancias directamente desde tu panel de control hacia tu Banco o Wallet personal. Sin fricción ni intermediarios.</p>
+            <p class="body-text animate-fade delay-1" style="max-width: 900px; font-size:1.5rem;">
+                Si traes a amigos, socios o clientes a la plataforma mediante tu propio <b>Enlace de Referido</b>, tus
+                cuentas explotan en rentabilidad gracias a dos premios espectaculares:
+            </p>
+
+            <div style="display:flex; gap:40px; margin-top:20px;">
+                <div class="animate-fade delay-2" style="flex: 1;">
+                    <div style="margin-bottom:20px;">
+                        <h3 style="color:var(--primary); font-size:1.8rem; margin-bottom:10px;">⭐ Acelerador del 10%
+                        </h3>
+                        <p class="body-text">
+                            Cuando un referido tuyo invierte dinero, nosotros te premiamos <b>inyectando un 10% extra
+                                del monto de él</b> directamente a tus propias cuentas activas para que llegues a tu
+                            meta del 300% muchísimo más rápido. ¡Ojo! Este 10% es un premio de la casa; a tu referido no
+                            se le descuenta ni un céntimo.
+                        </p>
                     </div>
-                    <div class="card">
-                        <h3>Validación con Base64</h3>
-                        <p>Tus comprobantes de operación se cifran y envían de forma segura. El Administrador verifica y acredita tus cuentas instantáneamente.</p>
-                    </div>
-                    <div class="card">
-                        <h3>Línea de Soporte Inmediata</h3>
-                        <p>Cuentas con un acceso directo y cifrado para comunicarte individualmente con nosotros mediante WhatsApp desde tu computadora o celular para resolver dudas urgente.</p>
-                    </div>
+                </div>
+
+                <div class="glass-card animate-fade delay-3" style="flex: 1.2;">
+                    <h3 style="color:var(--secondary); font-size:1.8rem;">Rangos de Comunidad (Sueldo Mensual)</h3>
+                    <p class="body-text" style="font-size:1.1rem; margin-bottom:10px;">Al armar una red fuerte y sumar
+                        capital de invitados, alcanzas Rangos Oficiales. Esto desbloquea un bono de $400 fijo mensual
+                        pagado por varios meses.</p>
+                    <table class="table-glass" style="font-size:1rem;">
+                        <tr>
+                            <th>Tu Rango Alcanzado</th>
+                            <th>Toda tu red depositó</th>
+                            <th>Tu Premio Seguro</th>
+                        </tr>
+                        <tr>
+                            <td><b>Founding Leader</b></td>
+                            <td>$500 <i>(Suma total de invitados)</i></td>
+                            <td>$400/mes x 12 Meses</td>
+                        </tr>
+                        <tr>
+                            <td><b>Global Director</b></td>
+                            <td>$2,000</td>
+                            <td>$400/mes x 6 Meses</td>
+                        </tr>
+                        <tr>
+                            <td><b>Executive Leader</b></td>
+                            <td>$5,000</td>
+                            <td>$400/mes x 4 Meses</td>
+                        </tr>
+                        <tr>
+                            <td><b>National Director</b></td>
+                            <td>$10,000</td>
+                            <td>$400/mes x 3 Meses</td>
+                        </tr>
+                        <tr>
+                            <td><b>Regional Manager</b></td>
+                            <td>$25,000</td>
+                            <td>$400/mes x 2 Meses</td>
+                        </tr>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- DIAPOSITIVA 6: CONTACTO -->
+    <!-- DIAPOSITIVA 5: REGLAS DE DEPÓSITO Y RETIRO -->
     <div class="slide">
-        <div class="content cover" style="flex-direction:row; text-align:left; gap:60px;">
-            <div style="flex:1;">
-                <h2 style="font-size:48px; color:var(--primary); margin-bottom: 20px;">Toma Acción Hoy</h2>
-                <p style="font-size: 22px; color: #cbd5e1; margin-bottom: 30px;">
-                    Conecta con tu Asesor o Administrador Líder y solicita tus credenciales para acceder a la plataforma. No te pierdas de las rondas de levantamiento privadas que cerrarán muy pronto.
-                </p>
-                <div style="font-size: 24px;">
-                    <strong>📱 WhatsApp de Soporte:</strong> <span class="highlight">+34 677 412 858</span><br><br>
-                </div>
+        <div class="decor decor-blue" style="bottom:-200px;"></div>
+        <div class="watermark">04. OPERATIVA PRÁCTICA</div>
+        <div class="content">
+            <div class="header animate-fade">
+                <h2>Reglas Claras: Depósitos y Retiros</h2>
+                <hr style="background: linear-gradient(90deg, var(--primary), transparent);">
             </div>
-            <div style="flex:1;">
-                <div class="card" style="text-align:center; padding: 50px;">
-                    <svg viewBox="0 0 100 100" width="120" height="120" style="margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(212,175,55,0.5));">
-                        <path d="M50 5 L95 25 L95 75 L50 95 L5 75 L5 25 Z" fill="rgba(212,175,55,0.1)" stroke="#d4af37" stroke-width="4"/>
-                        <path d="M25 40 L50 20 L75 40 L75 70 L50 90 L25 70 Z" fill="rgba(59,130,246,0.1)" stroke="#3b82f6" stroke-width="3"/>
-                        <circle cx="50" cy="55" r="12" fill="#10b981"/>
-                    </svg>
-                    <h3 style="font-size:28px;">Capital Trade Iberia</h3>
-                    <p style="color:#94a3b8;">Plataforma Oficial</p>
+
+            <div class="grid-cards animate-fade delay-1" style="grid-template-columns: 1fr 1fr; gap:50px;">
+                <div class="glass-card" style="border-top-color: var(--secondary);">
+                    <div style="font-size:3rem; margin-bottom:10px;">💸</div>
+                    <h3 style="color:var(--secondary); font-size:2rem;">¿Cómo Invertir?</h3>
+                    <p class="body-text" style="margin-top:10px;">
+                        <b>1. Escoge tu método:</b> Aceptamos Euros y divisa Latinoamericana vía Bancos, o USDT (Crypto)
+                        en red BEP-20 (Mínimo $50-$100 según el método).<br><br>
+                        <b>2. Sube tu recibo:</b> Cuando le transfieras a la administración, simplemente subes la foto
+                        del recibo desde la web.<br><br>
+                        <b>3. ¡Aprobado!:</b> El administrador lo ve en su panel seguro, lo aprueba ¡y el sistema
+                        empieza a funcionar para ti tras 72 horas!
+                    </p>
+                </div>
+
+                <div class="glass-card" style="border-top-color: var(--primary);">
+                    <div style="font-size:3rem; margin-bottom:10px;">🏦</div>
+                    <h3 style="color:var(--primary); font-size:2rem;">¿Cómo Retirar?</h3>
+                    <p class="body-text" style="margin-top:10px;">
+                        <b>1. Acceso Universal:</b> En tu panel verás tu saldo "A cobrar". Das click en retirar y elijes
+                        dónde recibir el dinero.<br><br>
+                        <b>2. Fee Fijo Bajísimo:</b> Aplicamos y descontamos un cargo súper transparente del <b>5%</b>
+                        sobre el total a retirar, el cual cubre los costos, comisiones bancarias y de las
+                        blockchains.<br><br>
+                        <b>3. Transferencia Directa:</b> El administrador ve tu solicitud de retiro y te expide tu
+                        dinero, completando las ganancias de tu mes.
+                    </p>
                 </div>
             </div>
         </div>
-        <div class="footer-note" style="position:absolute; bottom:30px; width:100%;">
-            Documento de Referencia Comercial - Todos los derechos reservados &copy; 2026 
+    </div>
+
+    <!-- DIAPOSITIVA 6: OFERTAS EXCLUSIVAS -->
+    <div class="slide">
+        <div class="decor decor-green"></div>
+        <div class="watermark">05. OFERTAS VIP</div>
+        <div class="content cover"
+            style="flex-direction:row; justify-content: space-between; align-items:center; text-align:left;">
+            <div class="animate-fade delay-1" style="flex:1; padding-right:50px;">
+                <h2 class="title-gradient" style="font-size:3.5rem; margin-bottom:10px;">Rondas Privadas <br> "Flash"
+                </h2>
+                <p class="body-text" style="font-size:1.5rem;">
+                    Nuestras <b>Ofertas Privadas</b> son un privilegio para quienes escalan en los rangos.
+                    Ocasionalmente, el Administrador abre un levantamiento de dinero especial con <span
+                        class="highlight">rendimientos agresivos</span> o tiempos súper cortos para inversores que
+                    tengan cierto nivel de comunidad.
+                </p>
+                <p class="body-text" style="font-size:1.5rem;">
+                    Verás una barra de progreso que indica en tiempo real cuánto capital falta. Cuando el cupo se llena
+                    (ej: faltan 5,000 EUR), nadie más entra. ¡El inversor veloz, se lleva el extra!
+                </p>
+            </div>
+            <div class="glass-card animate-fade delay-2"
+                style="flex: 0.8; background: linear-gradient(145deg, rgba(16,185,129,0.1), rgba(15,23,42,0.9)); border-color: rgba(16,185,129,0.3); padding:40px;">
+                <h3 style="color:var(--secondary); font-size:2rem; text-align:center;">Cierre de Presentación</h3>
+                <p class="body-text" style="text-align:center; font-size:1.2rem;">
+                    Únete hoy y asegura tu capital en un entorno cerrado y transparente, donde cada euro avanza hacia tu
+                    victoria financiera garantizada al 300%.
+                </p>
+                <div style="font-size: 1.5rem; text-align:center; margin-top:30px;">
+                    <strong>📱 WhatsApp de Admin:</strong> <span class="highlight">+34 677 412 858</span>
+                </div>
+            </div>
         </div>
     </div>
 
 </body>
+
 </html>

@@ -50,6 +50,17 @@ const formatCurrency = (value, moneda = 'EUR') => {
   return `€${Number(value).toLocaleString('es-ES')}`
 }
 
+const safeFormatDate = (dateVal) => {
+  try {
+    if (!dateVal) return new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    let parsed = typeof dateVal === 'string' ? new Date(dateVal.replace(' ', 'T').split('.')[0]) : new Date(dateVal)
+    if (isNaN(parsed.getTime())) parsed = new Date()
+    return parsed.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  } catch {
+    return 'N/A'
+  }
+}
+
 const PROGRAMA_LIDERES = [
   { nombre: 'Founding Leader', minReferidos: 500, emoji: '🏆', bonus: 400, duracion: 12 },
   { nombre: 'Executive Leader', minReferidos: 200, emoji: '👑', bonus: 250, duracion: 12 },
@@ -361,13 +372,13 @@ function DashboardInversionista() {
 
   const movimientos = [
     ...userAportaciones.map((item) => ({
-      date: new Date(item.createdAt || Date.now()).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      date: safeFormatDate(item.createdAt),
       description: `Aportación registrada en ${item.operacionNombre || 'operación'}`,
       amount: `+${formatCurrency(Number(item.importe || 0), item.moneda || 'EUR')}`,
       tipo: 'aportacion'
     })),
     ...userRetiros.map((item) => ({
-      date: new Date(item.createdAt || Date.now()).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+      date: safeFormatDate(item.createdAt),
       description: `Solicitud de retiro ${item.estado}`,
       amount: `-${formatCurrency(Number(item.importe || 0), item.moneda || 'EUR')}`,
       tipo: 'retiro'
@@ -486,7 +497,7 @@ function DashboardInversionista() {
         estado: 'Pendiente de validación',
         tipo: 'inversion',
         createdAt: new Date().toISOString(),
-        fecha: new Date().toLocaleDateString('es-ES')
+        fecha: safeFormatDate(new Date())
       }
 
       setMontoInversion('')
