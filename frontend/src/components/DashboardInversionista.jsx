@@ -82,6 +82,7 @@ function DashboardInversionista() {
   const [referidos, setReferidos] = React.useState([])
   const [ofertasPrivadas, setOfertasPrivadas] = React.useState([])
   const [ofertasAportaciones, setOfertasAportaciones] = React.useState([])
+  const [sidebarOpen, setSidebarOpen] = React.useState(false)
   const [montoRetiro, setMontoRetiro] = React.useState('')
   const [notasRetiro, setNotasRetiro] = React.useState('')
   const [errorRetiro, setErrorRetiro] = React.useState('')
@@ -655,8 +656,14 @@ function DashboardInversionista() {
 
   return (
     <div className="admin-futuristic-layout">
+      {/* Mobile hamburger button */}
+      <button className="sidebar-mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+        {sidebarOpen ? '✕' : '☰'}
+      </button>
+      {/* Overlay */}
+      <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
       {/* SIDEBAR NAVIGATION */}
-      <aside className="admin-sidebar" style={{ borderRight: '1px solid rgba(0, 240, 255, 0.15)' }}>
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`} style={{ borderRight: '1px solid rgba(0, 240, 255, 0.15)' }}>
         <div className="sidebar-brand">
           <div className="brand-icon" style={{ color: '#f6c453', textShadow: '0 0 15px rgba(246,196,83,0.5)' }}>✧</div>
           <div className="brand-text">

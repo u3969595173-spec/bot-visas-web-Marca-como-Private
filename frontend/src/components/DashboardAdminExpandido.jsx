@@ -85,6 +85,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [solicitudesInversion, setSolicitudesInversion] = useState([])
   const [ofertasPrivadas, setOfertasPrivadas] = useState([])
   const [ofertasAportaciones, setOfertasAportaciones] = useState([])
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // Formularios de admin para ofertas
   const [nuevaOferta, setNuevaOferta] = useState({
@@ -938,8 +939,14 @@ function DashboardAdminExpandido({ onLogout }) {
 
   return (
     <div className="admin-futuristic-layout">
+      {/* Mobile hamburger button */}
+      <button className="sidebar-mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+        {sidebarOpen ? '✕' : '☰'}
+      </button>
+      {/* Overlay */}
+      <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
       {/* SIDEBAR NAVIGATION */}
-      <aside className="admin-sidebar">
+      <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <div className="brand-icon">✧</div>
           <div className="brand-text">
