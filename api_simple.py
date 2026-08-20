@@ -2,7 +2,7 @@
 API REST - Capital Trade Iberia
 Simple y funcional
 """
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
@@ -948,8 +948,8 @@ async def validar_aportacion_oferta(aportacion_id: str, datos: dict, usuario=Dep
 
 
 @app.get("/api/comunidad/mensajes")
-async def obtener_mensajes(usuario = Depends(obtener_usuario_actual)):
-    """Obtiene mensajes del chat comunidad"""
+async def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obtener_usuario_actual)):
+    """Obtiene mensajes públicos o la conversación privada con el admin."""
     try:
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cur = conn.cursor()
@@ -968,7 +968,13 @@ async def obtener_mensajes(usuario = Depends(obtener_usuario_actual)):
         cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario VARCHAR(200)")
         conn.commit()
 
-        cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad ORDER BY created_at DESC LIMIT 100")
+        if privado:
+            if usuario.get('rol') == 'admin':
+                cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE destinatario IS NOT NULL AND destinatario <> '' ORDER BY created_at DESC LIMIT 100")
+            else:
+                cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE autor_id = %s OR destinatario IN ('admin', %s) ORDER BY created_at DESC LIMIT 100", (usuario.get('inversor_id'), usuario.get('email', '')))
+        else:
+            cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE destinatario IS NULL OR destinatario = '' ORDER BY created_at DESC LIMIT 100")
         resultados = cur.fetchall()
         cur.close()
         conn.close()
@@ -991,8 +997,8 @@ async def obtener_mensajes(usuario = Depends(obtener_usuario_actual)):
 
 
 @app.post("/api/comunidad/mensajes")
-async def crear_mensaje(datos: dict, usuario = Depends(obtener_usuario_actual)):
-    """Crea un mensaje en el chat comunidad"""
+async def crear_mensaje(datos: dict, privado: bool = Query(False), usuario = Depends(obtener_usuario_actual)):
+    """Crea un mensaje público o privado con el administrador."""
     try:
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cur = conn.cursor()
@@ -1001,11 +1007,13 @@ async def crear_mensaje(datos: dict, usuario = Depends(obtener_usuario_actual)):
         autor_nombre = usuario.get('email', 'Usuario')
         autor_rol = usuario.get('rol', 'inversor')
 
+        destinatario = datos.get('destinatario') if privado else None
+
         cur.execute("""
             INSERT INTO mensajes_comunidad (autor_id, autor_nombre, autor_rol, mensaje, destinatario)
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id
-        """, (autor_id, autor_nombre, autor_rol, datos.get('mensaje'), datos.get('destinatario')))
+        """, (autor_id, autor_nombre, autor_rol, datos.get('mensaje'), destinatario))
         
         mensaje_id = cur.fetchone()[0]
         conn.commit()

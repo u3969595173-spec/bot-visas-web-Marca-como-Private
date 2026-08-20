@@ -231,7 +231,7 @@ function DashboardAdminExpandido({ onLogout }) {
     const cargarMensajes = async () => {
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch(`${API}/api/comunidad/mensajes`, {
+        const response = await fetch(`${API}/api/comunidad/mensajes?privado=true`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {
@@ -2137,7 +2137,7 @@ function DashboardAdminExpandido({ onLogout }) {
                           }
                           try {
                             const token = localStorage.getItem('token')
-                            const response = await fetch(`${API}/api/comunidad/mensajes`, {
+                            const response = await fetch(`${API}/api/comunidad/mensajes?privado=true`, {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',

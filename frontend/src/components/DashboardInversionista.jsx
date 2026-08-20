@@ -155,7 +155,7 @@ function DashboardInversionista() {
     const cargarMensajes = async () => {
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch(`${API_URL}/api/comunidad/mensajes`, {
+        const response = await fetch(`${API_URL}/api/comunidad/mensajes?privado=true`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {
@@ -241,7 +241,7 @@ function DashboardInversionista() {
     setErrorChat('')
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`${API_URL}/api/comunidad/mensajes`, {
+      const response = await fetch(`${API_URL}/api/comunidad/mensajes?privado=true`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ mensaje: mensajeChat.trim(), destinatario: 'admin' })
