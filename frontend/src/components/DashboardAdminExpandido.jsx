@@ -82,6 +82,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [mensajes, setMensajes] = useState([])
   const [respuesta, setRespuesta] = useState('')
   const [seleccionadoChat, setSeleccionadoChat] = useState(null)
+  const [seleccionadoEmail, setSeleccionadoEmail] = useState(null)
   const [solicitudesInversion, setSolicitudesInversion] = useState([])
   const [ofertasPrivadas, setOfertasPrivadas] = useState([])
   const [ofertasAportaciones, setOfertasAportaciones] = useState([])
@@ -1299,7 +1300,11 @@ function DashboardAdminExpandido({ onLogout }) {
                     <button
                       key={`chat-${usuario.id}`}
                       className="btn-action"
-                      onClick={() => { setSeleccionadoChat(usuario.name || 'Sin nombre'); setActiveTab('chat') }}
+                      onClick={() => {
+                        setSeleccionadoChat(usuario.name || 'Sin nombre');
+                        setSeleccionadoEmail(usuario.email || '');
+                        setActiveTab('chat')
+                      }}
                       style={{ backgroundColor: '#0284c7', color: 'white' }}
                     >
                       💬 Chat
@@ -2075,7 +2080,11 @@ function DashboardAdminExpandido({ onLogout }) {
 
                     <div style={{ overflowY: 'auto', flex: 1, padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                       {(() => {
-                        const msgsDelInversor = mensajes.filter(m => m.usuarioNombre === seleccionadoChat)
+                        const msgsDelInversor = mensajes.filter(m =>
+                          (m.usuarioNombre === seleccionadoChat) ||
+                          (m.usuarioNombre === seleccionadoEmail) ||
+                          (m.tipo === 'admin' && m.destinatario === seleccionadoChat)
+                        )
                         return msgsDelInversor.length === 0 ? (
                           <div style={{ color: '#6b7280', textAlign: 'center', marginTop: '2rem' }}>
                             Sin mensajes
