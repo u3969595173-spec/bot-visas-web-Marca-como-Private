@@ -33,11 +33,18 @@ const RetirosCreditoPanel = () => {
       const headers = token ? { Authorization: `Bearer ${token}` } : {}
 
       const response = await axios.get(
-        `${apiUrl}/api/admin/solicitudes-credito`,
+        `${apiUrl}/api/retiros`,
         { headers }
       )
 
-      setSolicitudes(response.data || [])
+      const retiros = response.data?.retiros || []
+      setSolicitudes(retiros.map((retiro) => ({
+        ...retiro,
+        monto: Number(retiro.importe || 0),
+        fecha_solicitud: retiro.fecha || retiro.created_at,
+        beneficiario_tipo: 'inversor',
+        credito_disponible: null
+      })))
       setError(null)
     } catch (err) {
       console.error('Error cargando solicitudes:', err)
@@ -64,8 +71,8 @@ const RetirosCreditoPanel = () => {
       const headers = token ? { Authorization: `Bearer ${token}` } : {}
 
       const response = await axios.put(
-        `${apiUrl}/api/admin/solicitudes-credito/${solicitudId}/responder`,
-        { accion, notas },
+        `${apiUrl}/api/retiros/${solicitudId}`,
+        { estado: accion === 'aprobar' ? 'Aprobado' : 'Rechazado', notas },
         { headers }
       )
 
@@ -112,9 +119,9 @@ const RetirosCreditoPanel = () => {
     })
   }
 
-  const solicitudesPendientes = solicitudes.filter(s => s.estado?.toLowerCase() === 'pendiente')
-  const solicitudesAprobadas = solicitudes.filter(s => s.estado?.toLowerCase() === 'aprobada')
-  const solicitudesRechazadas = solicitudes.filter(s => s.estado?.toLowerCase() === 'rechazada')
+  const solicitudesPendientes = solicitudes.filter(s => ['pendiente', 'pendiente de validación', 'en revisión'].includes(s.estado?.toLowerCase()))
+  const solicitudesAprobadas = solicitudes.filter(s => ['aprobada', 'aprobado', 'procesado', 'validada', 'validado'].includes(s.estado?.toLowerCase()))
+  const solicitudesRechazadas = solicitudes.filter(s => ['rechazada', 'rechazado'].includes(s.estado?.toLowerCase()))
 
   if (loading && solicitudes.length === 0) {
     return (
