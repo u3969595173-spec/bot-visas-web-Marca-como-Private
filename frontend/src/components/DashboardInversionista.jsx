@@ -823,11 +823,11 @@ function DashboardInversionista() {
                 </div>
               </div>
 
-              {perfil && (
+              {currentUser && (
                 <div style={{ marginBottom: '20px', padding: '15px', background: 'rgba(212, 175, 55, 0.1)', border: '1px dashed #d4af37', borderRadius: '12px' }}>
                   <p style={{ margin: 0, fontSize: '14px', color: '#d4af37' }}><strong>Tu Enlace de Referido:</strong></p>
                   <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#cbd5e1', userSelect: 'all' }}>
-                    {perfil.codigo_referido ? `https://${window.location.host}/registro?ref=${perfil.codigo_referido}` : 'Generando...'}
+                    {currentUser.codigo_referido ? `https://${window.location.host}/registro?ref=${currentUser.codigo_referido}` : 'Generando...'}
                   </p>
                   <p style={{ margin: '5px 0 0 0', fontSize: '11px', color: '#64748b' }}>El 10% de lo que inviertan será para acelerar directamente tus contratos activos hasta el 300% de fondo.</p>
                 </div>
