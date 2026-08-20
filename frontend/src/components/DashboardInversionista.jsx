@@ -1376,8 +1376,9 @@ function DashboardInversionista() {
                   <p style={{ margin: '0 0 1.5rem 0', fontWeight: 'bold', fontSize: '18px' }}>📌 Referencia de transferencia</p>
                   {(() => {
                     const METODOS_DEFAULT = [
-                      { moneda: 'MLC', titular: 'Capital Trade Iberia', numero: 'MLC 0000', instrucciones: 'Referencia obligatoria en la transferencia.', red: 'Banco' },
-                      { moneda: 'CUP', titular: 'Capital Trade Iberia', numero: 'CU24 0000', instrucciones: 'Pago en moneda local con referencia de operación.', red: 'Banco' },
+                      { moneda: 'MLC', numero: 'MLC 0000', instrucciones: 'Referencia obligatoria en la transferencia.' },
+                      { moneda: 'CUP', numero: 'CU24 0000', instrucciones: 'Pago en moneda local con referencia de operación.' },
+                      { moneda: 'EUR', tipo: 'iban', titular: 'Capital Trade Iberia', iban: 'ES00...', concepto: 'Referencia en concepto' },
                       { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.' }
                     ]
                     const cuentasAdmin = readStorage('capital_trade_cuentas', METODOS_DEFAULT)
@@ -1391,9 +1392,15 @@ function DashboardInversionista() {
                           </div>
                         )}
                         <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                          <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : '💳 NÚMERO DE CUENTA'}</p>
-                          <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'}</p>
+                          <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : cuentaSeleccionada.iban ? '🏦 IBAN' : '💳 NÚMERO DE TARJETA'}</p>
+                          <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{cuentaSeleccionada.iban || cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'}</p>
                         </div>
+                        {cuentaSeleccionada.concepto && (
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📝 CONCEPTO / DESCRIPCIÓN</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.concepto}</p>
+                          </div>
+                        )}
                         {cuentaSeleccionada.red && (
                           <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
                             <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🌐 RED / BANCO</p>
@@ -1705,8 +1712,9 @@ function DashboardInversionista() {
                   <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold', color: '#374151', fontSize: '16px' }}>💳 Datos de transferencia</label>
                   {(() => {
                     const METODOS_DEFAULT = [
-                      { moneda: 'MLC', titular: 'Capital Trade Iberia', numero: 'MLC 0000', instrucciones: 'Referencia obligatoria en la transferencia.', red: 'Banco' },
-                      { moneda: 'CUP', titular: 'Capital Trade Iberia', numero: 'CU24 0000', instrucciones: 'Pago en moneda local con referencia.', red: 'Banco' },
+                      { moneda: 'MLC', numero: 'MLC 0000', instrucciones: 'Referencia obligatoria en la transferencia.' },
+                      { moneda: 'CUP', numero: 'CU24 0000', instrucciones: 'Pago en moneda local con referencia.' },
+                      { moneda: 'EUR', tipo: 'iban', titular: 'Capital Trade Iberia', iban: 'ES00...', concepto: 'Referencia en concepto' },
                       { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.' }
                     ]
                     const cuentasAdmin = readStorage('capital_trade_cuentas', METODOS_DEFAULT)
@@ -1723,9 +1731,16 @@ function DashboardInversionista() {
                           )}
 
                           <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
-                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : '💳 NÚMERO DE CUENTA / TARJETA'}</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'}</p>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : cuentaSeleccionada.iban ? '🏦 IBAN' : '💳 NÚMERO DE TARJETA'}</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{cuentaSeleccionada.iban || cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'}</p>
                           </div>
+
+                          {cuentaSeleccionada.concepto && (
+                            <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                              <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📝 CONCEPTO / DESCRIPCIÓN</p>
+                              <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.concepto}</p>
+                            </div>
+                          )}
 
                           {cuentaSeleccionada.red && (
                             <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>

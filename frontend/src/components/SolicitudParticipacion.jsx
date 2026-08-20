@@ -160,11 +160,15 @@ function SolicitudParticipacion() {
                   <p style={{ margin: '0 0 4px', fontSize: 13, color: '#94a3b8' }}>Dirección wallet ({metodoPago.red}):</p>
                   <p style={{ margin: '0 0 8px', fontFamily: 'monospace', fontSize: 14, color: '#f1f5f9', wordBreak: 'break-all' }}>{metodoPago.wallet || '—'}</p>
                 </div>
-              ) : (
+              ) : metodoPago.tipo === 'iban' ? (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  {metodoPago.titular && <div><span style={{ fontSize: 12, color: '#94a3b8' }}>Titular: </span><strong>{metodoPago.titular}</strong></div>}
-                  {metodoPago.numero && <div><span style={{ fontSize: 12, color: '#94a3b8' }}>Nº tarjeta: </span><strong style={{ fontFamily: 'monospace' }}>{metodoPago.numero}</strong></div>}
-                  {metodoPago.banco && <div><span style={{ fontSize: 12, color: '#94a3b8' }}>Banco: </span><strong>{metodoPago.banco}</strong></div>}
+                  {metodoPago.titular && <div style={{ gridColumn: 'span 2' }}><span style={{ fontSize: 12, color: '#94a3b8' }}>Titular: </span><strong>{metodoPago.titular}</strong></div>}
+                  {metodoPago.iban && <div style={{ gridColumn: 'span 2' }}><span style={{ fontSize: 12, color: '#94a3b8' }}>IBAN: </span><strong style={{ fontFamily: 'monospace' }}>{metodoPago.iban}</strong></div>}
+                  {metodoPago.concepto && <div style={{ gridColumn: 'span 2' }}><span style={{ fontSize: 12, color: '#94a3b8' }}>Concepto: </span><strong>{metodoPago.concepto}</strong></div>}
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+                  {metodoPago.numero && <div><span style={{ fontSize: 12, color: '#94a3b8' }}>Nº de cuenta/tarjeta: </span><strong style={{ fontFamily: 'monospace' }}>{metodoPago.numero}</strong></div>}
                 </div>
               )}
               {metodoPago.instrucciones && <p style={{ margin: '8px 0 0', fontSize: 13, color: '#94a3b8' }}>ℹ️ {metodoPago.instrucciones}</p>}
