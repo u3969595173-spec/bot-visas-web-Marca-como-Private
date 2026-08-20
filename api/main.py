@@ -980,7 +980,7 @@ async def login_inversor(request: Request, datos: InversorLoginRequest):
         """)
         conn.commit()
 
-        cur.execute("SELECT id, nombre, email, password_hash FROM inversores WHERE email = %s", (email,))
+        cur.execute("SELECT id, nombre, email, password_hash, estado FROM inversores WHERE email = %s", (email,))
         result = cur.fetchone()
         cur.close()
         conn.close()
@@ -988,7 +988,9 @@ async def login_inversor(request: Request, datos: InversorLoginRequest):
         if not result or not bcrypt.checkpw(password.encode('utf-8'), result[3].encode('utf-8')):
             raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos.")
 
-        inversor_id, nombre, inversor_email, _ = result
+        inversor_id, nombre, inversor_email, _, estado = result
+        if estado == 'rechazada':
+            raise HTTPException(status_code=403, detail="Tu cuenta ha sido rechazada. Contacta con soporte.")
         token = crear_token({"inversor_id": inversor_id, "email": inversor_email, "rol": "inversor"})
 
         return {
@@ -1192,6 +1194,8 @@ async def get_perfil_inversor(usuario=Depends(obtener_usuario_actual)):
         conn.close()
         if not row:
             raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        if row[5] == 'rechazada':
+            raise HTTPException(status_code=403, detail="Cuenta rechazada")
         return {
             "id": row[0], "nombre": row[1], "email": row[2],
             "telefono": row[3], "pais": row[4], "estado": row[5],

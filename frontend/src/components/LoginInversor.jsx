@@ -49,7 +49,9 @@ const LoginInversor = () => {
 
       if (err.code === 'ECONNABORTED' || err.code === 'ERR_NETWORK') {
         errorMsg = 'No se puede conectar al servidor. Inténtalo más tarde.';
-      } else if (err.response?.status === 401 || err.response?.status === 403) {
+      } else if (err.response?.status === 403 && err.response?.data?.detail) {
+        errorMsg = err.response.data.detail;
+      } else if (err.response?.status === 401) {
         errorMsg = 'Correo o contraseña incorrectos.';
       } else if (err.response?.data?.detail) {
         errorMsg = Array.isArray(err.response.data.detail)

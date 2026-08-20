@@ -243,14 +243,16 @@ async def login_inversor(datos: InversorLoginRequest):
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cur = conn.cursor()
 
-        cur.execute("SELECT id, nombre, email, password_hash FROM inversores WHERE email = %s", 
+        cur.execute("SELECT id, nombre, email, password_hash, estado FROM inversores WHERE email = %s", 
                    (datos.email.lower(),))
         result = cur.fetchone()
         
         if not result or not bcrypt.checkpw(datos.password.encode('utf-8'), result[3].encode('utf-8')):
             raise HTTPException(status_code=401, detail="Email o contraseña incorrectos")
 
-        inversor_id, nombre, email, _ = result
+        inversor_id, nombre, email, _, estado = result
+        if estado == 'rechazada':
+            raise HTTPException(status_code=403, detail="Tu cuenta ha sido rechazada. Contacta con soporte.")
         token = crear_token({"inversor_id": inversor_id, "email": email, "rol": "inversor"})
         
         cur.close()
@@ -288,6 +290,8 @@ async def get_perfil(usuario=Depends(obtener_usuario_actual)):
         conn.close()
         if not row:
             raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        if row[5] == 'rechazada':
+            raise HTTPException(status_code=403, detail="Cuenta rechazada")
         return {
             "id": row[0], "nombre": row[1], "email": row[2],
             "telefono": row[3], "pais": row[4], "estado": row[5],

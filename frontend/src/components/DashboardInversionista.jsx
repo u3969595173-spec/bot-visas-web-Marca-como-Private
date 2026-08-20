@@ -149,7 +149,7 @@ function DashboardInversionista() {
         const response = await fetch(`${API_URL}/api/inversores/perfil`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
-        if (response.status === 401 || response.status === 404) {
+        if (response.status === 401 || response.status === 403 || response.status === 404) {
           localStorage.removeItem('token')
           localStorage.removeItem('usuario')
           localStorage.removeItem('capital_trade_user')

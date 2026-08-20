@@ -58,7 +58,7 @@ function PerfilInversor() {
         });
       })
       .catch((error) => {
-        if (error.response?.status === 401 || error.response?.status === 404) {
+        if (error.response?.status === 401 || error.response?.status === 403 || error.response?.status === 404) {
           localStorage.removeItem('token');
           localStorage.removeItem('usuario');
           localStorage.removeItem('capital_trade_user');
