@@ -300,8 +300,14 @@ function DashboardInversionista() {
       return
     }
 
-    const minimos = readStorage('capital_trade_minimos', { EUR: 100, CUP: 500, MLC: 100 })
-    const minimoMoneda = minimos[monedaInversion] || 100
+    const cuentasAdmin = readStorage('capital_trade_cuentas', [
+      { moneda: 'MLC', minimo: 100 },
+      { moneda: 'CUP', minimo: 500 },
+      { moneda: 'EUR', minimo: 500 },
+      { moneda: 'USDT BEP-20', minimo: 50 }
+    ])
+    const cuentaConfig = cuentasAdmin.find(c => c.moneda === monedaInversion)
+    const minimoMoneda = cuentaConfig?.minimo ? Number(cuentaConfig.minimo) : 100
 
     if (importe < minimoMoneda) {
       setErrorInversion(`El mínimo para ${monedaInversion} es ${formatCurrency(minimoMoneda, monedaInversion)}`)
@@ -1777,8 +1783,15 @@ function DashboardInversionista() {
                   />
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0.5rem 0 0 0' }}>
                     Mínimo: {(() => {
-                      const minimos = readStorage('capital_trade_minimos', { EUR: 100, CUP: 500, MLC: 100 })
-                      return formatCurrency(minimos[monedaInversion] || 100, monedaInversion)
+                      const cuentasAdmin = readStorage('capital_trade_cuentas', [
+                        { moneda: 'MLC', minimo: 100 },
+                        { moneda: 'CUP', minimo: 500 },
+                        { moneda: 'EUR', minimo: 500 },
+                        { moneda: 'USDT BEP-20', minimo: 50 }
+                      ])
+                      const cuentaConfig = cuentasAdmin.find(c => c.moneda === monedaInversion)
+                      const val = cuentaConfig?.minimo ? Number(cuentaConfig.minimo) : 100
+                      return formatCurrency(val, monedaInversion)
                     })()}
                   </p>
                 </div>

@@ -7,10 +7,10 @@ import RetirosCreditoPanel from './RetirosCreditoPanel'
 const API = import.meta.env.VITE_API_URL || '${API}'
 
 const METODOS_DEFAULT = [
-  { moneda: 'MLC', tipo: 'tarjeta', numero: '', instrucciones: '' },
-  { moneda: 'CUP', tipo: 'tarjeta', numero: '', instrucciones: '' },
-  { moneda: 'EUR', tipo: 'iban', titular: '', iban: '', concepto: '' },
-  { moneda: 'USDT BEP-20', tipo: 'wallet', wallet: '', red: 'BEP-20 (BSC)', instrucciones: '' },
+  { moneda: 'MLC', tipo: 'tarjeta', numero: '', instrucciones: '', minimo: 100 },
+  { moneda: 'CUP', tipo: 'tarjeta', numero: '', instrucciones: '', minimo: 500 },
+  { moneda: 'EUR', tipo: 'iban', titular: '', iban: '', concepto: '', minimo: 500 },
+  { moneda: 'USDT BEP-20', tipo: 'wallet', wallet: '', red: 'BEP-20 (BSC)', instrucciones: '', minimo: 50 },
 ]
 
 const defaultMinimos = { MLC: 100, CUP: 500, 'USDT BEP-20': 50, EUR: 500 }
@@ -1461,17 +1461,22 @@ function DashboardAdminExpandido({ onLogout }) {
                             placeholder="BEP-20 (BSC)" style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 14, boxSizing: 'border-box' }} />
                         </div>
                         <div>
-                          <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Instrucciones adicionales</label>
+                          <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Instrucciones adicionales / Referencia</label>
                           <input value={m.instrucciones} onChange={e => updateBankAccount(i, 'instrucciones', e.target.value)}
                             placeholder="Ej: Indicar tu email como referencia" style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 14, boxSizing: 'border-box' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Monto mínimo requerido (en {m.moneda})</label>
+                          <input type="number" value={m.minimo || ''} onChange={e => updateBankAccount(i, 'minimo', e.target.value)}
+                            placeholder="Ej: 50" style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 14, boxSizing: 'border-box' }} />
                         </div>
                       </div>
                     ) : m.tipo === 'tarjeta' ? (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-                        {[['Número de tarjeta', 'numero', '0000 0000 0000 0000'], ['Instrucciones', 'instrucciones', 'Ej: Indicar tu email como referencia']].map(([label, field, ph]) => (
+                        {[['Número de tarjeta', 'numero', '0000 0000 0000 0000'], ['Monto mínimo (opcional)', 'minimo', 'Ej: 100'], ['Instrucciones', 'instrucciones', 'Ej: Indicar tu email como referencia']].map(([label, field, ph]) => (
                           <div key={field} style={{ gridColumn: field === 'instrucciones' ? 'span 2' : 'auto' }}>
                             <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>{label}</label>
-                            <input value={m[field] || ''} onChange={e => updateBankAccount(i, field, e.target.value)}
+                            <input value={m[field] || ''} onChange={e => updateBankAccount(i, field, e.target.value)} type={field === 'minimo' ? 'number' : 'text'}
                               placeholder={ph}
                               style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
                           </div>
@@ -1479,10 +1484,10 @@ function DashboardAdminExpandido({ onLogout }) {
                       </div>
                     ) : m.tipo === 'iban' ? (
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
-                        {[['Titular', 'titular', 'Nombre completo'], ['IBAN', 'iban', 'ES00...'], ['Concepto', 'concepto', 'Ej: Nombre y Apellido']].map(([label, field, ph]) => (
-                          <div key={field} style={{ gridColumn: field === 'concepto' ? 'span 2' : 'auto' }}>
+                        {[['Titular', 'titular', 'Nombre completo'], ['IBAN', 'iban', 'ES00...'], ['Concepto', 'concepto', 'Ej: Nombre y Apellido'], ['Monto mínimo (opcional)', 'minimo', 'Ej: 500']].map(([label, field, ph]) => (
+                          <div key={field} style={{ gridColumn: 'auto' }}>
                             <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>{label}</label>
-                            <input value={m[field] || ''} onChange={e => updateBankAccount(i, field, e.target.value)}
+                            <input value={m[field] || ''} onChange={e => updateBankAccount(i, field, e.target.value)} type={field === 'minimo' ? 'number' : 'text'}
                               placeholder={ph}
                               style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
                           </div>
