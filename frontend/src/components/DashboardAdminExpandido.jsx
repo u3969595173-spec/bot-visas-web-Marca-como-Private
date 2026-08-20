@@ -554,18 +554,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const updateAportacionStatus = async (id, estado, comentario = '') => {
     try {
       const token = localStorage.getItem('token')
-      let bodyData = { estado }
-
-      if (estado === 'Activa' || estado === 'Aprobada') {
-        const respuesta = prompt("Ingresa la tasa diaria para esta inversión (Ej: 0.5 o 1.5):", "0.5")
-        if (respuesta === null) return; // Cancelado por el admin
-        const tasa = parseFloat(respuesta)
-        if (isNaN(tasa) || tasa < 0) {
-          alert("Por favor ingresa un número válido")
-          return;
-        }
-        bodyData.tasa_diaria = tasa
-      }
+      let bodyData = { estado, tasa_diaria: 0.5 } // Tasa diaria predeterminada. Pago se realiza globalmente.
 
       const response = await fetch(`${API}/api/aportaciones/${id}`, {
         method: 'PUT',
