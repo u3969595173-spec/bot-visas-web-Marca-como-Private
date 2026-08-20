@@ -79,6 +79,8 @@ const RegistroInversor = () => {
         id: inversor.id,
         name: inversor.nombre,
         email: inversor.email,
+        telefono: formData.telefono.trim(),
+        pais: formData.pais.trim() || 'España',
         role: 'inversor'
       };
 

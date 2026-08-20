@@ -181,6 +181,72 @@ async def login_inversor(datos: InversorLoginRequest):
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
+@app.get("/api/inversores/perfil")
+async def get_perfil(usuario=Depends(obtener_usuario_actual)):
+    """Devuelve el perfil completo del inversor autenticado"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        cur.execute("""
+            ALTER TABLE inversores
+            ADD COLUMN IF NOT EXISTS foto_perfil TEXT,
+            ADD COLUMN IF NOT EXISTS foto_portada TEXT
+        """)
+        conn.commit()
+        cur.execute(
+            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada FROM inversores WHERE id = %s",
+            (usuario.get("inversor_id"),)
+        )
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        return {
+            "id": row[0], "nombre": row[1], "email": row[2],
+            "telefono": row[3], "pais": row[4], "estado": row[5],
+            "foto_perfil": row[6], "foto_portada": row[7]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+class FotoRequest(BaseModel):
+    foto: str  # base64 data URL
+
+
+@app.put("/api/inversores/perfil/foto")
+async def update_foto_perfil(datos: FotoRequest, usuario=Depends(obtener_usuario_actual)):
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        cur.execute("UPDATE inversores SET foto_perfil = %s WHERE id = %s",
+                    (datos.foto, usuario.get("inversor_id")))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/inversores/perfil/portada")
+async def update_foto_portada(datos: FotoRequest, usuario=Depends(obtener_usuario_actual)):
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        cur.execute("UPDATE inversores SET foto_portada = %s WHERE id = %s",
+                    (datos.foto, usuario.get("inversor_id")))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 @app.post("/api/admin/login")
 async def admin_login(datos: dict):
     """Login de admin"""
