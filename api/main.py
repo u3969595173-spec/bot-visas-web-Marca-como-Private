@@ -1990,7 +1990,7 @@ async def post_chat_admin_mensaje(
         conn.commit()
         cur.close()
         conn.close()
-        return {"ok": True, "id": row[0], "created_at": row[1].isoformat() if row[1] else None}
+        return {"ok": True, "id": row[0], "created_at": row[1].isoformat() if row[1] else None, "private": True}
     except Exception as error:
         raise HTTPException(status_code=500, detail=f"Error al guardar chat privado: {error}")
 

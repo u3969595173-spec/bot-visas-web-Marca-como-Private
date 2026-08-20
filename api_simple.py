@@ -1037,7 +1037,7 @@ async def crear_mensaje(datos: dict, privado: bool = Query(False), usuario = Dep
         cur.close()
         conn.close()
 
-        return {"id": mensaje_id, "success": True}
+        return {"id": mensaje_id, "success": True, "private": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
