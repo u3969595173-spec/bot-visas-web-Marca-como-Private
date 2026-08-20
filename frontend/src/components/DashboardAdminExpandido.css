@@ -2211,6 +2211,13 @@ select:focus {
     display: flex;
   }
 
+  /* Layout stays ROW - sidebar is a fixed overlay, not stacked */
+  .admin-futuristic-layout {
+    flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
+  }
+
   /* Sidebar becomes slide-in drawer */
   .admin-sidebar {
     position: fixed;
@@ -2220,10 +2227,12 @@ select:focus {
     width: 270px;
     z-index: 100;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
   }
 
   .admin-sidebar.open {
     left: 0;
+    box-shadow: 8px 0 40px rgba(0, 0, 0, 0.7);
   }
 
   .sidebar-overlay.open {
@@ -2233,14 +2242,8 @@ select:focus {
   /* Main content takes full width */
   .admin-main-content {
     width: 100%;
+    flex: 1;
     overflow-y: auto;
-  }
-
-  .admin-futuristic-layout {
-    flex-direction: column;
-    height: auto;
-    min-height: 100vh;
-    overflow: auto;
   }
 
   /* Topbar responsive */
