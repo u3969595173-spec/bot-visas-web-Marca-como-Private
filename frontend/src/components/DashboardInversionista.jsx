@@ -743,7 +743,7 @@ function DashboardInversionista() {
           </div>
           <div className="topbar-actions">
             <button onClick={() => {
-              window.open('https://wa.me/NUMERO_WHATSAPP', '_blank')
+              window.open('https://wa.me/34677412858', '_blank')
             }} style={{ position: 'relative', display: 'inline-block', padding: '10px 20px', background: 'linear-gradient(135deg, #25D366, #128C7E)', border: 'none', color: '#fff', borderRadius: '12px', cursor: 'pointer', fontWeight: 600 }}>
               📱 Soporte WhatsApp
             </button>
