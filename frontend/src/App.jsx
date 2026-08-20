@@ -18,6 +18,7 @@ import TerminosCondiciones from './components/TerminosCondiciones'
 import Comunidad from './components/Comunidad'
 import Programa from './components/Programa'
 import ProgramaPartner from './components/ProgramaPartner'
+import ProgramaCombinado from './components/ProgramaCombinado'
 
 function SobreNosotros() {
   return (
@@ -242,6 +243,13 @@ function App() {
           {/* RUTAS INVERSOR */}
           <Route path="/login" element={<LoginInversor />} />
           <Route path="/registro" element={<RegistroInversor />} />
+          <Route path="/comunidad" element={
+            <ProtectedRoute>
+              <Comunidad />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/programa-combinado" element={<ProgramaCombinado />} />
           <Route
             path="/dashboard"
             element={isAuthenticated ? <DashboardInversionista /> : <Navigate to="/login" />}

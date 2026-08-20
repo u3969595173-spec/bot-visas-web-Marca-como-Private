@@ -476,16 +476,26 @@ function DashboardAdminExpandido({ onLogout }) {
     return referidos.filter(r => r.referidoPor === referidoAdmin.codigo && r.esAdmin !== true)
   }
 
-  // Niveles del Programa de Aceleración
-  const RANGOS = [
-    { nombre: 'Agent', emoji: '🟠', minInversion: 5000, minReferidos: 20, beneficioMensual: 200, meses: 7 },
-    { nombre: 'Senior Partner', emoji: '🟣', minInversion: 3500, minReferidos: 15, beneficioMensual: 150, meses: 5 },
-    { nombre: 'Advisor', emoji: '🔵', minInversion: 2000, minReferidos: 10, beneficioMensual: 100, meses: 3 },
-    { nombre: 'Partner', emoji: '🟢', minInversion: 1000, minReferidos: 5, beneficioMensual: 50, meses: 2 }
+  // Niveles de Programas
+  const PROGRAMA_LIDERES = [
+    { nombre: 'Founding Leader', emoji: '🏆', minReferidos: 500, bonus: 400 },
+    { nombre: 'Executive Leader', emoji: '👑', minReferidos: 200, bonus: 250 },
+    { nombre: 'Elite Leader', emoji: '💎', minReferidos: 100, bonus: 150 },
+    { nombre: 'Senior Leader', emoji: '🔥', minReferidos: 50, bonus: 100 },
+    { nombre: 'Leader', emoji: '⭐', minReferidos: 25, bonus: 50 },
+    { nombre: 'Community', emoji: '🌱', minReferidos: 5, bonus: 25 }
+  ]
+
+  const PROGRAMA_PARTNER = [
+    { nombre: 'Founding Partner', emoji: '🏆', minInversion: 10000, beneficioMensual: 250, meses: 12 },
+    { nombre: 'Strategic Partner', emoji: '👑', minInversion: 5000, beneficioMensual: 150, meses: 6 },
+    { nombre: 'VIP Partner', emoji: '💎', minInversion: 2500, beneficioMensual: 100, meses: 4 },
+    { nombre: 'Premium Partner', emoji: '🔷', minInversion: 1000, beneficioMensual: 50, meses: 3 },
+    { nombre: 'Partner', emoji: '💠', minInversion: 500, beneficioMensual: 25, meses: 2 }
   ]
 
   // Calcula el rango, referidos activos e inversión propia de cada inversor con código de referido
-  const getRangosInversores = () => {
+  const getStatsInversores = () => {
     return referidos
       .filter(r => r.codigo && !r.esAdmin)
       .map(inversor => {
@@ -501,16 +511,17 @@ function DashboardAdminExpandido({ onLogout }) {
           ))
           .reduce((sum, a) => sum + Number(a.importe || 0), 0)
 
-        const rango = RANGOS.find(r => inversionPropia >= r.minInversion && referidosActivos >= r.minReferidos) || null
+        const nivelLideres = PROGRAMA_LIDERES.find(r => referidosActivos >= r.minReferidos) || null
+        const nivelPartner = PROGRAMA_PARTNER.find(r => inversionPropia >= r.minInversion) || null
 
         return {
           nombreInversor: inversor.nombreInversor,
           inversionPropia,
           referidosActivos,
-          rango
+          nivelLideres,
+          nivelPartner
         }
       })
-      .filter(item => item.rango)
   }
 
   // Calcular comisión de referido (10% del importe de inversión)
@@ -1382,50 +1393,123 @@ function DashboardAdminExpandido({ onLogout }) {
           )}
           {activeTab === 'rangos' && (
             <div className="card">
-              <div className="section-header"><h2>🏆 Programa de Aceleración - Rangos</h2></div>
+              <div className="section-header"><h2>🏆 Programas de Capital y Comunidad</h2></div>
               <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-                Inversores que alcanzaron un rango según su inversión propia y sus referidos activos (mínimo 100 $ de inversión cada uno). Aquí ves cuánto hay que pagarles mensualmente.
+                Gestión de los 3 programas de la plataforma. Analiza a tus usuarios por su volumen de inversión (Capital), el tamaño de su red (Comunidad) o ambos combinados.
               </p>
 
-              {getRangosInversores().length > 0 ? (
-                <>
-                  <div className="table-container">
-                    <table className="tabla-estudiantes">
-                      <thead>
-                        <tr>
-                          <th>Inversor</th>
-                          <th>Rango</th>
-                          <th>Inversión propia</th>
-                          <th>Referidos activos</th>
-                          <th>Beneficio mensual</th>
-                          <th>Duración</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {getRangosInversores().map((item, idx) => (
-                          <tr key={idx}>
-                            <td>{item.nombreInversor}</td>
-                            <td>{item.rango.emoji} {item.rango.nombre}</td>
-                            <td>€{item.inversionPropia.toFixed(2)}</td>
-                            <td>{item.referidosActivos}</td>
-                            <td style={{ fontWeight: '700', color: '#10b981' }}>€{item.rango.beneficioMensual} / mes</td>
-                            <td>{item.rango.meses} meses</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+              {/* 1. PROGRAMA PARTNER (Capital) */}
+              <div style={{ marginBottom: '3rem' }}>
+                <h3 style={{ borderBottom: '2px solid #10b981', paddingBottom: '0.5rem', color: '#065f46' }}>💎 Programa Partner (Capital)</h3>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '1rem' }}>Inversores que generan beneficio mensual recurrente por mantener capital propio (+500).</p>
+                {(() => {
+                  // Muestra usuarios que SÓLO están en Partner o en ambos
+                  const inversores = getStatsInversores().filter(i => i.nivelPartner)
+                  return inversores.length > 0 ? (
+                    <>
+                      <div className="table-container">
+                        <table className="tabla-estudiantes">
+                          <thead>
+                            <tr style={{ background: '#ecfdf5' }}>
+                              <th>Inversor</th>
+                              <th>Nivel Partner</th>
+                              <th>Capital Propio</th>
+                              <th>Beneficio Mensual</th>
+                              <th>Duración</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {inversores.map((item, idx) => (
+                              <tr key={idx}>
+                                <td>{item.nombreInversor}</td>
+                                <td>{item.nivelPartner.emoji} {item.nivelPartner.nombre}</td>
+                                <td>€{item.inversionPropia.toFixed(2)}</td>
+                                <td style={{ fontWeight: '700', color: '#10b981' }}>€{item.nivelPartner.beneficioMensual} / mes</td>
+                                <td>{item.nivelPartner.meses} meses</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#f0fdf4', border: '1px solid #22c55e', borderRadius: '8px' }}>
+                        <strong style={{ color: '#15803d' }}>💰 Total a pagar por Capital (mes): </strong>
+                        <span style={{ fontWeight: '700', color: '#15803d' }}>
+                          €{inversores.reduce((sum, item) => sum + item.nivelPartner.beneficioMensual, 0).toFixed(2)}
+                        </span>
+                      </div>
+                    </>
+                  ) : <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>Ningún inversor ha alcanzado niveles de capital aún.</p>
+                })()}
+              </div>
 
-                  <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: '#f0fdf4', border: '1px solid #22c55e', borderRadius: '10px' }}>
-                    <strong style={{ color: '#15803d' }}>💰 Total a pagar este mes a todos los rangos: </strong>
-                    <span style={{ fontWeight: '700', color: '#15803d' }}>
-                      €{getRangosInversores().reduce((sum, item) => sum + item.rango.beneficioMensual, 0).toFixed(2)}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>Aún ningún inversor ha alcanzado un rango del programa de aceleración.</p>
-              )}
+              {/* 2. PROGRAMA LÍDERES (Comunidad) */}
+              <div style={{ marginBottom: '3rem' }}>
+                <h3 style={{ borderBottom: '2px solid #3b82f6', paddingBottom: '0.5rem', color: '#1e3a8a' }}>👑 Programa de Líderes (Comunidad)</h3>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '1rem' }}>Inversores calificados por referidos activos (+5). Desbloquean bonus de <strong>PAGO ÚNICO</strong>.</p>
+                {(() => {
+                  const inversores = getStatsInversores().filter(i => i.nivelLideres)
+                  return inversores.length > 0 ? (
+                    <div className="table-container">
+                      <table className="tabla-estudiantes">
+                        <thead>
+                          <tr style={{ background: '#eff6ff' }}>
+                            <th>Líder</th>
+                            <th>Nivel Comunidad</th>
+                            <th>Referidos (+100€)</th>
+                            <th>Bonus Único Asociado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inversores.map((item, idx) => (
+                            <tr key={idx}>
+                              <td>{item.nombreInversor}</td>
+                              <td>{item.nivelLideres.emoji} {item.nivelLideres.nombre}</td>
+                              <td>{item.referidosActivos} activos</td>
+                              <td style={{ fontWeight: '700', color: '#3b82f6' }}>€{item.nivelLideres.bonus}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>Ningún usuario ha calificado con referidos aún.</p>
+                })()}
+              </div>
+
+              {/* 3. PROGRAMA COMBINADO */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ borderBottom: '2px solid #ef4444', paddingBottom: '0.5rem', color: '#7f1d1d' }}>🔥 Programa Combinado (Capital + Comunidad)</h3>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '1rem' }}>Desglose de usuarios excepcionales que cumplen ambas condiciones y combinan recompensas.</p>
+                {(() => {
+                  const inversores = getStatsInversores().filter(i => i.nivelPartner && i.nivelLideres)
+                  return inversores.length > 0 ? (
+                    <div className="table-container">
+                      <table className="tabla-estudiantes" style={{ border: '2px solid #fecaca' }}>
+                        <thead>
+                          <tr style={{ background: '#fef2f2' }}>
+                            <th>Inversor Élite</th>
+                            <th>Nivel de Capital</th>
+                            <th>Nivel Comunidad</th>
+                            <th>Total Recompensas</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inversores.map((item, idx) => (
+                            <tr key={idx}>
+                              <td><strong>{item.nombreInversor}</strong></td>
+                              <td>{item.nivelPartner.emoji} {item.nivelPartner.nombre} (€{item.inversionPropia})</td>
+                              <td>{item.nivelLideres.emoji} {item.nivelLideres.nombre} ({item.referidosActivos})</td>
+                              <td style={{ fontWeight: '700', color: '#b91c1c' }}>
+                                €{item.nivelPartner.beneficioMensual}/mes <span style={{ color: '#94a3b8' }}>+</span> €{item.nivelLideres.bonus} bono
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : <p style={{ color: '#9ca3af', fontStyle: 'italic' }}>Aún no hay inversores en nivel Élite (Combinado).</p>
+                })()}
+              </div>
+
             </div>
           )}
           {activeTab === 'configuracion' && (
