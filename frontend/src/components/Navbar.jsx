@@ -63,6 +63,8 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
 
         <nav className="navbar-links">
           <Link to="/como-funciona" className={`nav-link ${isActive('/como-funciona')}`}>Cómo funciona</Link>
+          <Link to="/programa" className={`nav-link ${isActive('/programa')}`} style={{ background: 'linear-gradient(135deg, #f6c453, #dba93a)', color: '#0a0f1a', padding: '6px 14px', borderRadius: 8, fontWeight: 700 }}>👑 Programa Líderes</Link>
+          <Link to="/programa-partner" className={`nav-link ${isActive('/programa-partner')}`} style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#0a0f1a', padding: '6px 14px', borderRadius: 8, fontWeight: 700 }}>💎 Programa Partner</Link>
           <Link to="/operaciones" className={`nav-link ${isActive('/operaciones')}`}>Operaciones</Link>
           <Link to="/sobre-nosotros" className={`nav-link ${isActive('/sobre-nosotros')}`}>Nosotros</Link>
           <Link to="/contacto" className={`nav-link ${isActive('/contacto')}`}>Contacto</Link>
@@ -103,6 +105,8 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
         <div className="mobile-menu">
           <div className="mobile-menu-content">
             <Link to="/como-funciona" className="mobile-menu-link" onClick={closeMobileMenu}>Cómo funciona</Link>
+            <Link to="/programa" className="mobile-menu-link" onClick={closeMobileMenu}>Programa Líderes</Link>
+            <Link to="/programa-partner" className="mobile-menu-link" onClick={closeMobileMenu}>Programa Partner</Link>
             <Link to="/operaciones" className="mobile-menu-link" onClick={closeMobileMenu}>Operaciones</Link>
             <Link to="/sobre-nosotros" className="mobile-menu-link" onClick={closeMobileMenu}>Nosotros</Link>
             <Link to="/contacto" className="mobile-menu-link" onClick={closeMobileMenu}>Contacto</Link>

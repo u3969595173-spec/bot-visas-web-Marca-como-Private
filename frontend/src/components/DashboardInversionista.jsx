@@ -1375,26 +1375,31 @@ function DashboardInversionista() {
                 <div style={{ backgroundColor: '#f59e0b', border: '4px solid #f59e0b', borderRadius: '12px', padding: '2rem', marginBottom: '1.5rem', color: 'white' }}>
                   <p style={{ margin: '0 0 1.5rem 0', fontWeight: 'bold', fontSize: '18px' }}>📌 Referencia de transferencia</p>
                   {(() => {
-                    const cuentasAdmin = readStorage('capital_trade_demo_bank_accounts', [
-                      { moneda: 'EUR', banco: 'Banco de España', titular: 'Capital Trade Iberia', cuenta: 'ES91 2100 0418 4502 0005 1332', instrucciones: 'Transferencia previa a la validación.', estado: 'Activo' },
-                      { moneda: 'CUP', banco: 'Banco local autorizado', titular: 'Capital Trade Iberia', cuenta: 'CU24 0000 0000 0000 0000 0000', instrucciones: 'Pago en moneda local con referencia de operación.', estado: 'Activo' },
-                      { moneda: 'MLC', banco: 'Banco MLC autorizado', titular: 'Capital Trade Iberia', cuenta: 'MLC 0000 0000 0000 0000 0000', instrucciones: 'Referencia obligatoria en la transferencia.', estado: 'Activo' }
-                    ])
+                    const METODOS_DEFAULT = [
+                      { moneda: 'MLC', titular: 'Capital Trade Iberia', numero: 'MLC 0000', instrucciones: 'Referencia obligatoria en la transferencia.', red: 'Banco' },
+                      { moneda: 'CUP', titular: 'Capital Trade Iberia', numero: 'CU24 0000', instrucciones: 'Pago en moneda local con referencia de operación.', red: 'Banco' },
+                      { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.' }
+                    ]
+                    const cuentasAdmin = readStorage('capital_trade_cuentas', METODOS_DEFAULT)
                     const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === solicitudSeleccionada.moneda)
                     return cuentaSeleccionada ? (
                       <div style={{ display: 'grid', gap: '1.2rem' }}>
+                        {cuentaSeleccionada.titular && (
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
+                          </div>
+                        )}
                         <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                          <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🏦 BANCO</p>
-                          <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.banco}</p>
+                          <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : '💳 NÚMERO DE CUENTA'}</p>
+                          <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'}</p>
                         </div>
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                          <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
-                          <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
-                        </div>
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                          <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>💳 NÚMERO DE CUENTA</p>
-                          <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px' }}>{cuentaSeleccionada.cuenta}</p>
-                        </div>
+                        {cuentaSeleccionada.red && (
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🌐 RED / BANCO</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.red || cuentaSeleccionada.banco || '—'}</p>
+                          </div>
+                        )}
                       </div>
                     ) : <p style={{ margin: 0, color: '#ffffff', fontWeight: 'bold', fontSize: '16px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada</p>
                   })()}
@@ -1689,9 +1694,9 @@ function DashboardInversionista() {
                       fontSize: '14px'
                     }}
                   >
-                    <option value="EUR">EUR - €</option>
-                    <option value="CUP">CUP - Pesos Cubanos</option>
                     <option value="MLC">MLC - Moneda Libremente Convertible</option>
+                    <option value="CUP">CUP - Pesos Cubanos</option>
+                    <option value="USDT BEP-20">USDT BEP-20 (Criptomoneda)</option>
                   </select>
                 </div>
 
@@ -1699,34 +1704,43 @@ function DashboardInversionista() {
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold', color: '#374151', fontSize: '16px' }}>💳 Datos de transferencia</label>
                   {(() => {
-                    const cuentasAdmin = readStorage('capital_trade_demo_bank_accounts', [
-                      { moneda: 'EUR', banco: 'Banco de España', titular: 'Capital Trade Iberia', cuenta: 'ES91 2100 0418 4502 0005 1332', instrucciones: 'Transferencia previa a la validación.', estado: 'Activo' },
-                      { moneda: 'CUP', banco: 'Banco local autorizado', titular: 'Capital Trade Iberia', cuenta: 'CU24 0000 0000 0000 0000 0000', instrucciones: 'Pago en moneda local con referencia de operación.', estado: 'Activo' },
-                      { moneda: 'MLC', banco: 'Banco MLC autorizado', titular: 'Capital Trade Iberia', cuenta: 'MLC 0000 0000 0000 0000 0000', instrucciones: 'Referencia obligatoria en la transferencia.', estado: 'Activo' }
-                    ])
+                    const METODOS_DEFAULT = [
+                      { moneda: 'MLC', titular: 'Capital Trade Iberia', numero: 'MLC 0000', instrucciones: 'Referencia obligatoria en la transferencia.', red: 'Banco' },
+                      { moneda: 'CUP', titular: 'Capital Trade Iberia', numero: 'CU24 0000', instrucciones: 'Pago en moneda local con referencia.', red: 'Banco' },
+                      { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.' }
+                    ]
+                    const cuentasAdmin = readStorage('capital_trade_cuentas', METODOS_DEFAULT)
                     const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === monedaInversion)
                     return cuentaSeleccionada ? (
-                      <div style={{ backgroundColor: '#0284c7', border: '4px solid #0284c7', padding: '2rem', borderRadius: '12px', fontSize: '16px', color: 'white' }}>
-                        <div style={{ display: 'grid', gap: '1.2rem' }}>
-                          <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
-                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🏦 BANCO</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.banco}</p>
-                          </div>
+                      <div style={{ backgroundColor: '#0284c7', border: '4px solid #0284c7', padding: '1.5rem', borderRadius: '12px', fontSize: '16px', color: 'white' }}>
+                        <div style={{ display: 'grid', gap: '1rem' }}>
+
+                          {cuentaSeleccionada.titular && (
+                            <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                              <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
+                              <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
+                            </div>
+                          )}
+
                           <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
-                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : '💳 NÚMERO DE CUENTA / TARJETA'}</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'}</p>
                           </div>
+
+                          {cuentaSeleccionada.red && (
+                            <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
+                              <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🌐 RED / BANCO</p>
+                              <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.red || cuentaSeleccionada.banco || '—'}</p>
+                            </div>
+                          )}
+
                           <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
-                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>💳 NÚMERO DE CUENTA</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px' }}>{cuentaSeleccionada.cuenta}</p>
-                          </div>
-                          <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
-                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📋 INSTRUCCIONES</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.instrucciones}</p>
+                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📋 INSTRUCCIONES DEL ADMIN</p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.instrucciones || 'Sin instrucciones adicionales'}</p>
                           </div>
                         </div>
                       </div>
-                    ) : <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '16px', backgroundColor: '#fee2e2', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada para esta moneda</p>
+                    ) : <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '16px', backgroundColor: '#fee2e2', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada o activa para esta moneda</p>
                   })()}
                 </div>
 

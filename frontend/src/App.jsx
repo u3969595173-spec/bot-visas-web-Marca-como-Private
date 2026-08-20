@@ -16,31 +16,49 @@ import ComoFunciona from './components/ComoFunciona'
 import PoliticaPrivacidad from './components/PoliticaPrivacidad'
 import TerminosCondiciones from './components/TerminosCondiciones'
 import Comunidad from './components/Comunidad'
+import Programa from './components/Programa'
+import ProgramaPartner from './components/ProgramaPartner'
 
 function SobreNosotros() {
   return (
     <div className="page-shell">
       <div className="page-card">
-        <h1>Sobre nosotros</h1>
-        <p>Somos una estructura orientada a operar con capital en operaciones comerciales entre España y Cuba, con foco en logística, compra, exportación y coordinación comercial.</p>
-        <p>Todo proyecto se presenta con condiciones específicas, plazos y riesgos definidos según cada operación. No se ofrecen rentabilidades garantizadas ni resultados asegurados.</p>
+        <h1>Sobre Nosotros</h1>
+        <p style={{ fontSize: '1.2rem', fontWeight: '600', color: '#f6c453' }}>Construimos oportunidades. Creamos comunidad.</p>
+        <p>Soporte Capital nace con una visión sencilla: crear una plataforma que conecte personas, oportunidades comerciales y comunidades dentro de un mismo ecosistema.</p>
+        <p>Trabajamos con un modelo basado en la gestión de operaciones comerciales y en el desarrollo de una comunidad que pueda crecer junto al proyecto.</p>
+        <p>Nuestro objetivo es ofrecer una experiencia clara, organizada y transparente, donde cada usuario pueda gestionar su cuenta, consultar sus movimientos y acceder a los diferentes beneficios disponibles dentro de la plataforma.</p>
+
+        <h2 style={{ marginTop: '2rem' }}>Nuestra comunidad</h2>
+        <p>Creemos que el crecimiento no tiene por qué ser individual.</p>
+        <p>Por eso hemos desarrollado un Programa de Partners, pensado para personas con capacidad de crear y liderar comunidades. Los Partners pueden desarrollar su propia comunidad dentro de la plataforma y acceder a beneficios especiales, promociones, oportunidades, apoyo para eventos y un Fondo de Comunidad destinado a impulsar el crecimiento de sus comunidades.</p>
+
+        <h2 style={{ marginTop: '2rem' }}>Nuestro enfoque</h2>
         <div className="info-grid">
           <div className="info-box">
-            <h3>Enfoque operativo</h3>
-            <p>Relacionamos capital, abastecimiento y ejecución comercial, manteniendo un criterio claro sobre riesgo, plazo y control documental.</p>
+            <h3>🔹 Clara</h3>
+            <p>Información organizada y fácil de consultar.</p>
           </div>
           <div className="info-box">
-            <h3>Transparencia</h3>
-            <p>Se presentan condiciones, capital disponible, riesgo y documentación asociada antes de avanzar con cualquier participación.</p>
+            <h3>🔹 Dinámica</h3>
+            <p>Con nuevas oportunidades y promociones.</p>
           </div>
           <div className="info-box">
-            <h3>Estructura</h3>
-            <p>El modelo está pensado para describir cada operación por su propia lógica comercial, con condiciones específicas y control del proceso.</p>
+            <h3>🔹 Comunitaria</h3>
+            <p>Donde los líderes puedan desarrollar sus propias comunidades.</p>
           </div>
           <div className="info-box">
-            <h3>Seguimiento</h3>
-            <p>Se exige trazabilidad del desarrollo, movimientos y documentación para que el inversor tenga una visión clara del estado de la operación.</p>
+            <h3>🔹 Orientada al crecimiento</h3>
+            <p>Con un sistema de rangos, objetivos y beneficios.</p>
           </div>
+        </div>
+
+        <h2 style={{ marginTop: '2rem' }}>Nuestra visión</h2>
+        <p>Queremos construir una comunidad internacional alrededor de un ecosistema de oportunidades comerciales, donde usuarios y Partners puedan crecer junto al desarrollo de la plataforma.</p>
+
+        <div style={{ marginTop: '2.5rem', textAlign: 'center', borderTop: '1px solid rgba(246,196,83,0.2)', paddingTop: '2rem' }}>
+          <p style={{ fontSize: '1.1rem', fontWeight: '700', color: '#f8fafc' }}>Soporte Capital</p>
+          <p style={{ color: '#f6c453', fontWeight: '600' }}>Crece. Conecta. Avanza.</p>
         </div>
       </div>
     </div>
@@ -210,6 +228,8 @@ function App() {
           {/* RUTAS PÚBLICAS */}
           <Route path="/" element={<Home />} />
           <Route path="/como-funciona" element={<ComoFunciona />} />
+          <Route path="/programa" element={<Programa />} />
+          <Route path="/programa-partner" element={<ProgramaPartner />} />
           <Route path="/operaciones" element={<CatalogoOperaciones />} />
           <Route path="/sobre-nosotros" element={<SobreNosotros />} />
           <Route path="/aviso-legal" element={<AvisosLegales />} />

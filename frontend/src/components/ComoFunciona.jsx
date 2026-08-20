@@ -8,27 +8,39 @@ function ComoFunciona() {
   const pasos = [
     {
       numero: 1,
-      titulo: 'Elige la operación',
-      descripcion: 'Revisa el catálogo de operaciones activas con sus condiciones, capital requerido, plazo estimado y nivel de riesgo. Selecciona la que se ajuste a tu perfil.',
-      icono: '🎯'
+      titulo: 'Crea tu cuenta',
+      descripcion: 'Regístrate en Soporte Capital y accede a tu área personal.',
+      icono: '👤'
     },
     {
       numero: 2,
-      titulo: 'Solicita tu participación',
-      descripcion: 'Envía tu solicitud de participación. El equipo la revisará y te contactará con la documentación, condiciones definitivas y el proceso de formalización.',
-      icono: '✍️'
+      titulo: 'Realiza tu aportación',
+      descripcion: 'Elige la cantidad que deseas aportar dentro de las condiciones disponibles en la plataforma.',
+      icono: '💰'
     },
     {
       numero: 3,
-      titulo: 'Seguimiento en tiempo real',
-      descripcion: 'Una vez formalizada la participación, desde tu panel puedes consultar el estado de la operación, los movimientos de capital y los hitos completados.',
-      icono: '📈'
+      titulo: 'Nosotros gestionamos las operaciones',
+      descripcion: 'Nuestro equipo destina los recursos a las distintas operaciones comerciales de la empresa, según nuestra planificación y estrategia.',
+      icono: '⚙️'
     },
     {
       numero: 4,
-      titulo: 'Liquidación y resultado',
-      descripcion: 'Al cierre de la operación, se comparte el resultado, la liquidación y la documentación justificativa. El capital y el resultado se distribuyen según las condiciones acordadas.',
+      titulo: 'Seguimiento desde tu cuenta',
+      descripcion: 'Desde tu panel podrás consultar el estado de tu cuenta, movimientos, aportaciones y resultados correspondientes.',
       icono: '📊'
+    },
+    {
+      numero: 5,
+      titulo: 'Obtén tus resultados',
+      descripcion: 'Al finalizar los periodos establecidos, los resultados correspondientes se reflejarán en tu cuenta de acuerdo con las condiciones del programa.',
+      icono: '📈'
+    },
+    {
+      numero: 6,
+      titulo: 'Avanza de nivel',
+      descripcion: 'A medida que participas y cumples los requisitos, puedes avanzar por los diferentes rangos y desbloquear beneficios, promociones, descuentos y ventajas adicionales.',
+      icono: '🏆'
     }
   ];
 
@@ -40,7 +52,7 @@ function ComoFunciona() {
           <p className="section-label" style={{ color: '#f6c453', fontSize: '14px', fontWeight: '700', textTransform: 'uppercase' }}>Sistema de inversión</p>
           <h1 style={{ color: '#ffffff', fontSize: '48px', fontWeight: '800', margin: '0.5rem 0' }}>Cómo funciona</h1>
           <p style={{ color: '#cbd5e1', fontSize: '18px', margin: '1rem 0 0 0' }}>
-            Descubre el proceso completo desde tu aportación inicial hasta la generación de beneficios
+            Seis pasos desde tu registro hasta obtener resultados y avanzar de nivel
           </p>
         </div>
       </div>

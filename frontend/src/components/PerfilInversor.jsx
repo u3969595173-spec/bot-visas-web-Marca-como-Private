@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const RANGOS = [
-  { nivel: 1, nombre: 'Bronce', color: '#cd7f32', min: 0 },
-  { nivel: 2, nombre: 'Plata', color: '#a8a9ad', min: 1000 },
-  { nivel: 3, nombre: 'Oro', color: '#f6c453', min: 5000 },
-  { nivel: 4, nombre: 'Platino', color: '#00d4ff', min: 15000 },
+  { nivel: 1, nombre: 'Community',        emoji: '🌱', color: '#4ade80', min: 5,   max: 24,  cupo: '2%',  beneficio: '25 USDT/mes' },
+  { nivel: 2, nombre: 'Leader',           emoji: '⭐', color: '#facc15', min: 25,  max: 49,  cupo: '5%',  beneficio: '50 USDT/mes' },
+  { nivel: 3, nombre: 'Senior Leader',    emoji: '🔥', color: '#fb923c', min: 50,  max: 99,  cupo: '10%', beneficio: '100 USDT/mes' },
+  { nivel: 4, nombre: 'Elite Leader',     emoji: '💎', color: '#60a5fa', min: 100, max: 199, cupo: '15%', beneficio: '150 USDT/mes' },
+  { nivel: 5, nombre: 'Executive Leader', emoji: '👑', color: '#c084fc', min: 200, max: 499, cupo: '25%', beneficio: '250 USDT/mes' },
+  { nivel: 6, nombre: 'Founding Leader',  emoji: '🏆', color: '#f6c453', min: 500, max: null, cupo: '43%', beneficio: '400 USDT/mes' },
 ];
 
-function getRango(aportacion = 0) {
-  return [...RANGOS].reverse().find(r => aportacion >= r.min) || RANGOS[0];
+function getRango(miembros = 0) {
+  return [...RANGOS].reverse().find(r => miembros >= r.min) || null;
 }
 
 const getApiUrl = () => {
@@ -18,6 +21,7 @@ const getApiUrl = () => {
 };
 
 function PerfilInversor() {
+  const navigate = useNavigate();
   const userSession = React.useMemo(() => {
     try { return JSON.parse(localStorage.getItem('capital_trade_user') || 'null'); } catch { return null; }
   }, []);
@@ -26,26 +30,53 @@ function PerfilInversor() {
   const [fotoPerfil, setFotoPerfil] = useState(null);
   const [fotoPortada, setFotoPortada] = useState(null);
   const [guardando, setGuardando] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ nombre: '', telefono: '', pais: '' });
+
   const fotoRef = useRef();
   const portadaRef = useRef();
   const token = localStorage.getItem('token');
 
   useEffect(() => {
+    const defaultForm = {
+      nombre: userSession?.name || userSession?.nombre || 'Inversor',
+      telefono: userSession?.telefono || '',
+      pais: userSession?.pais || 'España'
+    };
+    setEditForm(defaultForm);
+
     if (!token) return;
     axios.get(`${getApiUrl()}/api/inversores/perfil`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => {
         setPerfil(r.data);
         if (r.data.foto_perfil) setFotoPerfil(r.data.foto_perfil);
         if (r.data.foto_portada) setFotoPortada(r.data.foto_portada);
+        setEditForm({
+          nombre: r.data.nombre || defaultForm.nombre,
+          telefono: r.data.telefono || defaultForm.telefono,
+          pais: r.data.pais || defaultForm.pais
+        });
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [token]);
+
+  const handleSaveProfile = () => {
+    setPerfil(prev => ({ ...prev, ...editForm }));
+    if (userSession) {
+      localStorage.setItem('capital_trade_user', JSON.stringify({ ...userSession, ...editForm, name: editForm.nombre }));
+      window.dispatchEvent(new Event('capital-trade-sync'));
+    }
+    setIsEditing(false);
+    if (token) {
+      axios.put(`${getApiUrl()}/api/inversores/perfil/actualizar`, editForm, { headers: { Authorization: `Bearer ${token}` } }).catch(() => { });
+    }
+  };
 
   const nombre = perfil?.nombre || userSession?.name || userSession?.nombre || 'Inversor';
   const email = perfil?.email || userSession?.email || '—';
   const telefono = perfil?.telefono || userSession?.telefono || '—';
   const pais = perfil?.pais || userSession?.pais || 'España';
-  const rango = getRango(0);
+  const rango = getRango(perfil?.miembros || 0);
 
   const handleFoto = (e, tipo) => {
     const file = e.target.files[0];
@@ -87,7 +118,7 @@ function PerfilInversor() {
       </div>
 
       {/* Zona foto + nombre */}
-      <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 1.5rem' }}>
+      <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 1.5rem', position: 'relative', zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1.5rem', marginTop: '-60px', marginBottom: '1rem' }}>
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div onClick={() => fotoRef.current.click()} style={{ width: 120, height: 120, borderRadius: '50%', border: '4px solid #050d18', background: fotoPerfil ? `url(${fotoPerfil}) center/cover` : 'linear-gradient(135deg, #f6c453, #dba93a)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 40, fontWeight: 900, color: '#0a0f1a', overflow: 'hidden', backgroundSize: 'cover' }}>
@@ -100,11 +131,19 @@ function PerfilInversor() {
           </div>
 
           <div style={{ paddingBottom: '0.5rem' }}>
-            <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc' }}>{nombre}</h1>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6, background: 'rgba(255,255,255,0.05)', border: `1px solid ${rango.color}`, borderRadius: 999, padding: '4px 14px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: rango.color, display: 'inline-block' }}></span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: rango.color }}>Rango {rango.nombre}</span>
-            </div>
+            <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc', lineHeight: 1.2, wordBreak: 'break-word', paddingBottom: '2px' }}>
+              {isEditing ? <input value={editForm.nombre} onChange={e => setEditForm({ ...editForm, nombre: e.target.value })} style={{ background: 'transparent', border: '1px solid #f6c453', color: '#fff', fontSize: '1.6rem', fontWeight: 800, width: '100%', borderRadius: 4, padding: '4px 8px', outline: 'none' }} /> : nombre}
+            </h1>
+            {rango ? (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6, background: 'rgba(255,255,255,0.05)', border: `1px solid ${rango.color}`, borderRadius: 999, padding: '4px 14px' }}>
+                <span>{rango.emoji}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: rango.color }}>{rango.nombre}</span>
+              </div>
+            ) : (
+              <div style={{ display: 'inline-flex', marginTop: 6, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 999, padding: '4px 14px' }}>
+                <span style={{ fontSize: 13, color: '#94a3b8' }}>Sin nivel asignado</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -112,37 +151,58 @@ function PerfilInversor() {
 
         {/* Info */}
         <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 16, padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 1.2rem', fontSize: '1rem', fontWeight: 700, color: '#f6c453' }}>Información</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#f6c453' }}>Información</h3>
+            {isEditing ? (
+              <button onClick={handleSaveProfile} style={{ background: '#f6c453', color: '#000', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontWeight: 700 }}>Guardar</button>
+            ) : (
+              <button onClick={() => setIsEditing(true)} style={{ background: 'transparent', color: '#f6c453', border: '1px solid #f6c453', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>Editar info</button>
+            )}
+          </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {[
-              { icon: '✉️', label: 'Email', value: email },
-              { icon: '📞', label: 'Teléfono', value: telefono },
-              { icon: '🌍', label: 'País', value: pais },
-              { icon: '🏅', label: 'Rango actual', value: rango.nombre },
+              { icon: '✉️', label: 'Email', value: email, editable: false },
+              { icon: '📞', label: 'Teléfono', value: telefono, editable: true, field: 'telefono' },
+              { icon: '🌍', label: 'País', value: pais, editable: true, field: 'pais' },
+              { icon: '🏅', label: 'Nivel', value: rango ? `${rango.emoji} ${rango.nombre}` : 'Sin nivel', editable: false },
             ].map(item => (
               <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                 <span style={{ fontSize: 18, width: 28, textAlign: 'center' }}>{item.icon}</span>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#f1f5f9' }}>{item.value}</div>
+                  {isEditing && item.editable ? (
+                    <input value={editForm[item.field]} onChange={e => setEditForm({ ...editForm, [item.field]: e.target.value })} style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid #334155', color: '#f1f5f9', width: '100%', maxWidth: 300, padding: '4px 8px', borderRadius: 4, marginTop: 4, fontSize: 14, outline: 'none' }} />
+                  ) : (
+                    <div style={{ fontSize: 15, fontWeight: 600, color: '#f1f5f9' }}>{item.value}</div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Rangos */}
-        <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 16, padding: '1.5rem', marginBottom: '2rem' }}>
-          <h3 style={{ margin: '0 0 1.2rem', fontSize: '1rem', fontWeight: 700, color: '#f6c453' }}>Sistema de rangos</h3>
-          <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
-            {RANGOS.map(r => (
-              <div key={r.nivel} style={{ flex: 1, minWidth: 100, background: rango.nivel === r.nivel ? 'rgba(246,196,83,0.08)' : 'rgba(255,255,255,0.03)', border: `1px solid ${rango.nivel === r.nivel ? r.color : 'rgba(148,163,184,0.1)'}`, borderRadius: 12, padding: '0.8rem', textAlign: 'center' }}>
-                <div style={{ width: 14, height: 14, borderRadius: '50%', background: r.color, margin: '0 auto 6px' }}></div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: rango.nivel === r.nivel ? r.color : '#94a3b8' }}>{r.nombre}</div>
-                <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.5)', marginTop: 2 }}>+€{r.min.toLocaleString()}</div>
-              </div>
-            ))}
+        {/* Rango actual + botón programa */}
+        <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 16, padding: '1.5rem', marginBottom: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: 36 }}>{rango ? rango.emoji : '🔒'}</span>
+            <div>
+              <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Tu nivel actual</div>
+              {rango ? (
+                <>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 800, color: rango.color }}>{rango.nombre}</div>
+                  <div style={{ fontSize: 13, color: '#94a3b8', marginTop: 2 }}>Cupo {rango.cupo} · {rango.beneficio}</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#94a3b8' }}>Sin nivel asignado</div>
+                  <div style={{ fontSize: 13, color: 'rgba(148,163,184,0.5)', marginTop: 2 }}>Necesitas mínimo 5 miembros activos</div>
+                </>
+              )}
+            </div>
           </div>
+          <button onClick={() => navigate('/programa')} style={{ background: 'linear-gradient(135deg, #f6c453, #dba93a)', color: '#0a0f1a', border: 'none', padding: '0.7rem 1.4rem', borderRadius: 10, fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+            Ver programa →
+          </button>
         </div>
       </div>
     </div>
@@ -150,123 +210,4 @@ function PerfilInversor() {
 }
 
 export default PerfilInversor;
-
-const RANGOS = [
-  { nivel: 1, nombre: 'Bronce', color: '#cd7f32', min: 0 },
-  { nivel: 2, nombre: 'Plata', color: '#a8a9ad', min: 1000 },
-  { nivel: 3, nombre: 'Oro', color: '#f6c453', min: 5000 },
-  { nivel: 4, nombre: 'Platino', color: '#00d4ff', min: 15000 },
-];
-
-function getRango(aportacion = 0) {
-  return [...RANGOS].reverse().find(r => aportacion >= r.min) || RANGOS[0];
-}
-
-function PerfilInversor() {
-  const userSession = React.useMemo(() => {
-    try { return JSON.parse(localStorage.getItem('capital_trade_user') || 'null'); } catch { return null; }
-  }, []);
-
-  const nombre = userSession?.name || userSession?.nombre || localStorage.getItem('usuario') || 'Inversor';
-  const email = userSession?.email || '—';
-  const telefono = userSession?.telefono || '—';
-  const pais = userSession?.pais || 'España';
-
-  const [fotoPerfil, setFotoPerfil] = useState(() => localStorage.getItem('perfil_foto') || null);
-  const [fotoPortada, setFotoPortada] = useState(() => localStorage.getItem('portada_foto') || null);
-  const fotoRef = useRef();
-  const portadaRef = useRef();
-
-  const rango = getRango(0);
-
-  const handleFoto = (e, tipo) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const data = ev.target.result;
-      if (tipo === 'perfil') { setFotoPerfil(data); localStorage.setItem('perfil_foto', data); }
-      else { setFotoPortada(data); localStorage.setItem('portada_foto', data); }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  return (
-    <div style={{ background: '#050d18', minHeight: '100vh', fontFamily: 'Inter, sans-serif', color: '#f1f5f9' }}>
-
-      {/* Portada */}
-      <div style={{ position: 'relative', height: '220px', background: fotoPortada ? `url(${fotoPortada}) center/cover` : 'linear-gradient(135deg, #0e1b2d, #1a2538)', cursor: 'pointer' }}
-        onClick={() => portadaRef.current.click()}>
-        <div style={{ position: 'absolute', bottom: 12, right: 16, background: 'rgba(0,0,0,0.5)', borderRadius: 8, padding: '6px 14px', fontSize: 13, color: '#cbd5e1' }}>
-          📷 Cambiar portada
-        </div>
-        <input ref={portadaRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFoto(e, 'portada')} />
-      </div>
-
-      {/* Zona foto + nombre */}
-      <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1.5rem', marginTop: '-60px', marginBottom: '1rem' }}>
-
-          {/* Foto perfil */}
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <div onClick={() => fotoRef.current.click()} style={{ width: 120, height: 120, borderRadius: '50%', border: '4px solid #050d18', background: fotoPerfil ? `url(${fotoPerfil}) center/cover` : 'linear-gradient(135deg, #f6c453, #dba93a)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 40, fontWeight: 900, color: '#0a0f1a', overflow: 'hidden' }}>
-              {!fotoPerfil && nombre.charAt(0).toUpperCase()}
-            </div>
-            <div onClick={() => fotoRef.current.click()} style={{ position: 'absolute', bottom: 4, right: 4, background: '#1e293b', border: '2px solid #050d18', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 14 }}>📷</div>
-            <input ref={fotoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleFoto(e, 'perfil')} />
-          </div>
-
-          {/* Nombre y rango */}
-          <div style={{ paddingBottom: '0.5rem' }}>
-            <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc' }}>{nombre}</h1>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 6, background: 'rgba(255,255,255,0.05)', border: `1px solid ${rango.color}`, borderRadius: 999, padding: '4px 14px' }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: rango.color, display: 'inline-block' }}></span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: rango.color }}>Rango {rango.nombre}</span>
-            </div>
-          </div>
-        </div>
-
-        <hr style={{ border: 'none', borderTop: '1px solid rgba(148,163,184,0.1)', margin: '0 0 1.5rem' }} />
-
-        {/* Info */}
-        <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 16, padding: '1.5rem', marginBottom: '1.5rem' }}>
-          <h3 style={{ margin: '0 0 1.2rem', fontSize: '1rem', fontWeight: 700, color: '#f6c453' }}>Información</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {[
-              { icon: '✉️', label: 'Email', value: email },
-              { icon: '📞', label: 'Teléfono', value: telefono },
-              { icon: '🌍', label: 'País', value: pais },
-              { icon: '🏅', label: 'Rango actual', value: rango.nombre },
-            ].map(item => (
-              <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-                <span style={{ fontSize: 18, width: 28, textAlign: 'center' }}>{item.icon}</span>
-                <div>
-                  <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.label}</div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: '#f1f5f9' }}>{item.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Rangos */}
-        <div style={{ background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.1)', borderRadius: 16, padding: '1.5rem', marginBottom: '2rem' }}>
-          <h3 style={{ margin: '0 0 1.2rem', fontSize: '1rem', fontWeight: 700, color: '#f6c453' }}>Sistema de rangos</h3>
-          <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
-            {RANGOS.map(r => (
-              <div key={r.nivel} style={{ flex: 1, minWidth: 100, background: rango.nivel === r.nivel ? `rgba(${r.color === '#f6c453' ? '246,196,83' : r.color === '#cd7f32' ? '205,127,50' : r.color === '#a8a9ad' ? '168,169,173' : '0,212,255'},0.1)` : 'rgba(255,255,255,0.03)', border: `1px solid ${rango.nivel === r.nivel ? r.color : 'rgba(148,163,184,0.1)'}`, borderRadius: 12, padding: '0.8rem', textAlign: 'center' }}>
-                <div style={{ width: 14, height: 14, borderRadius: '50%', background: r.color, margin: '0 auto 6px' }}></div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: rango.nivel === r.nivel ? r.color : '#94a3b8' }}>{r.nombre}</div>
-                <div style={{ fontSize: 11, color: 'rgba(148,163,184,0.5)', marginTop: 2 }}>+€{r.min.toLocaleString()}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default PerfilInversor;
-
 

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Platform.css';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const initialForm = {
   nombre: '',
@@ -9,6 +11,7 @@ const initialForm = {
   perfil: 'Particular',
   operacion: 'Compra y exportación de cemento',
   monto: '',
+  moneda: 'MLC',
   plazo: '6-10 meses',
   objetivo: '',
   acepta: false
@@ -20,6 +23,23 @@ function SolicitudParticipacion() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [metodosPago, setMetodosPago] = useState([]);
+  const [metodoPago, setMetodoPago] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API}/api/metodos-pago`)
+      .then(r => r.json())
+      .then(d => {
+        setMetodosPago(d.metodos || []);
+        if (d.metodos?.length) setMetodoPago(d.metodos[0]);
+      })
+      .catch(() => { });
+  }, []);
+
+  const handleMonedaChange = (moneda) => {
+    setForm(f => ({ ...f, moneda }));
+    setMetodoPago(metodosPago.find(m => m.moneda === moneda) || null);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -112,11 +132,44 @@ function SolicitudParticipacion() {
                 <option>Materiales de construcción</option>
               </select>
             </div>
+          </div>
+          <div className="form-row">
             <div className="form-group">
               <label>Monto estimado</label>
-              <input name="monto" value={form.monto} onChange={handleChange} placeholder="€20.000" />
+              <input name="monto" value={form.monto} onChange={handleChange} placeholder="1.000" />
+            </div>
+            <div className="form-group">
+              <label>Moneda de aportación</label>
+              <select value={form.moneda} onChange={e => handleMonedaChange(e.target.value)}>
+                {metodosPago.length > 0
+                  ? metodosPago.map(m => <option key={m.moneda} value={m.moneda}>{m.moneda}</option>)
+                  : ['MLC', 'CUP', 'USDT BEP-20'].map(m => <option key={m} value={m}>{m}</option>)
+                }
+              </select>
             </div>
           </div>
+
+          {/* Datos de pago */}
+          {metodoPago && (
+            <div style={{ background: 'rgba(246,196,83,0.06)', border: '1px solid rgba(246,196,83,0.25)', borderRadius: 12, padding: '1.2rem', marginBottom: '1rem' }}>
+              <p style={{ margin: '0 0 0.8rem', fontWeight: 700, color: '#f6c453', fontSize: 15 }}>
+                {metodoPago.tipo === 'wallet' ? '💎' : '🏦'} Datos para tu aportación en {metodoPago.moneda}
+              </p>
+              {metodoPago.tipo === 'wallet' ? (
+                <div>
+                  <p style={{ margin: '0 0 4px', fontSize: 13, color: '#94a3b8' }}>Dirección wallet ({metodoPago.red}):</p>
+                  <p style={{ margin: '0 0 8px', fontFamily: 'monospace', fontSize: 14, color: '#f1f5f9', wordBreak: 'break-all' }}>{metodoPago.wallet || '—'}</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  {metodoPago.titular && <div><span style={{ fontSize: 12, color: '#94a3b8' }}>Titular: </span><strong>{metodoPago.titular}</strong></div>}
+                  {metodoPago.numero && <div><span style={{ fontSize: 12, color: '#94a3b8' }}>Nº tarjeta: </span><strong style={{ fontFamily: 'monospace' }}>{metodoPago.numero}</strong></div>}
+                  {metodoPago.banco && <div><span style={{ fontSize: 12, color: '#94a3b8' }}>Banco: </span><strong>{metodoPago.banco}</strong></div>}
+                </div>
+              )}
+              {metodoPago.instrucciones && <p style={{ margin: '8px 0 0', fontSize: 13, color: '#94a3b8' }}>ℹ️ {metodoPago.instrucciones}</p>}
+            </div>
+          )}
 
           <div className="form-row">
             <div className="form-group">

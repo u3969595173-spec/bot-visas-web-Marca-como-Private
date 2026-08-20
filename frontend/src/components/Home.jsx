@@ -117,7 +117,7 @@ function Home() {
             <div>
               <p className="section-tag">Proceso</p>
               <h2>Cómo funciona</h2>
-              <p className="section-sub">Cuatro pasos desde tu consulta hasta la liquidación</p>
+              <p className="section-sub">Seis pasos desde tu registro hasta avanzar de nivel</p>
             </div>
             <Link to="/como-funciona" className="view-all-link">Ver detalle →</Link>
           </div>
@@ -125,27 +125,27 @@ function Home() {
           <div className="how-steps">
             <div className="how-step">
               <div className="how-step-num">1</div>
-              <span className="how-step-emoji">🎯</span>
-              <h4>Elige la operación</h4>
-              <p>Revisa el catálogo con condiciones, capital y nivel de riesgo.</p>
+              <span className="how-step-emoji">👤</span>
+              <h4>Crea tu cuenta</h4>
+              <p>Regístrate y accede a tu área personal.</p>
             </div>
             <div className="how-step">
               <div className="how-step-num">2</div>
-              <span className="how-step-emoji">✍️</span>
-              <h4>Solicita participación</h4>
-              <p>Envía tu solicitud y recibe la documentación completa.</p>
+              <span className="how-step-emoji">💰</span>
+              <h4>Realiza tu aportación</h4>
+              <p>Elige la cantidad dentro de las condiciones disponibles.</p>
             </div>
             <div className="how-step">
               <div className="how-step-num">3</div>
-              <span className="how-step-emoji">📈</span>
-              <h4>Seguimiento en tiempo real</h4>
-              <p>Consulta el estado desde tu panel personal.</p>
+              <span className="how-step-emoji">⚙️</span>
+              <h4>Gestionamos las operaciones</h4>
+              <p>Nuestro equipo destina los recursos según nuestra estrategia.</p>
             </div>
             <div className="how-step">
               <div className="how-step-num">4</div>
-              <span className="how-step-emoji">📊</span>
-              <h4>Liquidación y resultado</h4>
-              <p>Capital y resultado distribuidos según lo acordado.</p>
+              <span className="how-step-emoji">📈</span>
+              <h4>Obtén tus resultados</h4>
+              <p>Los resultados se reflejan en tu cuenta al finalizar el periodo.</p>
             </div>
           </div>
         </div>

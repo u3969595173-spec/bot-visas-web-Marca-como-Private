@@ -4,13 +4,15 @@ import './DashboardAdminExpandido.css'
 // Complete dark mode applied
 import RetirosCreditoPanel from './RetirosCreditoPanel'
 
-const defaultBankAccounts = [
-  { moneda: 'EUR', banco: 'Banco de España', titular: 'Capital Trade Iberia', cuenta: 'ES91 2100 0418 4502 0005 1332', instrucciones: 'Transferencia previa a la validación.', estado: 'Activo' },
-  { moneda: 'CUP', banco: 'Banco local autorizado', titular: 'Capital Trade Iberia', cuenta: 'CU24 0000 0000 0000 0000 0000', instrucciones: 'Pago en moneda local con referencia de operación.', estado: 'Activo' },
-  { moneda: 'MLC', banco: 'Banco MLC autorizado', titular: 'Capital Trade Iberia', cuenta: 'MLC 0000 0000 0000 0000 0000', instrucciones: 'Referencia obligatoria en la transferencia.', estado: 'Activo' }
+const API = import.meta.env.VITE_API_URL || '${API}'
+
+const METODOS_DEFAULT = [
+  { moneda: 'MLC', tipo: 'tarjeta', titular: '', numero: '', banco: '', instrucciones: '' },
+  { moneda: 'CUP', tipo: 'tarjeta', titular: '', numero: '', banco: '', instrucciones: '' },
+  { moneda: 'USDT BEP-20', tipo: 'wallet', wallet: '', red: 'BEP-20 (BSC)', instrucciones: '' },
 ]
 
-const defaultMinimos = { EUR: 100, CUP: 500, MLC: 100 }
+const defaultMinimos = { MLC: 100, CUP: 500, 'USDT BEP-20': 50 }
 
 const readStorage = (key, fallback) => {
   try {
@@ -68,8 +70,8 @@ function DashboardAdminExpandido({ onLogout }) {
   const [activeTab, setActiveTab] = useState('resumen')
   const [aportaciones, setAportaciones] = useState([])
   const [retiros, setRetiros] = useState([])
-  const [cuentas, setCuentas] = useState([])
-  const [minimos, setMinimos] = useState({ EUR: 100, CUP: 500, MLC: 100 })
+  const [cuentas, setCuentas] = useState(METODOS_DEFAULT)
+  const [minimos, setMinimos] = useState({ MLC: 100, CUP: 500, 'USDT BEP-20': 50 })
   const [porcentajeSemanal, setPorcentajeSemanal] = useState('')
   const [usuariosRegistrados, setUsuariosRegistrados] = useState([])
   const [solicitudes, setSolicitudes] = useState([])
@@ -86,12 +88,12 @@ function DashboardAdminExpandido({ onLogout }) {
     const cargarConfig = async () => {
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch('http://localhost:8000/api/admin/config', {
+        const response = await fetch(`${API}/api/admin/config`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {
           const data = await response.json()
-          setMinimos(data.minimos || { EUR: 100, CUP: 500, MLC: 100 })
+          setMinimos(data.minimos && Object.keys(data.minimos).length > 0 ? data.minimos : defaultMinimos)
         }
       } catch (error) {
         console.log('Error cargando config:', error)
@@ -102,12 +104,12 @@ function DashboardAdminExpandido({ onLogout }) {
     const cargarCuentas = async () => {
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch('http://localhost:8000/api/admin/cuentas', {
+        const response = await fetch(`${API}/api/admin/cuentas`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {
           const data = await response.json()
-          setCuentas(data.cuentas || [])
+          setCuentas(data.cuentas && data.cuentas.length > 0 ? data.cuentas : METODOS_DEFAULT)
         }
       } catch (error) {
         console.log('Error cargando cuentas:', error)
@@ -133,7 +135,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('http://localhost:8000/api/aportaciones', {
+        const response = await fetch('${API}/api/aportaciones', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -159,7 +161,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('http://localhost:8000/api/retiros', {
+        const response = await fetch('${API}/api/retiros', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -182,7 +184,7 @@ function DashboardAdminExpandido({ onLogout }) {
     const cargarMensajes = async () => {
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch('http://localhost:8000/api/comunidad/mensajes', {
+        const response = await fetch('${API}/api/comunidad/mensajes', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {
@@ -207,7 +209,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('http://localhost:8000/api/inversores/pendientes', {
+        const response = await fetch('${API}/api/inversores/pendientes', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -233,7 +235,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('http://localhost:8000/api/inversores/validados', {
+        const response = await fetch('${API}/api/inversores/validados', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -259,7 +261,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('http://localhost:8000/api/solicitudes-inversion/pendientes', {
+        const response = await fetch('${API}/api/solicitudes-inversion/pendientes', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -364,7 +366,7 @@ function DashboardAdminExpandido({ onLogout }) {
     try {
       const token = localStorage.getItem('token')
 
-      const response = await fetch(`http://localhost:8000/api/aportaciones/${id}`, {
+      const response = await fetch(`${API}/api/aportaciones/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -399,7 +401,7 @@ function DashboardAdminExpandido({ onLogout }) {
     try {
       const token = localStorage.getItem('token')
 
-      const response = await fetch(`http://localhost:8000/api/retiros/${id}`, {
+      const response = await fetch(`${API}/api/retiros/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -524,7 +526,7 @@ function DashboardAdminExpandido({ onLogout }) {
       const token = localStorage.getItem('token')
 
       // Actualizar en la API
-      const response = await fetch(`http://localhost:8000/api/inversores/${id}/estado`, {
+      const response = await fetch(`${API}/api/inversores/${id}/estado`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1418,54 +1420,64 @@ function DashboardAdminExpandido({ onLogout }) {
           {activeTab === 'configuracion' && (
             <div className="card">
               <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2>Configuración de cuentas y monedas</h2>
+                <h2>Métodos de pago para inversores</h2>
                 <button onClick={async () => {
                   try {
                     const token = localStorage.getItem('token')
-                    const response = await fetch('http://localhost:8000/api/admin/config', {
+                    const res = await fetch(`${API}/api/admin/cuentas`, {
                       method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                      },
-                      body: JSON.stringify({ minimos })
+                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                      body: JSON.stringify({ cuentas })
                     })
-                    if (response.ok) {
-                      setMensaje('✅ Configuración guardada correctamente')
-                    } else {
-                      setMensaje('❌ Error guardando configuración')
-                    }
-                  } catch (error) {
-                    console.error('Error:', error)
-                    setMensaje('❌ Error guardando configuración')
-                  }
-                  setTimeout(() => setMensaje(''), 2000)
-                }} style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}>
+                    setMensaje(res.ok ? '✅ Guardado correctamente' : '❌ Error guardando')
+                  } catch { setMensaje('❌ Error guardando') }
+                  setTimeout(() => setMensaje(''), 3000)
+                }} style={{ padding: '8px 20px', background: 'linear-gradient(135deg,#f6c453,#dba93a)', color: '#0a0f1a', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
                   💾 Guardar cambios
                 </button>
               </div>
-              <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
-                {cuentas.map((account, index) => (
-                  <div key={account.moneda} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', border: '1px solid #dfe3ea', padding: '1rem', borderRadius: '12px' }}>
-                    <input value={account.moneda} onChange={(e) => updateBankAccount(index, 'moneda', e.target.value)} placeholder="Moneda" />
-                    <input value={account.banco} onChange={(e) => updateBankAccount(index, 'banco', e.target.value)} placeholder="Banco" />
-                    <input value={account.titular} onChange={(e) => updateBankAccount(index, 'titular', e.target.value)} placeholder="Titular" />
-                    <input value={account.cuenta} onChange={(e) => updateBankAccount(index, 'cuenta', e.target.value)} placeholder="Cuenta / IBAN" />
-                    <input value={account.instrucciones} onChange={(e) => updateBankAccount(index, 'instrucciones', e.target.value)} placeholder="Instrucciones" />
-                    <input value={account.estado} onChange={(e) => updateBankAccount(index, 'estado', e.target.value)} placeholder="Estado" />
+              <p style={{ color: '#94a3b8', fontSize: 14, margin: '0.5rem 0 1.5rem' }}>
+                Esta información se mostrará a los inversores cuando vayan a realizar una aportación.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {cuentas.map((m, i) => (
+                  <div key={m.moneda} style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(246,196,83,0.2)', borderRadius: 14, padding: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.7rem', marginBottom: '1.2rem' }}>
+                      <span style={{ fontSize: 20 }}>{m.tipo === 'wallet' ? '💎' : m.moneda === 'MLC' ? '🏦' : '💵'}</span>
+                      <h3 style={{ margin: 0, color: '#f6c453', fontSize: '1.1rem' }}>{m.moneda}</h3>
+                      <span style={{ fontSize: 12, color: '#94a3b8', background: 'rgba(255,255,255,0.05)', padding: '2px 10px', borderRadius: 999 }}>{m.tipo === 'wallet' ? 'Crypto wallet' : 'Tarjeta bancaria'}</span>
+                    </div>
+                    {m.tipo === 'wallet' ? (
+                      <div style={{ display: 'grid', gap: '0.8rem' }}>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Dirección de wallet</label>
+                          <input value={m.wallet} onChange={e => updateBankAccount(i, 'wallet', e.target.value)}
+                            placeholder="0x..." style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontFamily: 'monospace', fontSize: 14, boxSizing: 'border-box' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Red</label>
+                          <input value={m.red} onChange={e => updateBankAccount(i, 'red', e.target.value)}
+                            placeholder="BEP-20 (BSC)" style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 14, boxSizing: 'border-box' }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>Instrucciones adicionales</label>
+                          <input value={m.instrucciones} onChange={e => updateBankAccount(i, 'instrucciones', e.target.value)}
+                            placeholder="Ej: Indicar tu email como referencia" style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 14, boxSizing: 'border-box' }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.8rem' }}>
+                        {[['Número de tarjeta', 'numero', '0000 0000 0000 0000'], ['Titular', 'titular', 'Nombre del titular'], ['Banco', 'banco', 'Nombre del banco'], ['Instrucciones', 'instrucciones', 'Ej: Indicar tu email como referencia']].map(([label, field, ph]) => (
+                          <div key={field} style={{ gridColumn: field === 'instrucciones' ? 'span 2' : 'auto' }}>
+                            <label style={{ fontSize: 12, color: '#94a3b8', display: 'block', marginBottom: 4 }}>{label}</label>
+                            <input value={m[field] || ''} onChange={e => updateBankAccount(i, field, e.target.value)}
+                              placeholder={ph} style={{ width: '100%', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, padding: '10px 12px', color: '#f1f5f9', fontSize: 14, boxSizing: 'border-box' }} />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
-              </div>
-              <div style={{ marginTop: '1.5rem' }}>
-                <h3>Mínimos por moneda</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
-                  {Object.entries(minimos).map(([moneda, minimo]) => (
-                    <div key={moneda} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                      <label>{moneda}</label>
-                      <input value={minimo} onChange={(e) => updateMinimo(moneda, e.target.value)} />
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           )}
@@ -1672,7 +1684,7 @@ function DashboardAdminExpandido({ onLogout }) {
                           }
                           try {
                             const token = localStorage.getItem('token')
-                            const response = await fetch('http://localhost:8000/api/comunidad/mensajes', {
+                            const response = await fetch('${API}/api/comunidad/mensajes', {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',
@@ -1724,10 +1736,13 @@ function DashboardAdminExpandido({ onLogout }) {
               </div>
             </div>
           )}
-        </div> {/* end content-scroll */}
+
+
+        </div>
       </main>
     </div>
   )
 }
 
 export default DashboardAdminExpandido
+

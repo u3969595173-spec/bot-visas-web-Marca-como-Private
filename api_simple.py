@@ -267,6 +267,94 @@ async def admin_login(datos: dict):
         "rol": "admin"
     }
 
+
+# ============================================================================
+# ENDPOINTS - CONFIGURACIÓN DE PAGOS (MLC / CUP / USDT BEP-20)
+# ============================================================================
+
+METODOS_DEFAULT = [
+    {"moneda": "MLC",        "tipo": "tarjeta", "titular": "", "numero": "", "banco": "", "instrucciones": ""},
+    {"moneda": "CUP",        "tipo": "tarjeta", "titular": "", "numero": "", "banco": "", "instrucciones": ""},
+    {"moneda": "USDT BEP-20","tipo": "wallet",  "wallet":  "", "red": "BEP-20 (BSC)", "instrucciones": ""},
+]
+
+def _ensure_config_table(cur, conn):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS configuracion_pagos (
+            id SERIAL PRIMARY KEY,
+            clave VARCHAR(100) UNIQUE NOT NULL,
+            valor TEXT,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+
+
+@app.get("/api/admin/config")
+async def get_config(usuario=Depends(obtener_usuario_actual)):
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins")
+    return {"minimos": {"MLC": 100, "CUP": 500, "USDT BEP-20": 50}}
+
+
+@app.get("/api/admin/cuentas")
+async def get_cuentas(usuario=Depends(obtener_usuario_actual)):
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins")
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        _ensure_config_table(cur, conn)
+        cur.execute("SELECT valor FROM configuracion_pagos WHERE clave = 'metodos_pago'")
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if row:
+            import json
+            return {"cuentas": json.loads(row[0])}
+        return {"cuentas": METODOS_DEFAULT}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/cuentas")
+async def update_cuentas(datos: dict, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins")
+    try:
+        import json
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        _ensure_config_table(cur, conn)
+        valor = json.dumps(datos.get("cuentas", []))
+        cur.execute("""
+            INSERT INTO configuracion_pagos (clave, valor) VALUES ('metodos_pago', %s)
+            ON CONFLICT (clave) DO UPDATE SET valor = %s, updated_at = NOW()
+        """, (valor, valor))
+        conn.commit()
+        cur.close(); conn.close()
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/metodos-pago")
+async def get_metodos_publico():
+    """Para inversores: ver métodos de pago disponibles (sin auth)"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        _ensure_config_table(cur, conn)
+        cur.execute("SELECT valor FROM configuracion_pagos WHERE clave = 'metodos_pago'")
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if row:
+            import json
+            return {"metodos": json.loads(row[0])}
+        return {"metodos": METODOS_DEFAULT}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ============================================================================
 # ENDPOINTS - APORTACIONES
 # ============================================================================
