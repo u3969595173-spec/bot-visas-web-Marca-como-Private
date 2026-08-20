@@ -17,7 +17,10 @@ const RetirosCreditoPanel = () => {
     // Si es una IP, usar la misma IP para la API
     return `http://${hostname}:8000`
   }
-  const apiUrl = import.meta.env.VITE_API_URL || getApiUrl()
+  const configuredApiUrl = import.meta.env.VITE_API_URL || ''
+  const apiUrl = configuredApiUrl.includes('capital-trade-api.onrender.com')
+    ? 'https://bot-visas-web-marca-como-private.onrender.com'
+    : configuredApiUrl || getApiUrl()
 
   useEffect(() => {
     cargarSolicitudes()
