@@ -1534,9 +1534,7 @@ function DashboardInversionista() {
                 {/* Historial de conversación */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {(() => {
-                    const misMensajes = mensajes.filter(m => (
-                      m.tipo === 'inversor' && String(m.usuarioId) === String(currentUser?.id)
-                    ) || m.tipo === 'admin')
+                    const misMensajes = mensajes
                     return misMensajes.length === 0 ? (
                       <div style={{ color: '#9ca3af', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}>
                         <p style={{ fontSize: '16px' }}>Sin mensajes aún</p>
@@ -1801,27 +1799,29 @@ function DashboardInversionista() {
               padding: '1rem'
             }}>
               <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
+                backgroundColor: '#07111f',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+                borderRadius: '16px',
                 padding: '2rem',
                 maxWidth: '650px',
                 width: '95%',
                 maxHeight: '90vh',
                 overflowY: 'auto',
-                boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.15)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h2 style={{ margin: 0, color: '#111827' }}>🏆 Programa Combinado</h2>
+                  <h2 style={{ margin: 0, color: '#f8fafc' }}>🏆 Programa Combinado</h2>
                   <button onClick={() => setShowRangosModal(false)} style={{
                     background: 'none',
                     border: 'none',
-                    fontSize: '24px',
+                    fontSize: '28px',
                     cursor: 'pointer',
-                    color: '#6b7280'
+                    color: '#94a3b8',
+                    transition: 'color 0.2s'
                   }}>×</button>
                 </div>
 
-                <p style={{ color: '#4b5563', fontSize: '14px', marginBottom: '1.5rem', fontWeight: 'bold' }}>
+                <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
                   En Soporte Capital puedes crecer de dos formas: mediante tu propia participación de capital o desarrollando una comunidad de red protegida.
                 </p>
 
@@ -1833,31 +1833,31 @@ function DashboardInversionista() {
                   const referidosActivos = getReferidosActivosCount()
 
                   return (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                      <div style={{ backgroundColor: rCapital ? '#111827' : '#f3f4f6', color: rCapital ? 'white' : '#111827', borderRadius: '10px', padding: '1rem', textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold', opacity: 0.85 }}>💎 RANGO DE CAPITAL</p>
-                        <p style={{ margin: '0.4rem 0', fontSize: '18px', fontWeight: 'bold' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                      <div style={{ backgroundColor: rCapital ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255, 255, 255, 0.03)', color: '#f8fafc', border: rCapital ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: rCapital ? '#c084fc' : '#94a3b8', letterSpacing: '0.05em' }}>💎 RANGO DE CAPITAL</p>
+                        <p style={{ margin: '0.6rem 0', fontSize: '18px', fontWeight: '800' }}>
                           {rCapital ? `${rCapital.emoji} ${rCapital.nombre}` : '🔒 Sin rango'}
                         </p>
-                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold' }}>Tu Inversión: {formatCurrency(totalAportado, 'EUR')}</p>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', color: '#cbd5e1' }}>Tu Inversión: {formatCurrency(totalAportado, 'EUR')}</p>
                         {nextCapital && (
-                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: rCapital ? '1px solid rgba(255,255,255,0.2)' : '1px solid #d1d5db' }}>
-                            <p style={{ margin: '0 0 0.25rem 0', fontSize: '11px', fontWeight: '600' }}>Para {nextCapital.emoji} {nextCapital.nombre} te falta:</p>
-                            <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold' }}>💰 {formatCurrency(Math.max(0, nextCapital.min - totalAportado), 'EUR')} más</p>
+                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                            <p style={{ margin: '0 0 0.35rem 0', fontSize: '11px', fontWeight: '600', color: '#94a3b8' }}>Para {nextCapital.emoji} {nextCapital.nombre} te falta:</p>
+                            <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#60a5fa' }}>💰 {formatCurrency(Math.max(0, nextCapital.min - totalAportado), 'EUR')} más</p>
                           </div>
                         )}
                       </div>
 
-                      <div style={{ backgroundColor: rComunidad ? '#111827' : '#f3f4f6', color: rComunidad ? 'white' : '#111827', borderRadius: '10px', padding: '1rem', textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold', opacity: 0.85 }}>👥 RANGO DE COMUNIDAD</p>
-                        <p style={{ margin: '0.4rem 0', fontSize: '18px', fontWeight: 'bold' }}>
+                      <div style={{ backgroundColor: rComunidad ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.03)', color: '#f8fafc', border: rComunidad ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: rComunidad ? '#38bdf8' : '#94a3b8', letterSpacing: '0.05em' }}>👥 RANGO COMUNIDAD</p>
+                        <p style={{ margin: '0.6rem 0', fontSize: '18px', fontWeight: '800' }}>
                           {rComunidad ? `${rComunidad.emoji} ${rComunidad.nombre}` : '🔒 Sin rango'}
                         </p>
-                        <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold' }}>Miembros Activos: {referidosActivos}</p>
+                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', color: '#cbd5e1' }}>Miembros Activos: {referidosActivos}</p>
                         {nextComunidad && (
-                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: rComunidad ? '1px solid rgba(255,255,255,0.2)' : '1px solid #d1d5db' }}>
-                            <p style={{ margin: '0 0 0.25rem 0', fontSize: '11px', fontWeight: '600' }}>Para {nextComunidad.emoji} {nextComunidad.nombre} te falta:</p>
-                            <p style={{ margin: 0, fontSize: '12px', fontWeight: 'bold' }}>👤 {Math.max(0, nextComunidad.min - referidosActivos)} miembro{Math.max(0, nextComunidad.min - referidosActivos) === 1 ? '' : 's'}</p>
+                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                            <p style={{ margin: '0 0 0.35rem 0', fontSize: '11px', fontWeight: '600', color: '#94a3b8' }}>Para {nextComunidad.emoji} {nextComunidad.nombre} te falta:</p>
+                            <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#60a5fa' }}>👤 {Math.max(0, nextComunidad.min - referidosActivos)} miembro{Math.max(0, nextComunidad.min - referidosActivos) === 1 ? '' : 's'}</p>
                           </div>
                         )}
                       </div>
@@ -1866,44 +1866,44 @@ function DashboardInversionista() {
                 })()}
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#1f2937', fontSize: '15px' }}>💎 Top Niveles Capital</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>💎 Top Niveles Capital</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
                       {NIVELES_CAPITAL.slice(0, 3).map((nivel) => (
-                        <div key={nivel.nombre} style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.75rem', fontSize: '12px', backgroundColor: '#f9fafb' }}>
-                          <strong style={{ display: 'block', fontSize: '13px' }}>{nivel.emoji} {nivel.nombre}</strong>
-                          Min: {formatCurrency(nivel.min, 'USD')}<br />
-                          {nivel.beneficio}
+                        <div key={nivel.nombre} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.85rem', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', color: '#cbd5e1' }}>
+                          <strong style={{ display: 'block', fontSize: '13px', color: '#f8fafc', marginBottom: '4px' }}>{nivel.emoji} {nivel.nombre}</strong>
+                          <span style={{ color: '#94a3b8' }}>Min: {formatCurrency(nivel.min, 'USD')}</span><br />
+                          <span style={{ color: '#4ade80', fontWeight: '600' }}>{nivel.beneficio}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div>
-                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#1f2937', fontSize: '15px' }}>👥 Top Niveles Comunidad</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>👥 Top N. Comunidad</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
                       {NIVELES_COMUNIDAD.slice(0, 3).map((nivel) => (
-                        <div key={nivel.nombre} style={{ border: '1px solid #e5e7eb', borderRadius: '6px', padding: '0.75rem', fontSize: '12px', backgroundColor: '#f9fafb' }}>
-                          <strong style={{ display: 'block', fontSize: '13px' }}>{nivel.emoji} {nivel.nombre}</strong>
-                          Min: {nivel.min} reps.<br />
-                          {nivel.bonus}
+                        <div key={nivel.nombre} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.85rem', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', color: '#cbd5e1' }}>
+                          <strong style={{ display: 'block', fontSize: '13px', color: '#f8fafc', marginBottom: '4px' }}>{nivel.emoji} {nivel.nombre}</strong>
+                          <span style={{ color: '#94a3b8' }}>Min: {nivel.min} actvs.</span><br />
+                          <span style={{ color: '#60a5fa', fontWeight: '600' }}>{nivel.bonus}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: '#f3f4f6', borderRadius: '10px', padding: '1rem', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '15px', fontWeight: 'bold', color: '#111827' }}>¿Cómo funciona?</h3>
-                  <p style={{ margin: '0.25rem 0', fontSize: '13px', color: '#374151', lineHeight: '1.5' }}>
-                    <strong>Los programas son independientes.</strong> Tus retornos de Capital garantizan mensualidades basadas en tu inversión personal. Tu crecimiento en la Comunidad te recompensa con bonus únicos transferidos por logros de equipo. Un miembro afiliado se considera "Activo" a partir de $100.
+                <div style={{ backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '1rem', marginBottom: '1rem' }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '14px', fontWeight: '700', color: '#e2e8f0' }}>¿Cómo funciona?</h3>
+                  <p style={{ margin: '0.25rem 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.6' }}>
+                    <strong style={{ color: '#cbd5e1' }}>Los programas son independientes.</strong> Tus retornos de Capital garantizan mensualidades basadas en tu inversión personal. Tu crecimiento en la Comunidad te recompensa con bonus únicos transferidos por logros de equipo. Un miembro afiliado se considera "Activo" a partir de $100.
                   </p>
                 </div>
 
-                <div style={{ backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '10px', padding: '1rem' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '16px', color: '#92400e', fontWeight: 'bold' }}>⚠️ Bonificación aparte</h3>
-                  <p style={{ margin: 0, fontSize: '14px', color: '#78350f', fontWeight: 'bold' }}>
-                    Esto no forma parte del programa de aceleración, es una bonificación aparte. Cuando el beneficio se venza y no subas de rango, tendrás otros beneficios que se te explicarán en su momento.
+                <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '12px', padding: '1rem' }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: '#fbbf24', fontWeight: '700' }}>⚠️ Bonificación aparte</h3>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: '#fcd34d', fontWeight: '500', lineHeight: '1.5' }}>
+                    Esto no forma parte del programa de aceleración, es una bonificación aparte. Cuando el beneficio se venza y no subas de rango, tendrás otros beneficios adicionales.
                   </p>
                 </div>
 
