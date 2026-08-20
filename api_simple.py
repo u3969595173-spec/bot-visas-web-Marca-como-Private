@@ -137,10 +137,12 @@ async def registro_inversor(datos: InversorRegistroRequest):
         cur.close()
         conn.close()
 
+        token = crear_token({"inversor_id": inversor_id, "email": datos.email, "rol": "inversor"})
+
         return {
-            "inversor_id": inversor_id,
-            "nombre": datos.nombre,
-            "email": datos.email
+            "token": token,
+            "tipo": "Bearer",
+            "inversor": {"id": inversor_id, "nombre": datos.nombre, "email": datos.email}
         }
     except psycopg2.IntegrityError:
         raise HTTPException(status_code=400, detail="Email ya existe")
