@@ -34,6 +34,7 @@ app.add_middleware(
         "http://localhost:3005",
         "https://bot-visas-web-marca-como-private.onrender.com",
         "https://bot-visas-web-marca-como-private-s785-g4twzsjhe.vercel.app",
+        "https://majestic-souffle-c1d9f9.netlify.app",
         "https://fortunariocash.com",
         "https://www.fortunariocash.com",
     ],
