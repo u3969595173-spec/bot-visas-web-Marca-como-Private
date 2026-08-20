@@ -997,7 +997,7 @@ async def crear_mensaje(datos: dict, usuario = Depends(obtener_usuario_actual)):
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cur = conn.cursor()
 
-        autor_id = usuario.get('inversor_id') or None
+        autor_id = usuario.get('inversor_id') or 0
         autor_nombre = usuario.get('email', 'Usuario')
         autor_rol = usuario.get('rol', 'inversor')
 
