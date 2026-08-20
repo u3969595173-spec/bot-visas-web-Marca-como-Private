@@ -4,7 +4,7 @@ import './DashboardAdminExpandido.css'
 // Complete dark mode applied
 import RetirosCreditoPanel from './RetirosCreditoPanel'
 
-const API = import.meta.env.VITE_API_URL || '${API}'
+const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const METODOS_DEFAULT = [
   { moneda: 'MLC', tipo: 'tarjeta', numero: '', instrucciones: '', minimo: 100 },
@@ -83,6 +83,16 @@ function DashboardAdminExpandido({ onLogout }) {
   const [respuesta, setRespuesta] = useState('')
   const [seleccionadoChat, setSeleccionadoChat] = useState(null)
   const [solicitudesInversion, setSolicitudesInversion] = useState([])
+  const [ofertasPrivadas, setOfertasPrivadas] = useState([])
+  const [ofertasAportaciones, setOfertasAportaciones] = useState([])
+
+  // Formularios de admin para ofertas
+  const [nuevaOferta, setNuevaOferta] = useState({
+    nombre: '', descripcion: '', condiciones: '',
+    programa: 'Comunidad', nivel: '',
+    inversorIdEspecial: '', importeMaximo: ''
+  })
+
 
   React.useEffect(() => {
     // Cargar config del admin (minimos)
@@ -127,15 +137,40 @@ function DashboardAdminExpandido({ onLogout }) {
       }
     }
 
+    // Cargar Ofertas Privadas y Aportaciones
+    const cargarOfertas = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+        const [resOfertas, resAportaciones] = await Promise.all([
+          fetch(`${API}/api/ofertas`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API}/api/ofertas/aportaciones`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ])
+        if (resOfertas.ok) {
+          const dataOfertas = await resOfertas.json()
+          setOfertasPrivadas(dataOfertas.ofertas || [])
+        }
+        if (resAportaciones.ok) {
+          const dataAportaciones = await resAportaciones.json()
+          setOfertasAportaciones(dataAportaciones.aportaciones || [])
+        }
+      } catch (error) {
+        console.log('Error cargando ofertas API:', error)
+      }
+    }
+
     cargarConfig()
     cargarCuentas()
+    cargarOfertas()
 
     const intervaloConfig = setInterval(cargarConfig, 30000) // cada 30s
     const intervaloCuentas = setInterval(cargarCuentas, 30000)
+    const intervaloOfertas = setInterval(cargarOfertas, 10000) // cada 10s
 
     return () => {
       clearInterval(intervaloConfig)
       clearInterval(intervaloCuentas)
+      clearInterval(intervaloOfertas)
     }
   }, [])
 
@@ -146,7 +181,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('${API}/api/aportaciones', {
+        const response = await fetch(`${API}/api/aportaciones`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -172,7 +207,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('${API}/api/retiros', {
+        const response = await fetch(`${API}/api/retiros`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -195,12 +230,18 @@ function DashboardAdminExpandido({ onLogout }) {
     const cargarMensajes = async () => {
       try {
         const token = localStorage.getItem('token')
-        const response = await fetch('${API}/api/comunidad/mensajes', {
+        const response = await fetch(`${API}/api/comunidad/mensajes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (response.ok) {
           const data = await response.json()
-          setMensajes(data.mensajes || [])
+          setMensajes((data.mensajes || []).map((mensaje) => ({
+            ...mensaje,
+            usuarioId: mensaje.autor_id,
+            usuarioNombre: mensaje.autor_nombre,
+            tipo: mensaje.autor_rol === 'admin' ? 'admin' : 'inversor',
+            fecha: mensaje.created_at
+          })))
         }
       } catch (error) {
         console.log('Error cargando mensajes:', error)
@@ -213,6 +254,39 @@ function DashboardAdminExpandido({ onLogout }) {
     return () => clearInterval(intervalo)
   }, [])
 
+  // Cargar referidos desde API
+  React.useEffect(() => {
+    const cargarReferidos = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(`${API}/api/referidos`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          const refFrontend = data.referidos.map(r => ({
+            id: r.id,
+            codigo: r.codigo,
+            nombreInversor: r.nombreInversor,
+            usuarioId: r.usuarioId,
+            referidoPor: r.referidoPor,
+            inversionTotal: r.inversionTotal,
+            pagado: r.pagado,
+            esAdmin: r.esAdmin
+          }))
+          setReferidos(refFrontend)
+        }
+      } catch (error) {
+        console.log('Error cargando referidos:', error)
+      }
+    }
+
+    cargarReferidos()
+    const intervalo = setInterval(cargarReferidos, 10000)
+
+    return () => clearInterval(intervalo)
+  }, [])
+
   // Cargar inversores pendientes desde la API
   React.useEffect(() => {
     const cargarInversoresPendientes = async () => {
@@ -220,7 +294,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('${API}/api/inversores/pendientes', {
+        const response = await fetch(`${API}/api/inversores/pendientes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -246,7 +320,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('${API}/api/inversores/validados', {
+        const response = await fetch(`${API}/api/inversores/validados`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -265,6 +339,8 @@ function DashboardAdminExpandido({ onLogout }) {
     return () => clearInterval(intervalo)
   }, [])
 
+
+
   // Cargar solicitudes de inversión pendientes desde la API
   React.useEffect(() => {
     const cargarSolicitudesInversion = async () => {
@@ -272,7 +348,7 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch('${API}/api/solicitudes-inversion/pendientes', {
+        const response = await fetch(`${API}/api/solicitudes-inversion/pendientes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -305,7 +381,8 @@ function DashboardAdminExpandido({ onLogout }) {
     { key: 'depositos', label: `💳 Depósitos (${solicitudesInversion.length})` },
     { key: 'capital', label: 'Capital y movimientos' },
     { key: 'referidos', label: 'Referidos' },
-    { key: 'rangos', label: '🏆 Rangos' },
+    { key: 'rangos', label: '🏆 Programas' },
+    { key: 'ofertas', label: '🎁 Ofertas para Líderes' },
     { key: 'configuracion', label: 'Configuración' },
     { key: 'chat', label: `💬 Chat ${mensajes.filter(m => m.tipo === 'inversor' && !m.leido).length > 0 ? `(${mensajes.filter(m => m.tipo === 'inversor' && !m.leido).length})` : ''}` },
   ]
@@ -363,6 +440,77 @@ function DashboardAdminExpandido({ onLogout }) {
       </tbody>
     </table>
   )
+
+  const handleCrearOferta = async (e) => {
+    e.preventDefault()
+    if (!nuevaOferta.nombre || !nuevaOferta.importeMaximo) return
+    const id = Date.now().toString()
+    const oferta = { ...nuevaOferta, id, estado: 'Activa', progreso_actual: 0.0, importe_maximo: parseFloat(nuevaOferta.importeMaximo) }
+
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API}/api/ofertas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(oferta)
+      })
+      if (response.ok) {
+        const actualizadas = [...ofertasPrivadas, { ...oferta, importeMaximo: oferta.importe_maximo, progresoActual: 0.0, fechaCreacion: new Date().toISOString() }]
+        setOfertasPrivadas(actualizadas)
+        setNuevaOferta({ nombre: '', descripcion: '', condiciones: '', programa: 'Comunidad', nivel: '', inversorIdEspecial: '', importeMaximo: '' })
+        setMensaje('✅ Oferta privada creada exitosamente')
+        setTimeout(() => setMensaje(''), 3000)
+      } else {
+        alert("Error al crear oferta.")
+      }
+    } catch (err) {
+      console.log(err)
+    }
+  }
+
+  const handleValidarAportacionOferta = async (idAportacion, estadoFinal) => {
+    // estadoFinal: 'Validado' o 'Rechazado'
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API}/api/ofertas/aportaciones/${idAportacion}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ estado: estadoFinal })
+      })
+
+      if (response.ok) {
+        const actualizadas = ofertasAportaciones.map(ap => ap.id === idAportacion ? { ...ap, estado: estadoFinal } : ap)
+        let ofertasActualizadas = [...ofertasPrivadas]
+
+        if (estadoFinal === 'Validado') {
+          const aportacion = actualizadas.find(ap => ap.id === idAportacion)
+          if (aportacion) {
+            ofertasActualizadas = ofertasActualizadas.map(of => {
+              if (of.id === aportacion.ofertaId) {
+                const nuevoProgreso = Number(of.progresoActual || 0) + Number(aportacion.importe)
+                const completada = nuevoProgreso >= Number(of.importeMaximo)
+                return {
+                  ...of,
+                  progresoActual: nuevoProgreso,
+                  estado: completada ? 'Completada' : of.estado
+                }
+              }
+              return of
+            })
+          }
+        }
+
+        setOfertasAportaciones(actualizadas)
+        setOfertasPrivadas(ofertasActualizadas)
+        setMensaje(`✅ Aportación a la oferta ${estadoFinal.toLowerCase()}`)
+        setTimeout(() => setMensaje(''), 3000)
+      } else {
+        alert("Error al validar aportación.")
+      }
+    } catch (err) {
+      console.log(err)
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -563,8 +711,7 @@ function DashboardAdminExpandido({ onLogout }) {
           item.id === id ? { ...item, estado, fechaValidacion: new Date().toISOString().slice(0, 10) } : item
         )
         setSolicitudes(updated)
-        writeStorage('capital_trade_solicitudes', updated)
-        window.dispatchEvent(new Event('capital-trade-sync'))
+
 
         // Mostrar mensaje de confirmación
         setMensaje(`✅ Solicitud actualizada a: ${estado}`)
@@ -591,6 +738,7 @@ function DashboardAdminExpandido({ onLogout }) {
 
     let totalComisiones = 0
     let aportacionesActualizadas = [...aportaciones]
+    let aportacionesReferidorIDs = []
 
     referidosSinPagar.forEach(referido => {
       // Comisión = 10% de la inversión del referido (SIN aceleración ×3)
@@ -607,6 +755,7 @@ function DashboardAdminExpandido({ onLogout }) {
           a.usuarioNombre === referidorData.nombreInversor ||
           a.usuario === referidorData.nombreInversor
         )
+        aportacionesReferidorIDs.push(...aportacionesReferidor.map(a => a.id));
 
         if (aportacionesReferidor.length > 0) {
           let montoRestante = comision
@@ -642,9 +791,39 @@ function DashboardAdminExpandido({ onLogout }) {
 
     setAportaciones(aportacionesActualizadas)
     setReferidos(referidosActualizados)
-    writeStorage('capital_trade_aportaciones', aportacionesActualizadas)
-    writeStorage('capital_trade_referidos', referidosActualizados)
-    window.dispatchEvent(new Event('capital-trade-sync'))
+
+    // Save to Database via fetch
+    const token = localStorage.getItem('token');
+    const updatePromises = aportacionesActualizadas
+      .filter(a => aportacionesReferidorIDs && aportacionesReferidorIDs.includes(a.id))
+      .map(ap => fetch(`${API}/api/operaciones/aportaciones/${ap.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ estado: ap.estado, gananciasDisponibles: ap.gananciasDisponibles })
+      })
+      );
+
+    const updateRefPromises = referidosSinPagar.map(r => {
+      const updatedRef = referidosActualizados.find(req => req.id === r.id);
+      if (updatedRef) {
+        return fetch(`${API}/api/referidos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            id: updatedRef.id,
+            codigo: updatedRef.codigo,
+            nombreInversor: updatedRef.nombreInversor,
+            usuarioId: String(updatedRef.usuarioId || ''),
+            referidoPor: updatedRef.referidoPor,
+            inversionTotal: Number(updatedRef.inversionTotal || 0),
+            pagado: true,
+            esAdmin: Boolean(updatedRef.esAdmin)
+          })
+        })
+      }
+    });
+
+    Promise.all([...updatePromises, ...updateRefPromises.filter(Boolean)]).catch(console.error);
 
     setMensaje(`✅ Pagadas ${referidosSinPagar.length} comisiones de referidos por €${totalComisiones.toFixed(2)} (saldo disponible actualizado)`)
     setTimeout(() => setMensaje(''), 3000)
@@ -737,8 +916,19 @@ function DashboardAdminExpandido({ onLogout }) {
       })
 
       setAportaciones(aportacionesActualizadas)
-      writeStorage('capital_trade_aportaciones', aportacionesActualizadas)
-      window.dispatchEvent(new Event('capital-trade-sync'))
+
+      const token = localStorage.getItem('token');
+      const updatePromises = pagosDetallados.map(p => {
+        const ap = aportacionesActualizadas.find(x => x.id === p.id);
+        if (ap) {
+          return fetch(`${API}/api/operaciones/aportaciones/${ap.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ estado: ap.estado, gananciasDisponibles: ap.gananciasDisponibles, fechaUltimoPago: ap.fechaUltimoPago })
+          })
+        }
+      });
+      Promise.all(updatePromises.filter(Boolean)).catch(console.error);
 
       setMensaje(`✅ Pagos procesados: €${totalAPagar.toFixed(2)} a ${inversionesElegibles.length} inversores (saldo disponible actualizado)`)
       setTimeout(() => setMensaje(''), 3000)
@@ -1512,6 +1702,150 @@ function DashboardAdminExpandido({ onLogout }) {
 
             </div>
           )}
+          {activeTab === 'ofertas' && (
+            <div className="card">
+              <div className="section-header">
+                <h2>🎁 Ofertas Privadas para Líderes</h2>
+              </div>
+              <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: '1.5rem' }}>
+                Crea ofertas restrictivas asignadas a usuarios que han calificado en los niveles existentes.
+              </p>
+
+              <div style={{ background: 'rgba(15,23,42,0.6)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 14, padding: '1.5rem', marginBottom: '2rem' }}>
+                <h3 style={{ margin: '0 0 1rem 0', color: '#10b981' }}>Crear Nueva Oferta</h3>
+                <form onSubmit={handleCrearOferta} style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Nombre de la Oferta</label>
+                    <input required value={nuevaOferta.nombre} onChange={e => setNuevaOferta({ ...nuevaOferta, nombre: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Programa Destino</label>
+                    <select value={nuevaOferta.programa} onChange={e => setNuevaOferta({ ...nuevaOferta, programa: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }}>
+                      <option value="Comunidad">👥 Comunidad</option>
+                      <option value="Capital">💎 Capital</option>
+                      <option value="Combinado">🔥 Combinado</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Nivel Específico</label>
+                    <select required value={nuevaOferta.nivel} onChange={e => setNuevaOferta({ ...nuevaOferta, nivel: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }}>
+                      <option value="">Seleccione Nivel</option>
+                      {nuevaOferta.programa === 'Comunidad' && ['Community', 'Leader', 'Senior Leader', 'Elite Leader', 'Executive Leader', 'Founding Leader'].map(n => <option key={n} value={n}>{n}</option>)}
+                      {nuevaOferta.programa === 'Capital' && ['Partner', 'Premium Partner', 'VIP Partner', 'Strategic Partner', 'Founding Partner'].map(n => <option key={n} value={n}>{n}</option>)}
+                      {nuevaOferta.programa === 'Combinado' && ['Todos los Combinados'].map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Importe Máximo Autorizado (USDT/EUR)</label>
+                    <input required type="number" value={nuevaOferta.importeMaximo} onChange={e => setNuevaOferta({ ...nuevaOferta, importeMaximo: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Usuario Específico (Opcional - Login Email)</label>
+                    <input value={nuevaOferta.inversorIdEspecial} onChange={e => setNuevaOferta({ ...nuevaOferta, inversorIdEspecial: e.target.value })} placeholder="Ej: admin@capitaltrade... " style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Descripción</label>
+                    <textarea value={nuevaOferta.descripcion} onChange={e => setNuevaOferta({ ...nuevaOferta, descripcion: e.target.value })} rows={2} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Condiciones</label>
+                    <textarea value={nuevaOferta.condiciones} onChange={e => setNuevaOferta({ ...nuevaOferta, condiciones: e.target.value })} rows={2} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
+                  </div>
+                  <button type="submit" style={{ gridColumn: 'span 2', padding: '12px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold' }}>ENVIAR OFERTA</button>
+                </form>
+              </div>
+
+              <h3 style={{ color: '#f8fafc' }}>Aportaciones Pendientes (Ofertas)</h3>
+              {(() => {
+                const pd = ofertasAportaciones.filter(a => a.estado === 'Pendiente de validación' || a.estado === 'Pendiente')
+                if (pd.length === 0) return <p style={{ color: '#94a3b8', fontStyle: 'italic', marginBottom: '2rem' }}>No hay aportaciones pendientes a validar.</p>
+                return (
+                  <div className="table-container" style={{ marginBottom: '2rem' }}>
+                    <table className="tabla-estudiantes">
+                      <thead><tr><th>Inversor</th><th>Oferta</th><th>Importe</th><th>Comprobante</th><th>Acción</th></tr></thead>
+                      <tbody>
+                        {pd.map(ap => {
+                          const of = ofertasPrivadas.find(o => o.id === ap.ofertaId)
+                          return (
+                            <tr key={ap.id}>
+                              <td>{ap.inversorNombre}</td>
+                              <td>{of?.nombre || 'Oferta Desconocida'}</td>
+                              <td style={{ fontWeight: 600, color: '#f6ca53' }}>{ap.importe}</td>
+                              <td>
+                                {ap.comprobante ? <button onClick={() => {
+                                  const win = window.open();
+                                  win.document.write(`<iframe src="${ap.comprobante}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`)
+                                }} style={{ padding: '4px 8px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Ver</button> : 'N/A'}
+                              </td>
+                              <td style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => handleValidarAportacionOferta(ap.id, 'Validado')} style={{ padding: '6px', background: '#10b981', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>✅</button>
+                                <button onClick={() => handleValidarAportacionOferta(ap.id, 'Rechazado')} style={{ padding: '6px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>❌</button>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })()}
+
+              <h3 style={{ color: '#f8fafc' }}>Ofertas Activas / Completadas</h3>
+              <div className="table-container">
+                <table className="tabla-estudiantes">
+                  <thead><tr><th>Nombre</th><th>Destinatarios</th><th>Progreso</th><th>Estado</th></tr></thead>
+                  <tbody>
+                    {ofertasPrivadas.map(of => (
+                      <tr key={of.id}>
+                        <td><strong>{of.nombre}</strong></td>
+                        <td>{of.programa} - {of.nivel}{of.inversorIdEspecial ? ` (${of.inversorIdEspecial})` : ''}</td>
+                        <td>
+                          <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, height: 10, width: '100%', overflow: 'hidden' }}>
+                            <div style={{ background: '#10b981', height: '100%', width: `${Math.min(100, (Number(of.progresoActual) / Number(of.importeMaximo)) * 100)}%` }}></div>
+                          </div>
+                          <small style={{ color: '#94a3b8' }}>{of.progresoActual} / {of.importeMaximo}</small>
+                        </td>
+                        <td>
+                          <select
+                            value={of.estado}
+                            onChange={async (e) => {
+                              const newStatus = e.target.value;
+                              try {
+                                const token = localStorage.getItem('token');
+                                const response = await fetch(`${API}/api/ofertas/${of.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                  body: JSON.stringify({ estado: newStatus })
+                                });
+                                if (response.ok) {
+                                  setOfertasPrivadas(ofertasPrivadas.map(o => o.id === of.id ? { ...o, estado: newStatus } : o));
+                                }
+                              } catch (err) {
+                                console.error('Error actualizando estado', err);
+                              }
+                            }}
+                            style={{
+                              background: of.estado === 'Activa' ? 'rgba(16, 185, 129, 0.2)' : of.estado === 'Cancelada' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(56, 189, 248, 0.2)',
+                              color: of.estado === 'Activa' ? '#10b981' : of.estado === 'Cancelada' ? '#ef4444' : '#38bdf8',
+                              padding: '4px 10px', borderRadius: 8, fontSize: 12, border: 'none', cursor: 'pointer', outline: 'none'
+                            }}
+                          >
+                            <option value="Activa">Activa</option>
+                            <option value="Pausada">Pausada</option>
+                            <option value="Cancelada">Cancelada</option>
+                            <option value="Completada">Completada</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                    {ofertasPrivadas.length === 0 && (
+                      <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8' }}>Sin ofertas creadas</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           {activeTab === 'configuracion' && (
             <div className="card">
               <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1796,7 +2130,7 @@ function DashboardAdminExpandido({ onLogout }) {
                           }
                           try {
                             const token = localStorage.getItem('token')
-                            const response = await fetch('${API}/api/comunidad/mensajes', {
+                            const response = await fetch(`${API}/api/comunidad/mensajes`, {
                               method: 'POST',
                               headers: {
                                 'Content-Type': 'application/json',

@@ -627,8 +627,325 @@ async def actualizar_estado_inversor(inversor_id: int, datos: dict, usuario = De
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 # ============================================================================
-# ENDPOINTS - CHAT COMUNIDAD
+# ENDPOINTS - SOLICITUDES DE PARTICIPACIÓN (FORMULARIO PÚBLICO)
 # ============================================================================
+@app.post("/api/solicitudes-participacion")
+async def crear_solicitud_participacion(datos: dict):
+    """Guarda una solicitud de participación de un usuario no registrado"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS solicitudes_participacion (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(200),
+                email VARCHAR(200),
+                telefono VARCHAR(100),
+                pais VARCHAR(100),
+                importe DECIMAL(12,2),
+                moneda VARCHAR(10),
+                estado VARCHAR(50) DEFAULT 'Pendiente',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+        cur.execute("""
+            INSERT INTO solicitudes_participacion (nombre, email, telefono, pais, importe, moneda)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
+            datos.get('nombre', 'Desconocido'), 
+            datos.get('email', ''), 
+            datos.get('telefono', ''),
+            datos.get('pais', ''),
+            float(datos.get('importe', 0)),
+            datos.get('moneda', 'EUR')
+        ))
+        
+        solicitud_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return {"id": solicitud_id, "success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
+# ENDPOINTS - JUSTIFICANTES
+# ============================================================================
+
+@app.post("/api/solicitudes-inversion/{solicitud_id}/justificante")
+async def subir_justificante(solicitud_id: str, datos: dict, usuario=Depends(obtener_usuario_actual)):
+    """Sube un justificante en base64 para una solicitud/aportación"""
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        # Guardamos en la base de datos el string base64 completo
+        # Idealmente en producción se sube a S3, pero para mantener la simplicidad lo guardamos en BD
+        cur.execute("""
+            ALTER TABLE aportaciones 
+            ADD COLUMN IF NOT EXISTS justificante TEXT
+        """)
+        conn.commit()
+
+        # Intentamos actualizar asumiendo que solicitud_id es el id de la aportación o creamos una tabla de solicitudes separada
+        # Para mantener compatibilidad con la estructura actual, lo guardamos en la tabla aportaciones
+        cur.execute("UPDATE aportaciones SET justificante = %s, estado = 'Pendiente revisión' WHERE id = %s", 
+                    (datos.get('justificante'), solicitud_id))
+
+        if cur.rowcount == 0:
+            # Si no es un id numérico de aportación o no se encontró,
+            # lo intentamos guardar en texto crudo por si el frontend manda un string como 'ap-12345'
+            cur.execute("""
+            CREATE TABLE IF NOT EXISTS justificantes (
+                id SERIAL PRIMARY KEY,
+                origen_id VARCHAR(100),
+                justificante_base64 TEXT,
+                nombre_archivo VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """)
+            cur.execute("INSERT INTO justificantes (origen_id, justificante_base64, nombre_archivo) VALUES (%s, %s, %s)",
+                       (solicitud_id, datos.get('justificante'), datos.get('nombreArchivo', 'documento')))
+            
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
+# ENDPOINTS - OFERTAS PRIVADAS (LÍDERES)
+# ============================================================================
+
+class OfertaRequest(BaseModel):
+    nombre: str
+    descripcion: str
+    condiciones: str = ""
+    programa: str
+    nivel: str = ""
+    importeMaximo: float
+    importe_maximo: float = 0
+    inversorIdEspecial: str = ""
+
+@app.post("/api/ofertas")
+async def crear_oferta(datos: OfertaRequest, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS ofertas_privadas (
+                id SERIAL PRIMARY KEY,
+                nombre VARCHAR(200),
+                descripcion TEXT,
+                condiciones TEXT,
+                programa VARCHAR(50),
+                nivel VARCHAR(50),
+                importe_maximo DECIMAL(12,2),
+                inversor_id_especial VARCHAR(100),
+                progreso_actual DECIMAL(12,2) DEFAULT 0,
+                estado VARCHAR(50) DEFAULT 'Activa',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        importe_final = datos.importeMaximo if datos.importeMaximo > 0 else datos.importe_maximo
+
+        cur.execute("""
+            INSERT INTO ofertas_privadas (nombre, descripcion, condiciones, programa, nivel, importe_maximo, inversor_id_especial)
+            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, created_at
+        """, (datos.nombre, datos.descripcion, datos.condiciones, datos.programa, datos.nivel, importe_final, datos.inversorIdEspecial))
+        
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"id": row[0], "created_at": row[1].isoformat(), "success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.get("/api/ofertas")
+async def obtener_ofertas(usuario=Depends(obtener_usuario_actual)):
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        cur.execute("SELECT to_regclass('ofertas_privadas')")
+        if not cur.fetchone()[0]:
+            return {"ofertas": []}
+
+        cur.execute("SELECT id, nombre, descripcion, condiciones, programa, nivel, importe_maximo, inversor_id_especial, progreso_actual, estado, created_at FROM ofertas_privadas ORDER BY created_at DESC")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        ofertas = []
+        for row in rows:
+            ofertas.append({
+                "id": str(row[0]),
+                "nombre": row[1],
+                "descripcion": row[2],
+                "condiciones": row[3],
+                "programa": row[4],
+                "nivel": row[5],
+                "importeMaximo": float(row[6]),
+                "inversorIdEspecial": row[7],
+                "progresoActual": float(row[8]),
+                "estado": row[9],
+                "fechaCreacion": row[10].isoformat() if row[10] else None
+            })
+        return {"ofertas": ofertas}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.put("/api/ofertas/{oferta_id}")
+async def actualizar_oferta(oferta_id: str, datos: dict, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        cur.execute("UPDATE ofertas_privadas SET estado = %s WHERE id = %s", (datos.get('estado'), oferta_id))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+class AportacionOfertaRequest(BaseModel):
+    ofertaId: str
+    inversorNombre: str
+    inversorId: str
+    importe: float
+    comprobante: str = ""
+
+@app.post("/api/ofertas/aportaciones")
+async def registrar_aportacion_oferta(datos: AportacionOfertaRequest, usuario=Depends(obtener_usuario_actual)):
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS ofertas_aportaciones (
+                id SERIAL PRIMARY KEY,
+                oferta_id VARCHAR(50),
+                inversor_id VARCHAR(100),
+                inversor_nombre VARCHAR(200),
+                importe DECIMAL(12,2),
+                comprobante TEXT,
+                estado VARCHAR(50) DEFAULT 'Pendiente de validación',
+                validador_id VARCHAR(100),
+                fecha_validacion TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        cur.execute("""
+            INSERT INTO ofertas_aportaciones (oferta_id, inversor_id, inversor_nombre, importe, comprobante)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at
+        """, (datos.ofertaId, datos.inversorId, datos.inversorNombre, datos.importe, datos.comprobante))
+        
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"id": str(row[0]), "fecha": row[1].isoformat(), "success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.get("/api/ofertas/aportaciones")
+async def obtener_aportaciones_ofertas(usuario=Depends(obtener_usuario_actual)):
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+        
+        cur.execute("SELECT to_regclass('ofertas_aportaciones')")
+        if not cur.fetchone()[0]:
+            return {"aportaciones": []}
+
+        if usuario.get('rol') == 'admin':
+            cur.execute("SELECT id, oferta_id, inversor_id, inversor_nombre, importe, comprobante, estado, validador_id, fecha_validacion, created_at FROM ofertas_aportaciones ORDER BY created_at DESC")
+        else:
+            inversor = str(usuario.get('inversor_id'))
+            cur.execute("SELECT id, oferta_id, inversor_id, inversor_nombre, importe, comprobante, estado, validador_id, fecha_validacion, created_at FROM ofertas_aportaciones WHERE inversor_id = %s ORDER BY created_at DESC", (inversor,))
+        
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        
+        aports = []
+        for r in rows:
+            aports.append({
+                "id": str(r[0]),
+                "ofertaId": r[1],
+                "inversorId": r[2],
+                "inversorNombre": r[3],
+                "importe": float(r[4]),
+                "comprobante": r[5],
+                "estado": r[6],
+                "validador_id": r[7],
+                "fechaValidacion": r[8].isoformat() if r[8] else None,
+                "fecha": r[9].isoformat() if r[9] else None
+            })
+        return {"aportaciones": aports}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.put("/api/ofertas/aportaciones/{aportacion_id}")
+async def validar_aportacion_oferta(aportacion_id: str, datos: dict, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    estado_final = datos.get('estado')
+    try:
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        cur = conn.cursor()
+
+        cur.execute("""
+            UPDATE ofertas_aportaciones 
+            SET estado = %s, validador_id = %s, fecha_validacion = CURRENT_TIMESTAMP 
+            WHERE id = %s RETURNING oferta_id, importe
+        """, (estado_final, usuario.get('email', 'admin'), aportacion_id))
+        
+        res = cur.fetchone()
+        if not res:
+            raise HTTPException(status_code=404, detail="Aportacion no encontrada")
+        
+        oferta_id, importe = res
+
+        if estado_final == 'Validado':
+            cur.execute("""
+                UPDATE ofertas_privadas 
+                SET progreso_actual = progreso_actual + %s 
+                WHERE id = %s RETURNING progreso_actual, importe_maximo
+            """, (importe, oferta_id))
+            
+            of_res = cur.fetchone()
+            if of_res:
+                progreso, maximo = of_res
+                if float(progreso) >= float(maximo):
+                    cur.execute("UPDATE ofertas_privadas SET estado = 'Completada' WHERE id = %s", (oferta_id,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
 
 @app.get("/api/comunidad/mensajes")
 async def obtener_mensajes(usuario = Depends(obtener_usuario_actual)):
@@ -644,12 +961,14 @@ async def obtener_mensajes(usuario = Depends(obtener_usuario_actual)):
                 autor_nombre VARCHAR(200),
                 autor_rol VARCHAR(50),
                 mensaje TEXT,
+                destinatario VARCHAR(200),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario VARCHAR(200)")
         conn.commit()
 
-        cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, created_at FROM mensajes_comunidad ORDER BY created_at DESC LIMIT 100")
+        cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad ORDER BY created_at DESC LIMIT 100")
         resultados = cur.fetchall()
         cur.close()
         conn.close()
@@ -662,7 +981,8 @@ async def obtener_mensajes(usuario = Depends(obtener_usuario_actual)):
                 "autor_nombre": row[2],
                 "autor_rol": row[3],
                 "mensaje": row[4],
-                "created_at": row[5].isoformat() if row[5] else None
+                "destinatario": row[5],
+                "created_at": row[6].isoformat() if row[6] else None
             })
 
         return {"mensajes": mensajes}
@@ -677,15 +997,15 @@ async def crear_mensaje(datos: dict, usuario = Depends(obtener_usuario_actual)):
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cur = conn.cursor()
 
-        autor_id = usuario.get('inversor_id') or 'admin'
+        autor_id = usuario.get('inversor_id') or None
         autor_nombre = usuario.get('email', 'Usuario')
         autor_rol = usuario.get('rol', 'inversor')
 
         cur.execute("""
-            INSERT INTO mensajes_comunidad (autor_id, autor_nombre, autor_rol, mensaje)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO mensajes_comunidad (autor_id, autor_nombre, autor_rol, mensaje, destinatario)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING id
-        """, (autor_id, autor_nombre, autor_rol, datos.get('mensaje')))
+        """, (autor_id, autor_nombre, autor_rol, datos.get('mensaje'), datos.get('destinatario')))
         
         mensaje_id = cur.fetchone()[0]
         conn.commit()

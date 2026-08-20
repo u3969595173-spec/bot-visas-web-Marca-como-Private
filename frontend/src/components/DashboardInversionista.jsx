@@ -50,6 +50,23 @@ const formatCurrency = (value, moneda = 'EUR') => {
   return `€${Number(value).toLocaleString('es-ES')}`
 }
 
+const PROGRAMA_LIDERES = [
+  { nombre: 'Founding Leader', minReferidos: 500, emoji: '🏆', bonus: 400 },
+  { nombre: 'Executive Leader', minReferidos: 300, emoji: '👑', bonus: 350 },
+  { nombre: 'Elite Leader', minReferidos: 100, emoji: '⭐', bonus: 150 },
+  { nombre: 'Senior Leader', minReferidos: 50, emoji: '📈', bonus: 100 },
+  { nombre: 'Leader', minReferidos: 20, emoji: '🎯', bonus: 50 },
+  { nombre: 'Community', minReferidos: 5, emoji: '👥', bonus: 15 },
+]
+
+const PROGRAMA_PARTNER = [
+  { nombre: 'Founding Partner', minCapital: 50000, maxCapital: 100000, emoji: '🏦', beneficioMensual: 450 },
+  { nombre: 'Strategic Partner', minCapital: 25000, maxCapital: 49999, emoji: '💎', beneficioMensual: 350 },
+  { nombre: 'VIP Partner', minCapital: 10000, maxCapital: 24999, emoji: '💼', beneficioMensual: 250 },
+  { nombre: 'Premium Partner', minCapital: 5000, maxCapital: 9999, emoji: '✨', beneficioMensual: 150 },
+  { nombre: 'Partner', minCapital: 500, maxCapital: 4999, emoji: '🤝', beneficioMensual: 50 },
+]
+
 function DashboardInversionista() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = React.useState('resumen');
@@ -63,6 +80,8 @@ function DashboardInversionista() {
   const [aportaciones, setAportaciones] = React.useState([])
   const [retiros, setRetiros] = React.useState([])
   const [referidos, setReferidos] = React.useState([])
+  const [ofertasPrivadas, setOfertasPrivadas] = React.useState([])
+  const [ofertasAportaciones, setOfertasAportaciones] = React.useState([])
   const [montoRetiro, setMontoRetiro] = React.useState('')
   const [notasRetiro, setNotasRetiro] = React.useState('')
   const [errorRetiro, setErrorRetiro] = React.useState('')
@@ -99,10 +118,12 @@ function DashboardInversionista() {
 
     syncData()
     window.addEventListener('storage', syncData)
+    window.addEventListener('capital-trade-sync', syncData)
     const interval = setInterval(syncData, 5000)
 
     return () => {
       window.removeEventListener('storage', syncData)
+      window.removeEventListener('capital-trade-sync', syncData)
       clearInterval(interval)
     }
   }, [])
@@ -138,7 +159,13 @@ function DashboardInversionista() {
         })
         if (response.ok) {
           const data = await response.json()
-          setMensajes(data.mensajes || [])
+          setMensajes((data.mensajes || []).map((mensaje) => ({
+            ...mensaje,
+            usuarioId: mensaje.autor_id,
+            usuarioNombre: mensaje.autor_nombre,
+            tipo: mensaje.autor_rol === 'admin' ? 'admin' : 'inversor',
+            fecha: mensaje.created_at
+          })))
         }
       } catch (error) {
         console.log('Error cargando mensajes:', error)
@@ -156,7 +183,7 @@ function DashboardInversionista() {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch(`${API_URL}/api/aportaciones`, {
+        const response = await fetch(`${API_URL}/api/operaciones/aportaciones`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
@@ -169,13 +196,64 @@ function DashboardInversionista() {
       }
     }
 
+    const cargarReferidos = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+
+        const response = await fetch(`${API_URL}/api/referidos`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          // Normalizar data para el frontend
+          const refFrontend = data.referidos.map(r => ({
+            id: r.id,
+            codigo: r.codigo,
+            nombreInversor: r.nombreInversor,
+            usuarioId: r.usuarioId,
+            referidoPor: r.referidoPor,
+            inversionTotal: r.inversionTotal,
+            pagado: r.pagado,
+            esAdmin: r.esAdmin
+          }))
+          setReferidos(refFrontend)
+        }
+      } catch (error) {
+        console.log('Error cargando referidos:', error)
+      }
+    }
+
     cargarAportaciones()
-    const intervalo = setInterval(cargarAportaciones, 5000)
+    cargarReferidos()
+    const intervalo = setInterval(() => {
+      cargarAportaciones()
+      cargarReferidos()
+    }, 5000)
 
     return () => clearInterval(intervalo)
   }, [])
 
-  // Cargar retiros desde API
+  const enviarMensajeChat = async () => {
+    if (!mensajeChat.trim()) return
+    setErrorChat('')
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API_URL}/api/comunidad/mensajes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ mensaje: mensajeChat.trim(), destinatario: 'admin' })
+      })
+      if (!response.ok) throw new Error('Error enviando mensaje')
+      setMensajeChat('')
+      setShowChatModal(false)
+    } catch (error) {
+      setErrorChat('Error enviando mensaje. Inténtalo de nuevo.')
+    }
+  }
+
+  // Cargar retiros y ofertas desde API
   React.useEffect(() => {
     const cargarRetiros = async () => {
       try {
@@ -195,8 +273,33 @@ function DashboardInversionista() {
       }
     }
 
+    const cargarOfertas = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+        const [resOfertas, resAportaciones] = await Promise.all([
+          fetch(`${API_URL}/api/ofertas`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_URL}/api/ofertas/aportaciones`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ])
+        if (resOfertas.ok) {
+          const dataOfertas = await resOfertas.json()
+          setOfertasPrivadas(dataOfertas.ofertas || [])
+        }
+        if (resAportaciones.ok) {
+          const dataAportaciones = await resAportaciones.json()
+          setOfertasAportaciones(dataAportaciones.aportaciones || [])
+        }
+      } catch (error) {
+        console.log('Error cargando ofertas API:', error)
+      }
+    }
+
     cargarRetiros()
-    const intervalo = setInterval(cargarRetiros, 5000)
+    cargarOfertas()
+    const intervalo = setInterval(() => {
+      cargarRetiros()
+      cargarOfertas()
+    }, 5000)
 
     return () => clearInterval(intervalo)
   }, [])
@@ -239,6 +342,21 @@ function DashboardInversionista() {
 
   // Saldo disponible para retirar = Lo que ha ganado - Lo que ya retiró
   const capitalDisponible = Math.max(gananciasGeneradas - totalRetirado, 0)
+
+  // CALCULO RANGOS y OFERTAS
+  const referidosActivos = referidos.filter(r => r.referidoPor === currentUser?.codigo_referido && r.estado !== 'pendiente').length
+  const nivelLideres = PROGRAMA_LIDERES.find(r => referidosActivos >= r.minReferidos) || null
+  const nivelPartner = PROGRAMA_PARTNER.find(r => totalAportado >= r.minCapital && totalAportado <= r.maxCapital) || (totalAportado >= 100000 ? PROGRAMA_PARTNER[0] : null)
+
+  const ofertasAsignadas = ofertasPrivadas.filter(of => {
+    if (of.estado !== 'Activa') return false
+    if (of.inversorIdEspecial && currentUser && (of.inversorIdEspecial === currentUser.email || of.inversorIdEspecial === currentUser.id?.toString())) return true
+    if (of.programa === 'Comunidad' && nivelLideres && of.nivel === nivelLideres.nombre) return true
+    if (of.programa === 'Capital' && nivelPartner && of.nivel === nivelPartner.nombre) return true
+    if (of.programa === 'Combinado' && nivelPartner && nivelLideres && of.nivel === 'Todos los Combinados') return true
+    return false
+  })
+
 
   const movimientos = [
     ...userAportaciones.map((item) => ({
@@ -402,7 +520,7 @@ function DashboardInversionista() {
     }
   }
 
-  const subirJustificante = () => {
+  const subirJustificante = async () => {
     setErrorJustificante('')
 
     if (!archivoJustificante) {
@@ -412,30 +530,37 @@ function DashboardInversionista() {
 
     // Guardar metadata del archivo
     const reader = new FileReader()
-    reader.onload = (e) => {
-      const stored = readStorage('capital_trade_solicitudes', [])
-      const solicitudIndex = stored.findIndex(s => s.id === solicitudSeleccionada.id)
+    reader.onload = async (e) => {
+      try {
+        const token = localStorage.getItem('token')
+        const dataUrl = e.target.result
 
-      if (solicitudIndex >= 0) {
-        stored[solicitudIndex] = {
-          ...stored[solicitudIndex],
-          justificante: {
-            nombre: archivoJustificante.name,
-            tipo: archivoJustificante.type,
-            tamaño: archivoJustificante.size,
-            fecha: new Date().toISOString(),
-            estadoJustificante: 'Pendiente revisión',
-            datos: e.target.result
-          }
+        // Llamada a la API para subir el justificante
+        const response = await fetch(`${API_URL}/api/solicitudes-inversion/${solicitudSeleccionada.id}/justificante`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            justificante: dataUrl,
+            nombreArchivo: archivoJustificante.name,
+            tipoArchivo: archivoJustificante.type
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error('Error al subir el justificante')
         }
-
-        localStorage.setItem('capital_trade_solicitudes', JSON.stringify(stored))
-        window.dispatchEvent(new Event('capital-trade-sync'))
 
         setShowJustificante(false)
         setSolicitudSeleccionada(null)
         setArchivoJustificante(null)
         alert('✅ Justificante subido correctamente. El administrador lo revisará.')
+
+      } catch (error) {
+        console.error('Error:', error)
+        setErrorJustificante('Ocurrió un error al subir el justificante al servidor.')
       }
     }
     reader.readAsDataURL(archivoJustificante)
@@ -462,7 +587,22 @@ function DashboardInversionista() {
       }
       const updated = [...referidos, referidoInversor]
       setReferidos(updated)
-      localStorage.setItem('capital_trade_referidos', JSON.stringify(updated))
+
+      const token = localStorage.getItem('token');
+      fetch(`${API_URL}/api/referidos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          id: referidoInversor.id,
+          codigo: referidoInversor.codigo,
+          nombreInversor: referidoInversor.nombreInversor,
+          usuarioId: String(referidoInversor.usuarioId),
+          referidoPor: null,
+          inversionTotal: 0,
+          pagado: false,
+          esAdmin: false
+        })
+      }).catch(console.error)
     }
     return referidoInversor
   }
@@ -544,6 +684,9 @@ function DashboardInversionista() {
           </button>
           <button className={`sidebar-tab ${activeTab === 'solicitudes' ? 'active' : ''}`} onClick={() => setActiveTab('solicitudes')}>
             <div className="tab-indicator" /> <span className="tab-label">📝 Mis Solicitudes</span>
+          </button>
+          <button className={`sidebar-tab ${activeTab === 'ofertas' ? 'active' : ''}`} onClick={() => setActiveTab('ofertas')}>
+            <div className="tab-indicator" /> <span className="tab-label">🎁 Mis Ofertas</span>
           </button>
 
           <div className="nav-divider"></div>
@@ -1210,6 +1353,124 @@ function DashboardInversionista() {
             </div>
           )}
 
+          {/* Pestaña: Ofertas Privadas */}
+          {activeTab === 'ofertas' && (
+            <div className="card admin-futuristic-card">
+              <div className="section-header">
+                <h2>🎁 Ofertas Restringidas</h2>
+              </div>
+              <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: '2rem' }}>
+                Ofertas especiales exclusivas para tu nivel de socio y líderes destacables.
+              </p>
+
+              {ofertasAsignadas.length === 0 ? (
+                <div style={{
+                  padding: '3rem 2rem',
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  borderRadius: '12px',
+                  textAlign: 'center',
+                  color: '#94a3b8',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}>
+                  <p style={{ fontSize: '18px', margin: 0 }}>No hay ofertas privadas disponibles para tu rango actualmente.</p>
+                  <p style={{ marginTop: '0.5rem' }}>Sigue sumando referidos y aumentando tu capital para calificar pronto.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+                  {ofertasAsignadas.map(of => (
+                    <div key={of.id} style={{
+                      background: 'linear-gradient(145deg, rgba(16,185,129,0.1), rgba(15,23,42,0.9))',
+                      border: '1px solid rgba(16,185,129,0.3)',
+                      borderRadius: 14,
+                      padding: '1.5rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      position: 'relative'
+                    }}>
+                      <div style={{ position: 'absolute', top: 12, right: 12 }}>
+                        <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '4px 10px', borderRadius: 20, fontSize: 12 }}>
+                          Activa
+                        </span>
+                      </div>
+                      <h3 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>{of.nombre}</h3>
+                      <p style={{ fontSize: 13, color: '#f8fafc', marginBottom: '1rem', minHeight: 40 }}>{of.descripcion}</p>
+
+                      <div style={{ marginBottom: '1rem', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: 12 }}>
+                          <span style={{ color: '#94a3b8' }}>Llenado:</span>
+                          <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{of.progresoActual} / {of.importeMaximo} USDT</span>
+                        </div>
+                        <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, height: 8, width: '100%', overflow: 'hidden' }}>
+                          <div style={{ background: '#10b981', height: '100%', width: `${Math.min(100, (Number(of.progresoActual) / Number(of.importeMaximo)) * 100)}%` }}></div>
+                        </div>
+                      </div>
+
+                      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: '1.5rem' }}>
+                        {of.condiciones && <p style={{ margin: 0, fontStyle: 'italic' }}>* {of.condiciones}</p>}
+                      </div>
+
+                      <button onClick={async () => {
+                        const monto = prompt(`Ingresa el importe que deseas aportar a la oferta "${of.nombre}":`)
+                        if (!monto || isNaN(monto) || Number(monto) <= 0) return alert('Importe inválido.')
+                        if (Number(monto) + Number(of.progresoActual) > Number(of.importeMaximo)) return alert('Esta oferta no admite un importe tan alto porque supera el máximo autorizado.')
+
+                        // Simulamos upload comprobante via prompt local para el inversor
+                        const nuevaAportacion = {
+                          id: Date.now().toString(),
+                          ofertaId: of.id,
+                          inversorNombre: currentUser?.name || currentUser?.nombre || 'Inversor',
+                          inversorId: currentUser?.id,
+                          importe: Number(monto),
+                          comprobante: null,
+                          estado: 'Pendiente de validación',
+                          fecha: new Date().toISOString()
+                        }
+
+                        const fileInput = document.createElement('input')
+                        fileInput.type = 'file'
+                        fileInput.accept = 'image/*,application/pdf'
+                        fileInput.onchange = (e) => {
+                          const file = e.target.files[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = async (re) => {
+                              nuevaAportacion.comprobante = re.target.result
+
+                              try {
+                                const token = localStorage.getItem('token')
+                                const response = await fetch(`${API_URL}/api/ofertas/aportaciones`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                  body: JSON.stringify(nuevaAportacion)
+                                })
+                                if (response.ok) {
+                                  const updated = [...ofertasAportaciones, nuevaAportacion]
+                                  setOfertasAportaciones(updated)
+                                  alert('✅ Tu aportación ha sido enviada para validación con el comprobante de pago.')
+                                } else {
+                                  alert('Error al enviar aportación')
+                                }
+                              } catch (err) {
+                                console.log(err)
+                                alert('Hubo un error contactando el servidor')
+                              }
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }
+                        alert('A continuación, selecciona el PDF o Imagen de tu comprobante de depósito.')
+                        fileInput.click()
+
+                      }} style={{ marginTop: 'auto', padding: '10px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold' }}>
+                        APORTAR AHORA
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Modal de Chat */}
           {showChatModal && (
             <div style={{
@@ -1255,7 +1516,9 @@ function DashboardInversionista() {
                 {/* Historial de conversación */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {(() => {
-                    const misMensajes = mensajes.filter(m => m.usuarioId === (currentUser?.id || 'anon'))
+                    const misMensajes = mensajes.filter(m => (
+                      m.tipo === 'inversor' && String(m.usuarioId) === String(currentUser?.id)
+                    ) || m.tipo === 'admin')
                     return misMensajes.length === 0 ? (
                       <div style={{ color: '#9ca3af', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto' }}>
                         <p style={{ fontSize: '16px' }}>Sin mensajes aún</p>

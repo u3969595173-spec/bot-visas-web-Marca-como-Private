@@ -537,6 +537,92 @@ async def startup_event():
         except Exception as col_error:
             print(f"⚠️ Error agregando columna estado_servicio: {col_error}")
         
+        # Crear tabla ofertas_privadas
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ofertas_privadas (
+                    id VARCHAR(100) PRIMARY KEY,
+                    nombre VARCHAR(255) NOT NULL,
+                    descripcion TEXT,
+                    condiciones TEXT,
+                    programa VARCHAR(100) NOT NULL,
+                    nivel VARCHAR(100) NOT NULL,
+                    importe_maximo DECIMAL(15, 2) NOT NULL,
+                    inversor_id_especial VARCHAR(255),
+                    estado VARCHAR(50) DEFAULT 'Activa',
+                    progreso_actual DECIMAL(15, 2) DEFAULT 0.00,
+                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            print("✅ Tabla ofertas_privadas verificada")
+        except Exception as e:
+            print(f"⚠️ Error creando tabla ofertas_privadas: {e}")
+
+        # Crear tabla ofertas_aportaciones
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ofertas_aportaciones (
+                    id VARCHAR(100) PRIMARY KEY,
+                    oferta_id VARCHAR(100) NOT NULL,
+                    inversor_id VARCHAR(255),
+                    inversor_nombre VARCHAR(255),
+                    importe DECIMAL(15, 2) NOT NULL,
+                    estado VARCHAR(50) DEFAULT 'Pendiente de validación',
+                    comprobante TEXT,
+                    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            print("✅ Tabla ofertas_aportaciones verificada")
+        except Exception as e:
+            print(f"⚠️ Error creando tabla ofertas_aportaciones: {e}")
+            
+        # Crear tabla operaciones_aportaciones (Operaciones Públicas)
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS operaciones_aportaciones (
+                    id VARCHAR(100) PRIMARY KEY,
+                    operacion_id VARCHAR(100) NOT NULL,
+                    operacion_nombre VARCHAR(255) NOT NULL,
+                    usuario_id VARCHAR(100),
+                    usuario_nombre VARCHAR(255),
+                    importe DECIMAL(15, 2) NOT NULL,
+                    moneda VARCHAR(10) DEFAULT 'EUR',
+                    metodo_pago VARCHAR(50),
+                    cuenta_destino VARCHAR(100),
+                    comentario TEXT,
+                    estado VARCHAR(50) DEFAULT 'Pendiente de validación',
+                    justificante TEXT,
+                    ganancias_disponibles DECIMAL(15, 2),
+                    fecha_validacion TIMESTAMP,
+                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            print("✅ Tabla operaciones_aportaciones verificada")
+        except Exception as e:
+            print(f"⚠️ Error creando tabla operaciones_aportaciones: {e}")
+
+        # Crear tabla referidos_inversores
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS referidos_inversores (
+                    id VARCHAR(100) PRIMARY KEY,
+                    codigo VARCHAR(50) UNIQUE NOT NULL,
+                    nombre_inversor VARCHAR(255),
+                    usuario_id VARCHAR(100),
+                    referido_por VARCHAR(50),
+                    inversion_total DECIMAL(15, 2) DEFAULT 0.0,
+                    pagado BOOLEAN DEFAULT FALSE,
+                    es_admin BOOLEAN DEFAULT FALSE,
+                    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            print("✅ Tabla referidos_inversores verificada")
+        except Exception as e:
+            print(f"⚠️ Error creando tabla referidos_inversores: {e}")
+
         conn.commit()
         cursor.close()
         conn.close()
@@ -1694,6 +1780,7 @@ async def obtener_inversores_validados(
 
 class MensajeComunidadRequest(BaseModel):
     mensaje: str
+    destinatario: str | None = None
 
 
 @app.get("/api/comunidad/mensajes", tags=["Comunidad"])
@@ -1719,13 +1806,15 @@ async def get_mensajes_comunidad(
                 autor_nombre TEXT NOT NULL,
                 autor_rol TEXT NOT NULL DEFAULT 'inversor',
                 mensaje TEXT NOT NULL,
+                destinatario TEXT,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         """)
+            cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario TEXT")
         conn.commit()
 
         cur.execute("""
-            SELECT id, autor_id, autor_nombre, autor_rol, mensaje, created_at
+                SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at
             FROM mensajes_comunidad
             ORDER BY created_at DESC
             LIMIT 100
@@ -1741,7 +1830,8 @@ async def get_mensajes_comunidad(
                 "autor_nombre": r[2],
                 "autor_rol": r[3],
                 "mensaje": r[4],
-                "created_at": r[5].isoformat() if r[5] else None
+                "destinatario": r[5],
+                "created_at": r[6].isoformat() if r[6] else None
             }
             for r in reversed(rows)
         ]
@@ -1752,6 +1842,7 @@ async def get_mensajes_comunidad(
 
 
 @app.post("/api/comunidad/mensaje", tags=["Comunidad"])
+@app.post("/api/comunidad/mensajes", tags=["Comunidad"])
 @limiter.limit("30/minute")
 async def post_mensaje_comunidad(
     request: Request,
@@ -1785,7 +1876,7 @@ async def post_mensaje_comunidad(
         usuario.get("email") or
         "Usuario"
     )
-    autor_rol = usuario.get("role", "inversor")
+    autor_rol = usuario.get("role") or usuario.get("rol") or "inversor"
 
     try:
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
@@ -1798,15 +1889,17 @@ async def post_mensaje_comunidad(
                 autor_nombre TEXT NOT NULL,
                 autor_rol TEXT NOT NULL DEFAULT 'inversor',
                 mensaje TEXT NOT NULL,
+                destinatario TEXT,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         """)
+            cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario TEXT")
 
         cur.execute("""
-            INSERT INTO mensajes_comunidad (autor_id, autor_nombre, autor_rol, mensaje)
-            VALUES (%s, %s, %s, %s)
+                INSERT INTO mensajes_comunidad (autor_id, autor_nombre, autor_rol, mensaje, destinatario)
+                VALUES (%s, %s, %s, %s, %s)
             RETURNING id, created_at
-        """, (autor_id, autor_nombre, autor_rol, mensaje))
+            """, (autor_id, autor_nombre, autor_rol, mensaje, datos.destinatario))
 
         row = cur.fetchone()
         conn.commit()
@@ -12378,6 +12471,312 @@ async def fix_database_columns():
             "error": str(e),
             "message": "Error ejecutando migración"
         }
+
+# ==========================================
+# RUTAS DE OFERTAS PRIVADAS Y APORTACIONES
+# ==========================================
+
+class OfertaPrivadaCreate(BaseModel):
+    id: str
+    nombre: str
+    descripcion: Optional[str] = ""
+    condiciones: Optional[str] = ""
+    programa: str
+    nivel: str
+    importe_maximo: float
+    inversor_id_especial: Optional[str] = ""
+    estado: str = "Activa"
+    progreso_actual: float = 0.0
+
+@app.post("/api/ofertas", tags=["Ofertas Privadas"])
+async def crear_oferta_privada(oferta: OfertaPrivadaCreate, current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        if current_user.get('role') != 'admin':
+            raise HTTPException(status_code=403, detail="Sin permisos")
+        
+        db.execute(text("""
+            INSERT INTO ofertas_privadas 
+            (id, nombre, descripcion, condiciones, programa, nivel, importe_maximo, inversor_id_especial, estado, progreso_actual)
+            VALUES (:id, :nombre, :descripcion, :condiciones, :programa, :nivel, :importe_maximo, :inversor_id_especial, :estado, :progreso_actual)
+        """), {
+            "id": oferta.id,
+            "nombre": oferta.nombre,
+            "descripcion": oferta.descripcion,
+            "condiciones": oferta.condiciones,
+            "programa": oferta.programa,
+            "nivel": oferta.nivel,
+            "importe_maximo": oferta.importe_maximo,
+            "inversor_id_especial": oferta.inversor_id_especial,
+            "estado": oferta.estado,
+            "progreso_actual": oferta.progreso_actual
+        })
+        db.commit()
+        return {"success": True, "message": "Oferta creada exitosamente"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ofertas", tags=["Ofertas Privadas"])
+async def obtener_ofertas(current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        ofertas = db.execute(text("SELECT * FROM ofertas_privadas")).fetchall()
+        result = []
+        for o in ofertas:
+            result.append({
+                "id": o.id, "nombre": o.nombre, "descripcion": o.descripcion,
+                "condiciones": o.condiciones, "programa": o.programa, "nivel": o.nivel,
+                "importeMaximo": float(o.importe_maximo), "inversorIdEspecial": o.inversor_id_especial,
+                "estado": o.estado, "progresoActual": float(o.progreso_actual), "fechaCreacion": str(o.fecha_creacion)
+            })
+        return {"ofertas": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class OfertaAportacionCreate(BaseModel):
+    id: str
+    ofertaId: str
+    inversorNombre: str
+    inversorId: str
+    importe: float
+    comprobante: Optional[str] = None
+    estado: str = "Pendiente de validación"
+
+@app.post("/api/ofertas/aportaciones", tags=["Ofertas Privadas"])
+async def crear_aportacion_oferta(aportacion: OfertaAportacionCreate, current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        db.execute(text("""
+            INSERT INTO ofertas_aportaciones 
+            (id, oferta_id, inversor_id, inversor_nombre, importe, estado, comprobante)
+            VALUES (:id, :oferta_id, :inversor_id, :inversor_nombre, :importe, :estado, :comprobante)
+        """), {
+            "id": aportacion.id,
+            "oferta_id": aportacion.ofertaId,
+            "inversor_id": str(aportacion.inversorId),
+            "inversor_nombre": aportacion.inversorNombre,
+            "importe": aportacion.importe,
+            "estado": aportacion.estado,
+            "comprobante": aportacion.comprobante
+        })
+        db.commit()
+        return {"success": True, "message": "Aportación registrada."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ofertas/aportaciones", tags=["Ofertas Privadas"])
+async def obtener_aportaciones_ofertas(current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        aportaciones = db.execute(text("SELECT * FROM ofertas_aportaciones")).fetchall()
+        result = []
+        for a in aportaciones:
+            result.append({
+                "id": a.id, "ofertaId": a.oferta_id, "inversorId": a.inversor_id,
+                "inversorNombre": a.inversor_nombre, "importe": float(a.importe),
+                "estado": a.estado, "comprobante": a.comprobante, "fecha": str(a.fecha)
+            })
+        return {"aportaciones": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ValidarAportacionRequest(BaseModel):
+    estado: str
+
+@app.put("/api/ofertas/aportaciones/{aportacion_id}", tags=["Ofertas Privadas"])
+async def validar_aportacion_oferta(aportacion_id: str, payload: ValidarAportacionRequest, current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        if current_user.get('role') != 'admin':
+            raise HTTPException(status_code=403, detail="Sin permisos")
+        
+        aportacion = db.execute(text("SELECT * FROM ofertas_aportaciones WHERE id = :id"), {"id": aportacion_id}).fetchone()
+        if not aportacion:
+            raise HTTPException(status_code=404, detail="No encontrada")
+            
+        db.execute(text("UPDATE ofertas_aportaciones SET estado = :estado WHERE id = :id"), {"estado": payload.estado, "id": aportacion_id})
+        
+        if payload.estado == 'Validado':
+            oferta = db.execute(text("SELECT * FROM ofertas_privadas WHERE id = :id"), {"id": aportacion.oferta_id}).fetchone()
+            if oferta:
+                nuevo_progreso = float(oferta.progreso_actual) + float(aportacion.importe)
+                nuevo_estado = "Completada" if nuevo_progreso >= float(oferta.importe_maximo) else oferta.estado
+                
+                db.execute(text("""
+                    UPDATE ofertas_privadas 
+                    SET progreso_actual = :progreso, estado = :estado 
+                    WHERE id = :id
+                """), {"progreso": nuevo_progreso, "estado": nuevo_estado, "id": aportacion.oferta_id})
+        
+        db.commit()
+        return {"success": True, "message": f"Aportación procesada como {payload.estado}"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# RUTAS DE APORTACIONES A OPERACIONES PÚBLICAS
+# ==========================================
+
+class OperacionAportacionCreate(BaseModel):
+    id: str
+    operacionId: str
+    operacionNombre: str
+    usuarioId: str
+    usuarioNombre: str
+    importe: float
+    moneda: str = "EUR"
+    metodoPago: str = "transferencia"
+    cuentaDestino: str = ""
+    comentario: Optional[str] = ""
+    estado: str = "Pendiente de validación"
+    justificante: Optional[str] = ""
+
+@app.post("/api/operaciones/aportaciones", tags=["Operaciones Públicas"])
+async def crear_aportacion_operacion(aportacion: OperacionAportacionCreate, current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        db.execute(text("""
+            INSERT INTO operaciones_aportaciones 
+            (id, operacion_id, operacion_nombre, usuario_id, usuario_nombre, importe, moneda, metodo_pago, cuenta_destino, comentario, estado, justificante)
+            VALUES (:id, :operacion_id, :operacion_nombre, :usuario_id, :usuario_nombre, :importe, :moneda, :metodo_pago, :cuenta_destino, :comentario, :estado, :justificante)
+        """), {
+            "id": aportacion.id,
+            "operacion_id": aportacion.operacionId,
+            "operacion_nombre": aportacion.operacionNombre,
+            "usuario_id": str(aportacion.usuarioId),
+            "usuario_nombre": aportacion.usuarioNombre,
+            "importe": aportacion.importe,
+            "moneda": aportacion.moneda,
+            "metodo_pago": aportacion.metodoPago,
+            "cuenta_destino": aportacion.cuentaDestino,
+            "comentario": aportacion.comentario,
+            "estado": aportacion.estado,
+            "justificante": aportacion.justificante
+        })
+        db.commit()
+        return {"success": True, "message": "Aportación registrada."}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/operaciones/aportaciones", tags=["Operaciones Públicas"])
+async def obtener_aportaciones_operaciones(current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        aportaciones = db.execute(text("SELECT * FROM operaciones_aportaciones")).fetchall()
+        result = []
+        for a in aportaciones:
+            result.append({
+                "id": a.id, "operacionId": a.operacion_id, "operacionNombre": a.operacion_nombre,
+                "usuarioId": a.usuario_id, "usuarioNombre": a.usuario_nombre, "importe": float(a.importe),
+                "moneda": a.moneda, "metodoPago": a.metodo_pago, "cuentaDestino": a.cuenta_destino,
+                "comentario": a.comentario, "estado": a.estado, "justificante": a.justificante,
+                "gananciasDisponibles": float(a.ganancias_disponibles) if a.ganancias_disponibles else 0,
+                "fechaValidacion": str(a.fecha_validacion) if a.fecha_validacion else None,
+                "fechaCreacion": str(a.fecha_creacion)
+            })
+        return {"aportaciones": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ValidarOperacionAportacionRequest(BaseModel):
+    estado: Optional[str] = None
+    gananciasDisponibles: Optional[float] = None
+    fechaUltimoPago: Optional[str] = None
+
+@app.put("/api/operaciones/aportaciones/{aportacion_id}", tags=["Operaciones Públicas"])
+async def validar_aportacion_operacion(aportacion_id: str, payload: ValidarOperacionAportacionRequest, current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        if current_user.get('role') != 'admin':
+            raise HTTPException(status_code=403, detail="Sin permisos")
+        
+        aportacion = db.execute(text("SELECT * FROM operaciones_aportaciones WHERE id = :id"), {"id": aportacion_id}).fetchone()
+        if not aportacion:
+            raise HTTPException(status_code=404, detail="No encontrada")
+            
+        update_parts = []
+        params = {"id": aportacion_id}
+        
+        if payload.estado is not None:
+            update_parts.append("estado = :estado, fecha_validacion = CURRENT_TIMESTAMP")
+            params["estado"] = payload.estado
+        if payload.gananciasDisponibles is not None:
+            update_parts.append("ganancias_disponibles = :ganancias_disponibles")
+            params["ganancias_disponibles"] = payload.gananciasDisponibles
+            
+        if not update_parts:
+            return {"success": True, "message": "Nada que actualizar"}
+            
+        query = f"UPDATE operaciones_aportaciones SET {', '.join(update_parts)} WHERE id = :id"
+        db.execute(text(query), params)
+        
+        db.commit()
+        return {"success": True, "message": f"Aportación a operación procesada como {payload.estado}"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==========================================
+# RUTAS DE SISTEMA DE REFERIDOS
+# ==========================================
+
+class ReferidoInversorCreate(BaseModel):
+    id: str
+    codigo: str
+    nombreInversor: str
+    usuarioId: str
+    referidoPor: Optional[str] = None
+    inversionTotal: Optional[float] = 0.0
+    pagado: Optional[bool] = False
+    esAdmin: Optional[bool] = False
+
+@app.get("/api/referidos", tags=["Sistema Referidos"])
+async def obtener_referidos(current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        referidos = db.execute(text("SELECT * FROM referidos_inversores")).fetchall()
+        result = []
+        for r in referidos:
+            result.append({
+                "id": r.id, "codigo": r.codigo, "nombreInversor": r.nombre_inversor,
+                "usuarioId": r.usuario_id, "referidoPor": r.referido_por,
+                "inversionTotal": float(r.inversion_total) if r.inversion_total else 0.0,
+                "pagado": r.pagado, "esAdmin": r.es_admin
+            })
+        return {"referidos": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/referidos", tags=["Sistema Referidos"])
+async def crear_o_actualizar_referido(referido: ReferidoInversorCreate, current_user = Depends(obtener_usuario_actual), db: Session = Depends(get_db)):
+    try:
+        # Check if exists by id
+        exist = db.execute(text("SELECT id FROM referidos_inversores WHERE id = :id"), {"id": referido.id}).fetchone()
+        
+        if exist:
+            db.execute(text("""
+                UPDATE referidos_inversores 
+                SET inversion_total = :inversion_total, pagado = :pagado, referido_por = :referido_por 
+                WHERE id = :id
+            """), {
+                "inversion_total": referido.inversionTotal,
+                "pagado": referido.pagado,
+                "referido_por": referido.referidoPor,
+                "id": referido.id
+            })
+        else:
+            db.execute(text("""
+                INSERT INTO referidos_inversores 
+                (id, codigo, nombre_inversor, usuario_id, referido_por, inversion_total, pagado, es_admin)
+                VALUES (:id, :codigo, :nombre_inversor, :usuario_id, :referido_por, :inversion_total, :pagado, :es_admin)
+            """), {
+                "id": referido.id, "codigo": referido.codigo, "nombre_inversor": referido.nombreInversor,
+                "usuario_id": str(referido.usuarioId), "referido_por": referido.referidoPor,
+                "inversion_total": referido.inversionTotal, "pagado": referido.pagado, "es_admin": referido.esAdmin
+            })
+        
+        db.commit()
+        return {"success": True}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

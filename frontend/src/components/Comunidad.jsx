@@ -58,7 +58,7 @@ function Comunidad() {
         try {
             const token = getToken();
             await axios.post(
-                `${API}/api/comunidad/mensaje`,
+                `${API}/api/comunidad/mensajes`,
                 { mensaje: texto.trim() },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
