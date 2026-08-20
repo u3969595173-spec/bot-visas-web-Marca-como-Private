@@ -1932,8 +1932,30 @@ async def post_mensaje_comunidad(
 
 @app.get("/api/chat-admin/mensajes", tags=["Chat privado"])
 async def get_chat_admin_mensajes(usuario=Depends(obtener_usuario_actual)):
-    """Compatibilidad para el historial privado del chat admin."""
-    return await get_mensajes_comunidad(usuario=usuario)
+    """Obtiene exclusivamente la conversación privada del usuario actual."""
+    import psycopg2
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        if usuario.get('rol') == 'admin':
+            cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE destinatario IS NOT NULL AND destinatario <> '' ORDER BY created_at ASC LIMIT 100")
+        else:
+            inversor_id = str(usuario.get('inversor_id', ''))
+            email = usuario.get('email', '')
+            cur.execute("SELECT nombre FROM inversores WHERE id = %s OR email = %s LIMIT 1", (usuario.get('inversor_id'), email))
+            inversor = cur.fetchone()
+            nombre = inversor[0] if inversor else ''
+            cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE autor_id = %s OR destinatario IN ('admin', %s, %s, %s) ORDER BY created_at ASC LIMIT 100", (inversor_id, email, inversor_id, nombre))
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return {"mensajes": [{
+            "id": row[0], "autor_id": row[1], "autor_nombre": row[2],
+            "autor_rol": row[3], "mensaje": row[4], "destinatario": row[5],
+            "created_at": row[6].isoformat() if row[6] else None
+        } for row in rows]}
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"Error al obtener chat privado: {error}")
 
 
 @app.post("/api/chat-admin/mensajes", tags=["Chat privado"])
@@ -1942,8 +1964,35 @@ async def post_chat_admin_mensaje(
     datos: MensajeComunidadRequest,
     usuario=Depends(obtener_usuario_actual)
 ):
-    """Compatibilidad para enviar respuestas privadas del administrador."""
-    return await post_mensaje_comunidad(request=request, datos=datos, usuario=usuario)
+    """Guarda exclusivamente un mensaje privado entre admin e inversor."""
+    import psycopg2
+    mensaje = (datos.mensaje or '').strip()
+    if not mensaje:
+        raise HTTPException(status_code=400, detail="El mensaje no puede estar vacío.")
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        destinatario = datos.destinatario or 'admin'
+        autor_id = str(usuario.get('inversor_id') or usuario.get('sub') or usuario.get('usuario') or '0')
+        autor_nombre = usuario.get('nombre') or usuario.get('name') or usuario.get('email') or 'Administrador'
+        autor_rol = usuario.get('role') or usuario.get('rol') or 'inversor'
+        cur.execute("""CREATE TABLE IF NOT EXISTS mensajes_comunidad (
+            id SERIAL PRIMARY KEY, autor_id TEXT NOT NULL, autor_nombre TEXT NOT NULL,
+            autor_rol TEXT NOT NULL DEFAULT 'inversor', mensaje TEXT NOT NULL,
+            destinatario TEXT, created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        )""")
+        cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario TEXT")
+        cur.execute("""INSERT INTO mensajes_comunidad
+            (autor_id, autor_nombre, autor_rol, mensaje, destinatario)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at""",
+            (autor_id, autor_nombre, autor_rol, mensaje, destinatario))
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"ok": True, "id": row[0], "created_at": row[1].isoformat() if row[1] else None}
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"Error al guardar chat privado: {error}")
 
 
 # ============================================================================

@@ -1867,9 +1867,9 @@ function DashboardInversionista() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>💎 Top Niveles Capital</h3>
+                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>💎 Niveles Capital</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                      {NIVELES_CAPITAL.slice(0, 3).map((nivel) => (
+                      {NIVELES_CAPITAL.map((nivel) => (
                         <div key={nivel.nombre} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.85rem', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', color: '#cbd5e1' }}>
                           <strong style={{ display: 'block', fontSize: '13px', color: '#f8fafc', marginBottom: '4px' }}>{nivel.emoji} {nivel.nombre}</strong>
                           <span style={{ color: '#94a3b8' }}>Min: {formatCurrency(nivel.min, 'USD')}</span><br />
@@ -1880,9 +1880,9 @@ function DashboardInversionista() {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>👥 Top N. Comunidad</h3>
+                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>👥 Niveles Comunidad</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                      {NIVELES_COMUNIDAD.slice(0, 3).map((nivel) => (
+                      {NIVELES_COMUNIDAD.map((nivel) => (
                         <div key={nivel.nombre} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.85rem', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', color: '#cbd5e1' }}>
                           <strong style={{ display: 'block', fontSize: '13px', color: '#f8fafc', marginBottom: '4px' }}>{nivel.emoji} {nivel.nombre}</strong>
                           <span style={{ color: '#94a3b8' }}>Min: {nivel.min} actvs.</span><br />
