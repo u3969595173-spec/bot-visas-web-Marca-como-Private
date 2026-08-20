@@ -1930,6 +1930,22 @@ async def post_mensaje_comunidad(
         raise HTTPException(status_code=500, detail=f"Error al enviar mensaje: {str(e)}")
 
 
+@app.get("/api/chat-admin/mensajes", tags=["Chat privado"])
+async def get_chat_admin_mensajes(usuario=Depends(obtener_usuario_actual)):
+    """Compatibilidad para el historial privado del chat admin."""
+    return await get_mensajes_comunidad(usuario=usuario)
+
+
+@app.post("/api/chat-admin/mensajes", tags=["Chat privado"])
+async def post_chat_admin_mensaje(
+    request: Request,
+    datos: MensajeComunidadRequest,
+    usuario=Depends(obtener_usuario_actual)
+):
+    """Compatibilidad para enviar respuestas privadas del administrador."""
+    return await post_mensaje_comunidad(request=request, datos=datos, usuario=usuario)
+
+
 # ============================================================================
 # ENDPOINTS PÚBLICOS (Estudiantes)
 # ============================================================================
