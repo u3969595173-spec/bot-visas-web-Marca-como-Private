@@ -7,20 +7,8 @@ const RetirosCreditoPanel = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [procesando, setProcesando] = useState({})
-  
-  // Detectar si estamos en localhost o en IP
-  const getApiUrl = () => {
-    const hostname = window.location.hostname
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      return 'http://localhost:8000'
-    }
-    // Si es una IP, usar la misma IP para la API
-    return `http://${hostname}:8000`
-  }
-  const configuredApiUrl = import.meta.env.VITE_API_URL || ''
-  const apiUrl = configuredApiUrl.includes('capital-trade-api.onrender.com')
-    ? 'https://bot-visas-web-marca-como-private.onrender.com'
-    : configuredApiUrl || getApiUrl()
+
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://bot-visas-web-marca-como-private.onrender.com'
 
   useEffect(() => {
     cargarSolicitudes()
@@ -60,9 +48,9 @@ const RetirosCreditoPanel = () => {
 
   const procesarSolicitud = async (solicitudId, accion, notas = '') => {
     const solicitud = solicitudes.find(s => s.id === solicitudId)
-    
+
     // Confirmación
-    const mensaje = accion === 'aprobar' 
+    const mensaje = accion === 'aprobar'
       ? `¿Aprobar retiro de ${solicitud.monto}€ a ${solicitud.nombre}?`
       : `¿Rechazar retiro de ${solicitud.monto}€?`
 
@@ -113,9 +101,9 @@ const RetirosCreditoPanel = () => {
   const formatFecha = (fecha) => {
     if (!fecha) return '-'
     const date = new Date(fecha)
-    return date.toLocaleDateString('es-ES', { 
-      day: '2-digit', 
-      month: '2-digit', 
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -138,7 +126,7 @@ const RetirosCreditoPanel = () => {
     <div className="retiros-panel">
       <div className="panel-header">
         <h2>💰 Gestión de Retiros e Inversiones</h2>
-        <button 
+        <button
           className="btn-reload"
           onClick={cargarSolicitudes}
           disabled={loading}
