@@ -1912,6 +1912,41 @@ function DashboardAdminExpandido({ onLogout }) {
                   </div>
                 ))}
               </div>
+
+              <div style={{ marginTop: '2.5rem', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 14, padding: '1.5rem', background: 'rgba(239,68,68,0.05)' }}>
+                <h3 style={{ margin: '0 0 0.5rem', color: '#ef4444' }}>⚠️ Zona de riesgo</h3>
+                <p style={{ color: '#94a3b8', fontSize: 14, margin: '0 0 1rem' }}>
+                  Borra todos los inversores registrados y todo lo que generaron (aportaciones, retiros, mensajes, referidos, solicitudes, ofertas de aportación).
+                  No afecta al catálogo de operaciones ni a esta configuración. Esta acción no se puede deshacer.
+                </p>
+                <button
+                  onClick={async () => {
+                    if (!window.confirm('¿Seguro que quieres borrar TODOS los inversores y sus datos? Esta acción no se puede deshacer.')) return
+                    const confirmacion = window.prompt('Escribe BORRAR para confirmar:')
+                    if (confirmacion !== 'BORRAR') return
+                    try {
+                      const token = localStorage.getItem('token')
+                      const res = await fetch(`${API}/api/admin/reset-demo`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                      })
+                      const data = await res.json()
+                      if (res.ok) {
+                        setMensaje(`✅ Datos borrados: ${(data.tablas_vaciadas || []).join(', ')}`)
+                        setTimeout(() => window.location.reload(), 1500)
+                      } else {
+                        setMensaje(`❌ ${data.detail || 'Error al borrar datos'}`)
+                      }
+                    } catch {
+                      setMensaje('❌ Error al borrar datos')
+                    }
+                    setTimeout(() => setMensaje(''), 4000)
+                  }}
+                  style={{ padding: '10px 20px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 14 }}
+                >
+                  🗑️ Borrar todos los usuarios y datos de prueba
+                </button>
+              </div>
             </div>
           )}
 

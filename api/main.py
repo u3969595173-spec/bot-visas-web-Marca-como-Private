@@ -2447,6 +2447,40 @@ async def post_chat_admin_mensaje(
 
 
 # ============================================================================
+# RESET DE DATOS DE PRUEBA (solo admin) - borra usuarios y todo lo generado por ellos
+# ============================================================================
+
+TABLAS_RESET_USUARIOS = [
+    "ofertas_aportaciones", "operaciones_aportaciones", "mensajes_comunidad",
+    "justificantes", "solicitudes_inversion", "solicitudes_participacion",
+    "retiros", "aportaciones", "referidos", "referidos_inversores", "inversores"
+]
+
+
+@app.post("/api/admin/reset-demo", tags=["Admin"])
+async def resetear_datos_demo(usuario=Depends(obtener_usuario_actual)):
+    """Borra inversores y todos los datos que dependen de ellos. No toca el catálogo de operaciones ni la configuración."""
+    import psycopg2
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
+        cur = conn.cursor()
+        borradas = []
+        for tabla in TABLAS_RESET_USUARIOS:
+            cur.execute("SELECT to_regclass(%s)", (tabla,))
+            if cur.fetchone()[0]:
+                cur.execute(f"TRUNCATE TABLE {tabla} RESTART IDENTITY CASCADE")
+                borradas.append(tabla)
+        conn.commit()
+        cur.close()
+        conn.close()
+        return {"success": True, "tablas_vaciadas": borradas}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+# ============================================================================
 # ENDPOINTS PÚBLICOS (Estudiantes)
 # ============================================================================
 
