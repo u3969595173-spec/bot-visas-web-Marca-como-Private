@@ -140,6 +140,29 @@ function DashboardInversionista() {
     }
   }, [])
 
+  // Verificar que la cuenta siga existiendo; si fue borrada, cerrar sesión
+  React.useEffect(() => {
+    const verificarCuenta = async () => {
+      const token = localStorage.getItem('token')
+      if (!token) return
+      try {
+        const response = await fetch(`${API_URL}/api/inversores/perfil`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (response.status === 401 || response.status === 404) {
+          localStorage.removeItem('token')
+          localStorage.removeItem('usuario')
+          localStorage.removeItem('capital_trade_user')
+          window.dispatchEvent(new Event('capital-trade-sync'))
+          navigate('/login')
+        }
+      } catch (error) {
+        console.log('Error verificando cuenta:', error)
+      }
+    }
+    verificarCuenta()
+  }, [])
+
   // Cargar minimos desde API
   React.useEffect(() => {
     const cargarMinimos = async () => {

@@ -57,7 +57,15 @@ function PerfilInversor() {
           pais: r.data.pais || defaultForm.pais
         });
       })
-      .catch(() => { });
+      .catch((error) => {
+        if (error.response?.status === 401 || error.response?.status === 404) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('usuario');
+          localStorage.removeItem('capital_trade_user');
+          window.dispatchEvent(new Event('capital-trade-sync'));
+          navigate('/login');
+        }
+      });
   }, [token]);
 
   const handleSaveProfile = () => {
