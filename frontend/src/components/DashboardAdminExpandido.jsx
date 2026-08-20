@@ -1298,16 +1298,18 @@ function DashboardAdminExpandido({ onLogout }) {
                     usuario.role || 'inversor',
                     'Activo',
                     <button
-                      key={`chat-${usuario.id}`}
+                      key={`whatsapp-${usuario.id}`}
                       className="btn-action"
                       onClick={() => {
-                        setSeleccionadoChat(usuario.name || 'Sin nombre');
-                        setSeleccionadoEmail(usuario.email || '');
-                        setActiveTab('chat')
+                        if (usuario.telefono && usuario.telefono.trim() !== '—') {
+                          window.open(`https://wa.me/${usuario.telefono.replace(/\D/g, '')}`, '_blank');
+                        } else {
+                          alert('El usuario sin número de teléfono registrado.');
+                        }
                       }}
-                      style={{ backgroundColor: '#0284c7', color: 'white' }}
+                      style={{ backgroundColor: '#25D366', color: 'white' }}
                     >
-                      💬 Chat
+                      📱 WhatsApp
                     </button>
                   ])
                   : [['Sin registros', '—', '—', '—', '—', '—', 'Sin datos', '—']]
