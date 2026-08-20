@@ -1256,6 +1256,20 @@ async def obtener_retiros(usuario = Depends(obtener_usuario_actual)):
         conn = psycopg2.connect(os.getenv('DATABASE_URL'), sslmode='require')
         cur = conn.cursor()
 
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS retiros (
+                id SERIAL PRIMARY KEY,
+                inversor_id INT,
+                nombre VARCHAR(200),
+                email VARCHAR(200),
+                importe DECIMAL(12,2),
+                moneda VARCHAR(10),
+                estado VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
         if usuario.get('rol') == 'admin':
             cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM retiros ORDER BY created_at DESC")
         else:
@@ -1810,11 +1824,11 @@ async def get_mensajes_comunidad(
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         """)
-            cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario TEXT")
+        cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario TEXT")
         conn.commit()
 
         cur.execute("""
-                SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at
+            SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at
             FROM mensajes_comunidad
             ORDER BY created_at DESC
             LIMIT 100
@@ -1893,13 +1907,13 @@ async def post_mensaje_comunidad(
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
             )
         """)
-            cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario TEXT")
+        cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario TEXT")
 
         cur.execute("""
-                INSERT INTO mensajes_comunidad (autor_id, autor_nombre, autor_rol, mensaje, destinatario)
-                VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO mensajes_comunidad (autor_id, autor_nombre, autor_rol, mensaje, destinatario)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING id, created_at
-            """, (autor_id, autor_nombre, autor_rol, mensaje, datos.destinatario))
+        """, (autor_id, autor_nombre, autor_rol, mensaje, datos.destinatario))
 
         row = cur.fetchone()
         conn.commit()
