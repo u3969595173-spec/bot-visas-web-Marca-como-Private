@@ -677,6 +677,9 @@ function DashboardInversionista() {
           <button className={`sidebar-tab ${activeTab === 'resumen' ? 'active' : ''}`} onClick={() => setActiveTab('resumen')}>
             <div className="tab-indicator" /> <span className="tab-label">📊 Mi Cartera</span>
           </button>
+          <button className={`sidebar-tab ${activeTab === 'ofertas' ? 'active' : ''}`} onClick={() => setActiveTab('ofertas')}>
+            <div className="tab-indicator" /> <span className="tab-label">🎁 Mis Ofertas</span>
+          </button>
           <button className={`sidebar-tab ${activeTab === 'retirar' ? 'active' : ''}`} onClick={() => setActiveTab('retirar')}>
             <div className="tab-indicator" /> <span className="tab-label">💳 Billetera / Retiros</span>
           </button>
@@ -691,9 +694,6 @@ function DashboardInversionista() {
           </button>
           <button className={`sidebar-tab ${activeTab === 'solicitudes' ? 'active' : ''}`} onClick={() => setActiveTab('solicitudes')}>
             <div className="tab-indicator" /> <span className="tab-label">📝 Mis Solicitudes</span>
-          </button>
-          <button className={`sidebar-tab ${activeTab === 'ofertas' ? 'active' : ''}`} onClick={() => setActiveTab('ofertas')}>
-            <div className="tab-indicator" /> <span className="tab-label">🎁 Mis Ofertas</span>
           </button>
 
           <div className="nav-divider"></div>
