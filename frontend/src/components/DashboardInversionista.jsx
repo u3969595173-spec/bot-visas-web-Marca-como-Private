@@ -1502,11 +1502,11 @@ function DashboardInversionista() {
                         inversion: ref.inversionTotal || 0,
                         comision: (ref.inversionTotal || 0) * 0.1
                       }))}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="nombre" />
-                        <YAxis />
-                        <Tooltip formatter={(value) => `€${value.toFixed(2)}`} />
-                        <Legend />
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.22)" />
+                        <XAxis dataKey="nombre" stroke="#cbd5e1" tick={{ fill: '#cbd5e1', fontSize: 12 }} />
+                        <YAxis stroke="#cbd5e1" tick={{ fill: '#cbd5e1', fontSize: 12 }} />
+                        <Tooltip formatter={(value) => `€${value.toFixed(2)}`} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(148, 163, 184, 0.28)', borderRadius: '8px' }} labelStyle={{ color: '#f8fafc' }} itemStyle={{ color: '#e2e8f0' }} />
+                        <Legend wrapperStyle={{ color: '#e2e8f0' }} />
                         <Bar dataKey="inversion" fill="#0284c7" name="Inversión" />
                         <Bar dataKey="comision" fill="#10b981" name="Comisión 10%" />
                       </BarChart>
@@ -1514,7 +1514,7 @@ function DashboardInversionista() {
                   )}
 
                   <div className="referrals-table-scroll" style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', color: '#e2e8f0' }}>
                       <thead>
                         <tr style={{ backgroundColor: 'rgba(51, 65, 85, 0.82)', borderBottom: '1px solid rgba(148, 163, 184, 0.28)' }}>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Referido</th>
@@ -1542,14 +1542,14 @@ function DashboardInversionista() {
               ) : (
                 <div style={{
                   padding: '3rem 2rem',
-                  backgroundColor: 'linear-gradient(135deg, #f0fdf4 0%, #f0fdf4 100%)',
+                  background: 'rgba(6, 78, 59, 0.32)',
                   borderRadius: '12px',
                   textAlign: 'center',
-                  color: '#065f46',
-                  border: '2px dashed #10b981'
+                  color: '#d1fae5',
+                  border: '1px dashed rgba(16, 185, 129, 0.7)'
                 }}>
                   <p style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>👥 Aún no tienes referidos</p>
-                  <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>¡Comparte tu enlace arriba para empezar a ganar comisiones!</p>
+                  <p style={{ color: '#a7f3d0', marginTop: '0.5rem' }}>¡Comparte tu enlace arriba para empezar a ganar comisiones!</p>
                 </div>
               )}
             </div>
