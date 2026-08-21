@@ -712,12 +712,7 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
                 # Disparar acelerador para el patrocinador (10% de importe)
                 inversor_id, importe = inversion_data
                 monto_acelerador = float(importe) * 0.10
-                
-                cur.execute("""
-                    ALTER TABLE inversores ADD COLUMN IF NOT EXISTS referido_por VARCHAR(100);
-                    ALTER TABLE inversores ADD COLUMN IF NOT EXISTS codigo_referido VARCHAR(50);
-                """)
-                conn.commit()
+
                 # Buscar si el inversor fue referido por alguien (aún falta la tabla, previendo logica)
                 cur.execute("SELECT referido_por FROM inversores WHERE id = %s", (inversor_id,))
                 ref_row = cur.fetchone()
