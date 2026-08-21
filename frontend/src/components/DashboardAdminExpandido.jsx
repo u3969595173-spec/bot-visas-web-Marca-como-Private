@@ -433,15 +433,25 @@ function DashboardAdminExpandido({ onLogout }) {
 
   const aportacionesNormalizadas = aportaciones.map(normalizeAportacion)
 
+  const HORAS_BLOQUEO_CAPITAL = 72
+  const esCapitalRetenido = (item) => {
+    if (item.estado !== 'Activa' && item.estado !== 'Validada') return false
+    if (!item.fechaAprobacion) return false
+    return new Date(item.fechaAprobacion).getTime() + HORAS_BLOQUEO_CAPITAL * 3600000 > Date.now()
+  }
+
   const totalAportacionesPendientes = aportacionesNormalizadas.filter((item) => item.estado === 'Pendiente de validación').length || solicitudesPendientes.filter((item) => item.estado === 'Pendiente de validación').length
   const totalRetirosRevision = retiros.filter((item) => item.estado === 'Pendiente' || item.estado === 'En revisión').length
-  const totalCapitalActivo = aportacionesNormalizadas.filter((item) => item.estado === 'Activa' || item.estado === 'Validada').reduce((sum, item) => sum + Number(item.importe || 0), 0) || usuariosRegistrados.length * 1000
+  const aportacionesValidadas = aportacionesNormalizadas.filter((item) => item.estado === 'Activa' || item.estado === 'Validada')
+  const totalCapitalRetenido = aportacionesValidadas.filter(esCapitalRetenido).reduce((sum, item) => sum + Number(item.importe || 0), 0)
+  const totalCapitalActivo = aportacionesValidadas.filter((item) => !esCapitalRetenido(item)).reduce((sum, item) => sum + Number(item.importe || 0), 0)
   const totalAportacionesRechazadas = aportacionesNormalizadas.filter((item) => item.estado === 'Rechazada').length
 
   const getStatClass = (label) => {
     if (label === 'Aportaciones pendientes') return 'stat-pendientes'
     if (label === 'Retiros en revisión') return 'stat-aprobados'
     if (label === 'Capital activo') return 'stat-total'
+    if (label === 'Capital retenido') return 'stat-total'
     if (label === 'Aportaciones rechazadas') return 'stat-rechazados'
     return ''
   }
@@ -450,6 +460,7 @@ function DashboardAdminExpandido({ onLogout }) {
     { label: 'Aportaciones pendientes', value: String(totalAportacionesPendientes), icon: '👥' },
     { label: 'Retiros en revisión', value: String(totalRetirosRevision), icon: '✅' },
     { label: 'Capital activo', value: formatCurrency(totalCapitalActivo, 'EUR'), icon: '💰' },
+    { label: 'Capital retenido', value: formatCurrency(totalCapitalRetenido, 'EUR'), icon: '🔒' },
     { label: 'Aportaciones rechazadas', value: String(totalAportacionesRechazadas), icon: '📈' },
   ]
 
@@ -819,96 +830,40 @@ function DashboardAdminExpandido({ onLogout }) {
       return
     }
 
-    let totalComisiones = 0
-    let aportacionesActualizadas = [...aportaciones]
-    let aportacionesReferidorIDs = []
+    // Nota: el 10% de acelerador ya se reparte automaticamente en el backend
+    // cuando se valida la aportacion del referido. Aqui solo se marca como pagado
+    // para llevar el control administrativo (evita procesarlo dos veces).
+    const totalComisiones = referidosSinPagar.reduce((sum, r) => sum + ((r.inversionTotal || 0) * 0.1), 0)
 
-    referidosSinPagar.forEach(referido => {
-      // Comisión = 10% de la inversión del referido (SIN aceleración ×3)
-      const comision = (referido.inversionTotal || 0) * 0.1
-      totalComisiones += comision
-
-      // Buscar el usuario referidor
-      const referidorData = referidos.find(r => r.codigo === referido.referidoPor)
-
-      if (referidorData && referidorData.usuarioId) {
-        // Buscar TODAS las aportaciones del referidor ordenadas
-        const aportacionesReferidor = aportacionesActualizadas.filter(a =>
-          a.usuarioId === referidorData.usuarioId ||
-          a.usuarioNombre === referidorData.nombreInversor ||
-          a.usuario === referidorData.nombreInversor
-        )
-        aportacionesReferidorIDs.push(...aportacionesReferidor.map(a => a.id));
-
-        if (aportacionesReferidor.length > 0) {
-          let montoRestante = comision
-
-          // Descuento en CASCADA: restar de cada aportación hasta que no quede saldo
-          for (let aportacion of aportacionesReferidor) {
-            if (montoRestante <= 0) break
-
-            const gananciasActuales = Number(aportacion.gananciasDisponibles || aportacion.importe * 3)
-            const montoARestar = Math.min(montoRestante, gananciasActuales)
-            const gananciasRestantes = Math.max(0, gananciasActuales - montoARestar)
-            const nuevoEstado = gananciasRestantes <= 0 ? 'Completada' : aportacion.estado
-
-            // Actualizar esta aportación
-            aportacionesActualizadas = aportacionesActualizadas.map(a =>
-              a.id === aportacion.id
-                ? { ...a, gananciasDisponibles: gananciasRestantes, estado: nuevoEstado }
-                : a
-            )
-
-            montoRestante -= montoARestar
-          }
-        }
-      }
-    })
-
-    // Actualizar referidos como pagados
     const referidosActualizados = referidos.map(r =>
       referidosSinPagar.find(rsp => rsp.id === r.id)
         ? { ...r, pagado: true }
         : r
     )
-
-    setAportaciones(aportacionesActualizadas)
     setReferidos(referidosActualizados)
 
-    // Save to Database via fetch
-    const token = localStorage.getItem('token');
-    const updatePromises = aportacionesActualizadas
-      .filter(a => aportacionesReferidorIDs && aportacionesReferidorIDs.includes(a.id))
-      .map(ap => fetch(`${API}/api/operaciones/aportaciones/${ap.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ estado: ap.estado, gananciasDisponibles: ap.gananciasDisponibles })
-      })
-      );
-
+    const token = localStorage.getItem('token')
     const updateRefPromises = referidosSinPagar.map(r => {
-      const updatedRef = referidosActualizados.find(req => req.id === r.id);
-      if (updatedRef) {
-        return fetch(`${API}/api/referidos`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({
-            id: updatedRef.id,
-            codigo: updatedRef.codigo,
-            nombreInversor: updatedRef.nombreInversor,
-            usuarioId: String(updatedRef.usuarioId || ''),
-            referidoPor: updatedRef.referidoPor,
-            inversionTotal: Number(updatedRef.inversionTotal || 0),
-            pagado: true,
-            esAdmin: Boolean(updatedRef.esAdmin)
-          })
+      const updatedRef = referidosActualizados.find(req => req.id === r.id)
+      return fetch(`${API}/api/referidos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          id: updatedRef.id,
+          codigo: updatedRef.codigo,
+          nombreInversor: updatedRef.nombreInversor,
+          usuarioId: String(updatedRef.usuarioId || ''),
+          referidoPor: updatedRef.referidoPor,
+          inversionTotal: Number(updatedRef.inversionTotal || 0),
+          pagado: true,
+          esAdmin: Boolean(updatedRef.esAdmin)
         })
-      }
-    });
+      })
+    })
 
-    Promise.all([...updatePromises, ...updateRefPromises.filter(Boolean)]).catch(console.error);
+    Promise.all(updateRefPromises).catch(console.error)
 
-    setMensaje(`✅ Pagadas ${referidosSinPagar.length} comisiones de referidos por €${totalComisiones.toFixed(2)} (saldo disponible actualizado)`)
+    setMensaje(`✅ Marcadas ${referidosSinPagar.length} comisiones como pagadas (€${totalComisiones.toFixed(2)})`)
     setTimeout(() => setMensaje(''), 3000)
   }
 
@@ -1156,7 +1111,8 @@ function DashboardAdminExpandido({ onLogout }) {
                     ['Aportaciones validadas', String(aportaciones.filter((item) => item.estado === 'Activa' || item.estado === 'Validada').length || usuariosRegistrados.length)],
                     ['Retiros pendientes', String(totalRetirosRevision)],
                     ['Retiros aprobados', String(retiros.filter((item) => item.estado === 'Aprobado' || item.estado === 'Procesado').length)],
-                    ['Capital activo', formatCurrency(totalCapitalActivo, 'EUR')]
+                    ['Capital activo', formatCurrency(totalCapitalActivo, 'EUR')],
+                    ['Capital retenido', formatCurrency(totalCapitalRetenido, 'EUR')]
                   ].map(([label, value]) => (
                     <div key={label} className="summary-mini-card">
                       <div className="mini-label">{label}</div>
@@ -1461,48 +1417,54 @@ function DashboardAdminExpandido({ onLogout }) {
             <div className="card">
               <div className="section-header"><h2>🎯 Sistema de Referidos</h2></div>
 
-              {/* Tu código de referido */}
-              <div style={{ marginTop: '1.5rem', padding: '1.5rem', backgroundColor: '#fef3c7', borderRadius: '8px', border: '2px solid #f59e0b' }}>
-                <h3 style={{ marginTop: 0, color: '#92400e' }}>📌 Tu Enlace de Referido</h3>
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginBottom: '1rem' }}>
-                  <input
-                    type="text"
-                    value={`https://capitaltradeiberia.com?ref=${getCodigoReferidoAdmin().codigo}`}
-                    readOnly
-                    style={{ flex: 1, padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontFamily: 'monospace', fontSize: '14px' }}
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`https://capitaltradeiberia.com?ref=${getCodigoReferidoAdmin().codigo}`)
-                      setMensaje('✅ Enlace copiado al portapapeles')
-                      setTimeout(() => setMensaje(''), 2000)
-                    }}
-                    style={{ padding: '10px 16px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-                  >
-                    📋 Copiar
-                  </button>
-                </div>
-                <p style={{ color: '#78350f', fontSize: '14px', margin: 0 }}>Comparte este enlace. Cada usuario que se registre con él, tú ganas 10% de su inversión.</p>
+              {/* Esquema de referidos de toda la plataforma (el admin no recomienda ni gana comisiones) */}
+              <div style={{ marginTop: '1.5rem' }}>
+                <h3 style={{ color: '#374151', marginBottom: '1rem' }}>🌐 Esquema de Referidos de la Plataforma</h3>
+                {(() => {
+                  const usuarios = referidos.filter(r => !r.esAdmin)
+                  const grupos = usuarios
+                    .map(r => ({
+                      propietario: r,
+                      hijos: referidos.filter(h => h.referidoPor === r.codigo && h.codigo !== r.codigo)
+                    }))
+                    .sort((a, b) => b.hijos.length - a.hijos.length)
+
+                  if (grupos.length === 0) {
+                    return <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>Aún no hay usuarios registrados con código de referido.</p>
+                  }
+
+                  return (
+                    <div style={{ display: 'grid', gap: '1rem' }}>
+                      {grupos.map((grupo) => (
+                        <div key={grupo.propietario.id} style={{ padding: '1rem', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                            <strong style={{ color: '#111827' }}>👤 {grupo.propietario.nombreInversor || 'Usuario'}</strong>
+                            <span style={{ fontSize: '12px', color: '#6b7280', fontFamily: 'monospace' }}>Código: {grupo.propietario.codigo}</span>
+                            <span style={{ padding: '4px 10px', backgroundColor: grupo.hijos.length > 0 ? '#d1fae5' : '#f3f4f6', color: grupo.hijos.length > 0 ? '#065f46' : '#6b7280', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
+                              {grupo.hijos.length} referido{grupo.hijos.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          {grupo.hijos.length > 0 && (
+                            <ul style={{ margin: '0.75rem 0 0 0', paddingLeft: '1.25rem', color: '#374151', fontSize: '13px' }}>
+                              {grupo.hijos.map((hijo) => (
+                                <li key={hijo.id}>{hijo.nombreInversor || 'Usuario'} — €{Number(hijo.inversionTotal || 0).toLocaleString('es-ES')} invertido</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
               </div>
 
-              {/* Estadísticas de referidos */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
-                <div style={{ padding: '1rem', backgroundColor: '#ecfdf5', borderRadius: '8px', border: '1px solid #86efac' }}>
-                  <h4 style={{ marginTop: 0, color: '#065f46' }}>👥 Referidos activos</h4>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>{getReferidosDelAdmin().length}</p>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
-                  <h4 style={{ marginTop: 0, color: '#065f46' }}>💰 Comisiones Ganadas (10%)</h4>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>
-                    €{getReferidosDelAdmin().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}
-                  </p>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #86efac' }}>
-                  <h4 style={{ marginTop: 0, color: '#065f46' }}>📊 Inversión total de referidos</h4>
-                  <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>
-                    €{getReferidosDelAdmin().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}
-                  </p>
-                </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                <button
+                  onClick={pagarComisionesReferidos}
+                  style={{ padding: '10px 18px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
+                >
+                  💳 Pagar Comisiones Pendientes (10% a cada referidor)
+                </button>
               </div>
 
               {/* Tabla de inversiones activas con ganancias disponibles */}
@@ -1555,57 +1517,19 @@ function DashboardAdminExpandido({ onLogout }) {
                 )}
               </div>
 
-              {/* Tabla de referidos */}
-              <div style={{ marginTop: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3 style={{ color: '#374151', margin: 0 }}>🌐 Historial de Referidos</h3>
-                  <button
-                    onClick={pagarComisionesReferidos}
-                    style={{ padding: '8px 16px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
-                  >
-                    💳 Pagar Comisiones
-                  </button>
-                </div>
-                {getReferidosDelAdmin().length > 0 ? (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
-                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Referido</th>
-                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
-                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>🎁 Comisión (10%)</th>
-                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>📅 Fecha</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {getReferidosDelAdmin().map((referido, idx) => {
-                          const comision = referido.inversionTotal * 0.1
-                          return (
-                            <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
-                              <td style={{ padding: '12px' }}><strong>{referido.nombreReferido || 'Usuario'}</strong></td>
-                              <td style={{ padding: '12px', textAlign: 'right' }}>€{Number(referido.inversionTotal || 0).toLocaleString('es-ES')}</td>
-                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981' }}>€{comision.toFixed(2)}</td>
-                              <td style={{ padding: '12px', color: '#6b7280', fontSize: '12px' }}>{new Date(referido.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>Aún no tienes referidos. Comparte tu enlace para empezar a ganar.</p>
-                )}
-              </div>
-
               {/* Gráfico de distribución de ganancias */}
               <div style={{ marginTop: '2rem', padding: '1.5rem', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                <h3 style={{ marginTop: 0, color: '#374151' }}>📈 Análisis de Ganancias</h3>
+                <h3 style={{ marginTop: 0, color: '#374151' }}>📈 Análisis de Ganancias de Referidos (toda la plataforma)</h3>
+                {(() => {
+                  const referidosConDueno = referidos.filter(r => r.referidoPor)
+                  const totalInversionReferidos = referidosConDueno.reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0)
+                  return (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
                   {/* Pie chart simple */}
                   <div style={{ textAlign: 'center' }}>
                     <h4 style={{ color: '#6b7280' }}>Distribución de Ganancias</h4>
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '12px', height: '200px', marginTop: '1rem' }}>
-                      <div style={{ width: '60px', backgroundColor: '#10b981', borderRadius: '8px 8px 0 0', height: `${(getReferidosDelAdmin().length / (aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length || 1)) * 100 || 10}%`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
+                      <div style={{ width: '60px', backgroundColor: '#10b981', borderRadius: '8px 8px 0 0', height: `${(referidosConDueno.length / (aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length || 1)) * 100 || 10}%`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
                         Referidos
                       </div>
                       <div style={{ width: '60px', backgroundColor: '#3b82f6', borderRadius: '8px 8px 0 0', height: '70%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
@@ -1620,19 +1544,21 @@ function DashboardAdminExpandido({ onLogout }) {
                     <div style={{ marginTop: '1rem', textAlign: 'left', backgroundColor: 'white', padding: '1rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
                         <span style={{ color: '#6b7280' }}>Total Referidos:</span>
-                        <strong style={{ color: '#10b981' }}>{getReferidosDelAdmin().length}</strong>
+                        <strong style={{ color: '#10b981' }}>{referidosConDueno.length}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
                         <span style={{ color: '#6b7280' }}>Inv. Total Referidos:</span>
-                        <strong style={{ color: '#3b82f6' }}>€{getReferidosDelAdmin().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}</strong>
+                        <strong style={{ color: '#3b82f6' }}>€{totalInversionReferidos.toFixed(2)}</strong>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <span style={{ color: '#6b7280' }}>Comisiones Totales (10%):</span>
-                        <strong style={{ color: '#f59e0b' }}>€{getReferidosDelAdmin().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}</strong>
+                        <strong style={{ color: '#f59e0b' }}>€{(totalInversionReferidos * 0.1).toFixed(2)}</strong>
                       </div>
                     </div>
                   </div>
                 </div>
+                  )
+                })()}
               </div>
             </div>
           )}
