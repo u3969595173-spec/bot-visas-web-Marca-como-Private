@@ -626,24 +626,38 @@ function DashboardAdminExpandido({ onLogout }) {
 
   const updateMinimo = (moneda, value) => setMinimos((prev) => ({ ...prev, [moneda]: Number(value) || 0 }))
 
-  // Generar código único de referido para el admin
-  const generarCodigoReferido = () => {
-    return 'REF' + Math.random().toString(36).substring(2, 11).toUpperCase()
-  }
+  // Codigo de referido fijo del admin (siempre el mismo, no se genera al azar)
+  const CODIGO_REFERIDO_ADMIN = 'ADMINCTI'
 
   // Obtener o crear código de referido del admin
   const getCodigoReferidoAdmin = () => {
-    let referidoAdmin = referidos.find(r => r.esAdmin === true)
+    let referidoAdmin = referidos.find(r => r.esAdmin === true || r.codigo === CODIGO_REFERIDO_ADMIN)
     if (!referidoAdmin) {
       referidoAdmin = {
-        id: 'admin-referido-' + Date.now(),
-        codigo: generarCodigoReferido(),
+        id: 'admin-referido-fijo',
+        codigo: CODIGO_REFERIDO_ADMIN,
         esAdmin: true,
         referidosCount: 0,
         gananciaTotal: 0,
         historial: []
       }
       setReferidos([...referidos, referidoAdmin])
+
+      const token = localStorage.getItem('token')
+      fetch(`${API}/api/referidos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          id: referidoAdmin.id,
+          codigo: referidoAdmin.codigo,
+          nombreInversor: 'Admin',
+          usuarioId: 'admin-1',
+          referidoPor: null,
+          inversionTotal: 0,
+          pagado: false,
+          esAdmin: true
+        })
+      }).catch(console.error)
     }
     return referidoAdmin
   }

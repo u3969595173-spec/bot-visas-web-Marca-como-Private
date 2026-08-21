@@ -123,6 +123,9 @@ function DashboardInversionista() {
   const [errorChat, setErrorChat] = React.useState('')
   const [mensajes, setMensajes] = React.useState([])
 
+  // Codigo de referido permanente del inversor (viene de su perfil, nunca cambia)
+  const [codigoReferidoPropio, setCodigoReferidoPropio] = React.useState(null)
+
   React.useEffect(() => {
     const syncData = () => {
       setCurrentUser(JSON.parse(localStorage.getItem('capital_trade_user') || 'null'))
@@ -155,6 +158,9 @@ function DashboardInversionista() {
           localStorage.removeItem('capital_trade_user')
           window.dispatchEvent(new Event('capital-trade-sync'))
           navigate('/login')
+        } else if (response.ok) {
+          const data = await response.json()
+          if (data.codigo_referido) setCodigoReferidoPropio(data.codigo_referido)
         }
       } catch (error) {
         console.log('Error verificando cuenta:', error)
@@ -590,7 +596,41 @@ function DashboardInversionista() {
 
   const getCodigoReferidoInversor = () => {
     const userName = currentUser?.name || currentUser?.nombre || 'Usuario'
-    let referidoInversor = referidos.find(r => r.nombreInversor === userName && r.codigo)
+    // Usar siempre el codigo permanente del perfil (nunca cambia); solo si aun no cargo, buscar uno existente
+    const codigoPermanente = codigoReferidoPropio
+    let referidoInversor = referidos.find(r => (codigoPermanente && r.codigo === codigoPermanente) || r.nombreInversor === userName)
+    if (codigoPermanente) {
+      if (!referidoInversor) {
+        referidoInversor = {
+          id: 'inv-referido-' + currentUser?.id,
+          codigo: codigoPermanente,
+          nombreInversor: userName,
+          usuarioId: currentUser?.id,
+          referidosCount: 0,
+          gananciaTotal: 0,
+          historial: []
+        }
+        const updated = [...referidos, referidoInversor]
+        setReferidos(updated)
+
+        const token = localStorage.getItem('token');
+        fetch(`${API_URL}/api/referidos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({
+            id: referidoInversor.id,
+            codigo: referidoInversor.codigo,
+            nombreInversor: referidoInversor.nombreInversor,
+            usuarioId: String(referidoInversor.usuarioId),
+            referidoPor: null,
+            inversionTotal: 0,
+            pagado: false,
+            esAdmin: false
+          })
+        }).catch(console.error)
+      }
+      return referidoInversor
+    }
     if (!referidoInversor) {
       referidoInversor = {
         id: 'inv-referido-' + currentUser?.id + '-' + Date.now(),
@@ -601,24 +641,6 @@ function DashboardInversionista() {
         gananciaTotal: 0,
         historial: []
       }
-      const updated = [...referidos, referidoInversor]
-      setReferidos(updated)
-
-      const token = localStorage.getItem('token');
-      fetch(`${API_URL}/api/referidos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          id: referidoInversor.id,
-          codigo: referidoInversor.codigo,
-          nombreInversor: referidoInversor.nombreInversor,
-          usuarioId: String(referidoInversor.usuarioId),
-          referidoPor: null,
-          inversionTotal: 0,
-          pagado: false,
-          esAdmin: false
-        })
-      }).catch(console.error)
     }
     return referidoInversor
   }
