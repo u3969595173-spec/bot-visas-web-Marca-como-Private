@@ -1234,45 +1234,40 @@ function DashboardAdminExpandido({ onLogout }) {
                       <td>{item.comentarios || 'Sin comentarios'}</td>
                       <td>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <button
-                            className="btn-action"
-                            onClick={() => updateAportacionStatus(item.id, 'Activa', 'Aportación validada manualmente por el administrador.')}
-                            disabled={item.estado === 'Activa'}
-                            style={{
-                              opacity: item.estado === 'Activa' ? 0.6 : 1,
-                              cursor: item.estado === 'Activa' ? 'default' : 'pointer',
-                              backgroundColor: item.estado === 'Activa' ? '#10b981' : undefined,
-                              color: item.estado === 'Activa' ? 'white' : undefined
-                            }}
-                          >
-                            {item.estado === 'Activa' ? '✓ Validada' : 'Validar'}
-                          </button>
-                          <button
-                            className="btn-action"
-                            onClick={() => updateAportacionStatus(item.id, 'Rechazada', 'La aportación fue rechazada por documentación no válida.')}
-                            disabled={item.estado === 'Rechazada'}
-                            style={{
-                              opacity: item.estado === 'Rechazada' ? 0.6 : 1,
-                              cursor: item.estado === 'Rechazada' ? 'default' : 'pointer',
-                              backgroundColor: item.estado === 'Rechazada' ? '#ef4444' : undefined,
-                              color: item.estado === 'Rechazada' ? 'white' : undefined
-                            }}
-                          >
-                            {item.estado === 'Rechazada' ? '✗ Rechazada' : 'Rechazar'}
-                          </button>
-                          <button
-                            className="btn-action"
-                            onClick={() => updateAportacionStatus(item.id, 'Información solicitada', 'Se solicita información adicional.')}
-                            disabled={item.estado === 'Información solicitada'}
-                            style={{
-                              opacity: item.estado === 'Información solicitada' ? 0.6 : 1,
-                              cursor: item.estado === 'Información solicitada' ? 'default' : 'pointer',
-                              backgroundColor: item.estado === 'Información solicitada' ? '#f59e0b' : undefined,
-                              color: item.estado === 'Información solicitada' ? 'white' : undefined
-                            }}
-                          >
-                            {item.estado === 'Información solicitada' ? '⏱ Información solicitada' : 'Solicitar información'}
-                          </button>
+                          {item.estado === 'Pendiente de validación' ? (
+                            <>
+                              <button
+                                className="btn-action"
+                                onClick={() => updateAportacionStatus(item.id, 'Activa', 'Aportación validada manualmente por el administrador.')}
+                              >
+                                Validar
+                              </button>
+                              <button
+                                className="btn-action"
+                                onClick={() => updateAportacionStatus(item.id, 'Rechazada', 'La aportación fue rechazada por documentación no válida.')}
+                              >
+                                Rechazar
+                              </button>
+                              <button
+                                className="btn-action"
+                                onClick={() => updateAportacionStatus(item.id, 'Información solicitada', 'Se solicita información adicional.')}
+                              >
+                                Solicitar información
+                              </button>
+                            </>
+                          ) : (
+                            <span style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              fontWeight: '600',
+                              fontSize: '13px',
+                              textAlign: 'center',
+                              backgroundColor: item.estado === 'Activa' ? '#10b981' : item.estado === 'Rechazada' ? '#ef4444' : '#f59e0b',
+                              color: 'white'
+                            }}>
+                              {item.estado === 'Activa' ? '✓ Validada' : item.estado === 'Rechazada' ? '✗ Rechazada' : `⏱ ${item.estado}`}
+                            </span>
+                          )}
                           <button
                             className="btn-action"
                             onClick={() => eliminarAportacion(item.id)}
