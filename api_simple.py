@@ -23,6 +23,32 @@ SECRET_KEY = os.getenv("SECRET_KEY", "tu-clave-secreta-muy-segura-aqui")
 ALGORITHM = "HS256"
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# Pool de conexiones reutilizables (evita abrir/cerrar una conexion TCP+SSL nueva en cada request)
+from psycopg2 import pool as _pg_pool
+DB_POOL = None
+
+def get_conn():
+    global DB_POOL
+    if DB_POOL is None:
+        DB_POOL = _pg_pool.ThreadedConnectionPool(1, 20, DATABASE_URL, sslmode="require")
+    try:
+        conn = DB_POOL.getconn()
+        conn._de_pool = True
+    except _pg_pool.PoolError:
+        # Pool agotado momentaneamente: abrir una conexion directa de respaldo
+        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn._de_pool = False
+    return conn
+
+def release_conn(conn):
+    try:
+        if getattr(conn, '_de_pool', False) and DB_POOL is not None:
+            DB_POOL.putconn(conn)
+        else:
+            conn.close()
+    except Exception:
+        pass
+
 app = FastAPI(title="Capital Trade Iberia API")
 
 # CORS - solo dominios reales del frontend, no comodín
@@ -102,7 +128,7 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
     
     conn = None
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         
         # Buscar todas las aportaciones activas cuyas 72 horas ya vencieron (y que no se hayan pagado hoy)
@@ -154,7 +180,7 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
     finally:
         if conn:
             cur.close()
-            conn.close()
+            release_conn(conn)
 
 class TransaccionBase(BaseModel):
     inversor_id: int
@@ -183,7 +209,7 @@ class JustificanteRequest(BaseModel):
 async def registro_inversor(datos: InversorRegistroRequest):
     """Registra un nuevo inversor"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         # Crear tabla si no existe
@@ -221,7 +247,7 @@ async def registro_inversor(datos: InversorRegistroRequest):
         
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         token = crear_token({"inversor_id": inversor_id, "email": datos.email, "rol": "inversor"})
 
@@ -240,7 +266,7 @@ async def registro_inversor(datos: InversorRegistroRequest):
 async def login_inversor(datos: InversorLoginRequest):
     """Login de inversor"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("SELECT id, nombre, email, password_hash, estado FROM inversores WHERE email = %s", 
@@ -256,7 +282,7 @@ async def login_inversor(datos: InversorLoginRequest):
         token = crear_token({"inversor_id": inversor_id, "email": email, "rol": "inversor"})
         
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         return {
             "token": token,
@@ -273,7 +299,7 @@ async def login_inversor(datos: InversorLoginRequest):
 async def get_perfil(usuario=Depends(obtener_usuario_actual)):
     """Devuelve el perfil completo del inversor autenticado"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("""
             ALTER TABLE inversores
@@ -287,7 +313,7 @@ async def get_perfil(usuario=Depends(obtener_usuario_actual)):
         )
         row = cur.fetchone()
         cur.close()
-        conn.close()
+        release_conn(conn)
         if not row:
             raise HTTPException(status_code=404, detail="Inversor no encontrado")
         if row[5] == 'rechazada':
@@ -312,13 +338,13 @@ class FotoRequest(BaseModel):
 @app.put("/api/inversores/perfil/foto")
 async def update_foto_perfil(datos: FotoRequest, usuario=Depends(obtener_usuario_actual)):
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("UPDATE inversores SET foto_perfil = %s WHERE id = %s",
                     (datos.foto, usuario.get("inversor_id")))
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -327,13 +353,13 @@ async def update_foto_perfil(datos: FotoRequest, usuario=Depends(obtener_usuario
 @app.put("/api/inversores/perfil/portada")
 async def update_foto_portada(datos: FotoRequest, usuario=Depends(obtener_usuario_actual)):
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("UPDATE inversores SET foto_portada = %s WHERE id = %s",
                     (datos.foto, usuario.get("inversor_id")))
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -349,7 +375,7 @@ class ActualizarPerfilRequest(BaseModel):
 async def actualizar_perfil_inversor(datos: ActualizarPerfilRequest, usuario=Depends(obtener_usuario_actual)):
     """Actualiza nombre, teléfono y país del inversor autenticado"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("""
             UPDATE inversores SET
@@ -360,7 +386,7 @@ async def actualizar_perfil_inversor(datos: ActualizarPerfilRequest, usuario=Dep
         """, (datos.nombre, datos.telefono, datos.pais, usuario.get("inversor_id")))
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -421,12 +447,12 @@ async def get_cuentas(usuario=Depends(obtener_usuario_actual)):
     if usuario.get("rol") != "admin":
         raise HTTPException(status_code=403, detail="Solo admins")
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_config_table(cur, conn)
         cur.execute("SELECT valor FROM configuracion_pagos WHERE clave = 'metodos_pago'")
         row = cur.fetchone()
-        cur.close(); conn.close()
+        cur.close(); release_conn(conn)
         if row:
             import json
             return {"cuentas": json.loads(row[0])}
@@ -441,7 +467,7 @@ async def update_cuentas(datos: dict, usuario=Depends(obtener_usuario_actual)):
         raise HTTPException(status_code=403, detail="Solo admins")
     try:
         import json
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_config_table(cur, conn)
         valor = json.dumps(datos.get("cuentas", []))
@@ -450,7 +476,7 @@ async def update_cuentas(datos: dict, usuario=Depends(obtener_usuario_actual)):
             ON CONFLICT (clave) DO UPDATE SET valor = %s, updated_at = NOW()
         """, (valor, valor))
         conn.commit()
-        cur.close(); conn.close()
+        cur.close(); release_conn(conn)
         return {"ok": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -460,12 +486,12 @@ async def update_cuentas(datos: dict, usuario=Depends(obtener_usuario_actual)):
 async def get_metodos_publico():
     """Para inversores: ver métodos de pago disponibles (sin auth)"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_config_table(cur, conn)
         cur.execute("SELECT valor FROM configuracion_pagos WHERE clave = 'metodos_pago'")
         row = cur.fetchone()
-        cur.close(); conn.close()
+        cur.close(); release_conn(conn)
         if row:
             import json
             return {"metodos": json.loads(row[0])}
@@ -482,7 +508,7 @@ async def get_metodos_publico():
 async def crear_aportacion(datos: AportacionRequest, usuario = Depends(obtener_usuario_actual)):
     """Crea una aportación"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("""
@@ -522,7 +548,7 @@ async def crear_aportacion(datos: AportacionRequest, usuario = Depends(obtener_u
         aportacion_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         return {"id": aportacion_id, "importe": datos.importe}
     except Exception as e:
@@ -532,7 +558,7 @@ async def crear_aportacion(datos: AportacionRequest, usuario = Depends(obtener_u
 async def subir_justificante(id: int, datos: JustificanteRequest, usuario = Depends(obtener_usuario_actual)):
     """Sube un justificante Base64 a una aportación existente"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         
         # Verificar que la aportación exista y sea del usuario (o admin)
@@ -556,7 +582,7 @@ async def subir_justificante(id: int, datos: JustificanteRequest, usuario = Depe
         
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"mensaje": "Justificante subido correctamente"}
     except HTTPException:
         raise
@@ -567,7 +593,7 @@ async def subir_justificante(id: int, datos: JustificanteRequest, usuario = Depe
 async def obtener_justificante(id: int, usuario = Depends(obtener_usuario_actual)):
     """Devuelve el Base64 del justificante para que no cargue la lista general"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         
         # Admin ve todo, Inversor solo suyo
@@ -578,7 +604,7 @@ async def obtener_justificante(id: int, usuario = Depends(obtener_usuario_actual
              
         resultado = cur.fetchone()
         cur.close()
-        conn.close()
+        release_conn(conn)
         
         if not resultado:
              raise HTTPException(status_code=404, detail="Justificante no encontrado o sin acceso")
@@ -601,7 +627,7 @@ async def obtener_justificante(id: int, usuario = Depends(obtener_usuario_actual
 async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
     """Obtiene aportaciones (admin ve todas, inversor ve suyas)"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         if usuario.get('rol') == 'admin':
@@ -612,7 +638,7 @@ async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
         
         resultados = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
         
         aportaciones = []
         for row in resultados:
@@ -660,7 +686,7 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         estado = datos.get('estado')
@@ -735,7 +761,7 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
 
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         return {"success": True}
     except Exception as e:
@@ -749,7 +775,7 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
 async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_actual)):
     """Crea un retiro"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("""
@@ -775,7 +801,7 @@ async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_a
         retiro_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         return {"id": retiro_id, "importe": datos.importe}
     except Exception as e:
@@ -786,7 +812,7 @@ async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_a
 async def obtener_retiros(usuario = Depends(obtener_usuario_actual)):
     """Obtiene retiros (admin ve todas, inversor ve suyas)"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
 
@@ -798,7 +824,7 @@ async def obtener_retiros(usuario = Depends(obtener_usuario_actual)):
         
         resultados = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         retiros = []
         for row in resultados:
@@ -825,13 +851,13 @@ async def actualizar_retiro(retiro_id: int, datos: dict, usuario = Depends(obten
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("UPDATE retiros SET estado = %s WHERE id = %s", (datos.get('estado'), retiro_id))
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         return {"success": True}
     except Exception as e:
@@ -848,13 +874,13 @@ async def obtener_inversores_pendientes(usuario = Depends(obtener_usuario_actual
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("SELECT id, nombre, email, estado FROM inversores WHERE estado = 'pendiente' ORDER BY id DESC")
         resultados = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         inversores = []
         for row in resultados:
@@ -877,13 +903,13 @@ async def obtener_inversores_validados(usuario = Depends(obtener_usuario_actual)
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("SELECT id, nombre, email, estado FROM inversores WHERE estado = 'validada' ORDER BY id DESC")
         resultados = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         inversores = []
         for row in resultados:
@@ -906,13 +932,13 @@ async def actualizar_estado_inversor(inversor_id: int, datos: dict, usuario = De
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("UPDATE inversores SET estado = %s WHERE id = %s", (datos.get('estado'), inversor_id))
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         return {"success": True}
     except Exception as e:
@@ -925,7 +951,7 @@ async def actualizar_estado_inversor(inversor_id: int, datos: dict, usuario = De
 async def crear_solicitud_participacion(datos: dict):
     """Guarda una solicitud de participación de un usuario no registrado"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("""
@@ -959,7 +985,7 @@ async def crear_solicitud_participacion(datos: dict):
         solicitud_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         return {"id": solicitud_id, "success": True}
     except Exception as e:
@@ -972,12 +998,12 @@ async def listar_solicitudes_participacion(usuario=Depends(obtener_usuario_actua
     if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("SELECT to_regclass('solicitudes_participacion')")
         if not cur.fetchone()[0]:
             cur.close()
-            conn.close()
+            release_conn(conn)
             return {"solicitudes": []}
 
         cur.execute("""
@@ -986,7 +1012,7 @@ async def listar_solicitudes_participacion(usuario=Depends(obtener_usuario_actua
         """)
         filas = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"solicitudes": [{
             "id": f[0], "nombre": f[1], "email": f[2], "telefono": f[3], "pais": f[4],
             "importe": float(f[5] or 0), "moneda": f[6], "estado": f[7],
@@ -1002,12 +1028,12 @@ async def actualizar_solicitud_participacion(solicitud_id: int, datos: dict, usu
     if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("UPDATE solicitudes_participacion SET estado = %s WHERE id = %s", (datos.get('estado'), solicitud_id))
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -1021,7 +1047,7 @@ async def actualizar_solicitud_participacion(solicitud_id: int, datos: dict, usu
 async def subir_justificante(solicitud_id: str, datos: dict, usuario=Depends(obtener_usuario_actual)):
     """Sube un justificante en base64 para una solicitud/aportación"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         
         # Guardamos en la base de datos el string base64 completo
@@ -1054,7 +1080,7 @@ async def subir_justificante(solicitud_id: str, datos: dict, usuario=Depends(obt
             
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -1096,7 +1122,7 @@ def _ensure_referidos_table(cur, conn):
 async def obtener_referidos(usuario = Depends(obtener_usuario_actual)):
     """Obtiene todos los referidos (usados por el programa de líderes)"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_referidos_table(cur, conn)
 
@@ -1106,7 +1132,7 @@ async def obtener_referidos(usuario = Depends(obtener_usuario_actual)):
         """)
         filas = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         referidos = [{
             "id": fila[0],
@@ -1128,7 +1154,7 @@ async def obtener_referidos(usuario = Depends(obtener_usuario_actual)):
 async def crear_o_actualizar_referido(datos: ReferidoRequest, usuario = Depends(obtener_usuario_actual)):
     """Crea o actualiza un registro de referido (código propio o comisión pagada)"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_referidos_table(cur, conn)
 
@@ -1147,7 +1173,7 @@ async def crear_o_actualizar_referido(datos: ReferidoRequest, usuario = Depends(
         ))
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -1199,7 +1225,7 @@ def _ensure_operaciones_aportaciones_table(cur, conn):
 async def crear_aportacion_operacion(datos: OperacionAportacionRequest, usuario=Depends(obtener_usuario_actual)):
     """Registra una aportación a una operación del catálogo público"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_operaciones_aportaciones_table(cur, conn)
 
@@ -1214,7 +1240,7 @@ async def crear_aportacion_operacion(datos: OperacionAportacionRequest, usuario=
         ))
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"success": True, "message": "Aportación registrada."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1224,7 +1250,7 @@ async def crear_aportacion_operacion(datos: OperacionAportacionRequest, usuario=
 async def obtener_aportaciones_operaciones(usuario=Depends(obtener_usuario_actual)):
     """Lista las aportaciones registradas a operaciones del catálogo público"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_operaciones_aportaciones_table(cur, conn)
 
@@ -1236,7 +1262,7 @@ async def obtener_aportaciones_operaciones(usuario=Depends(obtener_usuario_actua
         """)
         filas = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         aportaciones = [{
             "id": f[0], "operacionId": f[1], "operacionNombre": f[2],
@@ -1265,14 +1291,14 @@ async def validar_aportacion_operacion(aportacion_id: str, datos: ValidarOperaci
     if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Sin permisos")
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_operaciones_aportaciones_table(cur, conn)
 
         cur.execute("SELECT id FROM operaciones_aportaciones WHERE id = %s", (aportacion_id,))
         if not cur.fetchone():
             cur.close()
-            conn.close()
+            release_conn(conn)
             raise HTTPException(status_code=404, detail="No encontrada")
 
         if datos.estado is not None:
@@ -1287,7 +1313,7 @@ async def validar_aportacion_operacion(aportacion_id: str, datos: ValidarOperaci
             )
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"success": True, "message": f"Aportación a operación procesada como {datos.estado}"}
     except HTTPException:
         raise
@@ -1374,7 +1400,7 @@ def _fila_a_operacion(fila):
 async def listar_operaciones():
     """Catálogo público de operaciones (sin autenticación)"""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_operaciones_table(cur, conn)
 
@@ -1386,7 +1412,7 @@ async def listar_operaciones():
         """)
         filas = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"operaciones": [_fila_a_operacion(f) for f in filas]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1417,7 +1443,7 @@ async def crear_operacion(datos: OperacionCatalogoRequest, usuario=Depends(obten
         raise HTTPException(status_code=403, detail="Acceso denegado")
     try:
         import json
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_operaciones_table(cur, conn)
 
@@ -1435,7 +1461,7 @@ async def crear_operacion(datos: OperacionCatalogoRequest, usuario=Depends(obten
         operacion_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"id": operacion_id, "success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1448,7 +1474,7 @@ async def actualizar_operacion(operacion_id: int, datos: dict, usuario=Depends(o
         raise HTTPException(status_code=403, detail="Acceso denegado")
     try:
         import json
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         _ensure_operaciones_table(cur, conn)
 
@@ -1470,7 +1496,7 @@ async def actualizar_operacion(operacion_id: int, datos: dict, usuario=Depends(o
 
         if not sets:
             cur.close()
-            conn.close()
+            release_conn(conn)
             return {"success": True, "message": "Nada que actualizar"}
 
         sets.append("updated_at = CURRENT_TIMESTAMP")
@@ -1478,7 +1504,7 @@ async def actualizar_operacion(operacion_id: int, datos: dict, usuario=Depends(o
         cur.execute(f"UPDATE operaciones SET {', '.join(sets)} WHERE id = %s", valores)
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1504,7 +1530,7 @@ async def crear_oferta(datos: OfertaRequest, usuario=Depends(obtener_usuario_act
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         
         cur.execute("""
@@ -1533,7 +1559,7 @@ async def crear_oferta(datos: OfertaRequest, usuario=Depends(obtener_usuario_act
         row = cur.fetchone()
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"id": row[0], "created_at": row[1].isoformat(), "success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -1541,7 +1567,7 @@ async def crear_oferta(datos: OfertaRequest, usuario=Depends(obtener_usuario_act
 @app.get("/api/ofertas")
 async def obtener_ofertas(usuario=Depends(obtener_usuario_actual)):
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         
         cur.execute("SELECT to_regclass('ofertas_privadas')")
@@ -1551,7 +1577,7 @@ async def obtener_ofertas(usuario=Depends(obtener_usuario_actual)):
         cur.execute("SELECT id, nombre, descripcion, condiciones, programa, nivel, importe_maximo, inversor_id_especial, progreso_actual, estado, created_at FROM ofertas_privadas ORDER BY created_at DESC")
         rows = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
         
         ofertas = []
         for row in rows:
@@ -1577,12 +1603,12 @@ async def actualizar_oferta(oferta_id: str, datos: dict, usuario=Depends(obtener
     if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         cur.execute("UPDATE ofertas_privadas SET estado = %s WHERE id = %s", (datos.get('estado'), oferta_id))
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -1598,7 +1624,7 @@ class AportacionOfertaRequest(BaseModel):
 @app.post("/api/ofertas/aportaciones")
 async def registrar_aportacion_oferta(datos: AportacionOfertaRequest, usuario=Depends(obtener_usuario_actual)):
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("""
@@ -1624,7 +1650,7 @@ async def registrar_aportacion_oferta(datos: AportacionOfertaRequest, usuario=De
         row = cur.fetchone()
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"id": str(row[0]), "fecha": row[1].isoformat(), "success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -1632,7 +1658,7 @@ async def registrar_aportacion_oferta(datos: AportacionOfertaRequest, usuario=De
 @app.get("/api/ofertas/aportaciones")
 async def obtener_aportaciones_ofertas(usuario=Depends(obtener_usuario_actual)):
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         
         cur.execute("SELECT to_regclass('ofertas_aportaciones')")
@@ -1653,7 +1679,7 @@ async def obtener_aportaciones_ofertas(usuario=Depends(obtener_usuario_actual)):
         
         rows = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
         
         aports = []
         for r in rows:
@@ -1680,7 +1706,7 @@ async def validar_aportacion_oferta(aportacion_id: str, datos: dict, usuario=Dep
     
     estado_final = datos.get('estado')
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("""
@@ -1716,7 +1742,7 @@ async def validar_aportacion_oferta(aportacion_id: str, datos: dict, usuario=Dep
         
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
@@ -1726,7 +1752,7 @@ async def validar_aportacion_oferta(aportacion_id: str, datos: dict, usuario=Dep
 async def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obtener_usuario_actual)):
     """Obtiene mensajes públicos o la conversación privada con el admin."""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("""
@@ -1761,7 +1787,7 @@ async def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obten
             cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE destinatario IS NULL OR destinatario = '' ORDER BY created_at DESC LIMIT 100")
         resultados = cur.fetchall()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         mensajes = []
         for row in reversed(resultados):
@@ -1784,7 +1810,7 @@ async def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obten
 async def crear_mensaje(datos: dict, privado: bool = Query(False), usuario = Depends(obtener_usuario_actual)):
     """Crea un mensaje público o privado con el administrador."""
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
 
         autor_id = usuario.get('inversor_id') or 0
@@ -1802,7 +1828,7 @@ async def crear_mensaje(datos: dict, privado: bool = Query(False), usuario = Dep
         mensaje_id = cur.fetchone()[0]
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
 
         return {"id": mensaje_id, "success": True, "private": True}
     except Exception as e:
@@ -1838,7 +1864,7 @@ async def resetear_datos_demo(usuario=Depends(obtener_usuario_actual)):
     if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
     try:
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = get_conn()
         cur = conn.cursor()
         borradas = []
         for tabla in TABLAS_RESET_USUARIOS:
@@ -1848,7 +1874,7 @@ async def resetear_datos_demo(usuario=Depends(obtener_usuario_actual)):
                 borradas.append(tabla)
         conn.commit()
         cur.close()
-        conn.close()
+        release_conn(conn)
         return {"success": True, "tablas_vaciadas": borradas}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
