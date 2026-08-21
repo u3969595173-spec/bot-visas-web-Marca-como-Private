@@ -1577,6 +1577,14 @@ async def obtener_ofertas(usuario=Depends(obtener_usuario_actual)):
         if not cur.fetchone()[0]:
             return {"ofertas": []}
 
+        cur.execute("""
+            ALTER TABLE ofertas_privadas ADD COLUMN IF NOT EXISTS inversor_id_especial VARCHAR(100);
+            ALTER TABLE ofertas_privadas ADD COLUMN IF NOT EXISTS progreso_actual DECIMAL(12,2) DEFAULT 0;
+            ALTER TABLE ofertas_privadas ADD COLUMN IF NOT EXISTS estado VARCHAR(50) DEFAULT 'Activa';
+            ALTER TABLE ofertas_privadas ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+        """)
+        conn.commit()
+
         cur.execute("SELECT id, nombre, descripcion, condiciones, programa, nivel, importe_maximo, inversor_id_especial, progreso_actual, estado, created_at FROM ofertas_privadas ORDER BY created_at DESC")
         rows = cur.fetchall()
         cur.close()
@@ -1671,6 +1679,7 @@ async def obtener_aportaciones_ofertas(usuario=Depends(obtener_usuario_actual)):
         cur.execute("""
             ALTER TABLE ofertas_aportaciones ADD COLUMN IF NOT EXISTS validador_id VARCHAR(100);
             ALTER TABLE ofertas_aportaciones ADD COLUMN IF NOT EXISTS fecha_validacion TIMESTAMP;
+            ALTER TABLE ofertas_aportaciones ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
         """)
         conn.commit()
 
