@@ -237,10 +237,10 @@ async def registro_inversor(datos: InversorRegistroRequest):
         # Hashear password
         password_hash = bcrypt.hashpw(datos.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-        # Insertar inversor
+        # Insertar inversor (cuenta activa de inmediato, sin validacion manual del admin)
         cur.execute("""
-            INSERT INTO inversores (nombre, email, telefono, pais, password_hash, referido_por)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO inversores (nombre, email, telefono, pais, password_hash, referido_por, estado)
+            VALUES (%s, %s, %s, %s, %s, %s, 'validada')
             RETURNING id
         """, (datos.nombre, datos.email, datos.telefono, datos.pais, password_hash, datos.codigo_patrocinio))
         

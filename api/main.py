@@ -926,8 +926,8 @@ async def registro_inversor(request: Request, datos: InversorRegistroRequest):
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
         cur.execute("""
-            INSERT INTO inversores (nombre, email, telefono, pais, password_hash)
-            VALUES (%s, %s, %s, %s, %s) RETURNING id
+            INSERT INTO inversores (nombre, email, telefono, pais, password_hash, estado)
+            VALUES (%s, %s, %s, %s, %s, 'validada') RETURNING id
         """, (nombre, email, telefono, pais, password_hash))
         inversor_id = cur.fetchone()[0]
         conn.commit()
