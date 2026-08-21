@@ -55,6 +55,7 @@ const normalizeAportacion = (item) => {
     moneda: item.moneda || 'EUR',
     fecha: formatDate(item.createdAt || item.fecha),
     fechaOriginal: item.createdAt || item.fecha || new Date().toISOString(),
+    fechaAprobacion: item.fecha_aprobacion || null,
     fechaUltimoPago: item.fechaUltimoPago || null,
     gananciasDisponibles: gananciasDisponibles,
     email: item.email || item.usuarioEmail || '',
@@ -1400,8 +1401,9 @@ function DashboardAdminExpandido({ onLogout }) {
 
               {/* Tabla de Capital por Usuario */}
               {table(
-                ['Usuario', 'Capital Total', 'Pool Activo (300%)', 'Total Retiros'],
+                ['Usuario', 'Capital Total', '🔒 Capital Retenido (72h)', '✅ Capital Activo', 'Pool Activo (300%)', 'Total Retiros'],
                 (() => {
+                  const HORAS_BLOQUEO = 72
                   const usuariosMap = new Map()
 
                   // Agrupar aportaciones por usuario
@@ -1409,6 +1411,8 @@ function DashboardAdminExpandido({ onLogout }) {
                     if (!usuariosMap.has(aport.usuario)) {
                       usuariosMap.set(aport.usuario, {
                         capital: 0,
+                        capitalRetenido: 0,
+                        capitalActivo: 0,
                         ganancias: 0,
                         retiros: 0,
                         aportaciones: []
@@ -1421,6 +1425,15 @@ function DashboardAdminExpandido({ onLogout }) {
                     // Pool Activo = capital × 3 (si es activa)
                     if (aport.estado === 'Activa' || aport.estado === 'Validada') {
                       user.ganancias += importe * 3 // pool total es importe × 3
+
+                      const desbloqueaEn = aport.fechaAprobacion
+                        ? new Date(aport.fechaAprobacion).getTime() + HORAS_BLOQUEO * 3600000
+                        : null
+                      if (desbloqueaEn && desbloqueaEn > Date.now()) {
+                        user.capitalRetenido += importe
+                      } else {
+                        user.capitalActivo += importe
+                      }
                     }
                   })
 
@@ -1439,6 +1452,8 @@ function DashboardAdminExpandido({ onLogout }) {
                     return [
                       usuario,
                       formatCurrency(data.capital, 'EUR'),
+                      data.capitalRetenido > 0 ? formatCurrency(data.capitalRetenido, 'EUR') : '—',
+                      data.capitalActivo > 0 ? formatCurrency(data.capitalActivo, 'EUR') : '—',
                       formatCurrency(data.ganancias, 'EUR'),
                       formatCurrency(data.retiros, 'EUR')
                     ]

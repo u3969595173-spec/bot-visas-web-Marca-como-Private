@@ -388,6 +388,27 @@ function DashboardInversionista() {
   // Saldo disponible para retirar = Lo que ha ganado - Lo que ya retiró
   const capitalDisponible = Math.max(gananciasGeneradas - totalRetirado, 0)
 
+  // Reloj en vivo para la cuenta regresiva de bloqueo de 72 horas
+  const [ahora, setAhora] = React.useState(Date.now())
+  React.useEffect(() => {
+    const t = setInterval(() => setAhora(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const HORAS_BLOQUEO = 72
+  const aportacionesRetenidas = userAportaciones.filter((item) => {
+    if (item.estado !== 'Activa' && item.estado !== 'Validada') return false
+    if (!item.fecha_aprobacion) return false
+    return new Date(item.fecha_aprobacion).getTime() + HORAS_BLOQUEO * 3600000 > ahora
+  })
+  const capitalRetenido = aportacionesRetenidas.reduce((sum, item) => sum + Number(item.importe || 0), 0)
+  const proximaLiberacionMs = aportacionesRetenidas.length
+    ? Math.min(...aportacionesRetenidas.map((item) => new Date(item.fecha_aprobacion).getTime() + HORAS_BLOQUEO * 3600000)) - ahora
+    : 0
+  const retenidaHoras = Math.max(0, Math.floor(proximaLiberacionMs / 3600000))
+  const retenidaMinutos = Math.max(0, Math.floor((proximaLiberacionMs % 3600000) / 60000))
+  const retenidaSegundos = Math.max(0, Math.floor((proximaLiberacionMs % 60000) / 1000))
+
   // CALCULO RANGOS y OFERTAS
   const referidosActivos = referidos.filter(r => r.referidoPor === currentUser?.codigo_referido && r.estado !== 'pendiente').length
   const nivelLideres = PROGRAMA_LIDERES.find(r => referidosActivos >= r.minReferidos) || null
@@ -877,6 +898,26 @@ function DashboardInversionista() {
               <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalRetirado, 'EUR')}</p>
               <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido</p>
             </div>
+
+            {/* Inversión Retenida - cuenta regresiva de bloqueo 72h */}
+            {capitalRetenido > 0 && (
+              <div style={{
+                background: 'linear-gradient(135deg, #64748b 0%, #334155 100%)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                color: 'white',
+                boxShadow: '0 8px 16px rgba(51, 65, 85, 0.3)',
+                border: '2px solid rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
+                <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(capitalRetenido, 'EUR')}</p>
+                <p style={{ margin: '0.5rem 0 0 0', fontSize: '13px', opacity: 0.9, fontFamily: 'monospace', fontWeight: '700' }}>
+                  ⏱️ {String(retenidaHoras).padStart(2, '0')}h {String(retenidaMinutos).padStart(2, '0')}m {String(retenidaSegundos).padStart(2, '0')}s
+                </p>
+                <p style={{ margin: '0.25rem 0 0 0', fontSize: '11px', opacity: 0.8 }}>Pasa a activa al llegar a 0</p>
+              </div>
+            )}
           </div>
 
           {activeTab === 'resumen' && (
