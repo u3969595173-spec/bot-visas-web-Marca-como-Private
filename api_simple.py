@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import bcrypt
 import os
+import uuid
 from dotenv import load_dotenv
 import psycopg2
 
@@ -1608,11 +1609,12 @@ async def crear_oferta(datos: OfertaRequest, usuario=Depends(obtener_usuario_act
         """)
         
         importe_final = datos.importeMaximo if datos.importeMaximo > 0 else datos.importe_maximo
+        oferta_id = f"oferta-{uuid.uuid4().hex}"
 
         cur.execute("""
-            INSERT INTO ofertas_privadas (nombre, descripcion, condiciones, programa, nivel, importe_maximo, inversor_id_especial)
-            VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id, created_at
-        """, (datos.nombre, datos.descripcion, datos.condiciones, datos.programa, datos.nivel, importe_final, datos.inversorIdEspecial))
+            INSERT INTO ofertas_privadas (id, nombre, descripcion, condiciones, programa, nivel, importe_maximo, inversor_id_especial)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id, created_at
+        """, (oferta_id, datos.nombre, datos.descripcion, datos.condiciones, datos.programa, datos.nivel, importe_final, datos.inversorIdEspecial))
         
         row = cur.fetchone()
         conn.commit()
@@ -1707,11 +1709,12 @@ async def registrar_aportacion_oferta(datos: AportacionOfertaRequest, usuario=De
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        aportacion_id = f"oferta-aportacion-{uuid.uuid4().hex}"
         
         cur.execute("""
-            INSERT INTO ofertas_aportaciones (oferta_id, inversor_id, inversor_nombre, importe, comprobante)
-            VALUES (%s, %s, %s, %s, %s) RETURNING id, created_at
-        """, (datos.ofertaId, datos.inversorId, datos.inversorNombre, datos.importe, datos.comprobante))
+            INSERT INTO ofertas_aportaciones (id, oferta_id, inversor_id, inversor_nombre, importe, comprobante)
+            VALUES (%s, %s, %s, %s, %s, %s) RETURNING id, created_at
+        """, (aportacion_id, datos.ofertaId, datos.inversorId, datos.inversorNombre, datos.importe, datos.comprobante))
         
         row = cur.fetchone()
         conn.commit()

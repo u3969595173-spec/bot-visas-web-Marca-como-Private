@@ -28,11 +28,10 @@ const METODOS_DEFAULT_INV = [
   { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.', minimo: 50 }
 ]
 
-const getMergedCuentas = () => {
-  const fromStorage = readStorage('capital_trade_cuentas', [])
-  if (!fromStorage || fromStorage.length === 0) return METODOS_DEFAULT_INV;
+const mergeCuentas = (cuentas) => {
+  if (!cuentas || cuentas.length === 0) return METODOS_DEFAULT_INV
   return METODOS_DEFAULT_INV.map(defaultC => {
-    const existe = fromStorage.find(c => c.moneda === defaultC.moneda)
+    const existe = cuentas.find(c => c.moneda === defaultC.moneda)
     return existe ? { ...defaultC, ...existe } : defaultC
   })
 }
@@ -87,6 +86,7 @@ function DashboardInversionista() {
   const [referidos, setReferidos] = React.useState([])
   const [ofertasPrivadas, setOfertasPrivadas] = React.useState([])
   const [ofertasAportaciones, setOfertasAportaciones] = React.useState([])
+  const [cuentasPago, setCuentasPago] = React.useState(() => mergeCuentas(readStorage('capital_trade_cuentas', [])))
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
   const [montoRetiro, setMontoRetiro] = React.useState('')
   const [notasRetiro, setNotasRetiro] = React.useState('')
@@ -136,6 +136,25 @@ function DashboardInversionista() {
       window.removeEventListener('capital-trade-sync', syncData)
       clearInterval(interval)
     }
+  }, [])
+
+  React.useEffect(() => {
+    const cargarCuentasPago = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/metodos-pago`)
+        if (!response.ok) return
+        const data = await response.json()
+        const cuentas = mergeCuentas(data.metodos || [])
+        setCuentasPago(cuentas)
+        localStorage.setItem('capital_trade_cuentas', JSON.stringify(cuentas))
+      } catch (error) {
+        console.log('Error cargando métodos de pago:', error)
+      }
+    }
+
+    cargarCuentasPago()
+    const intervalo = setInterval(cargarCuentasPago, 30000)
+    return () => clearInterval(intervalo)
   }, [])
 
   // Verificar que la cuenta siga existiendo; si fue borrada, cerrar sesión
@@ -495,7 +514,7 @@ function DashboardInversionista() {
       return
     }
 
-    const cuentasAdmin = getMergedCuentas()
+    const cuentasAdmin = cuentasPago
     const cuentaConfig = cuentasAdmin.find(c => c.moneda === monedaInversion)
     const minimoMoneda = cuentaConfig?.minimo ? Number(cuentaConfig.minimo) : 100
 
@@ -1466,14 +1485,14 @@ function DashboardInversionista() {
 
               {/* Tabla o Gráfica de Referidos */}
               {getReferidosDelInversor().length > 0 ? (
-                <div style={{
-                  backgroundColor: 'white',
+                <div className="referrals-panel" style={{
+                  backgroundColor: 'rgba(15, 23, 42, 0.88)',
                   borderRadius: '12px',
                   padding: '1.5rem',
-                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                  border: '2px solid #e5e7eb'
+                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.28)',
+                  border: '1px solid rgba(148, 163, 184, 0.2)'
                 }}>
-                  <h3 style={{ marginTop: 0, color: '#374151' }}>📈 Mis Referidos</h3>
+                  <h3 style={{ marginTop: 0, color: '#f8fafc' }}>📈 Mis Referidos</h3>
 
                   {/* Gráfica de inversiones */}
                   {getReferidosDelInversor().length > 0 && (
@@ -1494,10 +1513,10 @@ function DashboardInversionista() {
                     </ResponsiveContainer>
                   )}
 
-                  <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
+                  <div className="referrals-table-scroll" style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                       <thead>
-                        <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
+                        <tr style={{ backgroundColor: 'rgba(51, 65, 85, 0.82)', borderBottom: '1px solid rgba(148, 163, 184, 0.28)' }}>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Referido</th>
                           <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
                           <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>🎁 Comisión</th>
@@ -1508,11 +1527,11 @@ function DashboardInversionista() {
                         {getReferidosDelInversor().map((ref, idx) => {
                           const comision = (ref.inversionTotal || 0) * 0.1
                           return (
-                            <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
-                              <td style={{ padding: '12px' }}><strong>{ref.nombreReferido || 'Usuario'}</strong></td>
+                            <tr key={idx} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.12)', backgroundColor: idx % 2 === 0 ? 'rgba(15, 23, 42, 0.56)' : 'rgba(30, 41, 59, 0.52)' }}>
+                              <td style={{ padding: '12px', color: '#f8fafc' }}><strong>{ref.nombreReferido || 'Usuario'}</strong></td>
                               <td style={{ padding: '12px', textAlign: 'right', color: '#0284c7', fontWeight: '600' }}>€{Number(ref.inversionTotal || 0).toLocaleString('es-ES')}</td>
                               <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981', fontSize: '15px' }}>€{comision.toFixed(2)}</td>
-                              <td style={{ padding: '12px', color: '#6b7280', fontSize: '12px' }}>{new Date(ref.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
+                              <td style={{ padding: '12px', color: '#cbd5e1', fontSize: '12px' }}>{new Date(ref.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
                             </tr>
                           )
                         })}
@@ -1700,7 +1719,7 @@ function DashboardInversionista() {
                 <div style={{ backgroundColor: '#f59e0b', border: '4px solid #f59e0b', borderRadius: '12px', padding: '2rem', marginBottom: '1.5rem', color: 'white' }}>
                   <p style={{ margin: '0 0 1.5rem 0', fontWeight: 'bold', fontSize: '18px' }}>📌 Referencia de transferencia</p>
                   {(() => {
-                    const cuentasAdmin = getMergedCuentas()
+                    const cuentasAdmin = cuentasPago
                     const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === solicitudSeleccionada.moneda)
                     return cuentaSeleccionada ? (
                       <div style={{ display: 'grid', gap: '1.2rem' }}>
@@ -2026,7 +2045,7 @@ function DashboardInversionista() {
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold', color: '#374151', fontSize: '16px' }}>💳 Datos de transferencia</label>
                   {(() => {
-                    const cuentasAdmin = getMergedCuentas()
+                    const cuentasAdmin = cuentasPago
                     const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === monedaInversion)
                     return cuentaSeleccionada ? (
                       <div style={{ backgroundColor: '#0284c7', border: '4px solid #0284c7', padding: '1.5rem', borderRadius: '12px', fontSize: '16px', color: 'white' }}>
@@ -2086,7 +2105,7 @@ function DashboardInversionista() {
                   />
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0.5rem 0 0 0' }}>
                     Mínimo: {(() => {
-                      const cuentasAdmin = getMergedCuentas()
+                      const cuentasAdmin = cuentasPago
                       const cuentaConfig = cuentasAdmin.find(c => c.moneda === monedaInversion)
                       const val = cuentaConfig?.minimo ? Number(cuentaConfig.minimo) : 100
                       return formatCurrency(val, monedaInversion)

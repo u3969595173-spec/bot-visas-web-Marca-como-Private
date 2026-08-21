@@ -1933,7 +1933,8 @@ select:focus {
    =============================================================== */
 .admin-futuristic-layout {
   display: flex;
-  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
   width: 100vw;
   overflow: hidden;
   background-color: #030408;
@@ -2113,6 +2114,7 @@ select:focus {
   background: radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.08) 0%, transparent 60%),
     radial-gradient(circle at 100% 100%, rgba(0, 240, 255, 0.05) 0%, transparent 50%);
   overflow: hidden;
+  min-height: 0;
 }
 
 .admin-main-content::after {
@@ -2159,8 +2161,11 @@ select:focus {
 
 .content-scroll {
   flex: 1;
+  min-height: 0;
   padding: 0 50px 50px 50px;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .estadisticas-grid {
@@ -2204,7 +2209,7 @@ select:focus {
   backdrop-filter: blur(4px);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1100px) {
 
   /* Show hamburger */
   .sidebar-mobile-toggle {
@@ -2266,6 +2271,16 @@ select:focus {
 
   .content-scroll {
     padding: 0 14px 40px 14px;
+  }
+
+  .referrals-panel {
+    padding: 1rem !important;
+  }
+
+  .referrals-table-scroll {
+    max-height: 50vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .content-scroll .stats-grid {
