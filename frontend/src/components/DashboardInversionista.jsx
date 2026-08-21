@@ -125,6 +125,7 @@ function DashboardInversionista() {
 
   // Codigo de referido permanente del inversor (viene de su perfil, nunca cambia)
   const [codigoReferidoPropio, setCodigoReferidoPropio] = React.useState(null)
+  const [referidoPorPropio, setReferidoPorPropio] = React.useState(null)
 
   React.useEffect(() => {
     const syncData = () => {
@@ -161,6 +162,7 @@ function DashboardInversionista() {
         } else if (response.ok) {
           const data = await response.json()
           if (data.codigo_referido) setCodigoReferidoPropio(data.codigo_referido)
+          setReferidoPorPropio(data.referido_por || null)
         }
       } catch (error) {
         console.log('Error verificando cuenta:', error)
@@ -594,23 +596,34 @@ function DashboardInversionista() {
     return 'REF' + Math.random().toString(36).substring(2, 11).toUpperCase()
   }
 
+  const correccionReferidoEnviada = React.useRef(false)
+
   const getCodigoReferidoInversor = () => {
     const userName = currentUser?.name || currentUser?.nombre || 'Usuario'
     // Usar siempre el codigo permanente del perfil (nunca cambia); solo si aun no cargo, buscar uno existente
     const codigoPermanente = codigoReferidoPropio
     let referidoInversor = referidos.find(r => (codigoPermanente && r.codigo === codigoPermanente) || r.nombreInversor === userName)
     if (codigoPermanente) {
-      if (!referidoInversor) {
+      const necesitaCrear = !referidoInversor
+      // Si ya existe pero no quedo vinculado a quien lo invito (referidoPor), corregirlo una vez
+      const necesitaCorregir = !necesitaCrear && !correccionReferidoEnviada.current &&
+        (referidoPorPropio || null) !== (referidoInversor.referidoPor || null)
+
+      if (necesitaCrear || necesitaCorregir) {
         referidoInversor = {
           id: 'inv-referido-' + currentUser?.id,
           codigo: codigoPermanente,
           nombreInversor: userName,
           usuarioId: currentUser?.id,
+          referidoPor: referidoPorPropio || null,
           referidosCount: 0,
           gananciaTotal: 0,
           historial: []
         }
-        const updated = [...referidos, referidoInversor]
+        correccionReferidoEnviada.current = true
+        const updated = necesitaCrear
+          ? [...referidos, referidoInversor]
+          : referidos.map(r => r.id === referidoInversor.id ? referidoInversor : r)
         setReferidos(updated)
 
         const token = localStorage.getItem('token');
@@ -622,7 +635,7 @@ function DashboardInversionista() {
             codigo: referidoInversor.codigo,
             nombreInversor: referidoInversor.nombreInversor,
             usuarioId: String(referidoInversor.usuarioId),
-            referidoPor: null,
+            referidoPor: referidoInversor.referidoPor,
             inversionTotal: 0,
             pagado: false,
             esAdmin: false

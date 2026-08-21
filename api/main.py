@@ -1184,11 +1184,13 @@ async def get_perfil_inversor(usuario=Depends(obtener_usuario_actual)):
         cur.execute("""
             ALTER TABLE inversores
             ADD COLUMN IF NOT EXISTS foto_perfil TEXT,
-            ADD COLUMN IF NOT EXISTS foto_portada TEXT
+            ADD COLUMN IF NOT EXISTS foto_portada TEXT,
+            ADD COLUMN IF NOT EXISTS codigo_referido VARCHAR(50),
+            ADD COLUMN IF NOT EXISTS referido_por VARCHAR(100)
         """)
         conn.commit()
         cur.execute(
-            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada FROM inversores WHERE id = %s",
+            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada, codigo_referido, referido_por FROM inversores WHERE id = %s",
             (usuario.get("inversor_id"),)
         )
         row = cur.fetchone()
@@ -1201,7 +1203,8 @@ async def get_perfil_inversor(usuario=Depends(obtener_usuario_actual)):
         return {
             "id": row[0], "nombre": row[1], "email": row[2],
             "telefono": row[3], "pais": row[4], "estado": row[5],
-            "foto_perfil": row[6], "foto_portada": row[7]
+            "foto_perfil": row[6], "foto_portada": row[7],
+            "codigo_referido": row[8], "referido_por": row[9]
         }
     except HTTPException:
         raise

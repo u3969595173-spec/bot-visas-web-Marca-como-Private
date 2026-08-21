@@ -313,7 +313,7 @@ async def get_perfil(usuario=Depends(obtener_usuario_actual)):
         """)
         conn.commit()
         cur.execute(
-            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada, codigo_referido FROM inversores WHERE id = %s",
+            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada, codigo_referido, referido_por FROM inversores WHERE id = %s",
             (usuario.get("inversor_id"),)
         )
         row = cur.fetchone()
@@ -328,7 +328,8 @@ async def get_perfil(usuario=Depends(obtener_usuario_actual)):
             "telefono": row[3], "pais": row[4], "estado": row[5],
             "foto_perfil": row[6],
             "foto_portada": row[7],
-            "codigo_referido": row[8]
+            "codigo_referido": row[8],
+            "referido_por": row[9]
         }
     except HTTPException:
         raise
