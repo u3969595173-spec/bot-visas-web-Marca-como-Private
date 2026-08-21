@@ -1639,6 +1639,12 @@ async def obtener_aportaciones_ofertas(usuario=Depends(obtener_usuario_actual)):
         if not cur.fetchone()[0]:
             return {"aportaciones": []}
 
+        cur.execute("""
+            ALTER TABLE ofertas_aportaciones ADD COLUMN IF NOT EXISTS validador_id VARCHAR(100);
+            ALTER TABLE ofertas_aportaciones ADD COLUMN IF NOT EXISTS fecha_validacion TIMESTAMP;
+        """)
+        conn.commit()
+
         if usuario.get('rol') == 'admin':
             cur.execute("SELECT id, oferta_id, inversor_id, inversor_nombre, importe, comprobante, estado, validador_id, fecha_validacion, created_at FROM ofertas_aportaciones ORDER BY created_at DESC")
         else:
@@ -1676,6 +1682,12 @@ async def validar_aportacion_oferta(aportacion_id: str, datos: dict, usuario=Dep
     try:
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         cur = conn.cursor()
+
+        cur.execute("""
+            ALTER TABLE ofertas_aportaciones ADD COLUMN IF NOT EXISTS validador_id VARCHAR(100);
+            ALTER TABLE ofertas_aportaciones ADD COLUMN IF NOT EXISTS fecha_validacion TIMESTAMP;
+        """)
+        conn.commit()
 
         cur.execute("""
             UPDATE ofertas_aportaciones 
@@ -1741,10 +1753,10 @@ async def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obten
                 cur.execute("""
                     SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at 
                     FROM mensajes_comunidad 
-                    WHERE (autor_id = %s AND destinatario = 'admin') 
+                    WHERE (autor_id::text = %s AND destinatario = 'admin') 
                        OR (autor_rol = 'admin' AND destinatario IN (%s, %s, %s)) 
                     ORDER BY created_at DESC LIMIT 100
-                """, (usuario.get('inversor_id'), usuario.get('email', ''), nombre_inversor, str(usuario.get('inversor_id', ''))))
+                """, (str(usuario.get('inversor_id', '')), usuario.get('email', ''), nombre_inversor, str(usuario.get('inversor_id', ''))))
         else:
             cur.execute("SELECT id, autor_id, autor_nombre, autor_rol, mensaje, destinatario, created_at FROM mensajes_comunidad WHERE destinatario IS NULL OR destinatario = '' ORDER BY created_at DESC LIMIT 100")
         resultados = cur.fetchall()
