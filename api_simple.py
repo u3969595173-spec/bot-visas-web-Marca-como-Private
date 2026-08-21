@@ -66,6 +66,8 @@ app.add_middleware(
         "https://majestic-souffle-c1d9f9.netlify.app",
         "https://fortunariocash.com",
         "https://www.fortunariocash.com",
+        "https://capitaltradeiberia.com",
+        "https://www.capitaltradeiberia.com",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],

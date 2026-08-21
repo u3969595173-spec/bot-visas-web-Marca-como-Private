@@ -75,6 +75,8 @@ app.add_middleware(
         "https://www.fortunariocash.com",
         "https://bot-visas-web-marca-como-private-s785-g4twzsjhe.vercel.app",
         "https://majestic-souffle-c1d9f9.netlify.app",
+        "https://capitaltradeiberia.com",
+        "https://www.capitaltradeiberia.com",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
