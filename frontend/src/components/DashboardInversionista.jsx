@@ -350,13 +350,15 @@ function DashboardInversionista() {
   const userAportaciones = aportaciones.filter((item) => {
     const userId = currentUser?.id
     const userName = currentUser?.name || currentUser?.nombre
-    return item.usuarioId === userId || item.usuarioNombre === userName || item.usuario === userName
+    return String(item.inversor_id ?? '') === String(userId ?? '') ||
+      item.usuarioId === userId || item.usuarioNombre === userName || item.usuario === userName || item.nombre === userName
   })
 
   const userRetiros = retiros.filter((item) => {
     const userId = currentUser?.id
     const userName = currentUser?.name || currentUser?.nombre
-    return item.usuarioId === userId || item.usuarioNombre === userName || item.usuario === userName
+    return String(item.inversor_id ?? '') === String(userId ?? '') ||
+      item.usuarioId === userId || item.usuarioNombre === userName || item.usuario === userName || item.nombre === userName
   })
 
   const totalAportado = userAportaciones
@@ -1198,30 +1200,53 @@ function DashboardInversionista() {
               <div>
                 <h2 style={{ color: '#f8fafc', marginBottom: '1.5rem' }}>📋 Mis Solicitudes de Inversión</h2>
                 {(() => {
-                  const userSolicitudes = solicitudes.filter(s =>
-                    s.usuarioId === currentUser?.id ||
-                    s.usuarioNombre === (currentUser?.name || currentUser?.nombre)
-                  )
+                  const AHORA = Date.now()
+                  const HORAS_BLOQUEO = 72
+                  const userSolicitudes = userAportaciones
+
+                  const infoEstado = (item) => {
+                    if (item.estado === 'Rechazada') {
+                      return { label: '❌ Rechazada', color: '#fca5a5', bg: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }
+                    }
+                    if (item.estado === 'Activa' || item.estado === 'Validada') {
+                      const aprobadaEn = item.fecha_aprobacion ? new Date(item.fecha_aprobacion).getTime() : null
+                      const desbloqueaEn = aprobadaEn ? aprobadaEn + HORAS_BLOQUEO * 3600 * 1000 : null
+                      if (desbloqueaEn && desbloqueaEn > AHORA) {
+                        const restanteMs = desbloqueaEn - AHORA
+                        const horas = Math.floor(restanteMs / 3600000)
+                        const minutos = Math.floor((restanteMs % 3600000) / 60000)
+                        return {
+                          label: `🔒 Bloqueada ${horas}h ${minutos}m`,
+                          color: '#93c5fd', bg: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)',
+                          bloqueada: true, horas, minutos
+                        }
+                      }
+                      return { label: '✅ Activa', color: '#86efac', bg: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }
+                    }
+                    return { label: `⏳ ${item.estado || 'Pendiente'}`, color: '#fcd34d', bg: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(251, 191, 36, 0.3)' }
+                  }
 
                   return userSolicitudes.length > 0 ? (
                     <div style={{ display: 'grid', gap: '1rem' }}>
-                      {userSolicitudes.map((sol) => (
+                      {userSolicitudes.map((sol) => {
+                        const info = infoEstado(sol)
+                        return (
                         <div key={sol.id} style={{
                           backgroundColor: 'rgba(15, 23, 42, 0.8)',
                           borderRadius: '12px',
                           padding: '1.5rem',
                           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                          border: `2px solid ${sol.estado === 'Pendiente' ? 'rgba(251, 191, 36, 0.3)' : sol.estado === 'Aprobado' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
+                          border: `2px solid ${info.borderColor}`,
                           transition: 'all 0.3s'
                         }}>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem' }}>
                             <div>
-                              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Solicitud #{sol.id.substring(0, 8)}</p>
+                              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Solicitud #{sol.id}</p>
                               <p style={{ margin: '0.5rem 0 0 0', fontSize: '20px', fontWeight: 'bold', color: '#f6c453' }}>
                                 {formatCurrency(Number(sol.importe), sol.moneda)}
                               </p>
                               <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
-                                📅 {sol.fecha}
+                                📅 {safeFormatDate(sol.fecha)}
                               </p>
                             </div>
                             <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -1231,16 +1256,33 @@ function DashboardInversionista() {
                                 borderRadius: '20px',
                                 fontSize: '12px',
                                 fontWeight: '600',
-                                backgroundColor: sol.estado === 'Pendiente' ? 'rgba(245, 158, 11, 0.15)' : sol.estado === 'Aprobado' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                                color: sol.estado === 'Pendiente' ? '#fcd34d' : sol.estado === 'Aprobado' ? '#86efac' : '#fca5a5'
+                                backgroundColor: info.bg,
+                                color: info.color
                               }}>
-                                {sol.estado === 'Pendiente' ? '⏳ ' : sol.estado === 'Aprobado' ? '✅ ' : '❌ '}
-                                {sol.estado}
+                                {info.label}
                               </span>
                             </div>
                           </div>
 
-                          {sol.estado === 'Pendiente' && !sol.justificante && (
+                          {info.bloqueada && (
+                            <div style={{
+                              backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                              padding: '1rem',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              borderLeft: '4px solid #3b82f6',
+                              marginBottom: '0.75rem'
+                            }}>
+                              <p style={{ margin: 0, color: '#93c5fd', fontWeight: '600' }}>
+                                ⏱️ Tu inversión está validada. Las ganancias comienzan a generarse tras 72 horas de bloqueo de seguridad.
+                              </p>
+                              <p style={{ margin: '0.5rem 0 0 0', color: '#dbeafe', fontSize: '12px' }}>
+                                Faltan {info.horas}h {info.minutos}m para que quede totalmente activa.
+                              </p>
+                            </div>
+                          )}
+
+                          {sol.estado === 'Pendiente de validación' && !sol.tiene_justificante && (
                             <button
                               onClick={() => {
                                 setSolicitudSeleccionada(sol)
@@ -1263,26 +1305,20 @@ function DashboardInversionista() {
                             </button>
                           )}
 
-                          {sol.justificante && (
+                          {sol.tiene_justificante && sol.estado === 'Pendiente de validación' && (
                             <div style={{
-                              backgroundColor: sol.justificante.estadoJustificante === 'Aprobado' ? '#d1fae5' : '#fef3c7',
+                              backgroundColor: '#fef3c7',
                               padding: '1rem',
                               borderRadius: '8px',
                               fontSize: '13px',
-                              borderLeft: `4px solid ${sol.justificante.estadoJustificante === 'Aprobado' ? '#10b981' : '#f59e0b'}`
+                              borderLeft: '4px solid #f59e0b'
                             }}>
-                              <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#374151' }}>
-                                {sol.justificante.estadoJustificante === 'Aprobado' ? '✅ Comprobante Aprobado' : '📋 Comprobante en Revisión'}
-                              </p>
-                              <p style={{ margin: '0.25rem 0', color: '#6b7280', fontSize: '12px' }}>📄 {sol.justificante.nombre}</p>
-                              <p style={{ margin: '0.25rem 0', color: '#6b7280', fontSize: '12px' }}>📅 {new Date(sol.justificante.fecha).toLocaleDateString('es-ES')}</p>
-                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', fontWeight: '600', color: sol.justificante.estadoJustificante === 'Aprobado' ? '#10b981' : '#f59e0b' }}>
-                                🔍 {sol.justificante.estadoJustificante}
-                              </p>
+                              <p style={{ margin: 0, fontWeight: '600', color: '#374151' }}>📋 Comprobante en revisión por el administrador</p>
                             </div>
                           )}
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   ) : (
                     <div style={{

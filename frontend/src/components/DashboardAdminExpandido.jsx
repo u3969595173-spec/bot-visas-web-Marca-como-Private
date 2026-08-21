@@ -49,8 +49,8 @@ const normalizeAportacion = (item) => {
   const gananciasDisponibles = item.gananciasDisponibles !== undefined ? Number(item.gananciasDisponibles) : importe * 3
   return {
     id: item.id,
-    usuario: item.usuario || item.usuarioNombre || 'Usuario DEMO',
-    usuarioNombre: item.usuarioNombre || item.usuario || 'Usuario DEMO',
+    usuario: item.usuario || item.usuarioNombre || item.nombre || 'Usuario DEMO',
+    usuarioNombre: item.usuarioNombre || item.usuario || item.nombre || 'Usuario DEMO',
     importe: importe,
     moneda: item.moneda || 'EUR',
     fecha: formatDate(item.createdAt || item.fecha),

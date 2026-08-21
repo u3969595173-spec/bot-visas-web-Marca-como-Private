@@ -637,10 +637,10 @@ async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
         cur = conn.cursor()
 
         if usuario.get('rol') == 'admin':
-            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, fecha_aprobacion, ganancia_acelerada, ganancia_rentabilidad, ultima_fecha_pago FROM aportaciones ORDER BY created_at DESC")
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, fecha_aprobacion, ganancia_acelerada, ganancia_rentabilidad, ultima_fecha_pago, comprobante_base64 FROM aportaciones ORDER BY created_at DESC")
         else:
             inversor_id = usuario.get('inversor_id')
-            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, fecha_aprobacion, ganancia_acelerada, ganancia_rentabilidad, ultima_fecha_pago FROM aportaciones WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, fecha_aprobacion, ganancia_acelerada, ganancia_rentabilidad, ultima_fecha_pago, comprobante_base64 FROM aportaciones WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
         
         resultados = cur.fetchall()
         cur.close()
@@ -675,7 +675,8 @@ async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
                 "fecha_aprobacion": fecha_aprobacion.isoformat() if fecha_aprobacion else None,
                 "ultima_fecha_pago": row[11].isoformat() if row[11] else None,
                 "ganancia_total": ganancia_acumulada,
-                "meta_ganancia": meta_ganancia
+                "meta_ganancia": meta_ganancia,
+                "tiene_justificante": row[12] is not None
             })
 
         return {"aportaciones": aportaciones}
