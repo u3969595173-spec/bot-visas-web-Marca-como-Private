@@ -773,6 +773,28 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+
+@app.delete("/api/aportaciones/{aportacion_id}")
+async def eliminar_aportacion(aportacion_id: int, usuario = Depends(obtener_usuario_actual)):
+    """Elimina una aportación (solo admin)"""
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM aportaciones WHERE id = %s RETURNING id", (aportacion_id,))
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        if not row:
+            raise HTTPException(status_code=404, detail="Aportación no encontrada")
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
 # ============================================================================
 # ENDPOINTS - RETIROS
 # ============================================================================

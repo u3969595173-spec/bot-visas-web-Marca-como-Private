@@ -587,6 +587,29 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
+  const eliminarAportacion = async (id) => {
+    if (!window.confirm('¿Eliminar esta aportación definitivamente?')) return
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API}/api/aportaciones/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (response.ok) {
+        setAportaciones(aportaciones.filter((item) => item.id !== id))
+        setMensaje('✅ Aportación eliminada')
+        setTimeout(() => setMensaje(''), 2000)
+      } else {
+        setMensaje('❌ Error al eliminar')
+        setTimeout(() => setMensaje(''), 2000)
+      }
+    } catch (error) {
+      console.error('Error:', error)
+      setMensaje('❌ Error al eliminar')
+      setTimeout(() => setMensaje(''), 2000)
+    }
+  }
+
   const updateRetiroStatus = async (id, estado, comentario = '') => {
     try {
       const token = localStorage.getItem('token')
@@ -1248,6 +1271,13 @@ function DashboardAdminExpandido({ onLogout }) {
                             }}
                           >
                             {item.estado === 'Información solicitada' ? '⏱ Información solicitada' : 'Solicitar información'}
+                          </button>
+                          <button
+                            className="btn-action"
+                            onClick={() => eliminarAportacion(item.id)}
+                            style={{ backgroundColor: '#7f1d1d', color: 'white' }}
+                          >
+                            🗑️ Eliminar
                           </button>
                         </div>
                       </td>
