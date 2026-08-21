@@ -600,18 +600,21 @@ function DashboardInversionista() {
 
   const getCodigoReferidoInversor = () => {
     const userName = currentUser?.name || currentUser?.nombre || 'Usuario'
-    // Usar siempre el codigo permanente del perfil (nunca cambia); solo si aun no cargo, buscar uno existente
+    // Usar siempre el codigo permanente del perfil (nunca cambia)
     const codigoPermanente = codigoReferidoPropio
-    let referidoInversor = referidos.find(r => (codigoPermanente && r.codigo === codigoPermanente) || r.nombreInversor === userName)
+    const idPropio = 'inv-referido-' + currentUser?.id
+
     if (codigoPermanente) {
-      const necesitaCrear = !referidoInversor
-      // Si ya existe pero no quedo vinculado a quien lo invito (referidoPor), corregirlo una vez
-      const necesitaCorregir = !necesitaCrear && !correccionReferidoEnviada.current &&
+      let referidoInversor = referidos.find(r => r.id === idPropio) || referidos.find(r => r.codigo === codigoPermanente)
+      const desactualizado = !referidoInversor ||
+        referidoInversor.codigo !== codigoPermanente ||
         (referidoPorPropio || null) !== (referidoInversor.referidoPor || null)
 
-      if (necesitaCrear || necesitaCorregir) {
+      if (desactualizado && !correccionReferidoEnviada.current) {
+        correccionReferidoEnviada.current = true
+        const yaExistiaOtro = !!referidoInversor
         referidoInversor = {
-          id: 'inv-referido-' + currentUser?.id,
+          id: idPropio,
           codigo: codigoPermanente,
           nombreInversor: userName,
           usuarioId: currentUser?.id,
@@ -620,10 +623,9 @@ function DashboardInversionista() {
           gananciaTotal: 0,
           historial: []
         }
-        correccionReferidoEnviada.current = true
-        const updated = necesitaCrear
-          ? [...referidos, referidoInversor]
-          : referidos.map(r => r.id === referidoInversor.id ? referidoInversor : r)
+        const updated = yaExistiaOtro
+          ? referidos.map(r => (r.id === idPropio || r.codigo === codigoPermanente) ? referidoInversor : r)
+          : [...referidos, referidoInversor]
         setReferidos(updated)
 
         const token = localStorage.getItem('token');
@@ -644,9 +646,10 @@ function DashboardInversionista() {
       }
       return referidoInversor
     }
+    let referidoInversor = referidos.find(r => r.nombreInversor === userName)
     if (!referidoInversor) {
       referidoInversor = {
-        id: 'inv-referido-' + currentUser?.id + '-' + Date.now(),
+        id: idPropio + '-' + Date.now(),
         codigo: generarCodigoReferido(),
         nombreInversor: userName,
         usuarioId: currentUser?.id,
