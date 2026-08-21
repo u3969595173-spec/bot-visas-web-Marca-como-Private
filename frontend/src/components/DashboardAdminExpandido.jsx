@@ -89,6 +89,10 @@ function DashboardAdminExpandido({ onLogout }) {
   const [solicitudesInversion, setSolicitudesInversion] = useState([])
   const [ofertasPrivadas, setOfertasPrivadas] = useState([])
   const [ofertasAportaciones, setOfertasAportaciones] = useState([])
+  const [operacionesCatalogo, setOperacionesCatalogo] = useState([])
+  const [avisosOperaciones, setAvisosOperaciones] = useState([])
+  const [avisoEditandoId, setAvisoEditandoId] = useState(null)
+  const [avisoOperacion, setAvisoOperacion] = useState({ operacionId: '', titulo: '', contenido: '', imagenes: [] })
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const [modalJustificanteVisible, setModalJustificanteVisible] = useState(false)
@@ -203,6 +207,32 @@ function DashboardAdminExpandido({ onLogout }) {
       clearInterval(intervaloCuentas)
       clearInterval(intervaloOfertas)
     }
+  }, [])
+
+  const cargarAvisosOperaciones = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const [operacionesResponse, avisosResponse] = await Promise.all([
+        fetch(`${API}/api/operaciones`),
+        fetch(`${API}/api/avisos-operaciones`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ])
+      if (operacionesResponse.ok) {
+        const data = await operacionesResponse.json()
+        setOperacionesCatalogo(data.operaciones || [])
+      }
+      if (avisosResponse.ok) {
+        const data = await avisosResponse.json()
+        setAvisosOperaciones(data.avisos || [])
+      }
+    } catch (error) {
+      console.log('Error cargando avisos de operaciones:', error)
+    }
+  }
+
+  React.useEffect(() => {
+    cargarAvisosOperaciones()
+    const intervalo = setInterval(cargarAvisosOperaciones, 30000)
+    return () => clearInterval(intervalo)
   }, [])
 
   // Cargar aportaciones desde API
@@ -408,6 +438,7 @@ function DashboardAdminExpandido({ onLogout }) {
     { key: 'retiros', label: 'Retiros' },
     { key: 'usuarios', label: 'Usuarios' },
     { key: 'operaciones', label: 'Operaciones' },
+    { key: 'avisos', label: '📢 Avisos de operaciones' },
     { key: 'solicitudes', label: 'Solicitudes' },
     { key: 'depositos', label: `💳 Depósitos (${solicitudesInversion.length})` },
     { key: 'capital', label: 'Capital y movimientos' },
@@ -561,6 +592,73 @@ function DashboardAdminExpandido({ onLogout }) {
     localStorage.removeItem('admin_fallback')
     if (typeof onLogout === 'function') onLogout()
     navigate('/admin/login')
+  }
+
+  const manejarFotosAviso = async (event) => {
+    const archivos = Array.from(event.target.files || [])
+    const disponibles = 3 - avisoOperacion.imagenes.length
+    if (archivos.length > disponibles) {
+      alert(`Puedes añadir un máximo de ${disponibles} foto${disponibles === 1 ? '' : 's'} más.`)
+    }
+    const seleccionados = archivos.slice(0, disponibles)
+    if (seleccionados.some(archivo => !archivo.type.startsWith('image/') || archivo.size > 2 * 1024 * 1024)) {
+      alert('Selecciona solo imágenes de hasta 2 MB cada una.')
+      event.target.value = ''
+      return
+    }
+    const imagenes = await Promise.all(seleccionados.map(archivo => new Promise((resolve, reject) => {
+      const lector = new FileReader()
+      lector.onload = () => resolve(lector.result)
+      lector.onerror = reject
+      lector.readAsDataURL(archivo)
+    })))
+    setAvisoOperacion(prev => ({ ...prev, imagenes: [...prev.imagenes, ...imagenes] }))
+    event.target.value = ''
+  }
+
+  const guardarAvisoOperacion = async (event) => {
+    event.preventDefault()
+    if (!avisoOperacion.operacionId || !avisoOperacion.titulo.trim() || !avisoOperacion.contenido.trim()) {
+      alert('Selecciona una operación y completa el titular y el contenido.')
+      return
+    }
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API}/api/avisos-operaciones${avisoEditandoId ? `/${avisoEditandoId}` : ''}`, {
+        method: avisoEditandoId ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ ...avisoOperacion, operacionId: Number(avisoOperacion.operacionId) })
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.detail || 'No se pudo guardar el aviso')
+      setAvisoOperacion({ operacionId: '', titulo: '', contenido: '', imagenes: [] })
+      setAvisoEditandoId(null)
+      await cargarAvisosOperaciones()
+      setMensaje(`✅ Aviso ${avisoEditandoId ? 'actualizado' : 'publicado'} para inversores`)
+      setTimeout(() => setMensaje(''), 3000)
+    } catch (error) {
+      alert(error.message || 'No se pudo guardar el aviso.')
+    }
+  }
+
+  const editarAvisoOperacion = (aviso) => {
+    setAvisoEditandoId(aviso.id)
+    setAvisoOperacion({ operacionId: String(aviso.operacionId), titulo: aviso.titulo, contenido: aviso.contenido, imagenes: aviso.imagenes || [] })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const eliminarAvisoOperacion = async (id) => {
+    if (!window.confirm('¿Eliminar este aviso? Los inversores dejarán de verlo inmediatamente.')) return
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API}/api/avisos-operaciones/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } })
+      if (!response.ok) throw new Error('No se pudo eliminar el aviso')
+      await cargarAvisosOperaciones()
+      setMensaje('✅ Aviso eliminado')
+      setTimeout(() => setMensaje(''), 2500)
+    } catch (error) {
+      alert(error.message || 'No se pudo eliminar el aviso.')
+    }
   }
 
   const updateAportacionStatus = async (id, estado, comentario = '') => {
@@ -1344,6 +1442,75 @@ function DashboardAdminExpandido({ onLogout }) {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+          {activeTab === 'avisos' && (
+            <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
+              <section className="card" style={{ margin: 0 }}>
+                <div className="section-header">
+                  <div>
+                    <h2>📢 Diario de operaciones</h2>
+                    <p style={{ margin: '0.4rem 0 0', color: '#64748b', fontSize: '13px' }}>Publica avances reales de cualquiera de las seis operaciones. Cada aviso aparecerá al instante para los inversores.</p>
+                  </div>
+                </div>
+                <form onSubmit={guardarAvisoOperacion} style={{ display: 'grid', gap: '1rem', marginTop: '1.25rem' }}>
+                  <label style={{ display: 'grid', gap: '0.45rem', fontWeight: 600, color: '#374151' }}>
+                    Operación
+                    <select value={avisoOperacion.operacionId} onChange={(event) => setAvisoOperacion(prev => ({ ...prev, operacionId: event.target.value }))} required style={{ padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#fff' }}>
+                      <option value="">Selecciona una de las seis operaciones</option>
+                      {operacionesCatalogo.map(operacion => <option key={operacion.id} value={operacion.id}>{operacion.icono} {operacion.nombre}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: 'grid', gap: '0.45rem', fontWeight: 600, color: '#374151' }}>
+                    Titular
+                    <input value={avisoOperacion.titulo} onChange={(event) => setAvisoOperacion(prev => ({ ...prev, titulo: event.target.value }))} maxLength="180" placeholder="Ej.: Hoy se completó el primer envío de mercancía" required style={{ padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+                  </label>
+                  <label style={{ display: 'grid', gap: '0.45rem', fontWeight: 600, color: '#374151' }}>
+                    Crónica para inversores
+                    <textarea value={avisoOperacion.contenido} onChange={(event) => setAvisoOperacion(prev => ({ ...prev, contenido: event.target.value }))} maxLength="5000" rows="6" placeholder="Explica qué se realizó, qué resultado tuvo y cuál es el siguiente paso." required style={{ padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', resize: 'vertical' }} />
+                  </label>
+                  <div style={{ display: 'grid', gap: '0.6rem' }}>
+                    <label style={{ fontWeight: 600, color: '#374151' }}>Fotos del aviso (máximo 3, 2 MB por foto)</label>
+                    <input type="file" accept="image/*" multiple onChange={manejarFotosAviso} disabled={avisoOperacion.imagenes.length >= 3} />
+                    {avisoOperacion.imagenes.length > 0 && (
+                      <div className="avisos-image-grid">
+                        {avisoOperacion.imagenes.map((imagen, index) => (
+                          <div key={`${index}-${imagen.slice(0, 20)}`} className="aviso-image-preview">
+                            <img src={imagen} alt={`Vista previa ${index + 1}`} />
+                            <button type="button" aria-label={`Quitar foto ${index + 1}`} onClick={() => setAvisoOperacion(prev => ({ ...prev, imagenes: prev.imagenes.filter((_, imageIndex) => imageIndex !== index) }))}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button type="submit" className="btn-action" style={{ background: '#0284c7', color: 'white' }}>{avisoEditandoId ? 'Guardar cambios' : 'Publicar aviso'}</button>
+                    {avisoEditandoId && <button type="button" className="btn-action" onClick={() => { setAvisoEditandoId(null); setAvisoOperacion({ operacionId: '', titulo: '', contenido: '', imagenes: [] }) }}>Cancelar edición</button>}
+                  </div>
+                </form>
+              </section>
+
+              <section className="card" style={{ margin: 0 }}>
+                <div className="section-header"><h2>Avisos publicados ({avisosOperaciones.length})</h2></div>
+                {avisosOperaciones.length ? (
+                  <div className="avisos-admin-list">
+                    {avisosOperaciones.map(aviso => (
+                      <article key={aviso.id} className="aviso-admin-item">
+                        <div style={{ minWidth: 0 }}>
+                          <p className="aviso-operation-label">{aviso.operacionIcono} {aviso.operacionNombre}</p>
+                          <h3>{aviso.titulo}</h3>
+                          <p>{aviso.contenido}</p>
+                          <small>{formatDate(aviso.createdAt)}</small>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignSelf: 'flex-start' }}>
+                          <button className="btn-action" onClick={() => editarAvisoOperacion(aviso)}>Editar</button>
+                          <button className="btn-action" style={{ background: '#dc2626', color: 'white' }} onClick={() => eliminarAvisoOperacion(aviso.id)}>Eliminar</button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : <p style={{ color: '#64748b', margin: '1rem 0 0' }}>Todavía no hay avisos publicados.</p>}
+              </section>
             </div>
           )}
           {activeTab === 'capital' && (

@@ -86,6 +86,7 @@ function DashboardInversionista() {
   const [referidos, setReferidos] = React.useState([])
   const [ofertasPrivadas, setOfertasPrivadas] = React.useState([])
   const [ofertasAportaciones, setOfertasAportaciones] = React.useState([])
+  const [avisosOperaciones, setAvisosOperaciones] = React.useState([])
   const [cuentasPago, setCuentasPago] = React.useState(() => mergeCuentas(readStorage('capital_trade_cuentas', [])))
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
   const [montoRetiro, setMontoRetiro] = React.useState('')
@@ -136,6 +137,26 @@ function DashboardInversionista() {
       window.removeEventListener('capital-trade-sync', syncData)
       clearInterval(interval)
     }
+  }, [])
+
+  React.useEffect(() => {
+    const cargarAvisosOperaciones = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+        const response = await fetch(`${API_URL}/api/avisos-operaciones`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!response.ok) return
+        const data = await response.json()
+        setAvisosOperaciones(data.avisos || [])
+      } catch (error) {
+        console.log('Error cargando avisos de operaciones:', error)
+      }
+    }
+    cargarAvisosOperaciones()
+    const intervalo = setInterval(cargarAvisosOperaciones, 30000)
+    return () => clearInterval(intervalo)
   }, [])
 
   React.useEffect(() => {
@@ -798,7 +819,7 @@ function DashboardInversionista() {
           <div className="nav-divider"></div>
           <div className="nav-group-title">ACTIVIDAD</div>
           <button className={`sidebar-tab ${activeTab === 'operaciones' ? 'active' : ''}`} onClick={() => setActiveTab('operaciones')}>
-            <div className="tab-indicator" /> <span className="tab-label">💼 Ops. Compartidas</span>
+            <div className="tab-indicator" /> <span className="tab-label">📢 Avisos</span>
           </button>
           <button className={`sidebar-tab ${activeTab === 'referidos' ? 'active' : ''}`} onClick={() => setActiveTab('referidos')}>
             <div className="tab-indicator" /> <span className="tab-label">👥 Mis Referidos</span>
@@ -841,7 +862,7 @@ function DashboardInversionista() {
       <main className="admin-main-content">
         <header className="topbar">
           <div className="topbar-left">
-            <h1>{activeTab === 'resumen' ? 'Mi Cartera' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+            <h1>{activeTab === 'resumen' ? 'Mi Cartera' : activeTab === 'operaciones' ? 'Avisos de operaciones' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
             <p className="subtitle">Gestión de capital y participación operativa</p>
           </div>
           <div className="topbar-actions">
@@ -1106,10 +1127,32 @@ function DashboardInversionista() {
 
           {activeTab === 'operaciones' && (
             <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
-              <div style={{ padding: '2rem', border: '1px solid rgba(148, 163, 184, 0.12)', borderRadius: '12px', background: 'rgba(10, 17, 30, 0.55)' }}>
-                <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.25rem' }}>Operaciones compartidas</h2>
-                <p style={{ color: '#94a3b8', margin: '0.75rem 0 0', lineHeight: 1.5 }}>Aquí aparecerán las operaciones públicas que la administración habilite para participación conjunta. Actualmente no hay operaciones compartidas publicadas.</p>
-              </div>
+              <section className="operaciones-journal-heading">
+                <p>ACTUALIZACIÓN OPERATIVA</p>
+                <h2>El diario de Capital Trade</h2>
+                <span>Información publicada por la administración sobre las operaciones en curso.</span>
+              </section>
+              {avisosOperaciones.length ? avisosOperaciones.map(aviso => (
+                <article key={aviso.id} className="operacion-aviso-card">
+                  <div className="operacion-aviso-meta">
+                    <span>{aviso.operacionIcono} {aviso.operacionNombre}</span>
+                    <time>{safeFormatDate(aviso.createdAt)}</time>
+                  </div>
+                  <h3>{aviso.titulo}</h3>
+                  <p>{aviso.contenido}</p>
+                  {aviso.imagenes?.length > 0 && (
+                    <div className={`operacion-aviso-images images-${Math.min(aviso.imagenes.length, 3)}`}>
+                      {aviso.imagenes.map((imagen, index) => <img key={`${aviso.id}-${index}`} src={imagen} alt={`Imagen de ${aviso.operacionNombre}: ${index + 1}`} />)}
+                    </div>
+                  )}
+                  <footer>Publicado por administración</footer>
+                </article>
+              )) : (
+                <div className="operacion-aviso-empty">
+                  <strong>Aún no hay avisos publicados.</strong>
+                  <span>Cuando la administración comunique una operación realizada, aparecerá aquí con sus detalles y fotografías.</span>
+                </div>
+              )}
             </div>
           )}
 

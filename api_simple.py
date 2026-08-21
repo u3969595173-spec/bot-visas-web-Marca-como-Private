@@ -1440,6 +1440,22 @@ def _ensure_operaciones_table(cur, conn):
         conn.commit()
 
 
+def _ensure_avisos_operaciones_table(cur, conn):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS avisos_operaciones (
+            id VARCHAR(100) PRIMARY KEY,
+            operacion_id INTEGER NOT NULL REFERENCES operaciones(id) ON DELETE CASCADE,
+            titulo VARCHAR(180) NOT NULL,
+            contenido TEXT NOT NULL,
+            imagenes TEXT[] NOT NULL DEFAULT '{}',
+            publicado_por VARCHAR(255) DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+
+
 def _fila_a_operacion(fila):
     import json
     try:
@@ -1566,6 +1582,163 @@ async def actualizar_operacion(operacion_id: int, datos: dict, usuario=Depends(o
         release_conn(conn)
         return {"success": True}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class AvisoOperacionRequest(BaseModel):
+    operacionId: int
+    titulo: str
+    contenido: str
+    imagenes: list[str] = []
+
+
+def _validar_imagenes_aviso(imagenes: list[str]):
+    if len(imagenes) > 3:
+        raise HTTPException(status_code=400, detail="Cada aviso admite un máximo de 3 fotos")
+    for imagen in imagenes:
+        if not imagen.startswith("data:image/"):
+            raise HTTPException(status_code=400, detail="Las fotos deben ser imágenes válidas")
+        if len(imagen) > 2_800_000:
+            raise HTTPException(status_code=400, detail="Cada foto puede pesar como máximo 2 MB")
+
+
+def _fila_a_aviso_operacion(fila):
+    return {
+        "id": fila[0], "operacionId": fila[1], "operacionNombre": fila[2],
+        "operacionIcono": fila[3], "titulo": fila[4], "contenido": fila[5],
+        "imagenes": fila[6] or [], "publicadoPor": fila[7] or "Administración",
+        "createdAt": fila[8], "updatedAt": fila[9]
+    }
+
+
+@app.get("/api/avisos-operaciones")
+async def listar_avisos_operaciones(usuario=Depends(obtener_usuario_actual)):
+    """Publicaciones operativas visibles para inversores autenticados."""
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_operaciones_table(cur, conn)
+        _ensure_avisos_operaciones_table(cur, conn)
+        cur.execute("""
+            SELECT a.id, a.operacion_id, o.nombre, o.icono, a.titulo, a.contenido,
+                   a.imagenes, a.publicado_por, a.created_at, a.updated_at
+            FROM avisos_operaciones a
+            JOIN operaciones o ON o.id = a.operacion_id
+            ORDER BY a.created_at DESC
+        """)
+        avisos = [_fila_a_aviso_operacion(fila) for fila in cur.fetchall()]
+        cur.close()
+        release_conn(conn)
+        return {"avisos": avisos}
+    except Exception as e:
+        if conn:
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/avisos-operaciones")
+async def crear_aviso_operacion(datos: AvisoOperacionRequest, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    if not datos.titulo.strip() or not datos.contenido.strip():
+        raise HTTPException(status_code=400, detail="El titular y el contenido son obligatorios")
+    _validar_imagenes_aviso(datos.imagenes)
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_operaciones_table(cur, conn)
+        _ensure_avisos_operaciones_table(cur, conn)
+        cur.execute("SELECT id FROM operaciones WHERE id = %s", (datos.operacionId,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="La operación indicada no existe")
+        aviso_id = f"aviso-operacion-{uuid.uuid4().hex}"
+        cur.execute("""
+            INSERT INTO avisos_operaciones (id, operacion_id, titulo, contenido, imagenes, publicado_por)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (aviso_id, datos.operacionId, datos.titulo.strip(), datos.contenido.strip(), datos.imagenes, usuario.get('email', 'Administración')))
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"id": aviso_id, "success": True}
+    except HTTPException:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/avisos-operaciones/{aviso_id}")
+async def actualizar_aviso_operacion(aviso_id: str, datos: AvisoOperacionRequest, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    if not datos.titulo.strip() or not datos.contenido.strip():
+        raise HTTPException(status_code=400, detail="El titular y el contenido son obligatorios")
+    _validar_imagenes_aviso(datos.imagenes)
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_operaciones_table(cur, conn)
+        _ensure_avisos_operaciones_table(cur, conn)
+        cur.execute("SELECT id FROM operaciones WHERE id = %s", (datos.operacionId,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="La operación indicada no existe")
+        cur.execute("""
+            UPDATE avisos_operaciones
+            SET operacion_id = %s, titulo = %s, contenido = %s, imagenes = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+        """, (datos.operacionId, datos.titulo.strip(), datos.contenido.strip(), datos.imagenes, aviso_id))
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="El aviso no existe")
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"success": True}
+    except HTTPException:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/avisos-operaciones/{aviso_id}")
+async def eliminar_aviso_operacion(aviso_id: str, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_operaciones_table(cur, conn)
+        _ensure_avisos_operaciones_table(cur, conn)
+        cur.execute("DELETE FROM avisos_operaciones WHERE id = %s", (aviso_id,))
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="El aviso no existe")
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"success": True}
+    except HTTPException:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
         raise HTTPException(status_code=500, detail=str(e))
 
 

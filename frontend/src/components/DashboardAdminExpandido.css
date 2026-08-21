@@ -1928,6 +1928,209 @@ select:focus {
   outline: none !important;
 }
 
+.avisos-image-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 720px;
+}
+
+.aviso-image-preview {
+  aspect-ratio: 4 / 3;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+}
+
+.aviso-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.aviso-image-preview button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(127, 29, 29, 0.9);
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.avisos-admin-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 1rem;
+}
+
+.aviso-admin-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.aviso-admin-item h3,
+.aviso-admin-item p {
+  margin: 0;
+}
+
+.aviso-admin-item h3 {
+  color: #f8fafc;
+  font-size: 16px;
+}
+
+.aviso-admin-item > div > p:not(.aviso-operation-label) {
+  color: #cbd5e1;
+  margin-top: 0.4rem;
+  white-space: pre-wrap;
+}
+
+.aviso-admin-item small {
+  display: block;
+  margin-top: 0.6rem;
+  color: #94a3b8;
+}
+
+.aviso-operation-label {
+  color: #67e8f9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.operaciones-journal-heading {
+  border-bottom: 1px solid rgba(246, 196, 83, 0.35);
+  padding: 0.75rem 0 1.35rem;
+}
+
+.operaciones-journal-heading p {
+  color: #f6c453;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 0.35rem;
+}
+
+.operaciones-journal-heading h2 {
+  color: #f8fafc;
+  font-family: Georgia, serif;
+  font-size: 28px;
+  margin: 0;
+}
+
+.operaciones-journal-heading span {
+  color: #94a3b8;
+  display: block;
+  line-height: 1.5;
+  margin-top: 0.45rem;
+}
+
+.operacion-aviso-card {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.operacion-aviso-meta {
+  align-items: center;
+  color: #f6c453;
+  display: flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.operacion-aviso-meta time,
+.operacion-aviso-card footer {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.operacion-aviso-card h3 {
+  color: #f8fafc;
+  font-family: Georgia, serif;
+  font-size: clamp(21px, 3vw, 30px);
+  margin: 0.8rem 0;
+}
+
+.operacion-aviso-card > p {
+  color: #dbe4ef;
+  line-height: 1.7;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.operacion-aviso-images {
+  display: grid;
+  gap: 8px;
+  margin-top: 1.25rem;
+}
+
+.operacion-aviso-images.images-1 { grid-template-columns: minmax(0, 680px); }
+.operacion-aviso-images.images-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.operacion-aviso-images.images-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.operacion-aviso-images img {
+  aspect-ratio: 4 / 3;
+  border-radius: 6px;
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.operacion-aviso-card footer {
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+  font-size: 12px;
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+}
+
+.operacion-aviso-empty {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px dashed rgba(246, 196, 83, 0.4);
+  border-radius: 8px;
+  color: #f8fafc;
+  display: grid;
+  gap: 0.5rem;
+  min-height: 180px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.operacion-aviso-empty span { color: #94a3b8; line-height: 1.5; }
+
+@media (max-width: 620px) {
+  .avisos-image-grid,
+  .operacion-aviso-images.images-2,
+  .operacion-aviso-images.images-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .aviso-admin-item {
+    flex-direction: column;
+  }
+
+  .operacion-aviso-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+}
+
 /* ===============================================================
    NEW AMAZING APP SHELL LAYOUT (PURE CSS)
    =============================================================== */
