@@ -915,7 +915,7 @@ async def obtener_inversores_validados(usuario = Depends(obtener_usuario_actual)
         conn = get_conn()
         cur = conn.cursor()
 
-        cur.execute("SELECT id, nombre, email, estado, telefono, pais, created_at FROM inversores WHERE estado = 'validada' ORDER BY id DESC")
+        cur.execute("SELECT id, nombre, email, estado, telefono, pais, created_at, codigo_referido, referido_por FROM inversores WHERE estado = 'validada' ORDER BY id DESC")
         resultados = cur.fetchall()
         cur.close()
         release_conn(conn)
@@ -929,7 +929,9 @@ async def obtener_inversores_validados(usuario = Depends(obtener_usuario_actual)
                 "estado": row[3],
                 "telefono": row[4],
                 "pais": row[5],
-                "created_at": row[6].isoformat() if row[6] else None
+                "created_at": row[6].isoformat() if row[6] else None,
+                "codigo_referido": row[7],
+                "referido_por": row[8]
             })
 
         return {"inversores": inversores}
@@ -953,6 +955,32 @@ async def actualizar_estado_inversor(inversor_id: int, datos: dict, usuario = De
         release_conn(conn)
 
         return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.put("/api/inversores/{inversor_id}/referido-por")
+async def corregir_referido_por(inversor_id: int, datos: dict, usuario = Depends(obtener_usuario_actual)):
+    """Corrige manualmente quien invito a un inversor (solo admin)"""
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE inversores SET referido_por = %s WHERE id = %s RETURNING id, nombre, codigo_referido",
+            (datos.get('referido_por'), inversor_id)
+        )
+        row = cur.fetchone()
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        if not row:
+            raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        return {"success": True, "id": row[0], "nombre": row[1], "codigo_referido": row[2]}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 

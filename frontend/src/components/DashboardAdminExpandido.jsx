@@ -628,38 +628,52 @@ function DashboardAdminExpandido({ onLogout }) {
 
   // Codigo de referido fijo del admin (siempre el mismo, no se genera al azar)
   const CODIGO_REFERIDO_ADMIN = 'ADMINCTI'
+  const referidoAdminCreado = React.useRef(false)
 
-  // Obtener o crear código de referido del admin
-  const getCodigoReferidoAdmin = () => {
-    let referidoAdmin = referidos.find(r => r.esAdmin === true || r.codigo === CODIGO_REFERIDO_ADMIN)
-    if (!referidoAdmin) {
-      referidoAdmin = {
-        id: 'admin-referido-fijo',
-        codigo: CODIGO_REFERIDO_ADMIN,
-        esAdmin: true,
-        referidosCount: 0,
-        gananciaTotal: 0,
-        historial: []
-      }
-      setReferidos([...referidos, referidoAdmin])
+  // Crea (una sola vez) la entrada de referido del admin en un efecto, nunca durante el render.
+  React.useEffect(() => {
+    if (referidoAdminCreado.current) return
+    const yaExiste = referidos.some(r => r.esAdmin === true || r.codigo === CODIGO_REFERIDO_ADMIN)
+    if (yaExiste) return
+    referidoAdminCreado.current = true
 
-      const token = localStorage.getItem('token')
-      fetch(`${API}/api/referidos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({
-          id: referidoAdmin.id,
-          codigo: referidoAdmin.codigo,
-          nombreInversor: 'Admin',
-          usuarioId: 'admin-1',
-          referidoPor: null,
-          inversionTotal: 0,
-          pagado: false,
-          esAdmin: true
-        })
-      }).catch(console.error)
+    const referidoAdmin = {
+      id: 'admin-referido-fijo',
+      codigo: CODIGO_REFERIDO_ADMIN,
+      esAdmin: true,
+      referidosCount: 0,
+      gananciaTotal: 0,
+      historial: []
     }
-    return referidoAdmin
+    setReferidos((prev) => [...prev, referidoAdmin])
+
+    const token = localStorage.getItem('token')
+    fetch(`${API}/api/referidos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        id: referidoAdmin.id,
+        codigo: referidoAdmin.codigo,
+        nombreInversor: 'Admin',
+        usuarioId: 'admin-1',
+        referidoPor: null,
+        inversionTotal: 0,
+        pagado: false,
+        esAdmin: true
+      })
+    }).catch(console.error)
+  }, [referidos])
+
+  // Obtener código de referido del admin
+  const getCodigoReferidoAdmin = () => {
+    return referidos.find(r => r.esAdmin === true || r.codigo === CODIGO_REFERIDO_ADMIN) || {
+      id: 'admin-referido-fijo',
+      codigo: CODIGO_REFERIDO_ADMIN,
+      esAdmin: true,
+      referidosCount: 0,
+      gananciaTotal: 0,
+      historial: []
+    }
   }
 
   // Obtener referidos activos del admin

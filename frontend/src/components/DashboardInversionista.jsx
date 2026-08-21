@@ -598,67 +598,77 @@ function DashboardInversionista() {
 
   const correccionReferidoEnviada = React.useRef(false)
 
+  // Crea o corrige (una sola vez) la entrada propia de referidos cuando cargan los datos del perfil.
+  // Se hace en un efecto, nunca durante el render, para evitar actualizar estado mientras se pinta la pantalla.
+  React.useEffect(() => {
+    if (!codigoReferidoPropio || !currentUser?.id || correccionReferidoEnviada.current) return
+    const userName = currentUser?.name || currentUser?.nombre || 'Usuario'
+    const idPropio = 'inv-referido-' + currentUser.id
+    const existente = referidos.find(r => r.id === idPropio) || referidos.find(r => r.codigo === codigoReferidoPropio)
+    const desactualizado = !existente ||
+      existente.codigo !== codigoReferidoPropio ||
+      (referidoPorPropio || null) !== (existente.referidoPor || null)
+    if (!desactualizado) return
+
+    correccionReferidoEnviada.current = true
+    const nuevoReferido = {
+      id: idPropio,
+      codigo: codigoReferidoPropio,
+      nombreInversor: userName,
+      usuarioId: currentUser.id,
+      referidoPor: referidoPorPropio || null,
+      referidosCount: 0,
+      gananciaTotal: 0,
+      historial: []
+    }
+    setReferidos(prev => {
+      const existeOtro = prev.some(r => r.id === idPropio || r.codigo === codigoReferidoPropio)
+      return existeOtro
+        ? prev.map(r => (r.id === idPropio || r.codigo === codigoReferidoPropio) ? nuevoReferido : r)
+        : [...prev, nuevoReferido]
+    })
+
+    const token = localStorage.getItem('token')
+    fetch(`${API_URL}/api/referidos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({
+        id: nuevoReferido.id,
+        codigo: nuevoReferido.codigo,
+        nombreInversor: nuevoReferido.nombreInversor,
+        usuarioId: String(nuevoReferido.usuarioId),
+        referidoPor: nuevoReferido.referidoPor,
+        inversionTotal: 0,
+        pagado: false,
+        esAdmin: false
+      })
+    }).catch(console.error)
+  }, [codigoReferidoPropio, referidoPorPropio, referidos, currentUser])
+
   const getCodigoReferidoInversor = () => {
     const userName = currentUser?.name || currentUser?.nombre || 'Usuario'
-    // Usar siempre el codigo permanente del perfil (nunca cambia)
-    const codigoPermanente = codigoReferidoPropio
     const idPropio = 'inv-referido-' + currentUser?.id
-
-    if (codigoPermanente) {
-      let referidoInversor = referidos.find(r => r.id === idPropio) || referidos.find(r => r.codigo === codigoPermanente)
-      const desactualizado = !referidoInversor ||
-        referidoInversor.codigo !== codigoPermanente ||
-        (referidoPorPropio || null) !== (referidoInversor.referidoPor || null)
-
-      if (desactualizado && !correccionReferidoEnviada.current) {
-        correccionReferidoEnviada.current = true
-        const yaExistiaOtro = !!referidoInversor
-        referidoInversor = {
-          id: idPropio,
-          codigo: codigoPermanente,
-          nombreInversor: userName,
-          usuarioId: currentUser?.id,
-          referidoPor: referidoPorPropio || null,
-          referidosCount: 0,
-          gananciaTotal: 0,
-          historial: []
-        }
-        const updated = yaExistiaOtro
-          ? referidos.map(r => (r.id === idPropio || r.codigo === codigoPermanente) ? referidoInversor : r)
-          : [...referidos, referidoInversor]
-        setReferidos(updated)
-
-        const token = localStorage.getItem('token');
-        fetch(`${API_URL}/api/referidos`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({
-            id: referidoInversor.id,
-            codigo: referidoInversor.codigo,
-            nombreInversor: referidoInversor.nombreInversor,
-            usuarioId: String(referidoInversor.usuarioId),
-            referidoPor: referidoInversor.referidoPor,
-            inversionTotal: 0,
-            pagado: false,
-            esAdmin: false
-          })
-        }).catch(console.error)
-      }
-      return referidoInversor
-    }
-    let referidoInversor = referidos.find(r => r.nombreInversor === userName)
-    if (!referidoInversor) {
-      referidoInversor = {
-        id: idPropio + '-' + Date.now(),
-        codigo: generarCodigoReferido(),
+    if (codigoReferidoPropio) {
+      return referidos.find(r => r.id === idPropio) || referidos.find(r => r.codigo === codigoReferidoPropio) || {
+        id: idPropio,
+        codigo: codigoReferidoPropio,
         nombreInversor: userName,
         usuarioId: currentUser?.id,
+        referidoPor: referidoPorPropio || null,
         referidosCount: 0,
         gananciaTotal: 0,
         historial: []
       }
     }
-    return referidoInversor
+    return referidos.find(r => r.nombreInversor === userName) || {
+      id: idPropio + '-temp',
+      codigo: generarCodigoReferido(),
+      nombreInversor: userName,
+      usuarioId: currentUser?.id,
+      referidosCount: 0,
+      gananciaTotal: 0,
+      historial: []
+    }
   }
 
   const getReferidosDelInversor = () => {
