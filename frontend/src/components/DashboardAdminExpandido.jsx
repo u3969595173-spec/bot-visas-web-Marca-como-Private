@@ -1304,11 +1304,11 @@ function DashboardAdminExpandido({ onLogout }) {
                 ['Nombre', 'Email', 'Teléfono', 'País', 'Fecha', 'Rol', 'Estado', 'Acción'],
                 usuariosRegistrados.length
                   ? usuariosRegistrados.map((usuario) => [
-                    usuario.name || 'Sin nombre',
+                    usuario.nombre || usuario.name || 'Sin nombre',
                     usuario.email || '—',
                     usuario.telefono || '—',
                     usuario.pais || '—',
-                    usuario.fecha || '—',
+                    formatDate(usuario.created_at || usuario.fecha) || '—',
                     usuario.role || 'inversor',
                     'Activo',
                     <button

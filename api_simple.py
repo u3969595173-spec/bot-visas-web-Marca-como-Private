@@ -883,7 +883,7 @@ async def obtener_inversores_pendientes(usuario = Depends(obtener_usuario_actual
         conn = get_conn()
         cur = conn.cursor()
 
-        cur.execute("SELECT id, nombre, email, estado FROM inversores WHERE estado = 'pendiente' ORDER BY id DESC")
+        cur.execute("SELECT id, nombre, email, estado, telefono, pais, created_at FROM inversores WHERE estado = 'pendiente' ORDER BY id DESC")
         resultados = cur.fetchall()
         cur.close()
         release_conn(conn)
@@ -894,7 +894,10 @@ async def obtener_inversores_pendientes(usuario = Depends(obtener_usuario_actual
                 "id": row[0],
                 "nombre": row[1],
                 "email": row[2],
-                "estado": row[3]
+                "estado": row[3],
+                "telefono": row[4],
+                "pais": row[5],
+                "created_at": row[6].isoformat() if row[6] else None
             })
 
         return {"inversores": inversores}
@@ -912,7 +915,7 @@ async def obtener_inversores_validados(usuario = Depends(obtener_usuario_actual)
         conn = get_conn()
         cur = conn.cursor()
 
-        cur.execute("SELECT id, nombre, email, estado FROM inversores WHERE estado = 'validada' ORDER BY id DESC")
+        cur.execute("SELECT id, nombre, email, estado, telefono, pais, created_at FROM inversores WHERE estado = 'validada' ORDER BY id DESC")
         resultados = cur.fetchall()
         cur.close()
         release_conn(conn)
@@ -923,7 +926,10 @@ async def obtener_inversores_validados(usuario = Depends(obtener_usuario_actual)
                 "id": row[0],
                 "nombre": row[1],
                 "email": row[2],
-                "estado": row[3]
+                "estado": row[3],
+                "telefono": row[4],
+                "pais": row[5],
+                "created_at": row[6].isoformat() if row[6] else None
             })
 
         return {"inversores": inversores}
