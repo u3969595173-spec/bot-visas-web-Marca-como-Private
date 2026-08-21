@@ -26,23 +26,26 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 # Pool de conexiones reutilizables (evita abrir/cerrar una conexion TCP+SSL nueva en cada request)
 from psycopg2 import pool as _pg_pool
 DB_POOL = None
+_FALLBACK_CONN_IDS = set()  # conexiones directas (no del pool) pendientes de cerrar
 
 def get_conn():
     global DB_POOL
     if DB_POOL is None:
-        DB_POOL = _pg_pool.ThreadedConnectionPool(1, 20, DATABASE_URL, sslmode="require")
+        DB_POOL = _pg_pool.ThreadedConnectionPool(1, 30, DATABASE_URL, sslmode="require")
     try:
-        conn = DB_POOL.getconn()
-        conn._de_pool = True
+        return DB_POOL.getconn()
     except _pg_pool.PoolError:
         # Pool agotado momentaneamente: abrir una conexion directa de respaldo
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-        conn._de_pool = False
-    return conn
+        _FALLBACK_CONN_IDS.add(id(conn))
+        return conn
 
 def release_conn(conn):
     try:
-        if getattr(conn, '_de_pool', False) and DB_POOL is not None:
+        if id(conn) in _FALLBACK_CONN_IDS:
+            _FALLBACK_CONN_IDS.discard(id(conn))
+            conn.close()
+        elif DB_POOL is not None:
             DB_POOL.putconn(conn)
         else:
             conn.close()
