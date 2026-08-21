@@ -6,12 +6,6 @@ import './DashboardAdminExpandido.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-const operations = [
-  { id: 1, name: 'Operación comercial 01', status: 'Activa', capital: '€48.000', progress: '62%', yield: 'Rendimiento variable' },
-  { id: 2, name: 'Operación comercial 02', status: 'Pendiente', capital: '€36.000', progress: '24%', yield: 'En análisis' },
-  { id: 3, name: 'Operación comercial 03', status: 'Cerrada', capital: '€22.000', progress: '100%', yield: 'Cerrada' }
-];
-
 const documents = [
   { name: 'Contrato operación Cemento', type: 'PDF' },
   { name: 'Anexo de condiciones', type: 'PDF' },
@@ -402,6 +396,7 @@ function DashboardInversionista() {
     return new Date(item.fecha_aprobacion).getTime() + HORAS_BLOQUEO * 3600000 > ahora
   })
   const capitalRetenido = aportacionesRetenidas.reduce((sum, item) => sum + Number(item.importe || 0), 0)
+  const capitalActivo = totalAportado - capitalRetenido
   const proximaLiberacionMs = aportacionesRetenidas.length
     ? Math.min(...aportacionesRetenidas.map((item) => new Date(item.fecha_aprobacion).getTime() + HORAS_BLOQUEO * 3600000)) - ahora
     : 0
@@ -771,6 +766,9 @@ function DashboardInversionista() {
           <button className={`sidebar-tab ${activeTab === 'resumen' ? 'active' : ''}`} onClick={() => setActiveTab('resumen')}>
             <div className="tab-indicator" /> <span className="tab-label">📊 Mi Cartera</span>
           </button>
+          <button className={`sidebar-tab ${activeTab === 'inversiones' ? 'active' : ''}`} onClick={() => setActiveTab('inversiones')}>
+            <div className="tab-indicator" /> <span className="tab-label">💼 Mis Inversiones</span>
+          </button>
           <button className={`sidebar-tab ${activeTab === 'ofertas' ? 'active' : ''}`} onClick={() => setActiveTab('ofertas')}>
             <div className="tab-indicator" /> <span className="tab-label">🎁 Mis Ofertas</span>
           </button>
@@ -850,8 +848,8 @@ function DashboardInversionista() {
               backdropFilter: 'blur(10px)'
             }}>
               <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalAportado, 'EUR')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital invertido</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(capitalActivo, 'EUR')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital liberado</p>
             </div>
 
             {/* Ganancias Posibles - Gradiente Verde */}
@@ -920,7 +918,7 @@ function DashboardInversionista() {
             )}
           </div>
 
-          {activeTab === 'resumen' && (
+          {activeTab === 'inversiones' && (
             <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
                 <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.3rem', fontWeight: '700' }}>💼 Mis Inversiones</h2>
@@ -1023,7 +1021,7 @@ function DashboardInversionista() {
                       </div>
 
                       {/* Detalles numéricos */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
+                      <div className="investment-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '1rem' }}>
                         <div style={{
                           background: 'rgba(246, 196, 83, 0.06)',
                           border: '1px solid rgba(246, 196, 83, 0.1)',
@@ -1075,6 +1073,24 @@ function DashboardInversionista() {
                   <p style={{ color: '#94a3b8', fontSize: '0.95rem', margin: 0 }}>Aún no tienes inversiones registradas. ¡Comienza a invertir!</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'resumen' && (
+            <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
+              <div style={{ padding: '2rem', border: '1px solid rgba(148, 163, 184, 0.12)', borderRadius: '12px', background: 'rgba(10, 17, 30, 0.55)' }}>
+                <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.25rem' }}>Resumen de cartera</h2>
+                <p style={{ color: '#94a3b8', margin: '0.75rem 0 0', lineHeight: 1.5 }}>Consulta cada posición en <strong style={{ color: '#f6c453' }}>Mis Inversiones</strong>. El capital retenido se liberará automáticamente al terminar su cuenta atrás de 72 horas.</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'operaciones' && (
+            <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
+              <div style={{ padding: '2rem', border: '1px solid rgba(148, 163, 184, 0.12)', borderRadius: '12px', background: 'rgba(10, 17, 30, 0.55)' }}>
+                <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.25rem' }}>Operaciones compartidas</h2>
+                <p style={{ color: '#94a3b8', margin: '0.75rem 0 0', lineHeight: 1.5 }}>Aquí aparecerán las operaciones públicas que la administración habilite para participación conjunta. Actualmente no hay operaciones compartidas publicadas.</p>
+              </div>
             </div>
           )}
 

@@ -2268,6 +2268,16 @@ select:focus {
     padding: 0 14px 40px 14px;
   }
 
+  .content-scroll .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .investment-details-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
   /* Stats grid single col on small */
   .estadisticas-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -2337,6 +2347,11 @@ select:focus {
 }
 
 @media (max-width: 480px) {
+  .content-scroll .stats-grid,
+  .investment-details-grid {
+    grid-template-columns: 1fr !important;
+  }
+
   .estadisticas-grid {
     grid-template-columns: 1fr;
   }
