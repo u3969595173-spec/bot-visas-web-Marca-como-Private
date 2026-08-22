@@ -1783,11 +1783,12 @@ async def crear_oferta(datos: OfertaRequest, usuario=Depends(obtener_usuario_act
         
         importe_final = datos.importeMaximo if datos.importeMaximo > 0 else datos.importe_maximo
         oferta_id = f"oferta-{uuid.uuid4().hex}"
+        inversor_especial = datos.inversorIdEspecial.strip().lower()
 
         cur.execute("""
             INSERT INTO ofertas_privadas (id, nombre, descripcion, condiciones, programa, nivel, importe_maximo, inversor_id_especial)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id, created_at
-        """, (oferta_id, datos.nombre, datos.descripcion, datos.condiciones, datos.programa, datos.nivel, importe_final, datos.inversorIdEspecial))
+        """, (oferta_id, datos.nombre, datos.descripcion, datos.condiciones, datos.programa, datos.nivel, importe_final, inversor_especial))
         
         row = cur.fetchone()
         conn.commit()

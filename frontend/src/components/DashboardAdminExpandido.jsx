@@ -525,7 +525,7 @@ function DashboardAdminExpandido({ onLogout }) {
     e.preventDefault()
     if (!nuevaOferta.nombre || !nuevaOferta.importeMaximo) return
     const id = Date.now().toString()
-    const oferta = { ...nuevaOferta, id, estado: 'Activa', progreso_actual: 0.0, importe_maximo: parseFloat(nuevaOferta.importeMaximo) }
+    const oferta = { ...nuevaOferta, inversorIdEspecial: nuevaOferta.inversorIdEspecial.trim().toLowerCase(), id, estado: 'Activa', progreso_actual: 0.0, importe_maximo: parseFloat(nuevaOferta.importeMaximo) }
 
     try {
       const token = localStorage.getItem('token')
@@ -1923,8 +1923,9 @@ function DashboardAdminExpandido({ onLogout }) {
                     <input required type="number" value={nuevaOferta.importeMaximo} onChange={e => setNuevaOferta({ ...nuevaOferta, importeMaximo: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Usuario Específico (Opcional - Login Email)</label>
-                    <input value={nuevaOferta.inversorIdEspecial} onChange={e => setNuevaOferta({ ...nuevaOferta, inversorIdEspecial: e.target.value })} placeholder="Ej: admin@capitaltrade... " style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
+                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Enviar solo a un inversor (opcional)</label>
+                    <input type="email" value={nuevaOferta.inversorIdEspecial} onChange={e => setNuevaOferta({ ...nuevaOferta, inversorIdEspecial: e.target.value })} placeholder="Correo con el que inicia sesión el inversor" style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
+                    <small style={{ color: '#64748b', fontSize: 11 }}>Ejemplo: persona@email.com. Déjalo vacío para aplicar las reglas del programa.</small>
                   </div>
                   <div style={{ gridColumn: 'span 2' }}>
                     <label style={{ fontSize: 12, color: '#94a3b8' }}>Descripción</label>

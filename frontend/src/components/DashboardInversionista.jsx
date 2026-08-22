@@ -453,7 +453,7 @@ function DashboardInversionista() {
 
   const ofertasAsignadas = ofertasPrivadas.filter(of => {
     if (of.estado !== 'Activa') return false
-    if (of.inversorIdEspecial && currentUser && (of.inversorIdEspecial === currentUser.email || of.inversorIdEspecial === currentUser.id?.toString())) return true
+    if (of.inversorIdEspecial && currentUser && (of.inversorIdEspecial.trim().toLowerCase() === (currentUser.email || '').trim().toLowerCase() || of.inversorIdEspecial === currentUser.id?.toString())) return true
     if (of.programa === 'Comunidad' && nivelLideres && of.nivel === nivelLideres.nombre) return true
     if (of.programa === 'Capital' && nivelPartner && of.nivel === nivelPartner.nombre) return true
     if (of.programa === 'Combinado' && nivelPartner && nivelLideres && of.nivel === 'Todos los Combinados') return true
