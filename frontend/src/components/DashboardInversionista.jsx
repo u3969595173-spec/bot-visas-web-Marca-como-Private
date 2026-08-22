@@ -1020,7 +1020,7 @@ function DashboardInversionista() {
                 backdropFilter: 'blur(10px)'
               }}>
                 <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
-                <p style={{ margin: '0.75rem 0 0 0', fontSize: '16px', fontWeight: 'bold' }}>
+                <p className="retained-investments-count" style={{ margin: '0.75rem 0 0 0', fontSize: '13px', fontWeight: '700' }}>
                   {aportacionesRetenidas.length} {aportacionesRetenidas.length === 1 ? 'inversión con bloqueo propio' : 'inversiones con bloqueos propios'}
                 </p>
                 <p style={{ margin: '0.25rem 0 0', fontSize: '10px', opacity: 0.8 }}>Cada inversión conserva su propia fecha de activación.</p>

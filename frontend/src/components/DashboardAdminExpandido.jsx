@@ -1278,6 +1278,15 @@ function DashboardAdminExpandido({ onLogout }) {
                     ['Usuario', 'Importe', 'Moneda', 'Estado'],
                     aportacionesNormalizadas.slice(0, 4).map((item) => [item.usuario, formatCurrency(Number(item.importe || 0), item.moneda), item.moneda, item.estado])
                   )}
+                  {aportacionesNormalizadas.length > 4 && (
+                    <button
+                      type="button"
+                      className="admin-show-more-button"
+                      onClick={() => setActiveTab('aportaciones')}
+                    >
+                      Ver {aportacionesNormalizadas.length - 4} aportaciones más
+                    </button>
+                  )}
                 </div>
 
                 <div className="card">

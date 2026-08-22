@@ -729,7 +729,7 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
                             SELECT id, importe, COALESCE(ganancia_acelerada, 0) as ganac, COALESCE(ganancia_rentabilidad, 0) as rent, fecha_aprobacion
                             FROM aportaciones 
                             WHERE inversor_id = %s AND (estado = 'Aprobada' OR estado = 'Activa')
-                            ORDER BY fecha_aprobacion ASC
+                            ORDER BY fecha_aprobacion ASC NULLS LAST, id ASC
                         """, (patrocinador_id,))
                         invs_activas = cur.fetchall()
                         
