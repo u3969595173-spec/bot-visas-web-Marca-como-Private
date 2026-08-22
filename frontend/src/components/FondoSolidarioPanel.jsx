@@ -94,9 +94,9 @@ export default function FondoSolidarioPanel({ admin = false }) {
 
   return <section style={{ display: 'grid', gap: '1.25rem' }}>
     <div style={{ ...card, borderLeft: '4px solid #22c55e' }}>
-      <h2 style={{ margin: 0, color: '#f8fafc' }}>Fondo Solidario Cuba</h2>
+      <h2 style={{ margin: 0, color: '#f8fafc' }}>Fondo Solidario</h2>
       <p style={{ margin: '0.55rem 0 0', color: '#cbd5e1', lineHeight: 1.55 }}>
-        Una hucha separada del capital de inversión. De cada fee de retiro del 5%, el 2% se destina al Fondo Solidario y el 3% restante cubre el procesamiento operativo. La empresa realiza aportes obligatorios adicionales; estos se reflejan por separado para que la comunidad vea su contribución real.
+        Una hucha separada del capital de inversión para apoyar casos verificados en Cuba y en otros lugares del mundo. De cada fee de retiro del 5%, el 2% se destina al Fondo Solidario y el 3% restante cubre el procesamiento operativo. La empresa realiza aportes obligatorios adicionales; estos se reflejan por separado para que la comunidad vea su contribución real.
       </p>
     </div>
 
@@ -108,7 +108,7 @@ export default function FondoSolidarioPanel({ admin = false }) {
 
     {!admin && <div style={card}>
       <h3 style={{ marginTop: 0, color: '#f8fafc' }}>Que es este Fondo</h3>
-      <p style={{ color: '#cbd5e1', lineHeight: 1.55, margin: 0 }}>El Fondo Solidario reúne el 2% del fee de cada retiro y los aportes obligatorios adicionales de la empresa. El panel muestra ambas cifras por separado para que la comunidad pueda comprobar cuánto llega desde cada origen. Ese dinero no procede de las inversiones ni reduce los saldos de los usuarios: se reserva exclusivamente para ayudas verificadas a familias vulnerables en Cuba.</p>
+      <p style={{ color: '#cbd5e1', lineHeight: 1.55, margin: 0 }}>El Fondo Solidario reúne el 2% del fee de cada retiro y los aportes obligatorios adicionales de la empresa. El panel muestra ambas cifras por separado para que la comunidad pueda comprobar cuánto llega desde cada origen. Ese dinero no procede de las inversiones ni reduce los saldos de los usuarios: se reserva exclusivamente para ayudas verificadas a familias vulnerables en Cuba y en otros lugares del mundo.</p>
       <p style={{ color: '#cbd5e1', lineHeight: 1.55, margin: '0.8rem 0 0' }}>Los casos se proponen mediante el chat de Comunidad o por soporte. La administración comprueba la información antes de seleccionar y publicar un caso. La entrega puede realizarla un equipo o representante de la propia comunidad; después se registra el importe usado, qué se entregó y evidencia autorizada. La web conserva ese registro para comprobar que el dinero del fondo se destinó a la ayuda anunciada, sin publicar datos sensibles de las familias.</p>
     </div>}
 
