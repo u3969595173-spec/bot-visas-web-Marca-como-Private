@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import './DashboardAdminExpandido.css'
 // Complete dark mode applied
 import RetirosCreditoPanel from './RetirosCreditoPanel'
+import FondoSolidarioPanel from './FondoSolidarioPanel'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -466,6 +467,7 @@ function DashboardAdminExpandido({ onLogout }) {
     { key: 'referidos', label: 'Referidos' },
     { key: 'rangos', label: '🏆 Programas' },
     { key: 'ofertas', label: '🎁 Ofertas para Líderes' },
+    { key: 'fondo-solidario', label: '🤝 Fondo Solidario' },
     { key: 'configuracion', label: 'Configuración' },
     { key: 'chat', label: `💬 Chat ${mensajes.filter(m => m.tipo === 'inversor' && !m.leido).length > 0 ? `(${mensajes.filter(m => m.tipo === 'inversor' && !m.leido).length})` : ''}` },
   ]
@@ -2054,6 +2056,9 @@ function DashboardAdminExpandido({ onLogout }) {
                 </table>
               </div>
             </div>
+          )}
+          {activeTab === 'fondo-solidario' && (
+            <FondoSolidarioPanel admin />
           )}
           {activeTab === 'configuracion' && (
             <div className="card">

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import './Platform.css';
 import './DashboardAdminExpandido.css';
+import FondoSolidarioPanel from './FondoSolidarioPanel';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -897,6 +898,9 @@ function DashboardInversionista() {
           <button className={`sidebar-tab ${activeTab === 'solicitudes' ? 'active' : ''}`} onClick={() => setActiveTab('solicitudes')}>
             <div className="tab-indicator" /> <span className="tab-label">📝 Mis Solicitudes</span>
           </button>
+          <button className={`sidebar-tab ${activeTab === 'fondo-solidario' ? 'active' : ''}`} onClick={() => setActiveTab('fondo-solidario')}>
+            <div className="tab-indicator" /> <span className="tab-label">🤝 Fondo Solidario</span>
+          </button>
 
           <div className="nav-divider"></div>
           <div className="nav-group-title">EXTRAS</div>
@@ -1049,6 +1053,10 @@ function DashboardInversionista() {
               </div>
             )}
           </div>
+          )}
+
+          {activeTab === 'fondo-solidario' && (
+            <FondoSolidarioPanel />
           )}
 
           {activeTab === 'inversiones' && (

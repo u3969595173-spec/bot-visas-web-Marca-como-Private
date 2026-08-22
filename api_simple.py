@@ -2109,6 +2109,298 @@ async def crear_mensaje_chat_admin(datos: dict, usuario = Depends(obtener_usuari
 
 
 # ============================================================================
+# FONDO SOLIDARIO - registros separados de inversiones y retiros
+# ============================================================================
+def _ensure_fondo_solidario_tables(cur, conn):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS fondo_solidario_config (
+            id INTEGER PRIMARY KEY,
+            porcentaje_fee DECIMAL(5,2) NOT NULL DEFAULT 2,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("""
+        INSERT INTO fondo_solidario_config (id, porcentaje_fee)
+        VALUES (1, 2)
+        ON CONFLICT (id) DO NOTHING
+    """)
+    cur.execute("""
+        UPDATE fondo_solidario_config
+        SET porcentaje_fee = 2, updated_at = NOW()
+        WHERE id = 1 AND porcentaje_fee <> 2
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS fondo_solidario_movimientos (
+            id SERIAL PRIMARY KEY,
+            tipo VARCHAR(30) NOT NULL,
+            importe DECIMAL(12,2) NOT NULL CHECK (importe > 0),
+            moneda VARCHAR(20) NOT NULL DEFAULT 'USDT',
+            descripcion TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS fondo_solidario_casos (
+            id SERIAL PRIMARY KEY,
+            alias_familia VARCHAR(150) NOT NULL,
+            categoria VARCHAR(100) NOT NULL,
+            descripcion TEXT NOT NULL,
+            fuente VARCHAR(30) NOT NULL DEFAULT 'comunidad',
+            estado VARCHAR(30) NOT NULL DEFAULT 'recibido',
+            visible BOOLEAN NOT NULL DEFAULT FALSE,
+            importe_solicitado DECIMAL(12,2),
+            importe_entregado DECIMAL(12,2),
+            responsable_entrega VARCHAR(200),
+            resumen_entrega TEXT,
+            evidencia TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+
+
+def _obtener_resumen_fondo_solidario(cur, admin=False):
+    cur.execute("SELECT porcentaje_fee, updated_at FROM fondo_solidario_config WHERE id = 1")
+    config = cur.fetchone() or (0, None)
+    cur.execute("""
+        SELECT
+            COALESCE(SUM(CASE WHEN tipo IN ('aporte_fee', 'aporte_empresa') THEN importe ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN tipo = 'entrega' THEN importe ELSE 0 END), 0)
+        FROM fondo_solidario_movimientos
+    """)
+    aportado, entregado = cur.fetchone()
+    filtro_casos = "" if admin else "WHERE visible = TRUE AND estado IN ('verificado', 'seleccionado', 'entregado')"
+    cur.execute(f"""
+        SELECT id, alias_familia, categoria, descripcion, fuente, estado, visible,
+               importe_solicitado, importe_entregado, responsable_entrega,
+               resumen_entrega, evidencia, created_at, updated_at
+        FROM fondo_solidario_casos
+        {filtro_casos}
+        ORDER BY created_at DESC
+    """)
+    casos = []
+    for row in cur.fetchall():
+        casos.append({
+            "id": row[0], "alias_familia": row[1], "categoria": row[2],
+            "descripcion": row[3], "fuente": row[4], "estado": row[5],
+            "visible": row[6], "importe_solicitado": float(row[7]) if row[7] is not None else None,
+            "importe_entregado": float(row[8]) if row[8] is not None else None,
+            "responsable_entrega": row[9], "resumen_entrega": row[10],
+            "evidencia": row[11], "created_at": row[12].isoformat() if row[12] else None,
+            "updated_at": row[13].isoformat() if row[13] else None,
+        })
+    resultado = {
+        "porcentaje_fee": float(config[0] or 0),
+        "actualizado_at": config[1].isoformat() if config[1] else None,
+        "aportado": float(aportado or 0),
+        "entregado": float(entregado or 0),
+        "saldo": float(aportado or 0) - float(entregado or 0),
+        "casos": casos,
+    }
+    if admin:
+        cur.execute("""
+            SELECT id, tipo, importe, moneda, descripcion, created_at
+            FROM fondo_solidario_movimientos ORDER BY created_at DESC LIMIT 100
+        """)
+        resultado["movimientos"] = [{
+            "id": row[0], "tipo": row[1], "importe": float(row[2]),
+            "moneda": row[3], "descripcion": row[4],
+            "created_at": row[5].isoformat() if row[5] else None,
+        } for row in cur.fetchall()]
+    return resultado
+
+
+@app.get("/api/fondo-solidario")
+async def obtener_fondo_solidario(usuario=Depends(obtener_usuario_actual)):
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_fondo_solidario_tables(cur, conn)
+        resumen = _obtener_resumen_fondo_solidario(cur, admin=usuario.get("rol") == "admin")
+        cur.close()
+        release_conn(conn)
+        return resumen
+    except Exception as e:
+        if conn:
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/fondo-solidario/config")
+async def actualizar_config_fondo_solidario(datos: dict, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins")
+    porcentaje = 2
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_fondo_solidario_tables(cur, conn)
+        cur.execute("""
+            UPDATE fondo_solidario_config
+            SET porcentaje_fee = %s, updated_at = NOW()
+            WHERE id = 1
+        """, (porcentaje,))
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"ok": True, "porcentaje_fee": porcentaje}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/fondo-solidario/movimientos")
+async def registrar_movimiento_fondo_solidario(datos: dict, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins")
+    tipo = datos.get("tipo")
+    if tipo not in ("aporte_fee", "aporte_empresa"):
+        raise HTTPException(status_code=400, detail="Tipo de aporte no valido")
+    importe = float(datos.get("importe", 0))
+    descripcion = str(datos.get("descripcion", "")).strip()
+    if importe <= 0 or not descripcion:
+        raise HTTPException(status_code=400, detail="Indica un importe y una descripcion")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_fondo_solidario_tables(cur, conn)
+        cur.execute("""
+            INSERT INTO fondo_solidario_movimientos (tipo, importe, moneda, descripcion)
+            VALUES (%s, %s, %s, %s)
+        """, (tipo, importe, str(datos.get("moneda", "USDT")), descripcion))
+        conn.commit()
+        resumen = _obtener_resumen_fondo_solidario(cur, admin=True)
+        cur.close()
+        release_conn(conn)
+        return resumen
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/fondo-solidario/casos")
+async def crear_caso_fondo_solidario(datos: dict, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins")
+    alias = str(datos.get("alias_familia", "")).strip()
+    categoria = str(datos.get("categoria", "")).strip()
+    descripcion = str(datos.get("descripcion", "")).strip()
+    if not alias or not categoria or not descripcion:
+        raise HTTPException(status_code=400, detail="Completa alias, categoria y descripcion")
+    importe_solicitado = datos.get("importe_solicitado")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_fondo_solidario_tables(cur, conn)
+        cur.execute("""
+            INSERT INTO fondo_solidario_casos
+            (alias_familia, categoria, descripcion, fuente, importe_solicitado)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (alias, categoria, descripcion, str(datos.get("fuente", "comunidad")), importe_solicitado or None))
+        conn.commit()
+        resumen = _obtener_resumen_fondo_solidario(cur, admin=True)
+        cur.close()
+        release_conn(conn)
+        return resumen
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/fondo-solidario/casos/{caso_id}")
+async def actualizar_caso_fondo_solidario(caso_id: int, datos: dict, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins")
+    estado = datos.get("estado")
+    if estado not in ("recibido", "verificado", "seleccionado", "entregado", "descartado"):
+        raise HTTPException(status_code=400, detail="Estado no valido")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_fondo_solidario_tables(cur, conn)
+        cur.execute("""
+            UPDATE fondo_solidario_casos
+            SET estado = %s, visible = %s, updated_at = NOW()
+            WHERE id = %s
+        """, (estado, bool(datos.get("visible", False)), caso_id))
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Caso no encontrado")
+        conn.commit()
+        resumen = _obtener_resumen_fondo_solidario(cur, admin=True)
+        cur.close()
+        release_conn(conn)
+        return resumen
+    except HTTPException:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/admin/fondo-solidario/casos/{caso_id}/entrega")
+async def registrar_entrega_fondo_solidario(caso_id: int, datos: dict, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins")
+    importe = float(datos.get("importe", 0))
+    responsable = str(datos.get("responsable_entrega", "")).strip()
+    resumen = str(datos.get("resumen_entrega", "")).strip()
+    if importe <= 0 or not responsable or not resumen:
+        raise HTTPException(status_code=400, detail="Completa importe, responsable y resumen de entrega")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _ensure_fondo_solidario_tables(cur, conn)
+        cur.execute("SELECT alias_familia FROM fondo_solidario_casos WHERE id = %s", (caso_id,))
+        caso = cur.fetchone()
+        if not caso:
+            raise HTTPException(status_code=404, detail="Caso no encontrado")
+        cur.execute("""
+            INSERT INTO fondo_solidario_movimientos (tipo, importe, moneda, descripcion)
+            VALUES ('entrega', %s, %s, %s)
+        """, (importe, str(datos.get("moneda", "USDT")), f"Entrega a {caso[0]}: {resumen}"))
+        cur.execute("""
+            UPDATE fondo_solidario_casos
+            SET estado = 'entregado', visible = TRUE, importe_entregado = %s,
+                responsable_entrega = %s, resumen_entrega = %s, evidencia = %s,
+                updated_at = NOW()
+            WHERE id = %s
+        """, (importe, responsable, resumen, datos.get("evidencia") or None, caso_id))
+        conn.commit()
+        resumen_fondo = _obtener_resumen_fondo_solidario(cur, admin=True)
+        cur.close()
+        release_conn(conn)
+        return resumen_fondo
+    except HTTPException:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # RESET DE DATOS DE PRUEBA (solo admin) - borra usuarios y todo lo generado por ellos
 # ============================================================================
 
