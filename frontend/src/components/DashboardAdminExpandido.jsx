@@ -431,13 +431,13 @@ function DashboardAdminExpandido({ onLogout }) {
         const token = localStorage.getItem('token')
         if (!token) return
 
-        const response = await fetch(`${API}/api/solicitudes-inversion/pendientes`, {
+        const response = await fetch(`${API}/api/aportaciones`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
 
         if (response.ok) {
           const data = await response.json()
-          setSolicitudesInversion(data.solicitudes || [])
+          setSolicitudesInversion((data.aportaciones || []).filter((aportacion) => aportacion.estado === 'Pendiente de validación'))
         }
       } catch (error) {
         console.log('Error cargando solicitudes de inversión:', error)
@@ -472,19 +472,6 @@ function DashboardAdminExpandido({ onLogout }) {
     { key: 'chat', label: `💬 Chat ${mensajes.filter(m => m.tipo === 'inversor' && !m.leido).length > 0 ? `(${mensajes.filter(m => m.tipo === 'inversor' && !m.leido).length})` : ''}` },
   ]
 
-  const solicitudesPendientes = solicitudes.length > 0
-    ? solicitudes
-    : usuariosRegistrados.map((usuario) => ({
-      id: usuario.id,
-      nombre: usuario.name || 'Sin nombre',
-      usuarioNombre: usuario.name || 'Sin nombre',
-      email: usuario.email || '—',
-      telefono: usuario.telefono || '—',
-      pais: usuario.pais || '—',
-      fecha: usuario.fecha || new Date().toLocaleDateString('es-ES'),
-      estado: 'Pendiente de validación'
-    }))
-
   const aportacionesNormalizadas = aportaciones.map(normalizeAportacion)
 
   const HORAS_BLOQUEO_CAPITAL = 72
@@ -494,7 +481,7 @@ function DashboardAdminExpandido({ onLogout }) {
     return new Date(item.fechaAprobacion).getTime() + HORAS_BLOQUEO_CAPITAL * 3600000 > Date.now()
   }
 
-  const totalAportacionesPendientes = aportacionesNormalizadas.filter((item) => item.estado === 'Pendiente de validación').length || solicitudesPendientes.filter((item) => item.estado === 'Pendiente de validación').length
+  const totalAportacionesPendientes = aportacionesNormalizadas.filter((item) => item.estado === 'Pendiente de validación').length
   const totalRetirosRevision = retiros.filter((item) => item.estado === 'Pendiente' || item.estado === 'En revisión').length
   const aportacionesValidadas = aportacionesNormalizadas.filter((item) => item.estado === 'Activa' || item.estado === 'Validada')
   const totalCapitalRetenido = sumarPorMoneda(aportacionesValidadas.filter(esCapitalRetenido))
@@ -707,6 +694,7 @@ function DashboardAdminExpandido({ onLogout }) {
           return item
         })
         setAportaciones(updated)
+        setSolicitudesInversion((prev) => prev.filter((item) => item.id !== id))
         setMensaje(`✅ Aportación actualizada a: ${estado}`)
         setTimeout(() => setMensaje(''), 2000)
       } else {
@@ -2184,6 +2172,7 @@ function DashboardAdminExpandido({ onLogout }) {
                     new Date(solicitud.fecha).toLocaleDateString('es-ES'),
                     solicitud.estado || 'Pendiente',
                     <button
+                      onClick={() => updateAportacionStatus(solicitud.id, 'Activa', 'Depósito validado por el administrador.')}
                       className="btn-action"
                       style={{ backgroundColor: '#10b981', color: 'white' }}
                     >
