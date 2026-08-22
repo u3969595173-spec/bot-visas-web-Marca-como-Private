@@ -2412,6 +2412,76 @@ select:focus {
   backdrop-filter: blur(4px);
 }
 
+/* Browser "desktop site" mode can disable viewport media queries on phones.
+   React adds this class from the mobile OS user agent to retain the drawer UI. */
+.mobile-browser-shell .sidebar-mobile-toggle {
+  display: flex;
+}
+
+.mobile-browser-shell .admin-sidebar {
+  position: fixed;
+  top: 0;
+  left: -290px;
+  height: 100dvh;
+  width: 270px;
+  z-index: 100;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+}
+
+.mobile-browser-shell .admin-sidebar.open {
+  left: 0;
+  box-shadow: 8px 0 40px rgba(0, 0, 0, 0.7);
+}
+
+.mobile-browser-shell .sidebar-overlay.open {
+  display: block;
+}
+
+.mobile-browser-shell .admin-main-content {
+  width: 100%;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.mobile-browser-shell .topbar {
+  padding: 68px 18px 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mobile-browser-shell .topbar h1 {
+  font-size: 22px;
+}
+
+.mobile-browser-shell .topbar-actions {
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+}
+
+.mobile-browser-shell .content-scroll {
+  padding: 0 14px 40px;
+  min-width: 0;
+}
+
+.mobile-browser-shell .content-scroll .stats-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.mobile-browser-shell .investment-details-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.mobile-browser-shell .table-container,
+.mobile-browser-shell .tabla-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Some mobile browsers report a desktop-width viewport in "site desktop" mode.
   Touch-only devices must still use the compact drawer and scroll layout. */
 @media (max-width: 1100px), (hover: none) and (pointer: coarse) {

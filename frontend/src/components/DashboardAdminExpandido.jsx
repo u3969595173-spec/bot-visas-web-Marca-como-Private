@@ -71,6 +71,7 @@ const normalizeAportacion = (item) => {
 
 function DashboardAdminExpandido({ onLogout }) {
   const navigate = useNavigate()
+  const esNavegadorMovil = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
   const [activeTab, setActiveTab] = useState('resumen')
   const [aportaciones, setAportaciones] = useState([])
   const [retiros, setRetiros] = useState([])
@@ -1079,7 +1080,7 @@ function DashboardAdminExpandido({ onLogout }) {
   }
 
   return (
-    <div className="admin-futuristic-layout">
+    <div className={`admin-futuristic-layout${esNavegadorMovil ? ' mobile-browser-shell' : ''}`}>
       {/* Mobile hamburger button */}
       <button className="sidebar-mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
         {sidebarOpen ? '✕' : '☰'}

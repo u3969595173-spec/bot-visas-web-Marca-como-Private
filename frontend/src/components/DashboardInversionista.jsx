@@ -73,6 +73,7 @@ const PROGRAMA_PARTNER = [
 
 function DashboardInversionista() {
   const navigate = useNavigate();
+  const esNavegadorMovil = typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
   const [activeTab, setActiveTab] = React.useState('resumen');
   const [currentUser, setCurrentUser] = React.useState(() => {
     try {
@@ -784,7 +785,7 @@ function DashboardInversionista() {
   }
 
   return (
-    <div className="admin-futuristic-layout">
+    <div className={`admin-futuristic-layout${esNavegadorMovil ? ' mobile-browser-shell' : ''}`}>
       {/* Mobile hamburger button */}
       <button className="sidebar-mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
         {sidebarOpen ? '✕' : '☰'}
