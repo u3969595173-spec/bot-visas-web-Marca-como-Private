@@ -91,6 +91,7 @@ function DashboardInversionista() {
   const [avisosOperaciones, setAvisosOperaciones] = React.useState([])
   const [cuentasPago, setCuentasPago] = React.useState(() => mergeCuentas(readStorage('capital_trade_cuentas', [])))
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
+  const [mostrarTodasRetenidas, setMostrarTodasRetenidas] = React.useState(false)
   const [montoRetiro, setMontoRetiro] = React.useState('')
   const [monedaRetiro, setMonedaRetiro] = React.useState('MLC')
   const [notasRetiro, setNotasRetiro] = React.useState('')
@@ -853,7 +854,7 @@ function DashboardInversionista() {
   }
 
   return (
-    <div className={`admin-futuristic-layout${esNavegadorMovil ? ' mobile-browser-shell' : ''}`}>
+    <div className={`admin-futuristic-layout investor-dashboard${esNavegadorMovil ? ' mobile-browser-shell' : ''}`}>
       {/* Mobile hamburger button */}
       <button className="sidebar-mobile-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
         {sidebarOpen ? '✕' : '☰'}
@@ -1021,7 +1022,7 @@ function DashboardInversionista() {
                 <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
                 <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retenido')}</p>
                 <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.65rem' }}>
-                  {aportacionesRetenidas.map((item) => {
+                  {(mostrarTodasRetenidas ? aportacionesRetenidas : aportacionesRetenidas.slice(0, 2)).map((item) => {
                     const tiempo = obtenerTiempoRetenido(item)
                     return (
                       <div key={item.id} style={{ fontSize: '11px', lineHeight: 1.35, opacity: 0.95 }}>
@@ -1032,6 +1033,15 @@ function DashboardInversionista() {
                       </div>
                     )
                   })}
+                  {aportacionesRetenidas.length > 2 && (
+                    <button
+                      type="button"
+                      className="retained-investments-toggle"
+                      onClick={() => setMostrarTodasRetenidas((mostrar) => !mostrar)}
+                    >
+                      {mostrarTodasRetenidas ? 'Ver menos' : `Ver ${aportacionesRetenidas.length - 2} más`}
+                    </button>
+                  )}
                 </div>
               </div>
             )}

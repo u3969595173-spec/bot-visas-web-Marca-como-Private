@@ -2328,6 +2328,80 @@ select:focus {
   }
 }
 
+.retained-investments-toggle {
+  align-self: start;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 8px;
+}
+
+@media (max-width: 620px), (hover: none) and (pointer: coarse) {
+  .investor-dashboard .sidebar-tab {
+    font-size: 13px;
+    padding: 11px 12px;
+  }
+
+  .investor-dashboard .nav-group-title,
+  .investor-dashboard .badge-admin {
+    font-size: 10px;
+  }
+
+  .investor-dashboard .sidebar-footer {
+    padding: 16px;
+  }
+
+  .investor-dashboard .btn-logout-sidebar,
+  .investor-dashboard .investor-support-button,
+  .investor-dashboard .portfolio-action,
+  .investor-dashboard button:not(.sidebar-mobile-toggle) {
+    font-size: 12px !important;
+    min-height: 36px;
+  }
+
+  .investor-dashboard .content-scroll {
+    padding-bottom: 28px;
+  }
+
+  .investor-dashboard .portfolio-summary-grid {
+    gap: 8px !important;
+  }
+
+  .investor-dashboard .portfolio-stat-card {
+    padding: 0.85rem !important;
+  }
+
+  .investor-dashboard .portfolio-stat-card p:first-child {
+    font-size: 12px !important;
+  }
+
+  .investor-dashboard .portfolio-stat-card p:nth-child(2) {
+    font-size: 18px !important;
+    margin-top: 0.45rem !important;
+  }
+
+  .investor-dashboard .portfolio-stat-card p:last-child {
+    font-size: 10px !important;
+  }
+
+  .investor-dashboard input,
+  .investor-dashboard select,
+  .investor-dashboard textarea {
+    font-size: 13px !important;
+  }
+
+  .investor-dashboard .retained-investments-toggle {
+    font-size: 10px !important;
+    min-height: 30px;
+    padding: 4px 7px;
+  }
+}
+
 /* ===============================================================
    NEW AMAZING APP SHELL LAYOUT (PURE CSS)
    =============================================================== */
