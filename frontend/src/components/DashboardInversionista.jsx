@@ -1020,7 +1020,10 @@ function DashboardInversionista() {
                 backdropFilter: 'blur(10px)'
               }}>
                 <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
-                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retenido')}</p>
+                <p style={{ margin: '0.75rem 0 0 0', fontSize: '16px', fontWeight: 'bold' }}>
+                  {aportacionesRetenidas.length} {aportacionesRetenidas.length === 1 ? 'inversión con bloqueo propio' : 'inversiones con bloqueos propios'}
+                </p>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '10px', opacity: 0.8 }}>Cada inversión conserva su propia fecha de activación.</p>
                 <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.65rem' }}>
                   {(mostrarTodasRetenidas ? aportacionesRetenidas : aportacionesRetenidas.slice(0, 2)).map((item) => {
                     const tiempo = obtenerTiempoRetenido(item)
@@ -1075,6 +1078,8 @@ function DashboardInversionista() {
                   const porcentaje = poolTotal > 0 ? Math.min((ganado / poolTotal) * 100, 100) : 0
                   const completado = porcentaje >= 100
                   const gananciasDis = poolTotal - ganado
+                  const retenida = aportacionesRetenidas.some((aportacion) => aportacion.id === item.id)
+                  const tiempoRetencion = retenida ? obtenerTiempoRetenido(item) : null
 
                   return (
                     <div key={item.id || idx} style={{
@@ -1105,19 +1110,29 @@ function DashboardInversionista() {
                           textTransform: 'uppercase',
                           background: completado
                             ? 'rgba(16, 185, 129, 0.15)'
+                            : retenida
+                              ? 'rgba(59, 130, 246, 0.15)'
                             : item.estado === 'Activa' || item.estado === 'Validada'
                               ? 'rgba(246, 196, 83, 0.12)'
                               : 'rgba(239, 68, 68, 0.12)',
                           color: completado
                             ? '#86efac'
+                            : retenida
+                              ? '#93c5fd'
                             : item.estado === 'Activa' || item.estado === 'Validada'
                               ? '#f6c453'
                               : '#fca5a5',
-                          border: `1px solid ${completado ? 'rgba(16, 185, 129, 0.25)' : item.estado === 'Activa' || item.estado === 'Validada' ? 'rgba(246, 196, 83, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+                          border: `1px solid ${completado ? 'rgba(16, 185, 129, 0.25)' : retenida ? 'rgba(59, 130, 246, 0.3)' : item.estado === 'Activa' || item.estado === 'Validada' ? 'rgba(246, 196, 83, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
                         }}>
-                          {completado ? '✓ Completada' : item.estado}
+                          {completado ? '✓ Completada' : retenida ? '🔒 Bloqueada' : item.estado}
                         </span>
                       </div>
+
+                      {retenida && (
+                        <p style={{ margin: '0 0 1rem', color: '#bfdbfe', fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: '700' }}>
+                          ⏱️ Bloqueo propio: {String(tiempoRetencion.horas).padStart(2, '0')}h {String(tiempoRetencion.minutos).padStart(2, '0')}m {String(tiempoRetencion.segundos).padStart(2, '0')}s
+                        </p>
+                      )}
 
                       {/* Barra de progreso */}
                       <div style={{ marginBottom: '1rem' }}>
