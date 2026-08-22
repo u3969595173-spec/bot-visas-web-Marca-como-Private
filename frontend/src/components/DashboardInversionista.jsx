@@ -861,16 +861,16 @@ function DashboardInversionista() {
 
       {/* MAIN CONTENT AREA */}
       <main className="admin-main-content">
-        <header className="topbar">
+        <header className="topbar investor-topbar">
           <div className="topbar-left">
             <h1>{activeTab === 'resumen' ? 'Mi Cartera' : activeTab === 'operaciones' ? 'Avisos de operaciones' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
             <p className="subtitle">Gestión de capital y participación operativa</p>
           </div>
-          <div className="topbar-actions">
+          <div className="topbar-actions investor-topbar-actions">
             <button onClick={() => {
               window.open('https://wa.me/34677412858', '_blank')
-            }} style={{ position: 'relative', display: 'inline-block', padding: '10px 20px', background: 'linear-gradient(135deg, #25D366, #128C7E)', border: 'none', color: '#fff', borderRadius: '12px', cursor: 'pointer', fontWeight: 600 }}>
-              📱 Soporte WhatsApp
+            }} className="investor-support-button">
+              Soporte WhatsApp
             </button>
           </div>
         </header>
@@ -878,9 +878,9 @@ function DashboardInversionista() {
         <div className="content-scroll">
 
           {activeTab === 'resumen' && (
-          <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+          <div className="stats-grid portfolio-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
             {/* Inversión Activa - Gradiente Azul */}
-            <div style={{
+            <div className="portfolio-stat-card portfolio-stat-primary" style={{
               background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
               borderRadius: '12px',
               padding: '1.5rem',
@@ -895,7 +895,7 @@ function DashboardInversionista() {
             </div>
 
             {/* Ganancias Posibles - Gradiente Verde */}
-            <div style={{
+            <div className="portfolio-stat-card portfolio-stat-positive" style={{
               background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
               borderRadius: '12px',
               padding: '1.5rem',
@@ -910,7 +910,7 @@ function DashboardInversionista() {
             </div>
 
             {/* Saldo Disponible - Gradiente Púrpura */}
-            <div style={{
+            <div className="portfolio-stat-card portfolio-stat-available" style={{
               background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
               borderRadius: '12px',
               padding: '1.5rem',
@@ -925,7 +925,7 @@ function DashboardInversionista() {
             </div>
 
             {/* Total Retirado - Gradiente Naranja */}
-            <div style={{
+            <div className="portfolio-stat-card portfolio-stat-withdrawn" style={{
               background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
               borderRadius: '12px',
               padding: '1.5rem',
@@ -941,7 +941,7 @@ function DashboardInversionista() {
 
             {/* Inversión Retenida - cuenta regresiva de bloqueo 72h */}
             {capitalRetenido > 0 && (
-              <div style={{
+              <div className="portfolio-stat-card portfolio-stat-locked" style={{
                 background: 'linear-gradient(135deg, #64748b 0%, #334155 100%)',
                 borderRadius: '12px',
                 padding: '1.5rem',
@@ -1121,9 +1121,23 @@ function DashboardInversionista() {
 
           {activeTab === 'resumen' && (
             <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
-              <div style={{ padding: '2rem', border: '1px solid rgba(148, 163, 184, 0.12)', borderRadius: '12px', background: 'rgba(10, 17, 30, 0.55)' }}>
-                <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.25rem' }}>Resumen de cartera</h2>
-                <p style={{ color: '#94a3b8', margin: '0.75rem 0 0', lineHeight: 1.5 }}>Consulta cada posición en <strong style={{ color: '#f6c453' }}>Mis Inversiones</strong>. El capital retenido se liberará automáticamente al terminar su cuenta atrás de 72 horas.</p>
+              <div className="portfolio-overview">
+                <div>
+                  <p className="portfolio-eyebrow">CENTRO DE CONTROL</p>
+                  <h2>Resumen de cartera</h2>
+                  <p>Consulta cada posición en <strong>Mis Inversiones</strong>. El capital retenido se libera automáticamente al finalizar la cuenta atrás de 72 horas.</p>
+                </div>
+                <div className="portfolio-quick-actions">
+                  <button className="portfolio-action action-invest" onClick={() => setShowInversionModal(true)}>
+                    <span>+</span>Nueva inversión
+                  </button>
+                  <button className="portfolio-action action-withdraw" onClick={() => setActiveTab('retirar')}>
+                    <span>€</span>Solicitar retiro
+                  </button>
+                  <button className="portfolio-action action-view" onClick={() => setActiveTab('inversiones')}>
+                    <span>↗</span>Ver inversiones
+                  </button>
+                </div>
               </div>
             </div>
           )}

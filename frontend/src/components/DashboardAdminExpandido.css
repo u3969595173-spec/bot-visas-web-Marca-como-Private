@@ -2113,6 +2113,189 @@ select:focus {
 
 .operacion-aviso-empty span { color: #94a3b8; line-height: 1.5; }
 
+/* Investor dashboard: concise financial hierarchy and focused actions. */
+.investor-topbar {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.13);
+}
+
+.investor-topbar .subtitle {
+  max-width: 520px;
+}
+
+.investor-support-button {
+  align-items: center;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 8px;
+  color: #d1fae5;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.investor-support-button::before {
+  content: '●';
+  color: #34d399;
+  font-size: 10px;
+  margin-right: 8px;
+}
+
+.investor-support-button:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #34d399;
+}
+
+.portfolio-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.portfolio-stat-card {
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  min-width: 0;
+  padding: 1.15rem !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.portfolio-stat-card::after {
+  background: currentColor;
+  content: '';
+  height: 3px;
+  left: 0;
+  opacity: 0.9;
+  position: absolute;
+  top: 0;
+  width: 100%;
+}
+
+.portfolio-stat-card p:first-child {
+  color: #cbd5e1 !important;
+  letter-spacing: 0;
+}
+
+.portfolio-stat-card p:nth-child(2) {
+  font-size: clamp(22px, 2.2vw, 30px) !important;
+  letter-spacing: 0 !important;
+}
+
+.portfolio-stat-card p:last-child {
+  color: #94a3b8 !important;
+}
+
+.portfolio-stat-primary {
+  background: rgba(2, 132, 199, 0.14) !important;
+  color: #38bdf8;
+}
+
+.portfolio-stat-positive {
+  background: rgba(5, 150, 105, 0.14) !important;
+  color: #34d399;
+}
+
+.portfolio-stat-available {
+  background: rgba(217, 119, 6, 0.14) !important;
+  color: #fbbf24;
+}
+
+.portfolio-stat-withdrawn {
+  background: rgba(124, 58, 237, 0.13) !important;
+  color: #c4b5fd;
+}
+
+.portfolio-stat-locked {
+  background: rgba(71, 85, 105, 0.36) !important;
+  color: #cbd5e1;
+}
+
+.portfolio-overview {
+  align-items: end;
+  background: linear-gradient(120deg, rgba(15, 23, 42, 0.88), rgba(12, 35, 49, 0.62));
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.portfolio-eyebrow {
+  color: #67e8f9 !important;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0 !important;
+  margin: 0 0 0.55rem !important;
+}
+
+.portfolio-overview h2 {
+  color: #f8fafc;
+  font-family: Georgia, serif;
+  font-size: clamp(22px, 3vw, 30px);
+  margin: 0;
+}
+
+.portfolio-overview > div > p:last-child {
+  color: #a8b5c8;
+  line-height: 1.6;
+  margin: 0.65rem 0 0;
+  max-width: 640px;
+}
+
+.portfolio-overview strong { color: #f8fafc; }
+
+.portfolio-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.portfolio-action {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 12px;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.portfolio-action:hover { transform: translateY(-1px); }
+.portfolio-action span { font-size: 17px; line-height: 1; }
+
+.action-invest {
+  background: #e2b54b;
+  border-color: #f6c453;
+  color: #101827;
+}
+
+.action-withdraw {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #a7f3d0;
+}
+
+.action-view {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #e2e8f0;
+}
+
+.action-invest:hover { background: #f6c453; }
+.action-withdraw:hover { background: rgba(16, 185, 129, 0.24); }
+.action-view:hover { background: rgba(148, 163, 184, 0.18); }
+
 @media (max-width: 620px) {
   .avisos-image-grid,
   .operacion-aviso-images.images-2,
@@ -2128,6 +2311,20 @@ select:focus {
     align-items: flex-start;
     flex-direction: column;
     gap: 0.3rem;
+  }
+
+  .portfolio-overview {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .portfolio-quick-actions {
+    justify-content: stretch;
+  }
+
+  .portfolio-action {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 }
 
