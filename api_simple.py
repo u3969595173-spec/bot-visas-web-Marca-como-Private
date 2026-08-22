@@ -799,9 +799,21 @@ async def eliminar_aportacion(aportacion_id: int, usuario = Depends(obtener_usua
 @app.post("/api/retiros")
 async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_actual)):
     """Crea un retiro"""
+    if usuario.get('rol') != 'inversor':
+        raise HTTPException(status_code=403, detail="Solo los inversores pueden solicitar retiros")
     try:
         conn = get_conn()
         cur = conn.cursor()
+
+        inversor_id = usuario.get('inversor_id')
+        moneda = datos.moneda.strip()
+        cur.execute("""
+            SELECT 1 FROM aportaciones
+            WHERE inversor_id = %s AND moneda = %s AND (estado = 'Aprobada' OR estado = 'Activa' OR estado = 'Validada')
+            LIMIT 1
+        """, (inversor_id, moneda))
+        if not cur.fetchone():
+            raise HTTPException(status_code=400, detail="El retiro debe usar una moneda con inversión activa")
 
         cur.execute("""
             CREATE TABLE IF NOT EXISTS retiros (
@@ -821,7 +833,7 @@ async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_a
             INSERT INTO retiros (inversor_id, nombre, email, importe, moneda, estado)
             VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id
-        """, (datos.inversor_id, datos.nombre, datos.email, datos.importe, datos.moneda, datos.estado))
+        """, (inversor_id, datos.nombre, datos.email, datos.importe, moneda, datos.estado))
         
         retiro_id = cur.fetchone()[0]
         conn.commit()
@@ -829,6 +841,11 @@ async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_a
         release_conn(conn)
 
         return {"id": retiro_id, "importe": datos.importe}
+    except HTTPException:
+        if 'conn' in locals() and conn:
+            conn.rollback()
+            release_conn(conn)
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 

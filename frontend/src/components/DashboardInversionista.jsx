@@ -40,6 +40,7 @@ const formatCurrency = (value, moneda = 'EUR') => {
   if (!Number.isFinite(value)) return '€0'
   if (moneda === 'CUP') return `${Number(value).toLocaleString('es-ES')} CUP`
   if (moneda === 'MLC') return `${Number(value).toLocaleString('es-ES')} MLC`
+  if (moneda === 'USDT BEP-20') return `${Number(value).toLocaleString('es-ES')} USDT`
   return `€${Number(value).toLocaleString('es-ES')}`
 }
 
@@ -91,6 +92,7 @@ function DashboardInversionista() {
   const [cuentasPago, setCuentasPago] = React.useState(() => mergeCuentas(readStorage('capital_trade_cuentas', [])))
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
   const [montoRetiro, setMontoRetiro] = React.useState('')
+  const [monedaRetiro, setMonedaRetiro] = React.useState('MLC')
   const [notasRetiro, setNotasRetiro] = React.useState('')
   const [errorRetiro, setErrorRetiro] = React.useState('')
   const [successRetiro, setSuccessRetiro] = React.useState('')
@@ -424,6 +426,29 @@ function DashboardInversionista() {
   // Saldo disponible para retirar = Lo que ha ganado - Lo que ya retiró
   const capitalDisponible = Math.max(gananciasGeneradas - totalRetirado, 0)
 
+  const saldosPorMoneda = userAportaciones
+    .filter((item) => item.estado === 'Activa' || item.estado === 'Validada')
+    .reduce((saldos, item) => {
+      const moneda = item.moneda || 'EUR'
+      const inicial = Number(item.importe || 0) * 3
+      const pendiente = Number(item.gananciasDisponibles !== undefined ? item.gananciasDisponibles : item.importe * 3)
+      const saldo = saldos[moneda] || { aportado: 0, gananciasPosibles: 0, disponible: 0, retenido: 0, retirado: 0 }
+      saldo.aportado += Number(item.importe || 0)
+      saldo.gananciasPosibles += pendiente
+      saldo.disponible += Math.max(0, inicial - pendiente)
+      saldos[moneda] = saldo
+      return saldos
+    }, {})
+
+  userRetiros
+    .filter((item) => item.estado === 'Procesado')
+    .forEach((item) => {
+      const moneda = item.moneda || 'EUR'
+      const saldo = saldosPorMoneda[moneda] || { aportado: 0, gananciasPosibles: 0, disponible: 0, retenido: 0, retirado: 0 }
+      saldo.retirado += Number(item.importe || 0)
+      saldosPorMoneda[moneda] = saldo
+    })
+
   // Reloj en vivo para la cuenta regresiva de bloqueo de 72 horas
   const [ahora, setAhora] = React.useState(Date.now())
   React.useEffect(() => {
@@ -439,6 +464,27 @@ function DashboardInversionista() {
   })
   const capitalRetenido = aportacionesRetenidas.reduce((sum, item) => sum + Number(item.importe || 0), 0)
   const capitalActivo = totalAportado - capitalRetenido
+  aportacionesRetenidas.forEach((item) => {
+    const moneda = item.moneda || 'EUR'
+    const saldo = saldosPorMoneda[moneda] || { aportado: 0, gananciasPosibles: 0, disponible: 0, retenido: 0, retirado: 0 }
+    saldo.retenido += Number(item.importe || 0)
+    saldosPorMoneda[moneda] = saldo
+  })
+  const monedasConSaldo = Object.keys(saldosPorMoneda).filter((moneda) => saldosPorMoneda[moneda].disponible - saldosPorMoneda[moneda].retirado > 0)
+  const saldoRetirable = Math.max(0, (saldosPorMoneda[monedaRetiro]?.disponible || 0) - (saldosPorMoneda[monedaRetiro]?.retirado || 0))
+  const mostrarSaldos = (campo) => {
+    const resumen = Object.entries(saldosPorMoneda)
+      .map(([moneda, saldo]) => ({ moneda, valor: campo === 'retirable' ? saldo.disponible - saldo.retirado : saldo[campo] }))
+      .filter(([, saldo]) => saldo.valor > 0)
+      .map(([moneda, saldo]) => formatCurrency(saldo.valor, moneda))
+    return resumen.length ? resumen.join(' · ') : '—'
+  }
+
+  React.useEffect(() => {
+    if (monedasConSaldo.length && !monedasConSaldo.includes(monedaRetiro)) {
+      setMonedaRetiro(monedasConSaldo[0])
+    }
+  }, [monedasConSaldo.join('|'), monedaRetiro])
   const proximaLiberacionMs = aportacionesRetenidas.length
     ? Math.min(...aportacionesRetenidas.map((item) => new Date(item.fecha_aprobacion).getTime() + HORAS_BLOQUEO * 3600000)) - ahora
     : 0
@@ -487,8 +533,8 @@ function DashboardInversionista() {
       return
     }
 
-    if (importe > capitalDisponible) {
-      setErrorRetiro(`No puedes retirar más de ${formatCurrency(capitalDisponible, 'EUR')}.`)
+    if (importe > saldoRetirable) {
+      setErrorRetiro(`No puedes retirar más de ${formatCurrency(saldoRetirable, monedaRetiro)}.`)
       return
     }
 
@@ -509,7 +555,7 @@ function DashboardInversionista() {
           nombre: nombreUsuario,
           email: correoUsuario,
           importe: Number(importe),
-          moneda: 'EUR',
+          moneda: monedaRetiro,
           estado: 'Pendiente de validación'
         })
       })
@@ -910,8 +956,8 @@ function DashboardInversionista() {
               backdropFilter: 'blur(10px)'
             }}>
               <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(capitalActivo, 'EUR')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital liberado</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('aportado')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital por moneda</p>
             </div>
 
             {/* Ganancias Posibles - Gradiente Verde */}
@@ -925,8 +971,8 @@ function DashboardInversionista() {
               backdropFilter: 'blur(10px)'
             }}>
               <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>📈 Ganancias Posibles</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalGananciasPosibles, 'EUR')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Pool disponible</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('gananciasPosibles')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Pool por moneda</p>
             </div>
 
             {/* Saldo Disponible - Gradiente Púrpura */}
@@ -940,8 +986,8 @@ function DashboardInversionista() {
               backdropFilter: 'blur(10px)'
             }}>
               <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💵 Saldo Disponible</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(capitalDisponible, 'EUR')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Para retirar</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirable')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Disponible para retirar</p>
             </div>
 
             {/* Total Retirado - Gradiente Naranja */}
@@ -955,8 +1001,8 @@ function DashboardInversionista() {
               backdropFilter: 'blur(10px)'
             }}>
               <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>✅ Total Retirado</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(totalRetirado, 'EUR')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirado')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido por moneda</p>
             </div>
 
             {/* Inversión Retenida - cuenta regresiva de bloqueo 72h */}
@@ -971,7 +1017,7 @@ function DashboardInversionista() {
                 backdropFilter: 'blur(10px)'
               }}>
                 <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
-                <p style={{ margin: '0.75rem 0 0 0', fontSize: '28px', fontWeight: 'bold' }}>{formatCurrency(capitalRetenido, 'EUR')}</p>
+                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retenido')}</p>
                 <p style={{ margin: '0.5rem 0 0 0', fontSize: '13px', opacity: 0.9, fontFamily: 'monospace', fontWeight: '700' }}>
                   ⏱️ {String(retenidaHoras).padStart(2, '0')}h {String(retenidaMinutos).padStart(2, '0')}m {String(retenidaSegundos).padStart(2, '0')}s
                 </p>
@@ -1093,7 +1139,7 @@ function DashboardInversionista() {
                           textAlign: 'center'
                         }}>
                           <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pool total</p>
-                          <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#f6c453' }}>{formatCurrency(poolTotal, 'EUR')}</p>
+                          <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#f6c453' }}>{formatCurrency(poolTotal, item.moneda || 'EUR')}</p>
                         </div>
                         <div style={{
                           background: 'rgba(16, 185, 129, 0.06)',
@@ -1103,7 +1149,7 @@ function DashboardInversionista() {
                           textAlign: 'center'
                         }}>
                           <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Ganado</p>
-                          <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#86efac' }}>{formatCurrency(ganado, 'EUR')}</p>
+                          <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#86efac' }}>{formatCurrency(ganado, item.moneda || 'EUR')}</p>
                         </div>
                         <div style={{
                           background: 'rgba(148, 163, 184, 0.04)',
@@ -1113,7 +1159,7 @@ function DashboardInversionista() {
                           textAlign: 'center'
                         }}>
                           <p style={{ margin: 0, fontSize: '0.68rem', color: '#94a3b8', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Por Completar</p>
-                          <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#e2e8f0' }}>{formatCurrency(gananciasDis, 'EUR')}</p>
+                          <p style={{ margin: '0.3rem 0 0', fontSize: '1rem', fontWeight: '800', color: '#e2e8f0' }}>{formatCurrency(gananciasDis, item.moneda || 'EUR')}</p>
                         </div>
                       </div>
 
@@ -1205,9 +1251,16 @@ function DashboardInversionista() {
                 border: '2px solid rgba(255,255,255,0.2)'
               }}>
                 <h2 style={{ marginTop: 0 }}>🏦 Solicitar Retiro</h2>
-                <p style={{ opacity: 0.9, marginBottom: '1.5rem' }}>Saldo disponible: <strong style={{ fontSize: '20px' }}>{formatCurrency(capitalDisponible, 'EUR')}</strong></p>
+                <p style={{ opacity: 0.9, marginBottom: '1.5rem' }}>Saldo disponible en la moneda elegida: <strong style={{ fontSize: '20px' }}>{formatCurrency(saldoRetirable, monedaRetiro)}</strong></p>
 
                 <form onSubmit={handleRetiroSubmit} style={{ display: 'grid', gap: '1rem' }}>
+                  <div>
+                    <label htmlFor="moneda-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Moneda del retiro</label>
+                    <select id="moneda-retiro" value={monedaRetiro} onChange={(e) => { setMonedaRetiro(e.target.value); setMontoRetiro('') }} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '8px', backgroundColor: 'rgba(0,0,0,0.16)', color: 'white', fontSize: '14px' }}>
+                      {(monedasConSaldo.length ? monedasConSaldo : Object.keys(saldosPorMoneda)).map((moneda) => <option key={moneda} value={moneda}>{moneda} - disponible: {formatCurrency(Math.max(0, saldosPorMoneda[moneda].disponible - saldosPorMoneda[moneda].retirado), moneda)}</option>)}
+                    </select>
+                    {!monedasConSaldo.length && <p style={{ margin: '0.5rem 0 0', fontSize: '12px', color: '#fef3c7' }}>No hay saldo de ganancias disponible para retirar todavía.</p>}
+                  </div>
                   <div>
                     <label htmlFor="monto-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Importe a retirar</label>
                     <input
