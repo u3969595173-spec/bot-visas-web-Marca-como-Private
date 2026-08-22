@@ -475,8 +475,8 @@ function DashboardInversionista() {
   const mostrarSaldos = (campo) => {
     const resumen = Object.entries(saldosPorMoneda)
       .map(([moneda, saldo]) => ({ moneda, valor: campo === 'retirable' ? saldo.disponible - saldo.retirado : saldo[campo] }))
-      .filter(([, saldo]) => saldo.valor > 0)
-      .map(([moneda, saldo]) => formatCurrency(saldo.valor, moneda))
+      .filter(({ valor }) => valor > 0)
+      .map(({ moneda, valor }) => formatCurrency(valor, moneda))
     return resumen.length ? resumen.join(' · ') : '—'
   }
 
