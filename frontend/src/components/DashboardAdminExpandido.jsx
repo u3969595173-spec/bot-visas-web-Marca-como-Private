@@ -74,7 +74,13 @@ function DashboardAdminExpandido({ onLogout }) {
   const [activeTab, setActiveTab] = useState('resumen')
   const [aportaciones, setAportaciones] = useState([])
   const [retiros, setRetiros] = useState([])
-  const [cuentas, setCuentas] = useState(METODOS_DEFAULT)
+  const [cuentas, setCuentas] = useState(() => {
+    const borrador = readStorage('capital_trade_cuentas_borrador', [])
+    if (!borrador.length) return METODOS_DEFAULT
+    return METODOS_DEFAULT.map(cuenta => ({ ...cuenta, ...(borrador.find(item => item.moneda === cuenta.moneda) || {}) }))
+  })
+  const [cuentasConCambios, setCuentasConCambios] = useState(() => readStorage('capital_trade_cuentas_borrador', []).length > 0)
+  const [guardandoCuentas, setGuardandoCuentas] = useState(false)
   const [minimos, setMinimos] = useState({ MLC: 100, CUP: 500, 'USDT BEP-20': 50 })
   const [porcentajeSemanal, setPorcentajeSemanal] = useState('')
   const [usuariosRegistrados, setUsuariosRegistrados] = useState([])
@@ -155,7 +161,7 @@ function DashboardAdminExpandido({ onLogout }) {
         })
         if (response.ok) {
           const data = await response.json()
-          if (data.cuentas && data.cuentas.length > 0) {
+          if (data.cuentas && data.cuentas.length > 0 && !cuentasConCambios) {
             const merged = METODOS_DEFAULT.map(defaultM => {
               const fromAPI = data.cuentas.find(c => c.moneda === defaultM.moneda)
               return fromAPI ? { ...defaultM, ...fromAPI } : defaultM
@@ -207,7 +213,7 @@ function DashboardAdminExpandido({ onLogout }) {
       clearInterval(intervaloCuentas)
       clearInterval(intervaloOfertas)
     }
-  }, [])
+  }, [cuentasConCambios])
 
   const cargarAvisosOperaciones = async () => {
     try {
@@ -754,7 +760,35 @@ function DashboardAdminExpandido({ onLogout }) {
   }
 
   const updateBankAccount = (index, field, value) => {
-    setCuentas((prev) => prev.map((account, i) => (i === index ? { ...account, [field]: value } : account)))
+    setCuentas((prev) => {
+      const actualizadas = prev.map((account, i) => (i === index ? { ...account, [field]: value } : account))
+      writeStorage('capital_trade_cuentas_borrador', actualizadas)
+      return actualizadas
+    })
+    setCuentasConCambios(true)
+  }
+
+  const guardarCuentas = async () => {
+    try {
+      setGuardandoCuentas(true)
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API}/api/admin/cuentas`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ cuentas })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.detail || 'El servidor no pudo guardar las cuentas')
+      writeStorage('capital_trade_cuentas', cuentas)
+      localStorage.removeItem('capital_trade_cuentas_borrador')
+      setCuentasConCambios(false)
+      setMensaje('✅ Cuentas guardadas permanentemente')
+    } catch (error) {
+      setMensaje(`❌ ${error.message || 'Error guardando las cuentas'}`)
+    } finally {
+      setGuardandoCuentas(false)
+      setTimeout(() => setMensaje(''), 4000)
+    }
   }
 
   const updateMinimo = (moneda, value) => setMinimos((prev) => ({ ...prev, [moneda]: Number(value) || 0 }))
@@ -1997,24 +2031,16 @@ function DashboardAdminExpandido({ onLogout }) {
           {activeTab === 'configuracion' && (
             <div className="card">
               <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2>Métodos de pago para inversores</h2>
-                <button onClick={async () => {
-                  try {
-                    const token = localStorage.getItem('token')
-                    const res = await fetch(`${API}/api/admin/cuentas`, {
-                      method: 'PUT',
-                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                      body: JSON.stringify({ cuentas })
-                    })
-                    setMensaje(res.ok ? '✅ Guardado correctamente' : '❌ Error guardando')
-                  } catch { setMensaje('❌ Error guardando') }
-                  setTimeout(() => setMensaje(''), 3000)
-                }} style={{ padding: '8px 20px', background: 'linear-gradient(135deg,#f6c453,#dba93a)', color: '#0a0f1a', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}>
-                  💾 Guardar cambios
+                <div>
+                  <h2>Métodos de pago para inversores</h2>
+                  {cuentasConCambios && <span style={{ color: '#f6c453', fontSize: '12px', fontWeight: 700 }}>Cambios pendientes de guardar</span>}
+                </div>
+                <button onClick={guardarCuentas} disabled={guardandoCuentas || !cuentasConCambios} style={{ padding: '8px 20px', background: cuentasConCambios ? 'linear-gradient(135deg,#f6c453,#dba93a)' : '#475569', color: '#0a0f1a', border: 'none', borderRadius: '8px', cursor: guardandoCuentas || !cuentasConCambios ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '14px', opacity: guardandoCuentas || !cuentasConCambios ? 0.7 : 1 }}>
+                  {guardandoCuentas ? 'Guardando...' : '💾 Guardar cambios'}
                 </button>
               </div>
               <p style={{ color: '#94a3b8', fontSize: 14, margin: '0.5rem 0 1.5rem' }}>
-                Esta información se mostrará a los inversores cuando vayan a realizar una aportación.
+                Esta información se mostrará a los inversores cuando vayan a realizar una aportación. Pulsa Guardar cambios para publicarla permanentemente.
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {cuentas.map((m, i) => (
