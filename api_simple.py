@@ -525,7 +525,7 @@ async def crear_aportacion(datos: AportacionRequest, usuario = Depends(obtener_u
                 nombre VARCHAR(200),
                 email VARCHAR(200),
                 importe DECIMAL(12,2),
-                moneda VARCHAR(10),
+                moneda VARCHAR(30),
                 estado VARCHAR(50),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 fecha_aprobacion TIMESTAMP,
@@ -822,7 +822,7 @@ async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_a
                 nombre VARCHAR(200),
                 email VARCHAR(200),
                 importe DECIMAL(12,2),
-                moneda VARCHAR(10),
+                moneda VARCHAR(30),
                 estado VARCHAR(50),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -1038,7 +1038,7 @@ async def crear_solicitud_participacion(datos: dict):
                 telefono VARCHAR(100),
                 pais VARCHAR(100),
                 importe DECIMAL(12,2),
-                moneda VARCHAR(10),
+                moneda VARCHAR(30),
                 estado VARCHAR(50) DEFAULT 'Pendiente',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -1283,7 +1283,7 @@ def _ensure_operaciones_aportaciones_table(cur, conn):
             usuario_id VARCHAR(100),
             usuario_nombre VARCHAR(255),
             importe DECIMAL(15, 2) NOT NULL,
-            moneda VARCHAR(10) DEFAULT 'EUR',
+            moneda VARCHAR(30) DEFAULT 'EUR',
             metodo_pago VARCHAR(50),
             cuenta_destino VARCHAR(100),
             comentario TEXT,

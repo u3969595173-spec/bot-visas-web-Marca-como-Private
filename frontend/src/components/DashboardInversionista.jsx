@@ -474,7 +474,7 @@ function DashboardInversionista() {
   const saldoRetirable = Math.max(0, (saldosPorMoneda[monedaRetiro]?.disponible || 0) - (saldosPorMoneda[monedaRetiro]?.retirado || 0))
   const mostrarSaldos = (campo) => {
     const resumen = Object.entries(saldosPorMoneda)
-      .map(([moneda, saldo]) => ({ moneda, valor: campo === 'retirable' ? saldo.disponible - saldo.retirado : saldo[campo] }))
+      .map(([moneda, saldo]) => ({ moneda, valor: campo === 'retirable' ? saldo.disponible - saldo.retirado : campo === 'activo' ? saldo.aportado - saldo.retenido : saldo[campo] }))
       .filter(({ valor }) => valor > 0)
       .map(({ moneda, valor }) => formatCurrency(valor, moneda))
     return resumen.length ? resumen.join(' · ') : '—'
@@ -956,8 +956,8 @@ function DashboardInversionista() {
               backdropFilter: 'blur(10px)'
             }}>
               <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('aportado')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital por moneda</p>
+              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('activo')}</p>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital liberado por moneda</p>
             </div>
 
             {/* Ganancias Posibles - Gradiente Verde */}
