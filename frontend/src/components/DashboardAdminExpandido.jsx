@@ -160,9 +160,9 @@ function DashboardAdminExpandido({ onLogout }) {
         const response = await fetch(`${API}/api/admin/cuentas`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
-        if (response.ok) {
+        if (response.ok && !cuentasConCambios) {
           const data = await response.json()
-          if (data.cuentas && data.cuentas.length > 0 && !cuentasConCambios) {
+          if (data.cuentas && data.cuentas.length > 0) {
             const merged = METODOS_DEFAULT.map(defaultM => {
               const fromAPI = data.cuentas.find(c => c.moneda === defaultM.moneda)
               return fromAPI ? { ...defaultM, ...fromAPI } : defaultM
