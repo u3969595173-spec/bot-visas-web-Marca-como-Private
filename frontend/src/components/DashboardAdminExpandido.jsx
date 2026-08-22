@@ -30,7 +30,21 @@ const formatCurrency = (value, moneda) => {
   if (!Number.isFinite(value)) return '—'
   if (moneda === 'CUP') return `${Number(value).toLocaleString('es-ES')} CUP`
   if (moneda === 'MLC') return `${Number(value).toLocaleString('es-ES')} MLC`
+  if (moneda === 'USDT BEP-20') return `${Number(value).toLocaleString('es-ES')} USDT`
   return `€${Number(value).toLocaleString('es-ES')}`
+}
+
+const sumarPorMoneda = (items, calcularImporte = (item) => item.importe) => items.reduce((totales, item) => {
+  const moneda = item.moneda || 'EUR'
+  totales[moneda] = (totales[moneda] || 0) + Number(calcularImporte(item) || 0)
+  return totales
+}, {})
+
+const mostrarTotalesPorMoneda = (totales) => {
+  const valores = Object.entries(totales)
+    .filter(([, importe]) => importe > 0)
+    .map(([moneda, importe]) => formatCurrency(importe, moneda))
+  return valores.length ? valores.join(' · ') : '—'
 }
 
 const formatDate = (value) => {
@@ -481,8 +495,8 @@ function DashboardAdminExpandido({ onLogout }) {
   const totalAportacionesPendientes = aportacionesNormalizadas.filter((item) => item.estado === 'Pendiente de validación').length || solicitudesPendientes.filter((item) => item.estado === 'Pendiente de validación').length
   const totalRetirosRevision = retiros.filter((item) => item.estado === 'Pendiente' || item.estado === 'En revisión').length
   const aportacionesValidadas = aportacionesNormalizadas.filter((item) => item.estado === 'Activa' || item.estado === 'Validada')
-  const totalCapitalRetenido = aportacionesValidadas.filter(esCapitalRetenido).reduce((sum, item) => sum + Number(item.importe || 0), 0)
-  const totalCapitalActivo = aportacionesValidadas.filter((item) => !esCapitalRetenido(item)).reduce((sum, item) => sum + Number(item.importe || 0), 0)
+  const totalCapitalRetenido = sumarPorMoneda(aportacionesValidadas.filter(esCapitalRetenido))
+  const totalCapitalActivo = sumarPorMoneda(aportacionesValidadas.filter((item) => !esCapitalRetenido(item)))
   const totalAportacionesRechazadas = aportacionesNormalizadas.filter((item) => item.estado === 'Rechazada').length
 
   const getStatClass = (label) => {
@@ -497,8 +511,8 @@ function DashboardAdminExpandido({ onLogout }) {
   const summaryCards = [
     { label: 'Aportaciones pendientes', value: String(totalAportacionesPendientes), icon: '👥' },
     { label: 'Retiros en revisión', value: String(totalRetirosRevision), icon: '✅' },
-    { label: 'Capital activo', value: formatCurrency(totalCapitalActivo, 'EUR'), icon: '💰' },
-    { label: 'Capital retenido', value: formatCurrency(totalCapitalRetenido, 'EUR'), icon: '🔒' },
+    { label: 'Capital activo', value: mostrarTotalesPorMoneda(totalCapitalActivo), icon: '💰' },
+    { label: 'Capital retenido', value: mostrarTotalesPorMoneda(totalCapitalRetenido), icon: '🔒' },
     { label: 'Aportaciones rechazadas', value: String(totalAportacionesRechazadas), icon: '📈' },
   ]
 
@@ -1244,8 +1258,8 @@ function DashboardAdminExpandido({ onLogout }) {
                     ['Aportaciones validadas', String(aportaciones.filter((item) => item.estado === 'Activa' || item.estado === 'Validada').length || usuariosRegistrados.length)],
                     ['Retiros pendientes', String(totalRetirosRevision)],
                     ['Retiros aprobados', String(retiros.filter((item) => item.estado === 'Aprobado' || item.estado === 'Procesado').length)],
-                    ['Capital activo', formatCurrency(totalCapitalActivo, 'EUR')],
-                    ['Capital retenido', formatCurrency(totalCapitalRetenido, 'EUR')]
+                    ['Capital activo', mostrarTotalesPorMoneda(totalCapitalActivo)],
+                    ['Capital retenido', mostrarTotalesPorMoneda(totalCapitalRetenido)]
                   ].map(([label, value]) => (
                     <div key={label} className="summary-mini-card">
                       <div className="mini-label">{label}</div>
@@ -1563,29 +1577,30 @@ function DashboardAdminExpandido({ onLogout }) {
                   aportacionesNormalizadas.forEach(aport => {
                     if (!usuariosMap.has(aport.usuario)) {
                       usuariosMap.set(aport.usuario, {
-                        capital: 0,
-                        capitalRetenido: 0,
-                        capitalActivo: 0,
-                        ganancias: 0,
-                        retiros: 0,
+                        capital: {},
+                        capitalRetenido: {},
+                        capitalActivo: {},
+                        ganancias: {},
+                        retiros: {},
                         aportaciones: []
                       })
                     }
                     const user = usuariosMap.get(aport.usuario)
                     const importe = Number(aport.importe || 0)
-                    user.capital += importe
+                    const moneda = aport.moneda || 'EUR'
+                    user.capital[moneda] = (user.capital[moneda] || 0) + importe
                     user.aportaciones.push(aport)
                     // Pool Activo = capital × 3 (si es activa)
                     if (aport.estado === 'Activa' || aport.estado === 'Validada') {
-                      user.ganancias += importe * 3 // pool total es importe × 3
+                      user.ganancias[moneda] = (user.ganancias[moneda] || 0) + importe * 3 // pool total es importe × 3
 
                       const desbloqueaEn = aport.fechaAprobacion
                         ? new Date(aport.fechaAprobacion).getTime() + HORAS_BLOQUEO * 3600000
                         : null
                       if (desbloqueaEn && desbloqueaEn > Date.now()) {
-                        user.capitalRetenido += importe
+                        user.capitalRetenido[moneda] = (user.capitalRetenido[moneda] || 0) + importe
                       } else {
-                        user.capitalActivo += importe
+                        user.capitalActivo[moneda] = (user.capitalActivo[moneda] || 0) + importe
                       }
                     }
                   })
@@ -1595,7 +1610,8 @@ function DashboardAdminExpandido({ onLogout }) {
                     if (usuariosMap.has(retiro.usuario)) {
                       const user = usuariosMap.get(retiro.usuario)
                       if (retiro.estado === 'Aprobado' || retiro.estado === 'Procesado') {
-                        user.retiros += Number(retiro.monto || 0)
+                        const moneda = retiro.moneda || 'EUR'
+                        user.retiros[moneda] = (user.retiros[moneda] || 0) + Number(retiro.monto || 0)
                       }
                     }
                   })
@@ -1604,11 +1620,11 @@ function DashboardAdminExpandido({ onLogout }) {
                   return Array.from(usuariosMap.entries()).map(([usuario, data]) => {
                     return [
                       usuario,
-                      formatCurrency(data.capital, 'EUR'),
-                      data.capitalRetenido > 0 ? formatCurrency(data.capitalRetenido, 'EUR') : '—',
-                      data.capitalActivo > 0 ? formatCurrency(data.capitalActivo, 'EUR') : '—',
-                      formatCurrency(data.ganancias, 'EUR'),
-                      formatCurrency(data.retiros, 'EUR')
+                      mostrarTotalesPorMoneda(data.capital),
+                      mostrarTotalesPorMoneda(data.capitalRetenido),
+                      mostrarTotalesPorMoneda(data.capitalActivo),
+                      mostrarTotalesPorMoneda(data.ganancias),
+                      mostrarTotalesPorMoneda(data.retiros)
                     ]
                   })
                 })()
