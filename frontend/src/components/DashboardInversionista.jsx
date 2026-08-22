@@ -98,10 +98,11 @@ function DashboardInversionista() {
   // Estados para modal de inversión
   const [showInversionModal, setShowInversionModal] = React.useState(false)
   const [showRangosModal, setShowRangosModal] = React.useState(false)
-  const [monedaInversion, setMonedaInversion] = React.useState('EUR')
+  const [monedaInversion, setMonedaInversion] = React.useState('MLC')
   const [montoInversion, setMontoInversion] = React.useState('')
   const [errorInversion, setErrorInversion] = React.useState('')
   const [successInversion, setSuccessInversion] = React.useState('')
+  const [datoCopiado, setDatoCopiado] = React.useState('')
 
   // Estados para justificante
   const [showJustificante, setShowJustificante] = React.useState(false)
@@ -526,6 +527,25 @@ function DashboardInversionista() {
     }
   }
 
+  const copiarDatoPago = async (dato) => {
+    if (!dato || dato === '—') return
+    try {
+      await navigator.clipboard.writeText(dato)
+      setDatoCopiado('Copiado')
+    } catch {
+      const campoTemporal = document.createElement('textarea')
+      campoTemporal.value = dato
+      campoTemporal.style.position = 'fixed'
+      campoTemporal.style.opacity = '0'
+      document.body.appendChild(campoTemporal)
+      campoTemporal.select()
+      document.execCommand('copy')
+      campoTemporal.remove()
+      setDatoCopiado('Copiado')
+    }
+    setTimeout(() => setDatoCopiado(''), 1800)
+  }
+
   const crearSolicitudInversion = async () => {
     setErrorInversion('')
     setSuccessInversion('')
@@ -591,7 +611,7 @@ function DashboardInversionista() {
       }
 
       setMontoInversion('')
-      setMonedaInversion('EUR')
+      setMonedaInversion('MLC')
       setShowInversionModal(false)
       setSolicitudSeleccionada(nuevaSolicitud)
       setShowJustificante(true)
@@ -1791,7 +1811,13 @@ function DashboardInversionista() {
                         )}
                         <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
                           <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : cuentaSeleccionada.iban ? '🏦 IBAN' : '💳 NÚMERO DE TARJETA'}</p>
-                          <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{cuentaSeleccionada.iban || cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'}</p>
+                          {(() => {
+                            const datoTransferencia = cuentaSeleccionada.iban || cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'
+                            return <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
+                              <p style={{ margin: 0, flex: 1, fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{datoTransferencia}</p>
+                              <button type="button" onClick={() => copiarDatoPago(datoTransferencia)} style={{ flexShrink: 0, padding: '8px 10px', background: 'rgba(15,23,42,0.28)', color: 'white', border: '1px solid rgba(255,255,255,0.45)', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>{datoCopiado === 'Copiado' ? 'Copiado' : 'Copiar'}</button>
+                            </div>
+                          })()}
                         </div>
                         {cuentaSeleccionada.concepto && (
                           <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
@@ -2120,7 +2146,13 @@ function DashboardInversionista() {
 
                           <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
                             <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : cuentaSeleccionada.iban ? '🏦 IBAN' : '💳 NÚMERO DE TARJETA'}</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{cuentaSeleccionada.iban || cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'}</p>
+                            {(() => {
+                              const datoTransferencia = cuentaSeleccionada.iban || cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'
+                              return <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                <p style={{ margin: 0, flex: 1, fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{datoTransferencia}</p>
+                                <button type="button" onClick={() => copiarDatoPago(datoTransferencia)} style={{ flexShrink: 0, padding: '8px 10px', background: 'rgba(255,255,255,0.16)', color: 'white', border: '1px solid rgba(255,255,255,0.45)', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>{datoCopiado === 'Copiado' ? 'Copiado' : 'Copiar'}</button>
+                              </div>
+                            })()}
                           </div>
 
                           {cuentaSeleccionada.concepto && (
