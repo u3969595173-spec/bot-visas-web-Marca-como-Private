@@ -485,12 +485,14 @@ function DashboardInversionista() {
       setMonedaRetiro(monedasConSaldo[0])
     }
   }, [monedasConSaldo.join('|'), monedaRetiro])
-  const proximaLiberacionMs = aportacionesRetenidas.length
-    ? Math.min(...aportacionesRetenidas.map((item) => new Date(item.fecha_aprobacion).getTime() + HORAS_BLOQUEO * 3600000)) - ahora
-    : 0
-  const retenidaHoras = Math.max(0, Math.floor(proximaLiberacionMs / 3600000))
-  const retenidaMinutos = Math.max(0, Math.floor((proximaLiberacionMs % 3600000) / 60000))
-  const retenidaSegundos = Math.max(0, Math.floor((proximaLiberacionMs % 60000) / 1000))
+  const obtenerTiempoRetenido = (item) => {
+    const restanteMs = Math.max(0, new Date(item.fecha_aprobacion).getTime() + HORAS_BLOQUEO * 3600000 - ahora)
+    return {
+      horas: Math.floor(restanteMs / 3600000),
+      minutos: Math.floor((restanteMs % 3600000) / 60000),
+      segundos: Math.floor((restanteMs % 60000) / 1000)
+    }
+  }
 
   // CALCULO RANGOS y OFERTAS
   const referidosActivos = referidos.filter(r => r.referidoPor === currentUser?.codigo_referido && r.estado !== 'pendiente').length
@@ -1018,10 +1020,19 @@ function DashboardInversionista() {
               }}>
                 <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
                 <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retenido')}</p>
-                <p style={{ margin: '0.5rem 0 0 0', fontSize: '13px', opacity: 0.9, fontFamily: 'monospace', fontWeight: '700' }}>
-                  ⏱️ {String(retenidaHoras).padStart(2, '0')}h {String(retenidaMinutos).padStart(2, '0')}m {String(retenidaSegundos).padStart(2, '0')}s
-                </p>
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '11px', opacity: 0.8 }}>Pasa a activa al llegar a 0</p>
+                <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.65rem' }}>
+                  {aportacionesRetenidas.map((item) => {
+                    const tiempo = obtenerTiempoRetenido(item)
+                    return (
+                      <div key={item.id} style={{ fontSize: '11px', lineHeight: 1.35, opacity: 0.95 }}>
+                        <strong>Inversión #{item.id}: {formatCurrency(Number(item.importe || 0), item.moneda || 'EUR')}</strong>
+                        <span style={{ display: 'block', fontFamily: 'monospace', fontWeight: '700' }}>
+                          ⏱️ {String(tiempo.horas).padStart(2, '0')}h {String(tiempo.minutos).padStart(2, '0')}m {String(tiempo.segundos).padStart(2, '0')}s para activarse
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>
