@@ -2412,7 +2412,9 @@ select:focus {
   backdrop-filter: blur(4px);
 }
 
-@media (max-width: 1100px) {
+/* Some mobile browsers report a desktop-width viewport in "site desktop" mode.
+  Touch-only devices must still use the compact drawer and scroll layout. */
+@media (max-width: 1100px), (hover: none) and (pointer: coarse) {
 
   /* Show hamburger */
   .sidebar-mobile-toggle {
