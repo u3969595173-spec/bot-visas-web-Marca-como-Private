@@ -876,6 +876,7 @@ function DashboardInversionista() {
 
         <div className="content-scroll">
 
+          {activeTab === 'resumen' && (
           <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
             {/* Inversión Activa - Gradiente Azul */}
             <div style={{
@@ -957,6 +958,7 @@ function DashboardInversionista() {
               </div>
             )}
           </div>
+          )}
 
           {activeTab === 'inversiones' && (
             <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
