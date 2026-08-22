@@ -93,6 +93,7 @@ function DashboardInversionista() {
   const [cuentasPago, setCuentasPago] = React.useState(() => mergeCuentas(readStorage('capital_trade_cuentas', [])))
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
   const [mostrarTodasRetenidas, setMostrarTodasRetenidas] = React.useState(false)
+  const [mostrarTodosReferidos, setMostrarTodosReferidos] = React.useState(false)
   const [montoRetiro, setMontoRetiro] = React.useState('')
   const [monedaRetiro, setMonedaRetiro] = React.useState('MLC')
   const [notasRetiro, setNotasRetiro] = React.useState('')
@@ -1701,11 +1702,11 @@ function DashboardInversionista() {
                         </tr>
                       </thead>
                       <tbody>
-                        {getReferidosDelInversor().map((ref, idx) => {
+                        {getReferidosDelInversor().slice(0, mostrarTodosReferidos ? undefined : 5).map((ref, idx) => {
                           const comision = (ref.inversionTotal || 0) * 0.1
                           return (
                             <tr key={idx} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.12)', backgroundColor: idx % 2 === 0 ? 'rgba(15, 23, 42, 0.56)' : 'rgba(30, 41, 59, 0.52)' }}>
-                              <td style={{ padding: '12px', color: '#f8fafc' }}><strong>{ref.nombreReferido || 'Usuario'}</strong></td>
+                              <td style={{ padding: '12px', color: '#f8fafc' }}><strong>{ref.nombreReferido || ref.nombreInversor || 'Usuario'}</strong></td>
                               <td style={{ padding: '12px', textAlign: 'right', color: '#0284c7', fontWeight: '600' }}>€{Number(ref.inversionTotal || 0).toLocaleString('es-ES')}</td>
                               <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981', fontSize: '15px' }}>€{comision.toFixed(2)}</td>
                               <td style={{ padding: '12px', color: '#cbd5e1', fontSize: '12px' }}>{new Date(ref.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
@@ -1715,6 +1716,15 @@ function DashboardInversionista() {
                       </tbody>
                     </table>
                   </div>
+                  {getReferidosDelInversor().length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setMostrarTodosReferidos(!mostrarTodosReferidos)}
+                      style={{ marginTop: '1rem', padding: '9px 14px', backgroundColor: 'transparent', color: '#7dd3fc', border: '1px solid #0284c7', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
+                    >
+                      {mostrarTodosReferidos ? 'Ver menos' : `Ver más (${getReferidosDelInversor().length - 5})`}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div style={{
