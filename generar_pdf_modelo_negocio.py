@@ -299,6 +299,21 @@ def make_document():
         paragraph(
             "Los mensajes se actualizan periodicamente para mantener la conversacion al dia. Las publicaciones del administrador aparecen identificadas como tales y, para proteger la privacidad, los nombres de los demas usuarios se muestran de forma parcial en el chat. La Comunidad sirve para la comunicacion general entre usuarios; las consultas personales sobre cuentas, retiros o datos sensibles deben gestionarse por los canales de soporte.", styles["Body"]
         ),
+        paragraph("Fondo Solidario Cuba", styles["Subheading"]),
+        paragraph(
+            "La plataforma incorpora un Fondo Solidario separado del capital de inversion. Su finalidad es reunir recursos para ayudas verificadas a familias vulnerables en Cuba. El fondo no utiliza las aportaciones, ganancias ni saldos disponibles de los usuarios: se registra por movimientos propios, visibles en su apartado de transparencia.", styles["Body"]
+        ),
+        paragraph(
+            "Cada retiro tiene un cargo total del 5% por procesamiento. De ese cargo, el 2% se destina de forma fija al Fondo Solidario y el 3% restante cubre costes operativos, comisiones bancarias y, cuando corresponda, comisiones de red. La empresa tambien puede realizar aportes adicionales al fondo; cada entrada debe quedar registrada con su importe y referencia.", styles["Body"]
+        ),
+        paragraph("Como se propone, verifica y entrega una ayuda", styles["Subheading"]),
+        bullet("La comunidad puede proponer casos mediante el chat interno, y tambien se pueden recibir propuestas por los canales de soporte.", styles),
+        bullet("La administracion revisa la informacion del caso antes de seleccionarlo. Solo los casos verificados pueden hacerse visibles en el apartado publico del fondo.", styles),
+        bullet("Una vez seleccionado un caso, representantes o equipos de la comunidad pueden realizar la entrega. La administracion registra el importe utilizado, que se entrego, quien estuvo a cargo y el resumen de la ayuda.", styles),
+        bullet("Cuando exista autorizacion, se puede adjuntar evidencia de la entrega. La plataforma conserva el registro para comprobar que los recursos se destinaron a la ayuda anunciada, sin publicar datos sensibles de las familias.", styles),
+        info_box(
+            "Transparencia del fondo: el panel muestra el total aportado, el total entregado, el saldo disponible y las ayudas verificadas. Asi, la comunidad puede seguir el destino de los recursos sin mezclar este fondo con inversiones o retiros personales.", styles, colors.HexColor("#EAF7FB"),
+        ),
         paragraph("Proceso de retiro", styles["Subheading"]),
         paragraph(
             "Cuando exista saldo disponible conforme a las reglas aplicables, el usuario puede solicitar un retiro desde su panel. Elige la moneda correspondiente a su participacion y facilita los datos requeridos. La solicitud pasa por revision administrativa y cambia de estado a medida que se procesa.", styles["Body"]

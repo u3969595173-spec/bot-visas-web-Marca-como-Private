@@ -2165,11 +2165,13 @@ def _obtener_resumen_fondo_solidario(cur, admin=False):
     config = cur.fetchone() or (0, None)
     cur.execute("""
         SELECT
-            COALESCE(SUM(CASE WHEN tipo IN ('aporte_fee', 'aporte_empresa') THEN importe ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN tipo = 'aporte_fee' THEN importe ELSE 0 END), 0),
+            COALESCE(SUM(CASE WHEN tipo = 'aporte_empresa' THEN importe ELSE 0 END), 0),
             COALESCE(SUM(CASE WHEN tipo = 'entrega' THEN importe ELSE 0 END), 0)
         FROM fondo_solidario_movimientos
     """)
-    aportado, entregado = cur.fetchone()
+    aportado_fees, aportado_empresa, entregado = cur.fetchone()
+    aportado = float(aportado_fees or 0) + float(aportado_empresa or 0)
     filtro_casos = "" if admin else "WHERE visible = TRUE AND estado IN ('verificado', 'seleccionado', 'entregado')"
     cur.execute(f"""
         SELECT id, alias_familia, categoria, descripcion, fuente, estado, visible,
@@ -2193,9 +2195,11 @@ def _obtener_resumen_fondo_solidario(cur, admin=False):
     resultado = {
         "porcentaje_fee": float(config[0] or 0),
         "actualizado_at": config[1].isoformat() if config[1] else None,
-        "aportado": float(aportado or 0),
+        "aportado": aportado,
+        "aportado_fees": float(aportado_fees or 0),
+        "aportado_empresa": float(aportado_empresa or 0),
         "entregado": float(entregado or 0),
-        "saldo": float(aportado or 0) - float(entregado or 0),
+        "saldo": aportado - float(entregado or 0),
         "casos": casos,
     }
     if admin:

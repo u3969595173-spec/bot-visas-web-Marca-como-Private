@@ -96,19 +96,19 @@ export default function FondoSolidarioPanel({ admin = false }) {
     <div style={{ ...card, borderLeft: '4px solid #22c55e' }}>
       <h2 style={{ margin: 0, color: '#f8fafc' }}>Fondo Solidario Cuba</h2>
       <p style={{ margin: '0.55rem 0 0', color: '#cbd5e1', lineHeight: 1.55 }}>
-        Una hucha separada del capital de inversión. De cada fee de retiro del 5%, el 2% se destina al Fondo Solidario y el 3% restante cubre el procesamiento operativo. También puede recibir aportes de la empresa para entregar ayuda verificada a familias vulnerables propuestas por la comunidad o soporte.
+        Una hucha separada del capital de inversión. De cada fee de retiro del 5%, el 2% se destina al Fondo Solidario y el 3% restante cubre el procesamiento operativo. La empresa realiza aportes obligatorios adicionales; estos se reflejan por separado para que la comunidad vea su contribución real.
       </p>
     </div>
 
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-      {[['Saldo disponible', money(data.saldo), '#22c55e'], ['Aportes registrados', money(data.aportado), '#38bdf8'], ['Ayuda entregada', money(data.entregado), '#f6c453'], ['Parte fija del fee', '2% del retiro', '#c084fc']].map(([label, value, color]) => <div key={label} style={card}>
+      {[['Saldo disponible', money(data.saldo), '#22c55e'], ['Del 2% de fees', money(data.aportado_fees), '#38bdf8'], ['Aporte obligatorio empresa', money(data.aportado_empresa), '#c084fc'], ['Ayuda entregada', money(data.entregado), '#f6c453'], ['Regla del fee', '2% del retiro', '#94a3b8']].map(([label, value, color]) => <div key={label} style={card}>
         <div style={{ color: '#94a3b8', fontSize: 12 }}>{label}</div><strong style={{ display: 'block', color, fontSize: 22, marginTop: 6 }}>{value}</strong>
       </div>)}
     </div>
 
     {!admin && <div style={card}>
       <h3 style={{ marginTop: 0, color: '#f8fafc' }}>Que es este Fondo</h3>
-      <p style={{ color: '#cbd5e1', lineHeight: 1.55, margin: 0 }}>El Fondo Solidario reúne el 2% del fee de cada retiro y los aportes adicionales que haga la empresa. Ese dinero no procede de las inversiones ni reduce los saldos de los usuarios: se reserva exclusivamente para ayudas verificadas a familias vulnerables en Cuba.</p>
+      <p style={{ color: '#cbd5e1', lineHeight: 1.55, margin: 0 }}>El Fondo Solidario reúne el 2% del fee de cada retiro y los aportes obligatorios adicionales de la empresa. El panel muestra ambas cifras por separado para que la comunidad pueda comprobar cuánto llega desde cada origen. Ese dinero no procede de las inversiones ni reduce los saldos de los usuarios: se reserva exclusivamente para ayudas verificadas a familias vulnerables en Cuba.</p>
       <p style={{ color: '#cbd5e1', lineHeight: 1.55, margin: '0.8rem 0 0' }}>Los casos se proponen mediante el chat de Comunidad o por soporte. La administración comprueba la información antes de seleccionar y publicar un caso. La entrega puede realizarla un equipo o representante de la propia comunidad; después se registra el importe usado, qué se entregó y evidencia autorizada. La web conserva ese registro para comprobar que el dinero del fondo se destinó a la ayuda anunciada, sin publicar datos sensibles de las familias.</p>
     </div>}
 
