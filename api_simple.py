@@ -136,10 +136,24 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
     try:
         conn = get_conn()
         cur = conn.cursor()
+
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS pagos_rentabilidad (
+                id SERIAL PRIMARY KEY,
+                aportacion_id INT NOT NULL,
+                inversor_id INT NOT NULL,
+                nombre VARCHAR(200),
+                moneda VARCHAR(30) NOT NULL,
+                porcentaje DECIMAL(8,4) NOT NULL,
+                importe DECIMAL(12,2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
         # Buscar todas las aportaciones activas cuyas 72 horas ya vencieron.
         cur.execute("""
-            SELECT id, importe, ganancia_rentabilidad, (COALESCE(ganancia_acelerada, 0)) as accel
+                 SELECT id, inversor_id, nombre, importe, moneda, ganancia_rentabilidad,
+                     (COALESCE(ganancia_acelerada, 0)) as accel
             FROM aportaciones
             WHERE (estado = 'Aprobada' OR estado = 'Activa') 
               AND fecha_aprobacion IS NOT NULL
@@ -152,9 +166,12 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
         
         for apo in oportunidades:
             a_id = apo[0]
-            importe = float(apo[1])
-            ganado = float(apo[2] if apo[2] is not None else 0)
-            acelerada = float(apo[3])
+            inversor_id = apo[1]
+            nombre = apo[2]
+            importe = float(apo[3])
+            moneda = apo[4]
+            ganado = float(apo[5] if apo[5] is not None else 0)
+            acelerada = float(apo[6])
             
             meta_limite = importe * 3.0
             saldo_pre_pago = ganado + acelerada
@@ -174,13 +191,64 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
                     SET ganancia_rentabilidad = %s, ultima_fecha_pago = CURRENT_DATE, estado = %s
                     WHERE id = %s
                 """, (nuevo_ganado, estado, a_id))
+                importe_acreditado = nuevo_ganado - ganado
+                cur.execute("""
+                    INSERT INTO pagos_rentabilidad (aportacion_id, inversor_id, nombre, moneda, porcentaje, importe)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (a_id, inversor_id, nombre, moneda, datos.porcentaje, importe_acreditado))
                 pagados += 1
-                total_repartido += nuevo_ganado - ganado
+                total_repartido += importe_acreditado
 
         conn.commit()
         return {"mensaje": f"Reparto completado. {pagados} contratos procesados.", "total_pagado": total_repartido}
     except Exception as e:
         if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    finally:
+        if conn:
+            cur.close()
+            release_conn(conn)
+
+
+@app.get("/api/pagos-rentabilidad")
+async def obtener_pagos_rentabilidad(usuario = Depends(obtener_usuario_actual)):
+    """Historial de pagos de rentabilidad; el inversor solo ve los propios."""
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS pagos_rentabilidad (
+                id SERIAL PRIMARY KEY,
+                aportacion_id INT NOT NULL,
+                inversor_id INT NOT NULL,
+                nombre VARCHAR(200),
+                moneda VARCHAR(30) NOT NULL,
+                porcentaje DECIMAL(8,4) NOT NULL,
+                importe DECIMAL(12,2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        if usuario.get('rol') == 'admin':
+            cur.execute("""
+                SELECT id, aportacion_id, inversor_id, nombre, moneda, porcentaje, importe, created_at
+                FROM pagos_rentabilidad ORDER BY created_at DESC, id DESC LIMIT 200
+            """)
+        else:
+            cur.execute("""
+                SELECT id, aportacion_id, inversor_id, nombre, moneda, porcentaje, importe, created_at
+                FROM pagos_rentabilidad WHERE inversor_id = %s ORDER BY created_at DESC, id DESC LIMIT 200
+            """, (usuario.get('inversor_id'),))
+        pagos = [{
+            "id": row[0], "aportacion_id": row[1], "inversor_id": row[2], "nombre": row[3],
+            "moneda": row[4], "porcentaje": float(row[5]), "importe": float(row[6]),
+            "fecha": row[7].isoformat() if row[7] else None
+        } for row in cur.fetchall()]
+        conn.commit()
+        return {"pagos": pagos}
+    except Exception as e:
+        if conn:
+            conn.rollback()
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     finally:
         if conn:

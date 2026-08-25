@@ -86,6 +86,7 @@ function DashboardInversionista() {
   })
   const [aportaciones, setAportaciones] = React.useState([])
   const [retiros, setRetiros] = React.useState([])
+  const [pagosRentabilidad, setPagosRentabilidad] = React.useState([])
   const [referidos, setReferidos] = React.useState([])
   const [ofertasPrivadas, setOfertasPrivadas] = React.useState([])
   const [ofertasAportaciones, setOfertasAportaciones] = React.useState([])
@@ -385,6 +386,25 @@ function DashboardInversionista() {
       cargarOfertas()
     }, 5000)
 
+    return () => clearInterval(intervalo)
+  }, [])
+
+  React.useEffect(() => {
+    const cargarPagosRentabilidad = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+        const response = await fetch(`${API_URL}/api/pagos-rentabilidad`, { headers: { 'Authorization': `Bearer ${token}` } })
+        if (response.ok) {
+          const data = await response.json()
+          setPagosRentabilidad(data.pagos || [])
+        }
+      } catch (error) {
+        console.log('Error cargando historial de pagos:', error)
+      }
+    }
+    cargarPagosRentabilidad()
+    const intervalo = setInterval(cargarPagosRentabilidad, 10000)
     return () => clearInterval(intervalo)
   }, [])
 
@@ -881,6 +901,9 @@ function DashboardInversionista() {
           <button className={`sidebar-tab ${activeTab === 'inversiones' ? 'active' : ''}`} onClick={() => setActiveTab('inversiones')}>
             <div className="tab-indicator" /> <span className="tab-label">💼 Mis Inversiones</span>
           </button>
+          <button className={`sidebar-tab ${activeTab === 'pagos' ? 'active' : ''}`} onClick={() => setActiveTab('pagos')}>
+            <div className="tab-indicator" /> <span className="tab-label">📅 Mis Pagos</span>
+          </button>
           <button className={`sidebar-tab ${activeTab === 'ofertas' ? 'active' : ''}`} onClick={() => setActiveTab('ofertas')}>
             <div className="tab-indicator" /> <span className="tab-label">🎁 Mis Ofertas</span>
           </button>
@@ -1250,6 +1273,43 @@ function DashboardInversionista() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'pagos' && (
+            <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
+              <section className="card" style={{ margin: 0 }}>
+                <div className="section-header"><h2>Calendario semanal de pagos</h2></div>
+                {(() => {
+                  const inicioSemana = new Date()
+                  inicioSemana.setHours(0, 0, 0, 0)
+                  inicioSemana.setDate(inicioSemana.getDate() - ((inicioSemana.getDay() + 6) % 7))
+                  const dias = Array.from({ length: 7 }, (_, index) => {
+                    const fecha = new Date(inicioSemana)
+                    fecha.setDate(inicioSemana.getDate() + index)
+                    const pagos = pagosRentabilidad.filter(pago => pago.fecha?.slice(0, 10) === fecha.toISOString().slice(0, 10))
+                    return { fecha, pagos }
+                  })
+                  return <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(125px, 1fr))', gap: '0.75rem', margin: '1rem 0 1.5rem' }}>
+                      {dias.map(({ fecha, pagos }) => {
+                        const totales = pagos.reduce((result, pago) => ({ ...result, [pago.moneda]: (result[pago.moneda] || 0) + Number(pago.importe || 0) }), {})
+                        return <div key={fecha.toISOString()} style={{ padding: '0.85rem', borderRadius: 8, border: '1px solid rgba(16,185,129,0.35)', background: pagos.length ? 'rgba(16,185,129,0.12)' : 'rgba(15,23,42,0.45)' }}>
+                          <strong style={{ display: 'block', color: '#f8fafc', textTransform: 'capitalize' }}>{fecha.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: '2-digit' })}</strong>
+                          <span style={{ color: '#94a3b8', fontSize: 12 }}>{pagos.length} pago{pagos.length === 1 ? '' : 's'}</span>
+                          <strong style={{ display: 'block', marginTop: 5, color: '#6ee7b7', fontSize: 13 }}>{Object.entries(totales).map(([moneda, importe]) => formatCurrency(importe, moneda)).join(' · ') || '—'}</strong>
+                        </div>
+                      })}
+                    </div>
+                    <div style={{ display: 'grid', gap: '0.6rem' }}>
+                      {pagosRentabilidad.length ? pagosRentabilidad.map(pago => <div key={pago.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', padding: '0.85rem', background: 'rgba(15,23,42,0.6)', borderRadius: 8, border: '1px solid rgba(148,163,184,0.14)' }}>
+                        <span><strong>{safeFormatDate(pago.fecha)}</strong> · Contrato #{pago.aportacion_id} · {Number(pago.porcentaje).toLocaleString('es-ES')}%</span>
+                        <strong style={{ color: '#6ee7b7', whiteSpace: 'nowrap' }}>+{formatCurrency(Number(pago.importe), pago.moneda)}</strong>
+                      </div>) : <p style={{ color: '#94a3b8' }}>Todavía no hay pagos registrados.</p>}
+                    </div>
+                  </>
+                })()}
+              </section>
             </div>
           )}
 

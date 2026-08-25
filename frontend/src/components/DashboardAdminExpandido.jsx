@@ -99,6 +99,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [guardandoCuentas, setGuardandoCuentas] = useState(false)
   const [minimos, setMinimos] = useState({ MLC: 100, CUP: 500, 'USDT BEP-20': 50 })
   const [porcentajeSemanal, setPorcentajeSemanal] = useState('')
+  const [pagosRentabilidad, setPagosRentabilidad] = useState([])
   const [usuariosRegistrados, setUsuariosRegistrados] = useState([])
   const [solicitudes, setSolicitudes] = useState([])
   const [mensaje, setMensaje] = useState('')
@@ -254,6 +255,24 @@ function DashboardAdminExpandido({ onLogout }) {
   React.useEffect(() => {
     cargarAvisosOperaciones()
     const intervalo = setInterval(cargarAvisosOperaciones, 30000)
+    return () => clearInterval(intervalo)
+  }, [])
+
+  React.useEffect(() => {
+    const cargarPagosRentabilidad = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(`${API}/api/pagos-rentabilidad`, { headers: { 'Authorization': `Bearer ${token}` } })
+        if (response.ok) {
+          const data = await response.json()
+          setPagosRentabilidad(data.pagos || [])
+        }
+      } catch (error) {
+        console.log('Error cargando historial de pagos:', error)
+      }
+    }
+    cargarPagosRentabilidad()
+    const intervalo = setInterval(cargarPagosRentabilidad, 10000)
     return () => clearInterval(intervalo)
   }, [])
 
@@ -460,6 +479,7 @@ function DashboardAdminExpandido({ onLogout }) {
     { key: 'retiros', label: 'Retiros' },
     { key: 'usuarios', label: 'Usuarios' },
     { key: 'operaciones', label: 'Operaciones' },
+    { key: 'pagos', label: '📅 Pagos' },
     { key: 'avisos', label: '📢 Avisos de operaciones' },
     { key: 'solicitudes', label: 'Solicitudes' },
     { key: 'depositos', label: `💳 Depósitos (${solicitudesInversion.length})` },
@@ -1494,6 +1514,42 @@ function DashboardAdminExpandido({ onLogout }) {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+          {activeTab === 'pagos' && (
+            <div className="card">
+              <div className="section-header"><h2>Calendario e historial de pagos</h2></div>
+              {(() => {
+                const inicioSemana = new Date()
+                inicioSemana.setHours(0, 0, 0, 0)
+                inicioSemana.setDate(inicioSemana.getDate() - ((inicioSemana.getDay() + 6) % 7))
+                const dias = Array.from({ length: 7 }, (_, index) => {
+                  const fecha = new Date(inicioSemana)
+                  fecha.setDate(inicioSemana.getDate() + index)
+                  const clave = fecha.toISOString().slice(0, 10)
+                  const pagos = pagosRentabilidad.filter(pago => pago.fecha?.slice(0, 10) === clave)
+                  return { fecha, pagos }
+                })
+                return <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', margin: '1rem 0 1.5rem' }}>
+                    {dias.map(({ fecha, pagos }) => {
+                      const totales = sumarPorMoneda(pagos, pago => pago.importe)
+                      return <div key={fecha.toISOString()} style={{ padding: '0.85rem', border: '1px solid #d1d5db', borderRadius: 8, background: pagos.length ? '#f0fdf4' : '#f8fafc' }}>
+                        <strong style={{ display: 'block' }}>{fecha.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: '2-digit' })}</strong>
+                        <span style={{ fontSize: 12, color: '#475569' }}>{pagos.length} pago{pagos.length === 1 ? '' : 's'}</span>
+                        <strong style={{ display: 'block', marginTop: 5, color: '#047857', fontSize: 13 }}>{mostrarTotalesPorMoneda(totales)}</strong>
+                      </div>
+                    })}
+                  </div>
+                  {table(
+                    ['Fecha', 'Inversor', 'Contrato', 'Porcentaje', 'Acreditado'],
+                    pagosRentabilidad.length ? pagosRentabilidad.map(pago => [
+                      formatDate(pago.fecha), pago.nombre || '—', `#${pago.aportacion_id}`,
+                      `${Number(pago.porcentaje).toLocaleString('es-ES')}%`, formatCurrency(Number(pago.importe), pago.moneda)
+                    ]) : [['Sin pagos registrados', '—', '—', '—', '—']]
+                  )}
+                </>
+              })()}
             </div>
           )}
           {activeTab === 'avisos' && (
