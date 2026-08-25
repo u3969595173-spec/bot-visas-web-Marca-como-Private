@@ -663,6 +663,8 @@ async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
             # Limitar al 300% exacto
             if ganancia_acumulada >= meta_ganancia:
                 ganancia_acumulada = meta_ganancia
+
+            ganancias_disponibles = max(meta_ganancia - ganancia_acumulada, 0)
             
             aportaciones.append({
                 "id": aportacion_id,
@@ -677,6 +679,7 @@ async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
                 "ultima_fecha_pago": row[11].isoformat() if row[11] else None,
                 "ganancia_total": ganancia_acumulada,
                 "meta_ganancia": meta_ganancia,
+                "gananciasDisponibles": ganancias_disponibles,
                 "tiene_justificante": row[12] is not None
             })
 

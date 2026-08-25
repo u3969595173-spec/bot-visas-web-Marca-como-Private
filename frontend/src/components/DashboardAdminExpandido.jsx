@@ -1065,20 +1065,24 @@ function DashboardAdminExpandido({ onLogout }) {
         })
 
         if (!response.ok) {
-          alert('Error procesando el reparto.')
+          const error = await response.json().catch(() => ({}))
+          alert(error.detail || `Error procesando el reparto (HTTP ${response.status}).`)
           return
         }
 
         const data = await response.json()
-        setMensaje(`✅ ${data.mensaje} / Importe total pagado: €${data.total_pagado.toFixed(2)}`)
+        const totalPagado = Number(data.total_pagado)
+        if (!Number.isFinite(totalPagado)) {
+          throw new Error('La respuesta del servidor no incluye un importe total válido.')
+        }
+
+        setMensaje(`✅ ${data.mensaje || 'Reparto completado.'} / Importe total pagado: €${totalPagado.toFixed(2)}`)
         setTimeout(() => setMensaje(''), 4000)
         setPorcentajeSemanal('')
-
-        // Recargar aportaciones para ver saldos actualizados
-        cargarAportaciones()
       } catch (err) {
         console.error("Error al repartir:", err)
-        alert('Ocurrió un error al contactar al servidor.')
+        const detalle = err instanceof Error ? err.message : ''
+        alert(detalle ? `No se pudo completar el reparto: ${detalle}` : 'Ocurrió un error al contactar al servidor.')
       }
     }
   }
