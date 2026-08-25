@@ -1417,7 +1417,7 @@ function DashboardInversionista() {
                         alignItems: 'center'
                       }}>
                         <div>
-                          <p style={{ margin: 0, fontWeight: '600', color: '#e2e8f0' }}>Retiro #{item.id.substring(0, 8)}</p>
+                          <p style={{ margin: 0, fontWeight: '600', color: '#e2e8f0' }}>Retiro #{String(item.id).substring(0, 8)}</p>
                           <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>{item.fecha || 'Sin fecha'}</p>
                         </div>
                         <div style={{ textAlign: 'right' }}>

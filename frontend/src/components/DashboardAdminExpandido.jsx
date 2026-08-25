@@ -1401,8 +1401,8 @@ function DashboardAdminExpandido({ onLogout }) {
               <div className="section-header"><h2>Solicitudes de inversores</h2></div>
               {table(
                 ['Nombre', 'Email', 'Teléfono', 'País', 'Fecha', 'Estado', 'Acción'],
-                solicitudesPendientes.length
-                  ? solicitudesPendientes.map((solicitud) => [
+                solicitudes.length
+                  ? solicitudes.map((solicitud) => [
                     solicitud.nombre || 'Sin nombre',
                     solicitud.email || '—',
                     solicitud.telefono || '—',
