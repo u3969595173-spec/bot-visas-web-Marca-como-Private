@@ -63,7 +63,7 @@ const RetirosCreditoPanel = () => {
 
       const response = await axios.put(
         `${apiUrl}/api/retiros/${solicitudId}`,
-        { estado: accion === 'aprobar' ? 'Aprobado' : 'Rechazado', notas },
+        { estado: accion === 'aprobar' ? 'Procesado' : 'Rechazado', notas },
         { headers }
       )
 

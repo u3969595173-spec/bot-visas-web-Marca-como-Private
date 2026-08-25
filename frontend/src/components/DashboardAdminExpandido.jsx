@@ -1610,11 +1610,12 @@ function DashboardAdminExpandido({ onLogout }) {
 
                   // Agrupar retiros por usuario
                   retiros.forEach(retiro => {
-                    if (usuariosMap.has(retiro.usuario)) {
-                      const user = usuariosMap.get(retiro.usuario)
+                    const usuario = retiro.usuario || retiro.usuarioNombre || retiro.nombre
+                    if (usuariosMap.has(usuario)) {
+                      const user = usuariosMap.get(usuario)
                       if (retiro.estado === 'Aprobado' || retiro.estado === 'Procesado') {
                         const moneda = retiro.moneda || 'EUR'
-                        user.retiros[moneda] = (user.retiros[moneda] || 0) + Number(retiro.monto || 0)
+                        user.retiros[moneda] = (user.retiros[moneda] || 0) + Number(retiro.importe || retiro.monto || 0)
                       }
                     }
                   })

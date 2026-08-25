@@ -407,7 +407,7 @@ function DashboardInversionista() {
     .reduce((sum, item) => sum + Number(item.importe || 0), 0)
 
   const totalRetirado = userRetiros
-    .filter((item) => item.estado === 'Procesado')
+    .filter((item) => item.estado === 'Aprobado' || item.estado === 'Procesado')
     .reduce((sum, item) => sum + Number(item.importe || 0), 0)
 
   const totalGananciasPosibles = userAportaciones
@@ -444,7 +444,7 @@ function DashboardInversionista() {
     }, {})
 
   userRetiros
-    .filter((item) => item.estado === 'Procesado')
+    .filter((item) => item.estado === 'Aprobado' || item.estado === 'Procesado')
     .forEach((item) => {
       const moneda = item.moneda || 'EUR'
       const saldo = saldosPorMoneda[moneda] || { aportado: 0, gananciasPosibles: 0, disponible: 0, retenido: 0, retirado: 0 }
