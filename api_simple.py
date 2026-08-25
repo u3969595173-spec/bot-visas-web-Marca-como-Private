@@ -137,14 +137,13 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
         conn = get_conn()
         cur = conn.cursor()
         
-        # Buscar todas las aportaciones activas cuyas 72 horas ya vencieron (y que no se hayan pagado hoy)
+        # Buscar todas las aportaciones activas cuyas 72 horas ya vencieron.
         cur.execute("""
             SELECT id, importe, ganancia_rentabilidad, (COALESCE(ganancia_acelerada, 0)) as accel
             FROM aportaciones
             WHERE (estado = 'Aprobada' OR estado = 'Activa') 
               AND fecha_aprobacion IS NOT NULL
               AND fecha_aprobacion + INTERVAL '72 hours' <= CURRENT_TIMESTAMP
-              AND (ultima_fecha_pago IS NULL OR ultima_fecha_pago < CURRENT_DATE)
         """)
         oportunidades = cur.fetchall()
         
@@ -176,7 +175,7 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
                     WHERE id = %s
                 """, (nuevo_ganado, estado, a_id))
                 pagados += 1
-                total_repartido += pago_de_hoy
+                total_repartido += nuevo_ganado - ganado
 
         conn.commit()
         return {"mensaje": f"Reparto completado. {pagados} contratos procesados.", "total_pagado": total_repartido}

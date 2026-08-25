@@ -1490,7 +1490,7 @@ function DashboardAdminExpandido({ onLogout }) {
                     </button>
                   </div>
                   <div style={{ marginTop: '1rem', fontSize: '11px', color: '#6b7280' }}>
-                    Nota: Se denegarán cuentas en bloqueo de 72 horas o cuentas que ya hayan recibido fondos en el mismo día natural.
+                    Nota: Se denegarán cuentas en bloqueo de 72 horas o contratos que hayan alcanzado el límite del 300%.
                   </div>
                 </div>
               </div>
