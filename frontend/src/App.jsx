@@ -200,6 +200,13 @@ function App() {
   const isAuthenticated = !!currentUser
 
   React.useEffect(() => {
+    // Interceptor global de enlaces de patrocinador
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref) {
+      localStorage.setItem('ref_code', ref);
+    }
+
     const checkAuth = () => {
       try {
         const saved = localStorage.getItem('capital_trade_user')

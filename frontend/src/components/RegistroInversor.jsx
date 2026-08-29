@@ -26,7 +26,12 @@ const RegistroInversor = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get('ref');
+    let ref = params.get('ref');
+
+    if (!ref) {
+      ref = localStorage.getItem('ref_code');
+    }
+
     if (ref) {
       setFormData(prev => ({ ...prev, codigo_patrocinio: ref }));
     }
