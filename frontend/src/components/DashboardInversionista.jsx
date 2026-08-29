@@ -4,7 +4,6 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import './Platform.css';
 import './DashboardAdminExpandido.css';
 import FondoSolidarioPanel from './FondoSolidarioPanel';
-import ComunidadLider from './ComunidadLider'
 import NotificacionesCampana from './NotificacionesCampana'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';

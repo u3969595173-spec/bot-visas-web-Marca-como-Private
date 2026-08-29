@@ -4,7 +4,6 @@ import './DashboardAdminExpandido.css'
 // Complete dark mode applied
 import RetirosCreditoPanel from './RetirosCreditoPanel'
 import FondoSolidarioPanel from './FondoSolidarioPanel'
-import ReferidosVisualizer from './ReferidosVisualizer'
 import NotificacionesCampana from './NotificacionesCampana'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
