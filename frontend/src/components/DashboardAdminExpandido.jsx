@@ -176,11 +176,12 @@ function DashboardAdminExpandido({ onLogout }) {
         const data = await res.json()
         setComunidadActual({ id, nombre, datos: data })
       } else {
-        alert("Error cargando comunidad")
+        const errText = await res.text();
+        alert("Error cargando comunidad: " + errText)
         setModalComunidadVisible(false)
       }
-    } catch {
-      alert("Error de conexión")
+    } catch (error) {
+      alert("Error de conexión: " + error.message)
       setModalComunidadVisible(false)
     } finally {
       setCargandoComunidad(false)

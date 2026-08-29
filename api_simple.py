@@ -1133,7 +1133,9 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        err = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=f"Error nativo: {str(e)} | Traza: {err}")
 
 
 @app.put("/api/admin/inversores/{inversor_id}/limpiar-vencidos")
