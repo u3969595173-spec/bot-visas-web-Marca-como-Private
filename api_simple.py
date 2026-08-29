@@ -1087,7 +1087,8 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
                 c.id, c.nombre, c.email, c.nivel,
                 COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Activa'), 0) as capital_activo,
                 COALESCE((SELECT SUM(importe) FROM retiros WHERE inversor_id = c.id AND estado = 'Aprobado'), 0) as retirado,
-                c.telefono, c.pais
+                c.telefono, c.pais,
+                COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Completada (300%)'), 0) as capital_vencido
             FROM comunidad c
             ORDER BY c.nivel, c.id
         """, (codigo_lider,))
@@ -1098,10 +1099,13 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
 
         miembros = []
         total_capital = 0
+        total_vencido = 0
 
         for row in resultados:
             capital_act = float(row[4])
+            cap_vencido = float(row[8])
             total_capital += capital_act
+            total_vencido += cap_vencido
             miembros.append({
                 "id": row[0],
                 "nombre": row[1],
@@ -1110,13 +1114,15 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
                 "capital_activo": capital_act,
                 "retirado": float(row[5]),
                 "telefono": row[6],
-                "pais": row[7]
+                "pais": row[7],
+                "capital_vencido": cap_vencido
             })
 
         return {
-            "miembros": miembros,
-            "total_miembros": len(miembros),
+            "miembros": miembros, 
+            "total_miembros": len(miembros), 
             "total_capital": total_capital,
+            "total_vencido": total_vencido,
             "total_ganancias": 0
         }
     except HTTPException:

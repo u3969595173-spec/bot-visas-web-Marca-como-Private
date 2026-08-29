@@ -2581,76 +2581,78 @@ function DashboardAdminExpandido({ onLogout }) {
       {/* Modal de Comunidad de Líder */}
       {modalComunidadVisible && (
         <div className="modal-overlay" style={{ zIndex: 9999 }}>
-          <div className="modal-content" style={{ maxWidth: '900px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h2>Comunidad de {comunidadActual?.nombre} 👑</h2>
+          <div className="modal-content" style={{ maxWidth: '950px', width: '95%', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#0f172a', color: '#f8fafc', border: '1px solid #1e293b', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+            <h2 style={{ color: '#f8fafc', borderBottom: '1px solid #1e293b', paddingBottom: '1rem', marginBottom: '1.5rem' }}>Comunidad de {comunidadActual?.nombre} 👑</h2>
 
             {cargandoComunidad ? (
-              <p>Cargando árbol de referidos...</p>
+              <p style={{ color: '#94a3b8', textAlign: 'center' }}>Cargando árbol de referidos...</p>
             ) : comunidadActual?.datos ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                  <div style={{ backgroundColor: '#f3f4f6', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 'bold', display: 'block' }}>Total Integrantes</span>
-                    <strong style={{ fontSize: '24px', color: '#111827' }}>{comunidadActual.datos.total_miembros}</strong>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  <div style={{ backgroundColor: 'rgba(15, 23, 42, 0.88)', padding: '1.25rem', borderRadius: '12px', textAlign: 'center', border: '1px solid rgba(148, 163, 184, 0.2)' }}>
+                    <span style={{ fontSize: '13px', color: '#cbd5e1', fontWeight: 'bold', display: 'block' }}>Total Integrantes</span>
+                    <strong style={{ fontSize: '26px', color: '#f8fafc' }}>{comunidadActual.datos.total_miembros}</strong>
                   </div>
-                  <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', display: 'block' }}>Volumen de Inversión</span>
-                    <strong style={{ fontSize: '24px', color: '#15803d' }}>€{comunidadActual.datos.total_capital.toLocaleString('es-ES')}</strong>
+                  <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', padding: '1.25rem', borderRadius: '12px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#86efac', fontWeight: 'bold', display: 'block' }}>Volumen Activo</span>
+                    <strong style={{ fontSize: '26px', color: '#10b981' }}>€{(comunidadActual.datos.total_capital || 0).toLocaleString('es-ES')}</strong>
+                  </div>
+                  <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '1.25rem', borderRadius: '12px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#fca5a5', fontWeight: 'bold', display: 'block' }}>Vencido (300%)</span>
+                    <strong style={{ fontSize: '26px', color: '#ef4444' }}>€{(comunidadActual.datos.total_vencido || 0).toLocaleString('es-ES')}</strong>
                   </div>
                 </div>
 
                 {comunidadActual.datos.miembros.length > 0 ? (
-                  <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                    <table className="tabla-estudiantes" style={{ margin: 0 }}>
-                      <thead>
+                  <div style={{ overflowX: 'auto', border: '1px solid rgba(148, 163, 184, 0.2)', borderRadius: '12px', backgroundColor: 'rgba(15, 23, 42, 0.6)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left', color: '#e2e8f0' }}>
+                      <thead style={{ backgroundColor: 'rgba(51, 65, 85, 0.6)', borderBottom: '1px solid rgba(148, 163, 184, 0.2)' }}>
                         <tr>
-                          <th>Nivel</th>
-                          <th>Inversor</th>
-                          <th>Email / Teléfono</th>
-                          <th>País</th>
-                          <th>Capital Activo</th>
-                          <th>Total Retirado</th>
+                          <th style={{ padding: '12px', fontWeight: '600' }}>Nivel</th>
+                          <th style={{ padding: '12px', fontWeight: '600' }}>Inversor</th>
+                          <th style={{ padding: '12px', fontWeight: '600' }}>Contacto</th>
+                          <th style={{ padding: '12px', fontWeight: '600' }}>País</th>
+                          <th style={{ padding: '12px', fontWeight: '600' }}>Inversión Activa</th>
+                          <th style={{ padding: '12px', fontWeight: '600' }}>300% Alcanzado</th>
+                          <th style={{ padding: '12px', fontWeight: '600' }}>Retirado</th>
                         </tr>
                       </thead>
                       <tbody>
                         {comunidadActual.datos.miembros.map((miembro) => (
-                          <tr key={miembro.id}>
-                            <td>
+                          <tr key={miembro.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.1)' }}>
+                            <td style={{ padding: '12px' }}>
                               <span style={{
-                                backgroundColor: miembro.nivel === 1 ? '#dbeafe' : miembro.nivel === 2 ? '#fef3c7' : '#f3f4f6',
-                                color: miembro.nivel === 1 ? '#1e40af' : miembro.nivel === 2 ? '#b45309' : '#374151',
-                                padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px'
-                              }}>
-                                Nivel {miembro.nivel}
-                              </span>
+                                backgroundColor: miembro.nivel === 1 ? 'rgba(59, 130, 246, 0.2)' : miembro.nivel === 2 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(148, 163, 184, 0.1)',
+                                color: miembro.nivel === 1 ? '#93c5fd' : miembro.nivel === 2 ? '#fcd34d' : '#cbd5e1',
+                                padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '11px'
+                              }}>Nivel {miembro.nivel}</span>
                             </td>
-                            <td style={{ fontWeight: '600' }}>{miembro.nombre || 'Sin nombre'}</td>
-                            <td>
-                              <div style={{ fontSize: '13px' }}>{miembro.email}</div>
-                              <div style={{ fontSize: '12px', color: '#6b7280' }}>{miembro.telefono || 'Sin teléfono'}</div>
+                            <td style={{ padding: '12px', fontWeight: '600', color: '#f8fafc' }}>{miembro.nombre || 'Sin nombre'}</td>
+                            <td style={{ padding: '12px' }}>
+                              <div style={{ fontSize: '12px' }}>{miembro.email}</div>
+                              <div style={{ fontSize: '11px', color: '#94a3b8' }}>{miembro.telefono || 'Sin teléfono'}</div>
                             </td>
-                            <td>{miembro.pais || '—'}</td>
-                            <td style={{ color: '#047857', fontWeight: 'bold' }}>€{(miembro.capital_activo || 0).toLocaleString('es-ES')}</td>
-                            <td style={{ color: '#4b5563' }}>€{(miembro.retirado || 0).toLocaleString('es-ES')}</td>
+                            <td style={{ padding: '12px', color: '#cbd5e1' }}>{miembro.pais || '—'}</td>
+                            <td style={{ padding: '12px', color: '#10b981', fontWeight: 'bold' }}>€{(miembro.capital_activo || 0).toLocaleString('es-ES')}</td>
+                            <td style={{ padding: '12px', color: '#ef4444', fontWeight: 'bold' }}>€{(miembro.capital_vencido || 0).toLocaleString('es-ES')}</td>
+                            <td style={{ padding: '12px', color: '#94a3b8' }}>€{(miembro.retirado || 0).toLocaleString('es-ES')}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>Este líder no tiene a nadie en su comunidad.</p>
+                  <p style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>Este líder no tiene a nadie en su comunidad.</p>
                 )}
               </div>
             ) : (
               <p style={{ color: '#ef4444' }}>Error al obtener la comunidad.</p>
             )}
 
-            <div className="modal-actions" style={{ marginTop: '20px', justifyContent: 'center', borderTop: '1px solid #e5e7eb', paddingTop: '15px' }}>
+            <div className="modal-actions" style={{ marginTop: '20px', justifyContent: 'center', borderTop: '1px solid #1e293b', paddingTop: '15px' }}>
               <button
                 onClick={() => setModalComunidadVisible(false)}
-                style={{
-                  background: '#374151', color: 'white', padding: '10px 24px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold'
-                }}
+                style={{ background: '#334155', color: '#f8fafc', padding: '10px 24px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
               >
                 Cerrar Visor
               </button>

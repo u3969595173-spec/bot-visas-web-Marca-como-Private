@@ -1833,14 +1833,18 @@ function DashboardInversionista() {
                 </div>
               ) : (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1rem' }}>
                     <div style={{ padding: '1.5rem', backgroundColor: 'rgba(15, 23, 42, 0.88)', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
                       <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#cbd5e1' }}>👥 Personas en tu Red</p>
                       <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#f8fafc' }}>{datosComunidadLider.total_miembros}</p>
                     </div>
                     <div style={{ padding: '1.5rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-                      <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#86efac' }}>💰 Volumen Total de Inversión</p>
+                      <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#86efac' }}>💰 Volumen Activo</p>
                       <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>€{(datosComunidadLider.total_capital || 0).toLocaleString('es-ES')}</p>
+                    </div>
+                    <div style={{ padding: '1.5rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                      <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#fca5a5' }}>⛔ Vencido (300%)</p>
+                      <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#ef4444' }}>€{(datosComunidadLider.total_vencido || 0).toLocaleString('es-ES')}</p>
                     </div>
                   </div>
 
@@ -1852,13 +1856,14 @@ function DashboardInversionista() {
 
                     {datosComunidadLider.miembros && datosComunidadLider.miembros.length > 0 ? (
                       <div className="referrals-table-scroll" style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', color: '#e2e8f0' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', color: '#e2e8f0', textAlign: 'left' }}>
                           <thead>
                             <tr style={{ backgroundColor: 'rgba(51, 65, 85, 0.82)', borderBottom: '1px solid rgba(148, 163, 184, 0.28)' }}>
-                              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Nivel</th>
-                              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Inversor</th>
-                              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>País</th>
-                              <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>Inversión Activa</th>
+                              <th style={{ padding: '12px', fontWeight: '600' }}>Nivel</th>
+                              <th style={{ padding: '12px', fontWeight: '600' }}>Inversor</th>
+                              <th style={{ padding: '12px', fontWeight: '600' }}>País</th>
+                              <th style={{ padding: '12px', fontWeight: '600' }}>Inversión Activa</th>
+                              <th style={{ padding: '12px', fontWeight: '600' }}>300% Alcanzado</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1875,8 +1880,11 @@ function DashboardInversionista() {
                                   {miembro.nombre}
                                 </td>
                                 <td style={{ padding: '12px', color: '#cbd5e1' }}>{miembro.pais || '—'}</td>
-                                <td style={{ padding: '12px', textAlign: 'right', color: '#10b981', fontWeight: 'bold' }}>
+                                <td style={{ padding: '12px', color: '#10b981', fontWeight: 'bold' }}>
                                   €{Number(miembro.capital_activo || 0).toLocaleString('es-ES')}
+                                </td>
+                                <td style={{ padding: '12px', color: '#ef4444', fontWeight: 'bold' }}>
+                                  €{Number(miembro.capital_vencido || 0).toLocaleString('es-ES')}
                                 </td>
                               </tr>
                             ))}
