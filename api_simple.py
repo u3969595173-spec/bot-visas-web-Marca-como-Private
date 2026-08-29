@@ -492,8 +492,7 @@ async def admin_login(datos: dict):
 # ============================================================================
 
 METODOS_DEFAULT = [
-    {"moneda": "MLC",        "tipo": "tarjeta", "titular": "", "numero": "", "banco": "", "instrucciones": ""},
-    {"moneda": "CUP",        "tipo": "tarjeta", "titular": "", "numero": "", "banco": "", "instrucciones": ""},
+    {"moneda": "EUR",         "tipo": "iban",   "titular": "", "iban": "", "concepto": "", "instrucciones": ""},
     {"moneda": "USDT BEP-20","tipo": "wallet",  "wallet":  "", "red": "BEP-20 (BSC)", "instrucciones": ""},
 ]
 
@@ -513,7 +512,7 @@ def _ensure_config_table(cur, conn):
 async def get_config(usuario=Depends(obtener_usuario_actual)):
     if usuario.get("rol") != "admin":
         raise HTTPException(status_code=403, detail="Solo admins")
-    return {"minimos": {"MLC": 100, "CUP": 500, "USDT BEP-20": 50}}
+    return {"minimos": {"EUR": 500, "USDT BEP-20": 50}}
 
 
 @app.get("/api/admin/cuentas")

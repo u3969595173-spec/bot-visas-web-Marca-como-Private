@@ -23,8 +23,6 @@ const readStorage = (key, fallback) => {
 }
 
 const METODOS_DEFAULT_INV = [
-  { moneda: 'MLC', numero: 'MLC 0000', minimo: 100, instrucciones: 'Referencia obligatoria en la transferencia.' },
-  { moneda: 'CUP', numero: 'CU24 0000', minimo: 500, instrucciones: 'Pago en moneda local con referencia.' },
   { moneda: 'EUR', tipo: 'iban', titular: 'Capital Trade Iberia', iban: 'ES00...', concepto: 'Referencia de inversión', minimo: 500 },
   { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.', minimo: 50 }
 ]
@@ -39,8 +37,6 @@ const mergeCuentas = (cuentas) => {
 
 const formatCurrency = (value, moneda = 'EUR') => {
   if (!Number.isFinite(value)) return '€0'
-  if (moneda === 'CUP') return `${Number(value).toLocaleString('es-ES')} CUP`
-  if (moneda === 'MLC') return `${Number(value).toLocaleString('es-ES')} MLC`
   if (moneda === 'USDT BEP-20') return `${Number(value).toLocaleString('es-ES')} USDT`
   return `€${Number(value).toLocaleString('es-ES')}`
 }
@@ -96,7 +92,7 @@ function DashboardInversionista() {
   const [mostrarTodasRetenidas, setMostrarTodasRetenidas] = React.useState(false)
   const [mostrarTodosReferidos, setMostrarTodosReferidos] = React.useState(false)
   const [montoRetiro, setMontoRetiro] = React.useState('')
-  const [monedaRetiro, setMonedaRetiro] = React.useState('MLC')
+  const [monedaRetiro, setMonedaRetiro] = React.useState('USDT BEP-20')
   const [notasRetiro, setNotasRetiro] = React.useState('')
   const [errorRetiro, setErrorRetiro] = React.useState('')
   const [successRetiro, setSuccessRetiro] = React.useState('')
@@ -104,7 +100,7 @@ function DashboardInversionista() {
   // Estados para modal de inversión
   const [showInversionModal, setShowInversionModal] = React.useState(false)
   const [showRangosModal, setShowRangosModal] = React.useState(false)
-  const [monedaInversion, setMonedaInversion] = React.useState('MLC')
+  const [monedaInversion, setMonedaInversion] = React.useState('USDT BEP-20')
   const [montoInversion, setMontoInversion] = React.useState('')
   const [errorInversion, setErrorInversion] = React.useState('')
   const [successInversion, setSuccessInversion] = React.useState('')
@@ -118,7 +114,7 @@ function DashboardInversionista() {
   const [solicitudes, setSolicitudes] = React.useState([])
 
   // Estados para minimos de inversión
-  const [minimos, setMinimos] = React.useState({ EUR: 100, CUP: 500, MLC: 100 })
+  const [minimos, setMinimos] = React.useState({ EUR: 500, 'USDT BEP-20': 50 })
 
   // Estados para chat
   const [showChatModal, setShowChatModal] = React.useState(false)
@@ -223,7 +219,7 @@ function DashboardInversionista() {
         })
         if (response.ok) {
           const data = await response.json()
-          setMinimos(data.minimos || { EUR: 100, CUP: 500, MLC: 100 })
+          setMinimos(data.minimos || { EUR: 500, 'USDT BEP-20': 50 })
         }
       } catch (error) {
         console.log('Error cargando minimos:', error)
@@ -682,7 +678,7 @@ function DashboardInversionista() {
       }
 
       setMontoInversion('')
-      setMonedaInversion('MLC')
+      setMonedaInversion('USDT BEP-20')
       setShowInversionModal(false)
       setSolicitudSeleccionada(nuevaSolicitud)
       setShowJustificante(true)
@@ -975,108 +971,108 @@ function DashboardInversionista() {
         <div className="content-scroll">
 
           {activeTab === 'resumen' && (
-          <div className="stats-grid portfolio-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-            {/* Inversión Activa - Gradiente Azul */}
-            <div className="portfolio-stat-card portfolio-stat-primary" style={{
-              background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              color: 'white',
-              boxShadow: '0 8px 16px rgba(2, 132, 199, 0.3)',
-              border: '2px solid rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('activo')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital liberado por moneda</p>
-            </div>
-
-            {/* Ganancias Posibles - Gradiente Verde */}
-            <div className="portfolio-stat-card portfolio-stat-positive" style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              color: 'white',
-              boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
-              border: '2px solid rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>📈 Ganancias Posibles</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('gananciasPosibles')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Pool por moneda</p>
-            </div>
-
-            {/* Saldo Disponible - Gradiente Púrpura */}
-            <div className="portfolio-stat-card portfolio-stat-available" style={{
-              background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              color: 'white',
-              boxShadow: '0 8px 16px rgba(168, 85, 247, 0.3)',
-              border: '2px solid rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💵 Saldo Disponible</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirable')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Disponible para retirar</p>
-            </div>
-
-            {/* Total Retirado - Gradiente Naranja */}
-            <div className="portfolio-stat-card portfolio-stat-withdrawn" style={{
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              color: 'white',
-              boxShadow: '0 8px 16px rgba(245, 158, 11, 0.3)',
-              border: '2px solid rgba(255,255,255,0.2)',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>✅ Total Retirado</p>
-              <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirado')}</p>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido por moneda</p>
-            </div>
-
-            {/* Inversión Retenida - cuenta regresiva de bloqueo 72h */}
-            {capitalRetenido > 0 && (
-              <div className="portfolio-stat-card portfolio-stat-locked" style={{
-                background: 'linear-gradient(135deg, #64748b 0%, #334155 100%)',
+            <div className="stats-grid portfolio-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+              {/* Inversión Activa - Gradiente Azul */}
+              <div className="portfolio-stat-card portfolio-stat-primary" style={{
+                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                 borderRadius: '12px',
                 padding: '1.5rem',
                 color: 'white',
-                boxShadow: '0 8px 16px rgba(51, 65, 85, 0.3)',
+                boxShadow: '0 8px 16px rgba(2, 132, 199, 0.3)',
                 border: '2px solid rgba(255,255,255,0.2)',
                 backdropFilter: 'blur(10px)'
               }}>
-                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
-                <p className="retained-investments-count" style={{ margin: '0.75rem 0 0 0', fontSize: '13px', fontWeight: '700' }}>
-                  {aportacionesRetenidas.length} {aportacionesRetenidas.length === 1 ? 'inversión con bloqueo propio' : 'inversiones con bloqueos propios'}
-                </p>
-                <p style={{ margin: '0.25rem 0 0', fontSize: '10px', opacity: 0.8 }}>Cada inversión conserva su propia fecha de activación.</p>
-                <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.65rem' }}>
-                  {(mostrarTodasRetenidas ? aportacionesRetenidas : aportacionesRetenidas.slice(0, 2)).map((item) => {
-                    const tiempo = obtenerTiempoRetenido(item)
-                    return (
-                      <div key={item.id} style={{ fontSize: '11px', lineHeight: 1.35, opacity: 0.95 }}>
-                        <strong>Inversión #{item.id}: {formatCurrency(Number(item.importe || 0), item.moneda || 'EUR')}</strong>
-                        <span style={{ display: 'block', fontFamily: 'monospace', fontWeight: '700' }}>
-                          ⏱️ {String(tiempo.horas).padStart(2, '0')}h {String(tiempo.minutos).padStart(2, '0')}m {String(tiempo.segundos).padStart(2, '0')}s para activarse
-                        </span>
-                      </div>
-                    )
-                  })}
-                  {aportacionesRetenidas.length > 2 && (
-                    <button
-                      type="button"
-                      className="retained-investments-toggle"
-                      onClick={() => setMostrarTodasRetenidas((mostrar) => !mostrar)}
-                    >
-                      {mostrarTodasRetenidas ? 'Ver menos' : `Ver ${aportacionesRetenidas.length - 2} más`}
-                    </button>
-                  )}
-                </div>
+                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
+                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('activo')}</p>
+                <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital liberado por moneda</p>
               </div>
-            )}
-          </div>
+
+              {/* Ganancias Posibles - Gradiente Verde */}
+              <div className="portfolio-stat-card portfolio-stat-positive" style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                color: 'white',
+                boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
+                border: '2px solid rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>📈 Ganancias Posibles</p>
+                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('gananciasPosibles')}</p>
+                <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Pool por moneda</p>
+              </div>
+
+              {/* Saldo Disponible - Gradiente Púrpura */}
+              <div className="portfolio-stat-card portfolio-stat-available" style={{
+                background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                color: 'white',
+                boxShadow: '0 8px 16px rgba(168, 85, 247, 0.3)',
+                border: '2px solid rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💵 Saldo Disponible</p>
+                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirable')}</p>
+                <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Disponible para retirar</p>
+              </div>
+
+              {/* Total Retirado - Gradiente Naranja */}
+              <div className="portfolio-stat-card portfolio-stat-withdrawn" style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                color: 'white',
+                boxShadow: '0 8px 16px rgba(245, 158, 11, 0.3)',
+                border: '2px solid rgba(255,255,255,0.2)',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>✅ Total Retirado</p>
+                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirado')}</p>
+                <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido por moneda</p>
+              </div>
+
+              {/* Inversión Retenida - cuenta regresiva de bloqueo 72h */}
+              {capitalRetenido > 0 && (
+                <div className="portfolio-stat-card portfolio-stat-locked" style={{
+                  background: 'linear-gradient(135deg, #64748b 0%, #334155 100%)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  color: 'white',
+                  boxShadow: '0 8px 16px rgba(51, 65, 85, 0.3)',
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
+                  <p className="retained-investments-count" style={{ margin: '0.75rem 0 0 0', fontSize: '13px', fontWeight: '700' }}>
+                    {aportacionesRetenidas.length} {aportacionesRetenidas.length === 1 ? 'inversión con bloqueo propio' : 'inversiones con bloqueos propios'}
+                  </p>
+                  <p style={{ margin: '0.25rem 0 0', fontSize: '10px', opacity: 0.8 }}>Cada inversión conserva su propia fecha de activación.</p>
+                  <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.65rem' }}>
+                    {(mostrarTodasRetenidas ? aportacionesRetenidas : aportacionesRetenidas.slice(0, 2)).map((item) => {
+                      const tiempo = obtenerTiempoRetenido(item)
+                      return (
+                        <div key={item.id} style={{ fontSize: '11px', lineHeight: 1.35, opacity: 0.95 }}>
+                          <strong>Inversión #{item.id}: {formatCurrency(Number(item.importe || 0), item.moneda || 'EUR')}</strong>
+                          <span style={{ display: 'block', fontFamily: 'monospace', fontWeight: '700' }}>
+                            ⏱️ {String(tiempo.horas).padStart(2, '0')}h {String(tiempo.minutos).padStart(2, '0')}m {String(tiempo.segundos).padStart(2, '0')}s para activarse
+                          </span>
+                        </div>
+                      )
+                    })}
+                    {aportacionesRetenidas.length > 2 && (
+                      <button
+                        type="button"
+                        className="retained-investments-toggle"
+                        onClick={() => setMostrarTodasRetenidas((mostrar) => !mostrar)}
+                      >
+                        {mostrarTodasRetenidas ? 'Ver menos' : `Ver ${aportacionesRetenidas.length - 2} más`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
 
           {activeTab === 'fondo-solidario' && (
@@ -1144,16 +1140,16 @@ function DashboardInversionista() {
                             ? 'rgba(16, 185, 129, 0.15)'
                             : retenida
                               ? 'rgba(59, 130, 246, 0.15)'
-                            : item.estado === 'Activa' || item.estado === 'Validada'
-                              ? 'rgba(246, 196, 83, 0.12)'
-                              : 'rgba(239, 68, 68, 0.12)',
+                              : item.estado === 'Activa' || item.estado === 'Validada'
+                                ? 'rgba(246, 196, 83, 0.12)'
+                                : 'rgba(239, 68, 68, 0.12)',
                           color: completado
                             ? '#86efac'
                             : retenida
                               ? '#93c5fd'
-                            : item.estado === 'Activa' || item.estado === 'Validada'
-                              ? '#f6c453'
-                              : '#fca5a5',
+                              : item.estado === 'Activa' || item.estado === 'Validada'
+                                ? '#f6c453'
+                                : '#fca5a5',
                           border: `1px solid ${completado ? 'rgba(16, 185, 129, 0.25)' : retenida ? 'rgba(59, 130, 246, 0.3)' : item.estado === 'Activa' || item.estado === 'Validada' ? 'rgba(246, 196, 83, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
                         }}>
                           {completado ? '✓ Completada' : retenida ? '🔒 Bloqueada' : item.estado}
@@ -1545,92 +1541,92 @@ function DashboardInversionista() {
                       {userSolicitudes.map((sol) => {
                         const info = infoEstado(sol)
                         return (
-                        <div key={sol.id} style={{
-                          backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                          borderRadius: '12px',
-                          padding: '1.5rem',
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                          border: `2px solid ${info.borderColor}`,
-                          transition: 'all 0.3s'
-                        }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem' }}>
-                            <div>
-                              <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Solicitud #{sol.id}</p>
-                              <p style={{ margin: '0.5rem 0 0 0', fontSize: '20px', fontWeight: 'bold', color: '#f6c453' }}>
-                                {formatCurrency(Number(sol.importe), sol.moneda)}
-                              </p>
-                              <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
-                                📅 {safeFormatDate(sol.fecha)}
-                              </p>
+                          <div key={sol.id} style={{
+                            backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                            borderRadius: '12px',
+                            padding: '1.5rem',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                            border: `2px solid ${info.borderColor}`,
+                            transition: 'all 0.3s'
+                          }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem' }}>
+                              <div>
+                                <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Solicitud #{sol.id}</p>
+                                <p style={{ margin: '0.5rem 0 0 0', fontSize: '20px', fontWeight: 'bold', color: '#f6c453' }}>
+                                  {formatCurrency(Number(sol.importe), sol.moneda)}
+                                </p>
+                                <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                                  📅 {safeFormatDate(sol.fecha)}
+                                </p>
+                              </div>
+                              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '0.5rem 1rem',
+                                  borderRadius: '20px',
+                                  fontSize: '12px',
+                                  fontWeight: '600',
+                                  backgroundColor: info.bg,
+                                  color: info.color
+                                }}>
+                                  {info.label}
+                                </span>
+                              </div>
                             </div>
-                            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                              <span style={{
-                                display: 'inline-block',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '20px',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                backgroundColor: info.bg,
-                                color: info.color
-                              }}>
-                                {info.label}
-                              </span>
-                            </div>
-                          </div>
 
-                          {info.bloqueada && (
-                            <div style={{
-                              backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                              padding: '1rem',
-                              borderRadius: '8px',
-                              fontSize: '13px',
-                              borderLeft: '4px solid #3b82f6',
-                              marginBottom: '0.75rem'
-                            }}>
-                              <p style={{ margin: 0, color: '#93c5fd', fontWeight: '600' }}>
-                                ⏱️ Tu inversión está validada. Las ganancias comienzan a generarse tras 72 horas de bloqueo de seguridad.
-                              </p>
-                              <p style={{ margin: '0.5rem 0 0 0', color: '#dbeafe', fontSize: '12px' }}>
-                                Faltan {info.horas}h {info.minutos}m para que quede totalmente activa.
-                              </p>
-                            </div>
-                          )}
-
-                          {sol.estado === 'Pendiente de validación' && !sol.tiene_justificante && (
-                            <button
-                              onClick={() => {
-                                setSolicitudSeleccionada(sol)
-                                setShowJustificante(true)
-                              }}
-                              style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                color: 'white',
-                                border: 'none',
+                            {info.bloqueada && (
+                              <div style={{
+                                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                padding: '1rem',
                                 borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: '600',
-                                fontSize: '14px',
-                                transition: 'all 0.3s'
-                              }}
-                            >
-                              📎 Subir comprobante de transferencia
-                            </button>
-                          )}
+                                fontSize: '13px',
+                                borderLeft: '4px solid #3b82f6',
+                                marginBottom: '0.75rem'
+                              }}>
+                                <p style={{ margin: 0, color: '#93c5fd', fontWeight: '600' }}>
+                                  ⏱️ Tu inversión está validada. Las ganancias comienzan a generarse tras 72 horas de bloqueo de seguridad.
+                                </p>
+                                <p style={{ margin: '0.5rem 0 0 0', color: '#dbeafe', fontSize: '12px' }}>
+                                  Faltan {info.horas}h {info.minutos}m para que quede totalmente activa.
+                                </p>
+                              </div>
+                            )}
 
-                          {sol.tiene_justificante && sol.estado === 'Pendiente de validación' && (
-                            <div style={{
-                              backgroundColor: '#fef3c7',
-                              padding: '1rem',
-                              borderRadius: '8px',
-                              fontSize: '13px',
-                              borderLeft: '4px solid #f59e0b'
-                            }}>
-                              <p style={{ margin: 0, fontWeight: '600', color: '#374151' }}>📋 Comprobante en revisión por el administrador</p>
-                            </div>
-                          )}
-                        </div>
+                            {sol.estado === 'Pendiente de validación' && !sol.tiene_justificante && (
+                              <button
+                                onClick={() => {
+                                  setSolicitudSeleccionada(sol)
+                                  setShowJustificante(true)
+                                }}
+                                style={{
+                                  width: '100%',
+                                  padding: '0.75rem',
+                                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '8px',
+                                  cursor: 'pointer',
+                                  fontWeight: '600',
+                                  fontSize: '14px',
+                                  transition: 'all 0.3s'
+                                }}
+                              >
+                                📎 Subir comprobante de transferencia
+                              </button>
+                            )}
+
+                            {sol.tiene_justificante && sol.estado === 'Pendiente de validación' && (
+                              <div style={{
+                                backgroundColor: '#fef3c7',
+                                padding: '1rem',
+                                borderRadius: '8px',
+                                fontSize: '13px',
+                                borderLeft: '4px solid #f59e0b'
+                              }}>
+                                <p style={{ margin: 0, fontWeight: '600', color: '#374151' }}>📋 Comprobante en revisión por el administrador</p>
+                              </div>
+                            )}
+                          </div>
                         )
                       })}
                     </div>

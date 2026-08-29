@@ -56,7 +56,7 @@ function OperacionDetalle() {
         const encontrada = (data.operaciones || []).find((item) => String(item.id) === String(id));
         if (encontrada) setOp(adaptarOperacion(encontrada));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [id]);
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -308,8 +308,7 @@ function OperacionDetalle() {
                       onChange={(e) => setForm((prev) => ({ ...prev, moneda: e.target.value }))}
                     >
                       <option value="EUR">EUR</option>
-                      <option value="CUP">CUP</option>
-                      <option value="MLC">MLC</option>
+                      <option value="USDT BEP-20">USDT BEP-20</option>
                     </select>
                   </div>
                 </div>

@@ -11,7 +11,7 @@ const initialForm = {
   perfil: 'Particular',
   operacion: 'Compra y exportación de cemento',
   monto: '',
-  moneda: 'MLC',
+  moneda: 'USDT BEP-20',
   plazo: '6-10 meses',
   objetivo: '',
   acepta: false
@@ -156,7 +156,7 @@ function SolicitudParticipacion() {
               <select value={form.moneda} onChange={e => handleMonedaChange(e.target.value)}>
                 {metodosPago.length > 0
                   ? metodosPago.map(m => <option key={m.moneda} value={m.moneda}>{m.moneda}</option>)
-                  : ['MLC', 'CUP', 'USDT BEP-20'].map(m => <option key={m} value={m}>{m}</option>)
+                  : ['USDT BEP-20', 'EUR'].map(m => <option key={m} value={m}>{m}</option>)
                 }
               </select>
             </div>
