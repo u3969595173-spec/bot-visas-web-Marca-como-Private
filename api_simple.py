@@ -1088,7 +1088,7 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
                 COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Activa'), 0) as capital_activo,
                 COALESCE((SELECT SUM(importe) FROM retiros WHERE inversor_id = c.id AND estado = 'Aprobado'), 0) as retirado,
                 c.telefono, c.pais,
-                COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Completada (300%)'), 0) as capital_vencido,
+                COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Completada (300%%)'), 0) as capital_vencido,
                 COALESCE((SELECT SUM(COALESCE(ganancia_rentabilidad, 0) + COALESCE(ganancia_acelerada, 0)) FROM aportaciones WHERE inversor_id = c.id), 0) as capital_ganado
             FROM comunidad c
             ORDER BY c.nivel, c.id
@@ -1164,8 +1164,8 @@ async def limpiar_vencidos_comunidad(inversor_id: int, usuario = Depends(obtener
                 INNER JOIN comunidad c ON i.referido_por = c.codigo_referido
             )
             UPDATE aportaciones 
-            SET estado = 'Archivado (300%)' 
-            WHERE estado = 'Completada (300%)' 
+            SET estado = 'Archivado (300%%)' 
+            WHERE estado = 'Completada (300%%)' 
             AND inversor_id IN (SELECT id FROM comunidad)
         """, (codigo_lider,))
         
