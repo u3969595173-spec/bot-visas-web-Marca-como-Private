@@ -76,47 +76,6 @@ function Home() {
         </div>
       </section>
 
-      {/* ── Stats ── */}
-      <section className="home-stats">
-        <div className="home-stats-inner">
-          <div className="stat-item">
-            <span className="stat-number">€{totalCapital > 0 ? Math.round(totalCapital / 1000) + 'k' : '0'}</span>
-            <span className="stat-label">Capital total</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">{operaciones.length}</span>
-            <span className="stat-label">Operaciones</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-number">2</span>
-            <span className="stat-label">Mercados</span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Operaciones destacadas ── */}
-      <section className="home-ops">
-        <div className="home-section-header">
-          <div>
-            <p className="section-tag">Oportunidades</p>
-            <h2>Operaciones disponibles</h2>
-            <p className="section-sub">Selecciona la operación que se ajuste a tu perfil</p>
-          </div>
-          <Link to="/operaciones" className="view-all-link">Ver todas →</Link>
-        </div>
-
-        <div className="ops-grid">
-          {opDestacadas.map((op) => (
-            <div key={op.id} className="op-card" onClick={() => navigate(`/operacion/${op.id}`)} style={{ cursor: 'pointer' }}>
-              <span className="op-card-icon">{op.icono}</span>
-              <span className="op-card-cat">{op.categoria}</span>
-              <span className="op-card-name">{op.nombre}</span>
-              <span className="op-card-capital">{op.capital}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* ── Cómo funciona ── */}
       <section className="home-how">
         <div className="home-how-inner">
