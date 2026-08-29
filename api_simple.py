@@ -1088,7 +1088,8 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
                 COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Activa'), 0) as capital_activo,
                 COALESCE((SELECT SUM(importe) FROM retiros WHERE inversor_id = c.id AND estado = 'Aprobado'), 0) as retirado,
                 c.telefono, c.pais,
-                COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Completada (300%)'), 0) as capital_vencido
+                COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Completada (300%)'), 0) as capital_vencido,
+                COALESCE((SELECT SUM(ganancia_rentabilidad + ganancia_acelerada) FROM aportaciones WHERE inversor_id = c.id), 0) as capital_ganado
             FROM comunidad c
             ORDER BY c.nivel, c.id
         """, (codigo_lider,))
@@ -1100,12 +1101,15 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
         miembros = []
         total_capital = 0
         total_vencido = 0
+        total_ganancias = 0
 
         for row in resultados:
             capital_act = float(row[4])
             cap_vencido = float(row[8])
+            cap_ganado = float(row[9])
             total_capital += capital_act
             total_vencido += cap_vencido
+            total_ganancias += cap_ganado
             miembros.append({
                 "id": row[0],
                 "nombre": row[1],
@@ -1115,7 +1119,8 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
                 "retirado": float(row[5]),
                 "telefono": row[6],
                 "pais": row[7],
-                "capital_vencido": cap_vencido
+                "capital_vencido": cap_vencido,
+                "capital_ganado": cap_ganado
             })
 
         return {
@@ -1123,10 +1128,50 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
             "total_miembros": len(miembros), 
             "total_capital": total_capital,
             "total_vencido": total_vencido,
-            "total_ganancias": 0
+            "total_ganancias": total_ganancias
         }
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/inversores/{inversor_id}/limpiar-vencidos")
+async def limpiar_vencidos_comunidad(inversor_id: int, usuario = Depends(obtener_usuario_actual)):
+    """Convierte todos los paquetes 'Completada (300%)' de la comunidad de este líder a 'Archivado (300%)'"""
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        
+        # Obtener el código de este inversor para arrancar el árbol
+        cur.execute("SELECT codigo_referido FROM inversores WHERE id = %s", (inversor_id,))
+        row = cur.fetchone()
+        if not row or not row[0]:
+            raise HTTPException(status_code=404, detail="Líder no encontrado o sin red")
+            
+        codigo_lider = row[0]
+        
+        # Archivar (soft-delete) todo lo que ya venció en TODO el árbol descendiente recursivamente
+        cur.execute("""
+            WITH RECURSIVE comunidad AS (
+                SELECT i.id, i.codigo_referido FROM inversores i WHERE i.referido_por = %s
+                UNION ALL
+                SELECT i.id, i.codigo_referido FROM inversores i
+                INNER JOIN comunidad c ON i.referido_por = c.codigo_referido
+            )
+            UPDATE aportaciones 
+            SET estado = 'Archivado (300%)' 
+            WHERE estado = 'Completada (300%)' 
+            AND inversor_id IN (SELECT id FROM comunidad)
+        """, (codigo_lider,))
+        
+        filas_afectadas = cur.rowcount
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"ok": True, "filas_archivadas": filas_afectadas}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

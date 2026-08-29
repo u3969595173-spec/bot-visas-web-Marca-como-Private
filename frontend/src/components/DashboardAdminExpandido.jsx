@@ -144,16 +144,37 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
+  const limpiarVencidos = async () => {
+    if (!comunidadActual || !comunidadActual.id) return
+    if (!window.confirm("¿Estás seguro de limpiar y resetear todos los saldos vencidos de esta red a 0 (Archivar)?")) return
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API}/api/admin/inversores/${comunidadActual.id}/limpiar-vencidos`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      if (res.ok) {
+        alert("Saldos vencidos limpiados con éxito.")
+        fetchComunidad(comunidadActual.id, comunidadActual.nombre)
+      } else {
+        const errText = await res.text();
+        alert("Error al limpiar saldos: " + errText)
+      }
+    } catch (e) {
+      alert("Error de conexión: " + e.message)
+    }
+  }
+
   const fetchComunidad = async (id, nombre) => {
     setCargandoComunidad(true)
-    setComunidadActual({ nombre, datos: null })
+    setComunidadActual({ id, nombre, datos: null })
     setModalComunidadVisible(true)
     try {
       const token = localStorage.getItem('token')
       const res = await fetch(`${API}/api/comunidad/${id}`, { headers: { 'Authorization': `Bearer ${token}` } })
       if (res.ok) {
         const data = await res.json()
-        setComunidadActual({ nombre, datos: data })
+        setComunidadActual({ id, nombre, datos: data })
       } else {
         alert("Error cargando comunidad")
         setModalComunidadVisible(false)
@@ -2601,6 +2622,10 @@ function DashboardAdminExpandido({ onLogout }) {
                     <span style={{ fontSize: '13px', color: '#fca5a5', fontWeight: 'bold', display: 'block' }}>Vencido (300%)</span>
                     <strong style={{ fontSize: '26px', color: '#ef4444' }}>€{(comunidadActual.datos.total_vencido || 0).toLocaleString('es-ES')}</strong>
                   </div>
+                  <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', padding: '1.25rem', borderRadius: '12px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#93c5fd', fontWeight: 'bold', display: 'block' }}>Ganancias Totales</span>
+                    <strong style={{ fontSize: '26px', color: '#3b82f6' }}>€{(comunidadActual.datos.total_ganancias || 0).toLocaleString('es-ES')}</strong>
+                  </div>
                 </div>
 
                 {comunidadActual.datos.miembros.length > 0 ? (
@@ -2613,6 +2638,7 @@ function DashboardAdminExpandido({ onLogout }) {
                           <th style={{ padding: '12px', fontWeight: '600' }}>Contacto</th>
                           <th style={{ padding: '12px', fontWeight: '600' }}>País</th>
                           <th style={{ padding: '12px', fontWeight: '600' }}>Inversión Activa</th>
+                          <th style={{ padding: '12px', fontWeight: '600' }}>Ganado</th>
                           <th style={{ padding: '12px', fontWeight: '600' }}>300% Alcanzado</th>
                           <th style={{ padding: '12px', fontWeight: '600' }}>Retirado</th>
                         </tr>
@@ -2634,6 +2660,7 @@ function DashboardAdminExpandido({ onLogout }) {
                             </td>
                             <td style={{ padding: '12px', color: '#cbd5e1' }}>{miembro.pais || '—'}</td>
                             <td style={{ padding: '12px', color: '#10b981', fontWeight: 'bold' }}>€{(miembro.capital_activo || 0).toLocaleString('es-ES')}</td>
+                            <td style={{ padding: '12px', color: '#3b82f6', fontWeight: 'bold' }}>€{(miembro.capital_ganado || 0).toLocaleString('es-ES')}</td>
                             <td style={{ padding: '12px', color: '#ef4444', fontWeight: 'bold' }}>€{(miembro.capital_vencido || 0).toLocaleString('es-ES')}</td>
                             <td style={{ padding: '12px', color: '#94a3b8' }}>€{(miembro.retirado || 0).toLocaleString('es-ES')}</td>
                           </tr>
@@ -2649,7 +2676,13 @@ function DashboardAdminExpandido({ onLogout }) {
               <p style={{ color: '#ef4444' }}>Error al obtener la comunidad.</p>
             )}
 
-            <div className="modal-actions" style={{ marginTop: '20px', justifyContent: 'center', borderTop: '1px solid #1e293b', paddingTop: '15px' }}>
+            <div className="modal-actions" style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center', borderTop: '1px solid #1e293b', paddingTop: '15px' }}>
+              <button
+                onClick={limpiarVencidos}
+                style={{ background: '#ef4444', color: '#f8fafc', padding: '10px 24px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                🧹 Resetear Vencidos a 0
+              </button>
               <button
                 onClick={() => setModalComunidadVisible(false)}
                 style={{ background: '#334155', color: '#f8fafc', padding: '10px 24px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}
