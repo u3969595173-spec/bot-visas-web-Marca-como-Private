@@ -1089,7 +1089,7 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
                 COALESCE((SELECT SUM(importe) FROM retiros WHERE inversor_id = c.id AND estado = 'Aprobado'), 0) as retirado,
                 c.telefono, c.pais,
                 COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Completada (300%)'), 0) as capital_vencido,
-                COALESCE((SELECT SUM(ganancia_rentabilidad + ganancia_acelerada) FROM aportaciones WHERE inversor_id = c.id), 0) as capital_ganado
+                COALESCE((SELECT SUM(COALESCE(ganancia_rentabilidad, 0) + COALESCE(ganancia_acelerada, 0)) FROM aportaciones WHERE inversor_id = c.id), 0) as capital_ganado
             FROM comunidad c
             ORDER BY c.nivel, c.id
         """, (codigo_lider,))
