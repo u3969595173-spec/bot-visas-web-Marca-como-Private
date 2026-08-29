@@ -1415,15 +1415,25 @@ def _ensure_referidos_table(cur, conn):
 
 @app.get("/api/referidos")
 async def obtener_referidos(usuario = Depends(obtener_usuario_actual)):
-    """Obtiene todos los referidos (usados por el programa de líderes)"""
+    """Obtiene todos los referidos calculando la inversión total en vivo desde aportaciones"""
     try:
         conn = get_conn()
         cur = conn.cursor()
-        _ensure_referidos_table(cur, conn)
 
+        # Proyección dinámica uniendo inversores con la suma de sus aportaciones activas
         cur.execute("""
-            SELECT id, codigo, nombre_inversor, usuario_id, referido_por, inversion_total, pagado, es_admin
-            FROM referidos ORDER BY created_at ASC
+            SELECT 
+                i.id, 
+                i.codigo_referido, 
+                i.nombre, 
+                i.id, 
+                i.referido_por, 
+                COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = i.id AND estado != 'Rechazada'), 0) as inversion_total,
+                false as pagado, 
+                false as es_admin,
+                i.created_at
+            FROM inversores i
+            ORDER BY i.created_at ASC
         """)
         filas = cur.fetchall()
         cur.close()
@@ -1435,9 +1445,10 @@ async def obtener_referidos(usuario = Depends(obtener_usuario_actual)):
             "nombreInversor": fila[2],
             "usuarioId": fila[3],
             "referidoPor": fila[4],
-            "inversionTotal": float(fila[5] or 0),
+            "inversionTotal": float(fila[5]),
             "pagado": fila[6],
-            "esAdmin": fila[7]
+            "esAdmin": fila[7],
+            "fecha": fila[8].isoformat() if fila[8] else None
         } for fila in filas]
 
         return {"referidos": referidos}
