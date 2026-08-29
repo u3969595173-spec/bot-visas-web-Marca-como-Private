@@ -136,10 +136,11 @@ function DashboardAdminExpandido({ onLogout }) {
         setMensaje(esActualLider ? 'Rol de líder removido' : 'Usuario promovido a líder')
         setTimeout(() => setMensaje(''), 2000)
       } else {
-        alert("Error al actualizar estado")
+        const errText = await res.text();
+        alert("Error al actualizar estado: " + errText + " | " + res.status)
       }
-    } catch {
-      alert("Error de conexión")
+    } catch (error) {
+      alert("Error de conexión: " + error.message)
     }
   }
 
