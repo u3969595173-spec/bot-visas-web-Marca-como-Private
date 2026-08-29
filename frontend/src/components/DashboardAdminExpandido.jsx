@@ -1831,12 +1831,12 @@ function DashboardAdminExpandido({ onLogout }) {
 
               {/* Tabla de inversiones activas con ganancias disponibles */}
               <div style={{ marginTop: '2rem' }}>
-                <h3 style={{ color: '#374151', marginBottom: '1rem' }}>📋 Inversiones Activas (Pool de Ganancias)</h3>
+                <h3 style={{ color: '#f8fafc', marginBottom: '1rem' }}>📋 Inversiones Activas (Pool de Ganancias)</h3>
                 {aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length > 0 ? (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
+                  <div style={{ overflowX: 'auto', backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #1e293b' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', color: '#e2e8f0' }}>
+                      <thead style={{ backgroundColor: 'rgba(51, 65, 85, 0.4)' }}>
+                        <tr style={{ borderBottom: '1px solid #1e293b' }}>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Usuario</th>
                           <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
                           <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>📊 Ganancias Disponibles</th>
@@ -1851,12 +1851,12 @@ function DashboardAdminExpandido({ onLogout }) {
                           const porcentajeRestante = ((gananciasDisp / totalGanancias) * 100).toFixed(1)
                           const colorBarra = porcentajeRestante > 66 ? '#10b981' : porcentajeRestante > 33 ? '#f59e0b' : '#ef4444'
                           return (
-                            <tr key={idx} style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
+                            <tr key={idx} style={{ borderBottom: '1px solid #1e293b', backgroundColor: idx % 2 === 0 ? 'rgba(30, 41, 59, 0.3)' : 'transparent' }}>
                               <td style={{ padding: '12px' }}><strong>{aportacion.usuario}</strong></td>
                               <td style={{ padding: '12px', textAlign: 'right' }}>€{Number(aportacion.importe).toLocaleString('es-ES')}</td>
                               <td style={{ padding: '12px', textAlign: 'right' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
-                                  <div style={{ width: '100px', height: '20px', backgroundColor: '#e5e7eb', borderRadius: '10px', overflow: 'hidden' }}>
+                                  <div style={{ width: '100px', height: '20px', backgroundColor: '#334155', borderRadius: '10px', overflow: 'hidden' }}>
                                     <div style={{ width: `${porcentajeRestante}%`, height: '100%', backgroundColor: colorBarra, transition: 'width 0.3s ease' }}></div>
                                   </div>
                                   <span style={{ fontWeight: '600', minWidth: '80px' }}>€{gananciasDisp.toFixed(2)}</span>
@@ -1864,7 +1864,7 @@ function DashboardAdminExpandido({ onLogout }) {
                               </td>
                               <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: colorBarra }}>{porcentajeRestante}%</td>
                               <td style={{ padding: '12px', textAlign: 'center' }}>
-                                <span style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: '#dbeafe', color: '#1e40af', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
+                                <span style={{ display: 'inline-block', padding: '4px 12px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#93c5fd', borderRadius: '20px', fontSize: '12px', fontWeight: '600', border: '1px solid rgba(59, 130, 246, 0.3)' }}>
                                   {aportacion.estado}
                                 </span>
                               </td>
@@ -1875,13 +1875,13 @@ function DashboardAdminExpandido({ onLogout }) {
                     </table>
                   </div>
                 ) : (
-                  <p style={{ color: '#6b7280', textAlign: 'center', padding: '2rem' }}>No hay inversiones activas</p>
+                  <p style={{ color: '#94a3b8', textAlign: 'center', padding: '2rem' }}>No hay inversiones activas</p>
                 )}
               </div>
 
               {/* Gráfico de distribución de ganancias */}
-              <div style={{ marginTop: '2rem', padding: '1.5rem', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-                <h3 style={{ marginTop: 0, color: '#374151' }}>📈 Análisis de Ganancias de Referidos (toda la plataforma)</h3>
+              <div style={{ marginTop: '2rem', padding: '1.5rem', backgroundColor: '#0f172a', borderRadius: '12px', border: '1px solid #1e293b', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                <h3 style={{ marginTop: 0, color: '#f8fafc' }}>📈 Análisis de Ganancias de Referidos (toda la plataforma)</h3>
                 {(() => {
                   const referidosConDueno = referidos.filter(r => r.referidoPor)
                   const totalInversionReferidos = referidosConDueno.reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0)
@@ -1889,12 +1889,12 @@ function DashboardAdminExpandido({ onLogout }) {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
                       {/* Pie chart simple */}
                       <div style={{ textAlign: 'center' }}>
-                        <h4 style={{ color: '#6b7280' }}>Distribución de Ganancias</h4>
+                        <h4 style={{ color: '#94a3b8' }}>Distribución de Ganancias</h4>
                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '12px', height: '200px', marginTop: '1rem' }}>
-                          <div style={{ width: '60px', backgroundColor: '#10b981', borderRadius: '8px 8px 0 0', height: `${(referidosConDueno.length / (aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length || 1)) * 100 || 10}%`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
+                          <div style={{ width: '60px', backgroundColor: '#10b981', borderRadius: '8px 8px 0 0', height: `${(referidosConDueno.length / (aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length || 1)) * 100 || 10}%`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px', boxShadow: '0 -4px 6px -1px rgba(16, 185, 129, 0.2)' }}>
                             Referidos
                           </div>
-                          <div style={{ width: '60px', backgroundColor: '#3b82f6', borderRadius: '8px 8px 0 0', height: '70%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
+                          <div style={{ width: '60px', backgroundColor: '#3b82f6', borderRadius: '8px 8px 0 0', height: '70%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px', boxShadow: '0 -4px 6px -1px rgba(59, 130, 246, 0.2)' }}>
                             Activos
                           </div>
                         </div>
@@ -1902,19 +1902,19 @@ function DashboardAdminExpandido({ onLogout }) {
 
                       {/* Resumen de pagos */}
                       <div style={{ textAlign: 'center' }}>
-                        <h4 style={{ color: '#6b7280' }}>Resumen</h4>
-                        <div style={{ marginTop: '1rem', textAlign: 'left', backgroundColor: 'white', padding: '1rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
-                            <span style={{ color: '#6b7280' }}>Total Referidos:</span>
+                        <h4 style={{ color: '#94a3b8' }}>Resumen</h4>
+                        <div style={{ marginTop: '1rem', textAlign: 'left', backgroundColor: 'rgba(30, 41, 59, 0.4)', padding: '1rem', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #334155' }}>
+                            <span style={{ color: '#94a3b8' }}>Total Referidos:</span>
                             <strong style={{ color: '#10b981' }}>{referidosConDueno.length}</strong>
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
-                            <span style={{ color: '#6b7280' }}>Inv. Total Referidos:</span>
-                            <strong style={{ color: '#3b82f6' }}>€{totalInversionReferidos.toFixed(2)}</strong>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #334155' }}>
+                            <span style={{ color: '#94a3b8' }}>Inv. Total Referidos:</span>
+                            <strong style={{ color: '#60a5fa' }}>€{totalInversionReferidos.toFixed(2)}</strong>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ color: '#6b7280' }}>Comisiones Totales (10%):</span>
-                            <strong style={{ color: '#f59e0b' }}>€{(totalInversionReferidos * 0.1).toFixed(2)}</strong>
+                            <span style={{ color: '#94a3b8' }}>Comisiones Totales (10%):</span>
+                            <strong style={{ color: '#fbbf24' }}>€{(totalInversionReferidos * 0.1).toFixed(2)}</strong>
                           </div>
                         </div>
                       </div>
