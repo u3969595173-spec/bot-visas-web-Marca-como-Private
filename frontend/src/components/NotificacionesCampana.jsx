@@ -75,6 +75,8 @@ const NotificacionesCampana = () => {
 
     const noLeidas = notificaciones.filter(n => !n.leida).length;
 
+    const esMobile = window.innerWidth <= 768;
+
     return (
         <div style={{ position: 'relative' }} ref={menuRef}>
             <button
@@ -103,8 +105,8 @@ const NotificacionesCampana = () => {
 
             {abierto && (
                 <div style={{
-                    position: 'absolute', top: '45px', right: '0',
-                    width: '320px', maxHeight: '400px', backgroundColor: '#0f172a',
+                    position: 'absolute', top: '45px', right: esMobile ? '-25px' : '0',
+                    width: '90vw', maxWidth: '350px', maxHeight: '75vh', backgroundColor: '#0f172a',
                     border: '1px solid #1e293b', borderRadius: '12px',
                     boxShadow: '0 10px 40px rgba(0,0,0,0.6)', zIndex: 999,
                     display: 'flex', flexDirection: 'column', overflow: 'hidden'

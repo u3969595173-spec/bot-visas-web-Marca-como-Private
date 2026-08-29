@@ -980,12 +980,12 @@ function DashboardInversionista() {
             <p className="subtitle">Gestión de capital y participación operativa</p>
           </div>
           <div className="topbar-actions investor-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <NotificacionesCampana />
             <button onClick={() => {
               window.open('https://wa.me/34677412858', '_blank')
             }} className="investor-support-button">
               Soporte WhatsApp
             </button>
+            <NotificacionesCampana />
           </div>
         </header>
 
