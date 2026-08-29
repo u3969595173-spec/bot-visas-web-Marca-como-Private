@@ -125,6 +125,8 @@ function DashboardInversionista() {
   // Codigo de referido permanente del inversor (viene de su perfil, nunca cambia)
   const [codigoReferidoPropio, setCodigoReferidoPropio] = React.useState(null)
   const [referidoPorPropio, setReferidoPorPropio] = React.useState(null)
+  const [esLiderPropio, setEsLiderPropio] = React.useState(false)
+  const [datosComunidadLider, setDatosComunidadLider] = React.useState(null)
 
   React.useEffect(() => {
     const syncData = () => {
@@ -201,6 +203,17 @@ function DashboardInversionista() {
           const data = await response.json()
           if (data.codigo_referido) setCodigoReferidoPropio(data.codigo_referido)
           setReferidoPorPropio(data.referido_por || null)
+          setEsLiderPropio(data.es_lider || false)
+
+          if (data.es_lider) {
+            const resComunidad = await fetch(`${API_URL}/api/comunidad/${data.id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            })
+            if (resComunidad.ok) {
+              const comData = await resComunidad.json()
+              setDatosComunidadLider(comData)
+            }
+          }
         }
       } catch (error) {
         console.log('Error verificando cuenta:', error)
@@ -925,9 +938,15 @@ function DashboardInversionista() {
           <div className="nav-divider"></div>
           <div className="nav-group-title">EXTRAS</div>
 
+          {esLiderPropio && (
+            <button className={`sidebar-tab highlight ${activeTab === 'comunidad-lider' ? 'active' : ''}`} onClick={() => setActiveTab('comunidad-lider')} style={{ fontWeight: 'bold' }}>
+              <div className="tab-indicator" /> <span className="tab-label">👑 Mi Comunidad (Red)</span>
+            </button>
+          )}
+
           <Link to="/comunidad" className="sidebar-tab highlight" style={{ textDecoration: 'none' }}>
             <div className="tab-indicator" />
-            <span className="tab-label">🌐 Comunidad Interna</span>
+            <span className="tab-label">🌐 Chat Global</span>
           </Link>
         </nav>
 
@@ -1794,6 +1813,81 @@ function DashboardInversionista() {
                   <p style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>👥 Aún no tienes referidos</p>
                   <p style={{ color: '#a7f3d0', marginTop: '0.5rem' }}>¡Comparte tu enlace arriba para empezar a ganar comisiones!</p>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Panel de Comunidad (Solo Líderes) */}
+          {activeTab === 'comunidad-lider' && esLiderPropio && (
+            <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.5rem', fontWeight: '800' }}>👑 Mi Comunidad (Niveles Infinitos)</h2>
+                  <p style={{ margin: '0.4rem 0 0 0', color: '#94a3b8', fontSize: '14px' }}>Visualiza el crecimiento completo de todas tus ramas y sub-ramas de referidos al momento.</p>
+                </div>
+              </div>
+
+              {!datosComunidadLider ? (
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px' }}>
+                  <p>Cargando datos de comunidad...</p>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1rem' }}>
+                    <div style={{ padding: '1.5rem', backgroundColor: 'rgba(15, 23, 42, 0.88)', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                      <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#cbd5e1' }}>👥 Personas en tu Red</p>
+                      <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#f8fafc' }}>{datosComunidadLider.total_miembros}</p>
+                    </div>
+                    <div style={{ padding: '1.5rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                      <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#86efac' }}>💰 Volumen Total de Inversión</p>
+                      <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>€{(datosComunidadLider.total_capital || 0).toLocaleString('es-ES')}</p>
+                    </div>
+                  </div>
+
+                  <div className="referrals-panel" style={{
+                    backgroundColor: 'rgba(15, 23, 42, 0.88)', borderRadius: '12px', padding: '1.5rem',
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.28)', border: '1px solid rgba(148, 163, 184, 0.2)'
+                  }}>
+                    <h3 style={{ marginTop: 0, color: '#f8fafc', marginBottom: '1.5rem' }}>🌲 Estructura del Árbol</h3>
+
+                    {datosComunidadLider.miembros && datosComunidadLider.miembros.length > 0 ? (
+                      <div className="referrals-table-scroll" style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', color: '#e2e8f0' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: 'rgba(51, 65, 85, 0.82)', borderBottom: '1px solid rgba(148, 163, 184, 0.28)' }}>
+                              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Nivel</th>
+                              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Inversor</th>
+                              <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>País</th>
+                              <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>Inversión Activa</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {datosComunidadLider.miembros.map((miembro) => (
+                              <tr key={miembro.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.12)' }}>
+                                <td style={{ padding: '12px' }}>
+                                  <span style={{
+                                    backgroundColor: miembro.nivel === 1 ? 'rgba(59, 130, 246, 0.2)' : miembro.nivel === 2 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(148, 163, 184, 0.1)',
+                                    color: miembro.nivel === 1 ? '#93c5fd' : miembro.nivel === 2 ? '#fcd34d' : '#cbd5e1',
+                                    padding: '4px 8px', borderRadius: '4px', fontWeight: '700', fontSize: '12px'
+                                  }}>Nivel {miembro.nivel}</span>
+                                </td>
+                                <td style={{ padding: '12px', color: '#f8fafc', fontWeight: '600' }}>
+                                  {miembro.nombre}
+                                </td>
+                                <td style={{ padding: '12px', color: '#cbd5e1' }}>{miembro.pais || '—'}</td>
+                                <td style={{ padding: '12px', textAlign: 'right', color: '#10b981', fontWeight: 'bold' }}>
+                                  €{Number(miembro.capital_activo || 0).toLocaleString('es-ES')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p style={{ color: '#94a3b8', textAlign: 'center', marginTop: '2rem' }}>Aún no hay inversores en tu red de comunidad.</p>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           )}

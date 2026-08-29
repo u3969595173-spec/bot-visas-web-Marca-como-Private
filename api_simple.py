@@ -381,7 +381,7 @@ async def get_perfil(usuario=Depends(obtener_usuario_actual)):
         """)
         conn.commit()
         cur.execute(
-            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada, codigo_referido, referido_por FROM inversores WHERE id = %s",
+            "SELECT id, nombre, email, telefono, pais, estado, foto_perfil, foto_portada, codigo_referido, referido_por, es_lider FROM inversores WHERE id = %s",
             (usuario.get("inversor_id"),)
         )
         row = cur.fetchone()
@@ -397,7 +397,8 @@ async def get_perfil(usuario=Depends(obtener_usuario_actual)):
             "foto_perfil": row[6],
             "foto_portada": row[7],
             "codigo_referido": row[8],
-            "referido_por": row[9]
+            "referido_por": row[9],
+            "es_lider": bool(row[10])
         }
     except HTTPException:
         raise
@@ -1020,7 +1021,7 @@ async def obtener_inversores_validados(usuario = Depends(obtener_usuario_actual)
         conn = get_conn()
         cur = conn.cursor()
 
-        cur.execute("SELECT id, nombre, email, estado, telefono, pais, created_at, codigo_referido, referido_por FROM inversores WHERE estado = 'validada' ORDER BY id DESC")
+        cur.execute("SELECT id, nombre, email, estado, telefono, pais, created_at, codigo_referido, referido_por, es_lider FROM inversores WHERE estado = 'validada' ORDER BY id DESC")
         resultados = cur.fetchall()
         cur.close()
         release_conn(conn)
@@ -1036,12 +1037,110 @@ async def obtener_inversores_validados(usuario = Depends(obtener_usuario_actual)
                 "pais": row[5],
                 "created_at": row[6].isoformat() if row[6] else None,
                 "codigo_referido": row[7],
-                "referido_por": row[8]
+                "referido_por": row[8],
+                "es_lider": bool(row[9])
             })
 
         return {"inversores": inversores}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
+@app.get("/api/comunidad/{inversor_id}")
+async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuario_actual)):
+    """Obtiene la comunidad multinivel de un inversor"""
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        
+        cur.execute("SELECT codigo_referido, es_lider FROM inversores WHERE id = %s", (inversor_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Inversor no encontrado")
+            
+        codigo_lider = row[0]
+        
+        if usuario.get("rol") != "admin":
+            if str(usuario.get("inversor_id")) != str(inversor_id) or not row[1]:
+                raise HTTPException(status_code=403, detail="No tienes acceso a esta comunidad")
+                
+        if not codigo_lider:
+            cur.close()
+            release_conn(conn)
+            return {"miembros": [], "total_miembros": 0, "total_capital": 0, "total_ganancias": 0}
+
+        cur.execute("""
+            WITH RECURSIVE comunidad AS (
+                SELECT 
+                    i.id, i.nombre, i.codigo_referido, i.referido_por, i.email, i.telefono, i.pais, 1 AS nivel
+                FROM inversores i
+                WHERE i.referido_por = %s
+
+                UNION ALL
+
+                SELECT 
+                    i.id, i.nombre, i.codigo_referido, i.referido_por, i.email, i.telefono, i.pais, c.nivel + 1
+                FROM inversores i
+                INNER JOIN comunidad c ON i.referido_por = c.codigo_referido
+            )
+            SELECT 
+                c.id, c.nombre, c.email, c.nivel,
+                COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Activa'), 0) as capital_activo,
+                COALESCE((SELECT SUM(importe) FROM retiros WHERE inversor_id = c.id AND estado = 'Aprobado'), 0) as retirado,
+                c.telefono, c.pais
+            FROM comunidad c
+            ORDER BY c.nivel, c.id
+        """, (codigo_lider,))
+        
+        resultados = cur.fetchall()
+        cur.close()
+        release_conn(conn)
+
+        miembros = []
+        total_capital = 0
+
+        for row in resultados:
+            capital_act = float(row[4])
+            total_capital += capital_act
+            miembros.append({
+                "id": row[0],
+                "nombre": row[1],
+                "email": row[2],
+                "nivel": row[3],
+                "capital_activo": capital_act,
+                "retirado": float(row[5]),
+                "telefono": row[6],
+                "pais": row[7]
+            })
+
+        return {
+            "miembros": miembros,
+            "total_miembros": len(miembros),
+            "total_capital": total_capital,
+            "total_ganancias": 0
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/admin/inversores/{inversor_id}/rol-lider")
+async def toggle_rol_lider(inversor_id: int, datos: dict, usuario = Depends(obtener_usuario_actual)):
+    """Activa o desactiva a un inversor como Líder (solo admin)"""
+    if usuario.get("rol") != "admin":
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        es_lider = bool(datos.get("es_lider", False))
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("UPDATE inversores SET es_lider = %s WHERE id = %s", (es_lider, inversor_id))
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"ok": True, "es_lider": es_lider}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.put("/api/inversores/{inversor_id}/estado")

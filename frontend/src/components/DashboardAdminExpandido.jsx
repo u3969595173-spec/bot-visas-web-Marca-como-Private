@@ -118,6 +118,52 @@ function DashboardAdminExpandido({ onLogout }) {
   const [justificanteActual, setJustificanteActual] = useState(null)
   const [loadingJustificante, setLoadingJustificante] = useState(false)
 
+  // Líderes
+  const [modalComunidadVisible, setModalComunidadVisible] = useState(false)
+  const [comunidadActual, setComunidadActual] = useState(null)
+  const [cargandoComunidad, setCargandoComunidad] = useState(false)
+
+  const toggleLider = async (id, esActualLider) => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API}/api/admin/inversores/${id}/rol-lider`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ es_lider: !esActualLider })
+      })
+      if (res.ok) {
+        setUsuariosRegistrados(prev => prev.map(u => u.id === id ? { ...u, es_lider: !esActualLider } : u))
+        setMensaje(esActualLider ? 'Rol de líder removido' : 'Usuario promovido a líder')
+        setTimeout(() => setMensaje(''), 2000)
+      } else {
+        alert("Error al actualizar estado")
+      }
+    } catch {
+      alert("Error de conexión")
+    }
+  }
+
+  const fetchComunidad = async (id, nombre) => {
+    setCargandoComunidad(true)
+    setComunidadActual({ nombre, datos: null })
+    setModalComunidadVisible(true)
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API}/api/comunidad/${id}`, { headers: { 'Authorization': `Bearer ${token}` } })
+      if (res.ok) {
+        const data = await res.json()
+        setComunidadActual({ nombre, datos: data })
+      } else {
+        alert("Error cargando comunidad")
+        setModalComunidadVisible(false)
+      }
+    } catch {
+      alert("Error de conexión")
+      setModalComunidadVisible(false)
+    } finally {
+      setCargandoComunidad(false)
+    }
+  }
   // Formularios de admin para ofertas
   const [nuevaOferta, setNuevaOferta] = useState({
     nombre: '', descripcion: '', condiciones: '',
@@ -1463,30 +1509,49 @@ function DashboardAdminExpandido({ onLogout }) {
             <div className="card">
               <div className="section-header"><h2>Usuarios</h2></div>
               {table(
-                ['Nombre', 'Email', 'Teléfono', 'País', 'Fecha', 'Rol', 'Estado', 'Acción'],
+                ['Nombre', 'Email', 'Teléfono', 'País', 'Fecha', 'Rol', 'Estado', 'Acciones'],
                 usuariosRegistrados.length
                   ? usuariosRegistrados.map((usuario) => [
-                    usuario.nombre || usuario.name || 'Sin nombre',
+                    <span key={usuario.id}>{usuario.es_lider ? '👑 ' : ''}{usuario.nombre || usuario.name || 'Sin nombre'}</span>,
                     usuario.email || '—',
                     usuario.telefono || '—',
                     usuario.pais || '—',
                     formatDate(usuario.created_at || usuario.fecha) || '—',
                     usuario.role || 'inversor',
                     'Activo',
-                    <button
-                      key={`whatsapp-${usuario.id}`}
-                      className="btn-action"
-                      onClick={() => {
-                        if (usuario.telefono && usuario.telefono.trim() !== '—') {
-                          window.open(`https://wa.me/${usuario.telefono.replace(/\D/g, '')}`, '_blank');
-                        } else {
-                          alert('El usuario sin número de teléfono registrado.');
-                        }
-                      }}
-                      style={{ backgroundColor: '#25D366', color: 'white' }}
-                    >
-                      📱 WhatsApp
-                    </button>
+                    <div key={`acciones-${usuario.id}`} style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                      <button
+                        className="btn-action"
+                        onClick={() => {
+                          if (usuario.telefono && usuario.telefono.trim() !== '—') {
+                            window.open(`https://wa.me/${usuario.telefono.replace(/\D/g, '')}`, '_blank');
+                          } else {
+                            alert('El usuario no tiene teléfono registrado.');
+                          }
+                        }}
+                        style={{ backgroundColor: '#25D366', color: 'white', padding: '6px 10px', fontSize: '12px' }}
+                      >
+                        📱
+                      </button>
+
+                      <button
+                        className="btn-action"
+                        onClick={() => toggleLider(usuario.id, usuario.es_lider)}
+                        style={{ backgroundColor: usuario.es_lider ? '#f59e0b' : '#3b82f6', color: 'white', padding: '6px 10px', fontSize: '12px' }}
+                      >
+                        {usuario.es_lider ? 'Quitar Líder' : 'Hacer Líder'}
+                      </button>
+
+                      {usuario.es_lider && (
+                        <button
+                          className="btn-action"
+                          onClick={() => fetchComunidad(usuario.id, usuario.nombre || usuario.name)}
+                          style={{ backgroundColor: '#10b981', color: 'white', padding: '6px 10px', fontSize: '12px' }}
+                        >
+                          👁️ Red
+                        </button>
+                      )}
+                    </div>
                   ])
                   : [['Sin registros', '—', '—', '—', '—', '—', 'Sin datos', '—']]
               )}
@@ -2503,6 +2568,87 @@ function DashboardAdminExpandido({ onLogout }) {
                   border: 'none',
                   cursor: 'pointer',
                   fontWeight: 'bold'
+                }}
+              >
+                Cerrar Visor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Comunidad de Líder */}
+      {modalComunidadVisible && (
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="modal-content" style={{ maxWidth: '900px', width: '95%', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h2>Comunidad de {comunidadActual?.nombre} 👑</h2>
+
+            {cargandoComunidad ? (
+              <p>Cargando árbol de referidos...</p>
+            ) : comunidadActual?.datos ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                  <div style={{ backgroundColor: '#f3f4f6', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#4b5563', fontWeight: 'bold', display: 'block' }}>Total Integrantes</span>
+                    <strong style={{ fontSize: '24px', color: '#111827' }}>{comunidadActual.datos.total_miembros}</strong>
+                  </div>
+                  <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#166534', fontWeight: 'bold', display: 'block' }}>Volumen de Inversión</span>
+                    <strong style={{ fontSize: '24px', color: '#15803d' }}>€{comunidadActual.datos.total_capital.toLocaleString('es-ES')}</strong>
+                  </div>
+                </div>
+
+                {comunidadActual.datos.miembros.length > 0 ? (
+                  <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    <table className="tabla-estudiantes" style={{ margin: 0 }}>
+                      <thead>
+                        <tr>
+                          <th>Nivel</th>
+                          <th>Inversor</th>
+                          <th>Email / Teléfono</th>
+                          <th>País</th>
+                          <th>Capital Activo</th>
+                          <th>Total Retirado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {comunidadActual.datos.miembros.map((miembro) => (
+                          <tr key={miembro.id}>
+                            <td>
+                              <span style={{
+                                backgroundColor: miembro.nivel === 1 ? '#dbeafe' : miembro.nivel === 2 ? '#fef3c7' : '#f3f4f6',
+                                color: miembro.nivel === 1 ? '#1e40af' : miembro.nivel === 2 ? '#b45309' : '#374151',
+                                padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px'
+                              }}>
+                                Nivel {miembro.nivel}
+                              </span>
+                            </td>
+                            <td style={{ fontWeight: '600' }}>{miembro.nombre || 'Sin nombre'}</td>
+                            <td>
+                              <div style={{ fontSize: '13px' }}>{miembro.email}</div>
+                              <div style={{ fontSize: '12px', color: '#6b7280' }}>{miembro.telefono || 'Sin teléfono'}</div>
+                            </td>
+                            <td>{miembro.pais || '—'}</td>
+                            <td style={{ color: '#047857', fontWeight: 'bold' }}>€{(miembro.capital_activo || 0).toLocaleString('es-ES')}</td>
+                            <td style={{ color: '#4b5563' }}>€{(miembro.retirado || 0).toLocaleString('es-ES')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>Este líder no tiene a nadie en su comunidad.</p>
+                )}
+              </div>
+            ) : (
+              <p style={{ color: '#ef4444' }}>Error al obtener la comunidad.</p>
+            )}
+
+            <div className="modal-actions" style={{ marginTop: '20px', justifyContent: 'center', borderTop: '1px solid #e5e7eb', paddingTop: '15px' }}>
+              <button
+                onClick={() => setModalComunidadVisible(false)}
+                style={{
+                  background: '#374151', color: 'white', padding: '10px 24px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: 'bold'
                 }}
               >
                 Cerrar Visor
