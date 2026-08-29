@@ -105,10 +105,17 @@ const NotificacionesCampana = () => {
 
             {abierto && (
                 <div style={{
-                    position: 'absolute', top: '45px', right: esMobile ? '-25px' : '0',
-                    width: '90vw', maxWidth: '350px', maxHeight: '75vh', backgroundColor: '#0f172a',
+                    position: esMobile ? 'fixed' : 'absolute',
+                    top: esMobile ? '70px' : '45px',
+                    right: esMobile ? '5%' : '0',
+                    left: esMobile ? '5%' : 'auto',
+                    width: esMobile ? '90%' : '320px',
+                    maxWidth: '400px',
+                    maxHeight: '75vh',
+                    backgroundColor: '#0f172a',
                     border: '1px solid #1e293b', borderRadius: '12px',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.6)', zIndex: 999,
+                    boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
+                    zIndex: 9999,
                     display: 'flex', flexDirection: 'column', overflow: 'hidden'
                 }}>
                     <div style={{
