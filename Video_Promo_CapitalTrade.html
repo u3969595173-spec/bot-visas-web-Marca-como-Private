@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Capital Trade Iberia - Promo</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Space+Grotesk:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #030712;
+            --primary: #f6c453;
+            --secondary: #00f0ff;
+            --accent: #10b981;
+            --cyan: #06b6d4;
+            --purple: #8b5cf6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #ffffff;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            background-image:
+                radial-gradient(circle at 15% 50%, rgba(246, 196, 83, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(0, 240, 255, 0.08) 0%, transparent 50%);
+        }
+
+        .reel-container {
+            width: 100%;
+            height: 100%;
+            max-width: 450px;
+            position: relative;
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.8s ease-in-out, transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: scale(0.9) translateY(20px);
+        }
+
+        .slide.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1) translateY(0);
+        }
+
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+            background: linear-gradient(135deg, #ffffff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(246, 196, 83, 0.3);
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            margin-bottom: 0.8rem;
+            color: var(--secondary);
+            text-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+            line-height: 1.2;
+        }
+
+        h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        p {
+            font-size: 1.05rem;
+            line-height: 1.4;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+
+        .highlight {
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 1.1em;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.2rem;
+            backdrop-filter: blur(10px);
+            width: 100%;
+            margin-bottom: 0.8rem;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: slideUp 0.6s forwards;
+        }
+
+        .glass-card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .glass-card:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .icon {
+            font-size: 3.5rem;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-10px) rotate(5deg);
+            }
+
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+        }
+
+        .progress-bar-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            z-index: 10;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            box-shadow: 0 0 10px var(--primary);
+            transition: width linear;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 50;
+        }
+
+        .controls button {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-family: 'Outfit';
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #030712;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s;
+        }
+
+        .play-btn {
+            background: var(--secondary);
+            border: none;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 30px var(--secondary);
+            animation: pulse 2s infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(0, 240, 255, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 240, 255, 0);
+            }
+        }
+
+        /* Robot Avatar Styles */
+        .robot-container {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            z-index: 60;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .robot-container.visible {
+            opacity: 1;
+        }
+
+        .robot-avatar {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 2px solid var(--secondary);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+            animation: float 3s infinite;
+            position: relative;
+        }
+
+        .robot-eyes {
+            width: 30px;
+            height: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .eye {
+            width: 10px;
+            height: 10px;
+            background: var(--secondary);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--secondary);
+            animation: blink 4s infinite;
+        }
+
+        .robot-mouth {
+            position: absolute;
+            bottom: 15px;
+            width: 20px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 2px;
+            animation: speak 0.3s infinite alternate;
+        }
+
+        @keyframes blink {
+
+            0%,
+            96%,
+            100% {
+                transform: scaleY(1);
+            }
+
+            98% {
+                transform: scaleY(0.1);
+            }
+        }
+
+        @keyframes speak {
+            0% {
+                height: 2px;
+                width: 10px;
+            }
+
+            100% {
+                height: 6px;
+                width: 20px;
+            }
+        }
+
+        .circle-progress {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            background: conic-gradient(var(--primary) 0%, var(--accent) 70%, transparent 70%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin: 15px auto;
+            box-shadow: 0 0 40px rgba(16, 185, 129, 0.3);
+            animation: spinCircle 1s ease-out forwards;
+        }
+
+        .circle-progress::before {
+            content: '';
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            background: var(--bg-color);
+            border-radius: 50%;
+        }
+
+        .circle-text {
+            position: relative;
+            font-size: 2rem;
+            font-weight: 900;
+            color: #fff;
+            z-index: 2;
+        }
+
+        @keyframes spinCircle {
+            0% {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="reel-container">
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="start-screen" id="startScreen">
+            <h1 style="font-size: 2rem; margin-bottom: 2rem;">CAPITAL TRADE<br><span style="color:var(--secondary)">Guía
+                    Explicativa</span></h1>
+            <button class="play-btn" onclick="startVideo()">▶</button>
+            <p style="margin-top: 1rem; color: #64748b;">Toca para encender a BotTrader 🤖 (Sonido Activo)</p>
+        </div>
+
+        <div class="robot-container" id="robotAvatar">
+            <div class="robot-avatar">
+                <div class="robot-eyes">
+                    <div class="eye"></div>
+                    <div class="eye"></div>
+                </div>
+                <div class="robot-mouth" id="robotMouth"></div>
+            </div>
+            <div style="font-size:10px; font-weight:bold; color:var(--secondary); margin-top:5px;">AI TRADER</div>
+        </div>
+
+        <!-- SLIDE 1: INTRO -->
+        <div class="slide" id="slide-1">
+            <span class="icon">🌍</span>
+            <h1>CAPITAL TRADE</h1>
+            <p>El puente financiero que conecta <strong style="color:var(--secondary)">España</strong> con <strong
+                    style="color:var(--primary)">Cuba</strong>.</p>
+            <div class="glass-card">
+                <h3 style="font-size:1.1rem">Operaciones Reales</h3>
+                <p style="margin:0; font-size: 0.9rem;">Gestionamos operaciones comerciales de importación y logística,
+                    generando rentabilidad todos los días con capital físico.</p>
+            </div>
+        </div>
+
+        <!-- SLIDE 2: INVERSIÓN MÍNIMA -->
+        <div class="slide" id="slide-2">
+            <span class="icon">💰</span>
+            <h2>Accesible para Todos</h2>
+            <p>Comienza a construir tu portafolio desde:</p>
+            <h1
+                style="font-size: 3.2rem; color: white; -webkit-text-fill-color: white; text-shadow: 0 0 20px var(--accent); margin-bottom:0;">
+                50 USDT</h1>
+            <h1 style="font-size: 2rem; color: #94a3b8; -webkit-text-fill-color: #94a3b8; margin-top:0;">o 50 Euros</h1>
+        </div>
+
+        <!-- SLIDE 3: LAS 72 HORAS -->
+        <div class="slide" id="slide-3">
+            <span class="icon" style="color: var(--secondary)">⏳</span>
+            <h2 style="color: var(--secondary)">72h de Bloqueo Logístico</h2>
+            <div class="glass-card">
+                <p style="margin:0; font-size: 0.95rem;">Durante las primeras <span class="highlight">72 horas</span>,
+                    el capital está bloqueado ya que se inyecta en mercancía y logística en España.</p>
+            </div>
+            <p style="font-size: 0.85rem;">Pasado ese tiempo, tu capital se activa y automáticamente comienza a generar
+                retornos.</p>
+        </div>
+
+        <!-- SLIDE 4: RENDIMIENTO -->
+        <div class="slide" id="slide-4">
+            <span class="icon">📈</span>
+            <h2 style="color: var(--accent)">Beneficio Automático</h2>
+            <p>Disfruta de una rentabilidad pasiva de:</p>
+            <h1
+                style="font-size: 2.8rem; background: linear-gradient(to right, #10b981, #34d399); -webkit-background-clip: text; margin-bottom:5px;">
+                0.5% a 1.5%</h1>
+            <h2 style="margin-top:0;">Todos los días</h2>
+            <div class="glass-card" style="padding: 10px;">
+                <p style="margin:0; font-size:0.85rem;">Gracias al margen comercial de nuestras operaciones físicas
+                    constantes.</p>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: RETIROS Y FONDO SOLIDARIO -->
+        <div class="slide" id="slide-5">
+            <span class="icon" style="color: var(--cyan)">💳</span>
+            <h2 style="color: var(--cyan)">Retiros Rápidos & Fees</h2>
+            <p>Retiros manuales en un <strong>máximo de 3 horas</strong>.</p>
+            <div class="glass-card">
+                <p style="margin:0; font-size: 0.9rem;">Se aplica un <strong style="color:white">Fee del 5%</strong> en
+                    retiros:</p>
+                <p style="margin:0; font-size: 0.85rem; color:var(--primary)">• 3% para costes operativos y de red.</p>
+                <p style="margin:0; font-size: 0.85rem; color:var(--accent)">• 2% para el FONDO SOLIDARIO.</p>
+            </div>
+            <p style="font-size: 0.85rem; line-height:1.2;">El Fondo Solidario también recibe aportes de la empresa y se
+                usa solo para ayudas transparentes y verificadas a familias en Cuba.</p>
+        </div>
+
+        <!-- SLIDE 6: REFERIDOS DIRECTOS -->
+        <div class="slide" id="slide-6">
+            <span class="icon">🤝</span>
+            <h2 style="color: var(--primary)">Bono de Red Directo</h2>
+            <div class="glass-card" style="border-color: var(--primary);">
+                <h3 style="color: var(--primary)">¡Ganas el 10%!</h3>
+                <p style="margin:0; font-size:0.9rem;">Recibe de inmediato el 10% del abono que realicen todos tus
+                    referidos directos. ¡Fondo listo para retirar!</p>
+            </div>
+        </div>
+
+        <!-- SLIDE 7: EL LIMITE DEL 300% -->
+        <div class="slide" id="slide-7">
+            <h2 style="margin-bottom: 0;">Tu Meta:</h2>
+            <div class="circle-progress">
+                <span class="circle-text">300%</span>
+            </div>
+            <p style="font-size: 1.1rem; font-weight: bold;">Toda inversión finaliza al 300%</p>
+            <div class="glass-card">
+                <p style="margin:0; font-size:0.85rem;">El pasivo diario y tus comisiones de red
+                    <strong>ACELERAN</strong> tu progreso. Mientras más recomiendes, más rápido llegarás al 300%.
+                </p>
+            </div>
+        </div>
+
+        <!-- SLIDE 8: RANGOS Y OFERTAS PRIVADAS -->
+        <div class="slide" id="slide-8">
+            <span class="icon">�</span>
+            <h2 style="font-size:1.6rem">Niveles y Privilegios</h2>
+
+            <div class="glass-card" style="padding:10px;">
+                <h3 style="font-size:1rem;color:var(--secondary);margin-bottom:4px;">� Rangos de Socio (Capital & Red)
+                </h3>
+                <p style="font-size:0.8rem; margin:0;">Inyecta liquidez y suma referidos para ganar bonos mensuales de
+                    hasta 400 USDT. ¡Desbloquea recursos VIP y tu Panel de Líder!</p>
+            </div>
+
+            <div class="glass-card" style="padding:10px;">
+                <h3 style="font-size:1rem;color:var(--primary);margin-bottom:4px;">🏭 Ofertas Privadas (Ej: Cemento)
+                </h3>
+                <p style="font-size:0.8rem; margin:0;">Si tienes rango, podrás participar en operaciones limitadas como
+                    la <strong>importación de cemento blanco</strong>. Estos cupos se agotan rápido pero ofrecen
+                    rendimientos aún mayores y plazos cortos.</p>
+            </div>
+        </div>
+
+        <!-- SLIDE 9: CHAT DE COMUNIDAD -->
+        <div class="slide" id="slide-9">
+            <span class="icon" style="color: var(--purple)">💬</span>
+            <h2 style="color: var(--purple)">Comunidad Global</h2>
+            <div class="glass-card">
+                <h3 style="color: #fff; font-size: 1.1rem;">Chat Interno Integrado</h3>
+                <p style="margin:0; font-size: 0.95rem;">Dentro de la plataforma tendrás acceso a un Chat de Comunidad
+                    Global. Un espacio seguro para que todos los inversores interactúen, propongan ayudas al Fondo
+                    Solidario y compartan sus resultados sin restricciones.</p>
+            </div>
+        </div>
+
+        <!-- SLIDE 10: CIERRE -->
+        <div class="slide" id="slide-10">
+            <div class="brand-icon" style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;">✧</div>
+            <h1 style="font-size: 2rem;">¿Estás Listo?</h1>
+            <p>Capital Trade Iberia.</p>
+            <p style="font-size: 1.1rem; font-weight: bold; color: var(--secondary);">Registrate y empieza a operar.</p>
+
+            <button onclick="window.location.reload()" style="
+                margin-top:15px; 
+                background: linear-gradient(45deg, var(--primary), #d97706);
+                border:none; padding:12px 25px; border-radius:30px;
+                color: #000; font-weight:800; font-size:1rem;
+                cursor: pointer; box-shadow: 0 10px 20px rgba(246, 196, 83, 0.4);
+            ">Ver de Nuevo</button>
+        </div>
+
+        <div class="controls" id="controls" style="display:none;">
+            <button onclick="prevSlide()">◀ Anterior</button>
+            <button onclick="nextSlide()">Siguiente ▶</button>
+        </div>
+    </div>
+
+
+    <script>
+        const SLIDES = 10;
+        const TIME_PER_SLIDE = 15000; // ms aumentada la duracion
+        let currentSlide = 0;
+        let progressInterval;
+        let autoPlayTimeout;
+
+        const synth = window.speechSynthesis;
+        const textosVoz = [
+            "",
+            "Hola líder. Bienvenido a Capital Trade. Somos la conexión comercial entre España y Cuba. Gestionando operaciones y logística real que generan dinero todos los días.",
+            "Para unirte, la inversión mínima es muy accesible: empieza desde solo 50 euros o 50 tether en criptomoneda.",
+            "Al hacer un depósito, los fondos pasan por un período de bloqueo logístico de 72 horas. Durante este tiempo el dinero se inyecta directamente en las operaciones aduaneras y logísticas.",
+            "Luego de las 72 horas, comenzarás a generar automáticamente una ganancia diaria del 0.5% al 1.5%. Absolutamente todos los días operacionales.",
+            "Para retirar ganancias, procesamos los pagos de forma manual en un máximo de 3 horas. Hay un fee del 5%, del cual un 3% es coste operativo y un 2% va directo al Fondo Solidario que asiste a familias.",
+            "Además tienes la magia del interés de red. Ganas inmediatamente el 10% por cada referido directo. ¡Dinero que puedes retirar el mismo instante si deseas!",
+            "Toda inversión tiene una frontera: el 300%. Sin embargo, tanto el pasivo diario como el bono de red aceleran este proceso. Mientras más rápido reclutes, más rápido llegas al límite.",
+            "Existen Rangos por Comunidad y Aportación para líderes de red. Quienes suben de rango, obtienen su Panel Especial e invitaciones a grandes operaciones logísticas, como nuestra oferta limitada de importación de Cemento Blanco.",
+            "Contamos también con un Chat Global para Inversores. Ahí podrás conversar con la comunidad, proponer ayudas humanitarias para el Fondo Solidario y reportar el éxito de operaciones.",
+            "El momento de entrar es ahora. Capital Trade Iberia. Te esperamos dentro."
+        ];
+
+        function startVideo() {
+            document.getElementById('startScreen').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('startScreen').style.display = 'none';
+                document.getElementById('controls').style.display = 'flex';
+                document.getElementById('robotAvatar').classList.add('visible');
+                // Inicializar voces para que el synth cargue
+                let temp = synth.getVoices();
+                goToSlide(1);
+            }, 500);
+        }
+
+        function selectRobotVoice() {
+            const voices = synth.getVoices();
+            // Buscar una voz de google en español o de microsoft, preferiblemente masculina o sintética
+            let selected = voices.find(v => v.lang.includes('es') && (v.name.includes('Google') || v.name.includes('Multilingual')));
+            if (!selected) selected = voices.find(v => v.lang.includes('es'));
+            return selected;
+        }
+
+        function playVoice(index) {
+            synth.cancel();
+            if (textosVoz[index]) {
+                const utterance = new SpeechSynthesisUtterance(textosVoz[index]);
+                utterance.voice = selectRobotVoice();
+                utterance.lang = 'es-ES';
+                // Darle tono robótico a la voz
+                utterance.rate = 1.15;
+                utterance.pitch = 0.5; // Pitch bajo = más robótico/seguro
+
+                // Mover la boca del robot mientras habla
+                utterance.onstart = () => document.getElementById('robotMouth').style.animationPlayState = 'running';
+                utterance.onend = () => document.getElementById('robotMouth').style.animationPlayState = 'paused';
+                utterance.onerror = () => document.getElementById('robotMouth').style.animationPlayState = 'paused';
+
+                synth.speak(utterance);
+            }
+        }
+
+        function startProgress() {
+            clearInterval(progressInterval);
+            let width = 0;
+            const bar = document.getElementById('progressBar');
+            // Usamos Intervalo basado en el tiempo de la animación
+            progressInterval = setInterval(() => {
+                width += (30 / TIME_PER_SLIDE) * 100;
+                bar.style.width = width + '%';
+                if (width >= 100) clearInterval(progressInterval);
+            }, 30);
+        }
+
+        function goToSlide(n) {
+            if (n < 1 || n > SLIDES) return;
+            for (let i = 1; i <= SLIDES; i++) {
+                document.getElementById('slide-' + i).classList.remove('active');
+            }
+            currentSlide = n;
+            document.getElementById('slide-' + n).classList.add('active');
+
+            // Pausar animación de boca inicialmente
+            document.getElementById('robotMouth').style.animationPlayState = 'paused';
+            playVoice(n);
+
+            if (n < SLIDES) {
+                startProgress();
+                clearTimeout(autoPlayTimeout);
+                autoPlayTimeout = setTimeout(() => nextSlide(), TIME_PER_SLIDE);
+            } else {
+                clearInterval(progressInterval);
+                document.getElementById('progressBar').style.width = '100%';
+                clearTimeout(autoPlayTimeout);
+                document.getElementById('robotAvatar').classList.remove('visible');
+            }
+        }
+
+        function nextSlide() { if (currentSlide < SLIDES) goToSlide(currentSlide + 1); }
+        function prevSlide() { if (currentSlide > 1) goToSlide(currentSlide - 1); }
+    </script>
+</body>
+
+</html>
