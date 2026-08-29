@@ -8,13 +8,11 @@ import FondoSolidarioPanel from './FondoSolidarioPanel'
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const METODOS_DEFAULT = [
-  { moneda: 'MLC', tipo: 'tarjeta', numero: '', instrucciones: '', minimo: 100 },
-  { moneda: 'CUP', tipo: 'tarjeta', numero: '', instrucciones: '', minimo: 500 },
   { moneda: 'EUR', tipo: 'iban', titular: '', iban: '', concepto: '', minimo: 500 },
   { moneda: 'USDT BEP-20', tipo: 'wallet', wallet: '', red: 'BEP-20 (BSC)', instrucciones: '', minimo: 50 },
 ]
 
-const defaultMinimos = { MLC: 100, CUP: 500, 'USDT BEP-20': 50, EUR: 500 }
+const defaultMinimos = { 'USDT BEP-20': 50, EUR: 500 }
 
 const readStorage = (key, fallback) => {
   try {
@@ -29,8 +27,6 @@ const writeStorage = (key, value) => localStorage.setItem(key, JSON.stringify(va
 
 const formatCurrency = (value, moneda) => {
   if (!Number.isFinite(value)) return '—'
-  if (moneda === 'CUP') return `${Number(value).toLocaleString('es-ES')} CUP`
-  if (moneda === 'MLC') return `${Number(value).toLocaleString('es-ES')} MLC`
   if (moneda === 'USDT BEP-20') return `${Number(value).toLocaleString('es-ES')} USDT`
   return `€${Number(value).toLocaleString('es-ES')}`
 }
@@ -97,7 +93,7 @@ function DashboardAdminExpandido({ onLogout }) {
   })
   const [cuentasConCambios, setCuentasConCambios] = useState(() => readStorage('capital_trade_cuentas_borrador', []).length > 0)
   const [guardandoCuentas, setGuardandoCuentas] = useState(false)
-  const [minimos, setMinimos] = useState({ MLC: 100, CUP: 500, 'USDT BEP-20': 50 })
+  const [minimos, setMinimos] = useState({ 'USDT BEP-20': 50, EUR: 500 })
   const [porcentajeSemanal, setPorcentajeSemanal] = useState('')
   const [pagosRentabilidad, setPagosRentabilidad] = useState([])
   const [usuariosRegistrados, setUsuariosRegistrados] = useState([])
@@ -1802,39 +1798,39 @@ function DashboardAdminExpandido({ onLogout }) {
                   const referidosConDueno = referidos.filter(r => r.referidoPor)
                   const totalInversionReferidos = referidosConDueno.reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0)
                   return (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
-                  {/* Pie chart simple */}
-                  <div style={{ textAlign: 'center' }}>
-                    <h4 style={{ color: '#6b7280' }}>Distribución de Ganancias</h4>
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '12px', height: '200px', marginTop: '1rem' }}>
-                      <div style={{ width: '60px', backgroundColor: '#10b981', borderRadius: '8px 8px 0 0', height: `${(referidosConDueno.length / (aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length || 1)) * 100 || 10}%`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
-                        Referidos
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1rem' }}>
+                      {/* Pie chart simple */}
+                      <div style={{ textAlign: 'center' }}>
+                        <h4 style={{ color: '#6b7280' }}>Distribución de Ganancias</h4>
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '12px', height: '200px', marginTop: '1rem' }}>
+                          <div style={{ width: '60px', backgroundColor: '#10b981', borderRadius: '8px 8px 0 0', height: `${(referidosConDueno.length / (aportacionesNormalizadas.filter(a => a.estado === 'Activa' || a.estado === 'Validada').length || 1)) * 100 || 10}%`, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
+                            Referidos
+                          </div>
+                          <div style={{ width: '60px', backgroundColor: '#3b82f6', borderRadius: '8px 8px 0 0', height: '70%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
+                            Activos
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ width: '60px', backgroundColor: '#3b82f6', borderRadius: '8px 8px 0 0', height: '70%', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', color: 'white', fontSize: '12px', fontWeight: '600', paddingBottom: '8px' }}>
-                        Activos
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Resumen de pagos */}
-                  <div style={{ textAlign: 'center' }}>
-                    <h4 style={{ color: '#6b7280' }}>Resumen</h4>
-                    <div style={{ marginTop: '1rem', textAlign: 'left', backgroundColor: 'white', padding: '1rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
-                        <span style={{ color: '#6b7280' }}>Total Referidos:</span>
-                        <strong style={{ color: '#10b981' }}>{referidosConDueno.length}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
-                        <span style={{ color: '#6b7280' }}>Inv. Total Referidos:</span>
-                        <strong style={{ color: '#3b82f6' }}>€{totalInversionReferidos.toFixed(2)}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ color: '#6b7280' }}>Comisiones Totales (10%):</span>
-                        <strong style={{ color: '#f59e0b' }}>€{(totalInversionReferidos * 0.1).toFixed(2)}</strong>
+                      {/* Resumen de pagos */}
+                      <div style={{ textAlign: 'center' }}>
+                        <h4 style={{ color: '#6b7280' }}>Resumen</h4>
+                        <div style={{ marginTop: '1rem', textAlign: 'left', backgroundColor: 'white', padding: '1rem', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
+                            <span style={{ color: '#6b7280' }}>Total Referidos:</span>
+                            <strong style={{ color: '#10b981' }}>{referidosConDueno.length}</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', paddingBottom: '8px', borderBottom: '1px solid #e5e7eb' }}>
+                            <span style={{ color: '#6b7280' }}>Inv. Total Referidos:</span>
+                            <strong style={{ color: '#3b82f6' }}>€{totalInversionReferidos.toFixed(2)}</strong>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#6b7280' }}>Comisiones Totales (10%):</span>
+                            <strong style={{ color: '#f59e0b' }}>€{(totalInversionReferidos * 0.1).toFixed(2)}</strong>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
                   )
                 })()}
               </div>

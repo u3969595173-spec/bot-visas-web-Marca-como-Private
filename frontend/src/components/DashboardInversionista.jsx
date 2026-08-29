@@ -2284,9 +2284,8 @@ function DashboardInversionista() {
                       fontSize: '14px'
                     }}
                   >
-                    <option value="MLC">MLC - Moneda Libremente Convertible</option>
-                    <option value="CUP">CUP - Pesos Cubanos</option>
                     <option value="USDT BEP-20">USDT BEP-20 (Criptomoneda)</option>
+                    <option value="EUR">EUR - Euro</option>
                   </select>
                 </div>
 
