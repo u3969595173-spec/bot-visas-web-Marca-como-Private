@@ -19,7 +19,7 @@ const PoliticaPrivacidad = () => {
         <section>
           <h2>1. INFORMACIÓN GENERAL</h2>
           <p>
-            En <strong>Capital Trade Iberia</strong> (en adelante, "la Plataforma"), respetamos tu privacidad y
+            En <strong>Capital Iberia</strong> (en adelante, "la Plataforma"), respetamos tu privacidad y
             estamos comprometidos con la protección de tus datos personales. Esta Política de Privacidad describe
             cómo recopilamos, usamos, almacenamos y protegemos tu información personal de acuerdo con el
             Reglamento General de Protección de Datos (RGPD) de la Unión Europea.
@@ -28,8 +28,8 @@ const PoliticaPrivacidad = () => {
 
         <section>
           <h2>2. RESPONSABLE DEL TRATAMIENTO</h2>
-          <p><strong>Identidad:</strong> Capital Trade Iberia</p>
-          <p><strong>Email de contacto:</strong> privacidad@capitaltradeiberia.com</p>
+          <p><strong>Identidad:</strong> Capital Iberia</p>
+          <p><strong>Email de contacto:</strong> privacidad@capitaliberia.com</p>
           <p><strong>Finalidad:</strong> Gestión de operaciones comerciales entre España y Cuba, coordinación de capital y participaciones de inversores</p>
         </section>
 
@@ -144,7 +144,7 @@ const PoliticaPrivacidad = () => {
 
           <p>
             Para ejercer cualquiera de estos derechos, contacta con nosotros en:
-            <strong> privacidad@capitaltradeiberia.com</strong>
+            <strong> privacidad@capitaliberia.com</strong>
           </p>
           <p>
             Responderemos a tu solicitud en un plazo máximo de <strong>30 días</strong>.
@@ -212,8 +212,8 @@ const PoliticaPrivacidad = () => {
           <h2>15. CONTACTO</h2>
           <p>Para cualquier consulta sobre esta Política de Privacidad o sobre el tratamiento de tus datos:</p>
           <div className="contacto-info">
-            <p>📧 <strong>Email:</strong> privacidad@capitaltradeiberia.com</p>
-            <p>🌐 <strong>Web:</strong> www.capitaltradeiberia.com</p>
+            <p>📧 <strong>Email:</strong> privacidad@capitaliberia.com</p>
+            <p>🌐 <strong>Web:</strong> www.capitaliberia.com</p>
           </div>
         </section>
 

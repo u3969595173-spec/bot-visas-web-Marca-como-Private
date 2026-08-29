@@ -58,7 +58,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
           <div className="logo-box">
             <span className="logo-text-short">CT</span>
           </div>
-          <span className="logo-text-full">Capital Trade Iberia</span>
+          <span className="logo-text-full">Capital Iberia</span>
         </Link>
 
         <nav className="navbar-links">

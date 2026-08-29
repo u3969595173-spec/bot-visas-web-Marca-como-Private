@@ -1186,7 +1186,7 @@ function DashboardAdminExpandido({ onLogout }) {
         <div className="sidebar-brand">
           <div className="brand-icon">✧</div>
           <div className="brand-text">
-            <span className="glow-text">Capital Trade</span>
+            <span className="glow-text">Capital Iberia</span>
             <span className="badge-admin">Admin Center</span>
           </div>
         </div>

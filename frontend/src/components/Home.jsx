@@ -32,7 +32,7 @@ function Home() {
         <div className="hero-main">
           <div className="hero-logo-badge">
             <div className="logo-icon">CT</div>
-            <span className="logo-badge-text">Capital Trade Iberia</span>
+            <span className="logo-badge-text">Capital Iberia</span>
           </div>
 
           <h1 className="hero-company-name">

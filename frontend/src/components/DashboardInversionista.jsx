@@ -24,7 +24,7 @@ const readStorage = (key, fallback) => {
 }
 
 const METODOS_DEFAULT_INV = [
-  { moneda: 'EUR', tipo: 'iban', titular: 'Capital Trade Iberia', iban: 'ES00...', concepto: 'Referencia de inversión', minimo: 500 },
+  { moneda: 'EUR', tipo: 'iban', titular: 'Capital Iberia', iban: 'ES00...', concepto: 'Referencia de inversión', minimo: 500 },
   { moneda: 'USDT BEP-20', wallet: '0x0000000', red: 'BEP-20 (BSC)', instrucciones: 'Transferencia USDT.', minimo: 50 }
 ]
 
@@ -898,7 +898,7 @@ function DashboardInversionista() {
         <div className="sidebar-brand">
           <div className="brand-icon" style={{ color: '#f6c453', textShadow: '0 0 15px rgba(246,196,83,0.5)' }}>✧</div>
           <div className="brand-text">
-            <span className="glow-text" style={{ background: 'linear-gradient(to right, #fff, #f6c453)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }}>Capital Trade</span>
+            <span className="glow-text" style={{ background: 'linear-gradient(to right, #fff, #f6c453)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }}>Capital Iberia</span>
             <span className="badge-admin" style={{ color: '#00f0ff' }}>INVERSOR</span>
           </div>
         </div>
@@ -1334,7 +1334,7 @@ function DashboardInversionista() {
             <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
               <section className="operaciones-journal-heading">
                 <p>ACTUALIZACIÓN OPERATIVA</p>
-                <h2>El diario de Capital Trade</h2>
+                <h2>El diario de Capital Iberia</h2>
                 <span>Información publicada por la administración sobre las operaciones en curso.</span>
               </section>
               {avisosOperaciones.length ? avisosOperaciones.map(aviso => (
@@ -1686,7 +1686,7 @@ function DashboardInversionista() {
                 <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                   <input
                     type="text"
-                    value={`https://capitaltradeiberia.com?ref=${getCodigoReferidoInversor().codigo}`}
+                    value={`https://capitaliberia.com?ref=${getCodigoReferidoInversor().codigo}`}
                     readOnly
                     style={{
                       flex: 1,
@@ -1702,7 +1702,7 @@ function DashboardInversionista() {
                   />
                   <button
                     onClick={() => {
-                      navigator.clipboard.writeText(`https://capitaltradeiberia.com?ref=${getCodigoReferidoInversor().codigo}`)
+                      navigator.clipboard.writeText(`https://capitaliberia.com?ref=${getCodigoReferidoInversor().codigo}`)
                       setSuccessRetiro('✅ Enlace copiado')
                       setTimeout(() => setSuccessRetiro(''), 2000)
                     }}
@@ -2231,7 +2231,7 @@ function DashboardInversionista() {
                 </div>
 
                 <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
-                  En Capital Trade Iberia puedes crecer de dos formas: mediante tu propia participación de capital o desarrollando una comunidad de red protegida.
+                  En Capital Iberia puedes crecer de dos formas: mediante tu propia participación de capital o desarrollando una comunidad de red protegida.
                 </p>
 
                 {(() => {

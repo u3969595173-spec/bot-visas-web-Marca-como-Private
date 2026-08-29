@@ -27,7 +27,7 @@ export default function ProgramaPartner() {
             {/* Header */}
             <div style={{ background: 'linear-gradient(135deg, #0e1b2d, #1a2538)', borderBottom: '2px solid #f6c453', padding: '3rem 1.5rem 2rem' }}>
                 <div style={{ maxWidth: 800, margin: '0 auto' }}>
-                    <p style={{ color: '#f6c453', fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 0.5rem' }}>Capital Trade Iberia</p>
+                    <p style={{ color: '#f6c453', fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 0.5rem' }}>Capital Iberia</p>
                     <h1 style={{ margin: '0 0 0.8rem', fontSize: 'clamp(1.8rem,4vw,2.8rem)', fontWeight: 900, color: '#fff' }}>💎 Programa Partner de Capital</h1>
                     <p style={{ margin: 0, color: '#94a3b8', fontSize: '1.05rem', maxWidth: 600 }}>
                         Un programa pensado para usuarios que prefieren crecer mediante su propia participación de capital, sin necesidad de crear una comunidad ni realizar referidos. Tu nivel depende del capital propio que mantengas dentro del programa.

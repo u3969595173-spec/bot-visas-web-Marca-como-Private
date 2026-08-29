@@ -111,7 +111,7 @@ function Comunidad() {
                     <div className="comunidad-dot" />
                     <div>
                         <h1>Comunidad</h1>
-                        <p>Chat de inversores — Capital Trade Iberia</p>
+                        <p>Chat de inversores — Capital Iberia</p>
                     </div>
                 </div>
             </div>

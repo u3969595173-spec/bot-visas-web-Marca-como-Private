@@ -26,7 +26,7 @@ function SobreNosotros() {
       <div className="page-card">
         <h1>Sobre Nosotros</h1>
         <p style={{ fontSize: '1.2rem', fontWeight: '600', color: '#f6c453' }}>Construimos oportunidades. Creamos comunidad.</p>
-        <p>Capital Trade Iberia nace con una visión sencilla: crear una plataforma que conecte personas, oportunidades comerciales y comunidades dentro de un mismo ecosistema.</p>
+        <p>Capital Iberia nace con una visión sencilla: crear una plataforma que conecte personas, oportunidades comerciales y comunidades dentro de un mismo ecosistema.</p>
         <p>Trabajamos con un modelo basado en la gestión de operaciones comerciales y en el desarrollo de una comunidad que pueda crecer junto al proyecto.</p>
         <p>Nuestro objetivo es ofrecer una experiencia clara, organizada y transparente, donde cada usuario pueda gestionar su cuenta, consultar sus movimientos y acceder a los diferentes beneficios disponibles dentro de la plataforma.</p>
 
@@ -58,7 +58,7 @@ function SobreNosotros() {
         <p>Queremos construir una comunidad internacional alrededor de un ecosistema de oportunidades comerciales, donde usuarios y Partners puedan crecer junto al desarrollo de la plataforma.</p>
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center', borderTop: '1px solid rgba(246,196,83,0.2)', paddingTop: '2rem' }}>
-          <p style={{ fontSize: '1.1rem', fontWeight: '700', color: '#f8fafc' }}>Capital Trade Iberia</p>
+          <p style={{ fontSize: '1.1rem', fontWeight: '700', color: '#f8fafc' }}>Capital Iberia</p>
           <p style={{ color: '#f6c453', fontWeight: '600' }}>Crece. Conecta. Avanza.</p>
         </div>
       </div>
@@ -135,7 +135,7 @@ function Faq() {
     },
     {
       q: '¿Cómo puedo contactar con el equipo?',
-      a: 'Puedes escribirnos a contacto@capitaltradeiberia.com. Respondemos en horario de lunes a viernes, 9:00 a 18:00 (CET).'
+      a: 'Puedes escribirnos a contacto@capitaliberia.com. Respondemos en horario de lunes a viernes, 9:00 a 18:00 (CET).'
     }
   ]
 
@@ -178,7 +178,7 @@ function Contacto() {
         <h1>Contacto</h1>
         <p>Solicita información sobre operaciones activas, condiciones de participación y tramos disponibles.</p>
         <div className="contact-box">
-          <p><strong>Email:</strong> contacto@capitaltradeiberia.com</p>
+          <p><strong>Email:</strong> contacto@capitaliberia.com</p>
           <p><strong>WhatsApp:</strong> +34 677 412 858</p>
           <p><strong>Horario:</strong> Lunes a viernes, 9:00 - 18:00</p>
         </div>

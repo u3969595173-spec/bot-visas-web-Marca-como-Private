@@ -18,7 +18,7 @@ const TerminosCondiciones = () => {
       <div className="terminos-content">
         <section className="introduccion">
           <p>
-            Bienvenido a <strong>Capital Trade Iberia</strong>. Estos Términos y Condiciones de Uso (en adelante, "Términos")
+            Bienvenido a <strong>Capital Iberia</strong>. Estos Términos y Condiciones de Uso (en adelante, "Términos")
             regulan el acceso y uso de nuestra plataforma de gestión de operaciones comerciales entre España y Cuba.
             Al registrarte y utilizar nuestros servicios, aceptas estos Términos en su totalidad.
           </p>
@@ -30,7 +30,7 @@ const TerminosCondiciones = () => {
         <section>
           <h2>1. DEFINICIONES</h2>
           <ul>
-            <li><strong>Plataforma:</strong> Capital Trade Iberia, sitio web y servicios asociados</li>
+            <li><strong>Plataforma:</strong> Capital Iberia, sitio web y servicios asociados</li>
             <li><strong>Usuario / Inversor:</strong> Persona que se registra y utiliza la plataforma</li>
             <li><strong>Servicios:</strong> Presentación de operaciones comerciales, gestión de participaciones y seguimiento de capital</li>
             <li><strong>Operación:</strong> Cada proyecto comercial concreto (compraventa, exportación u otro) con condiciones, capital y plazo definidos</li>
@@ -51,7 +51,7 @@ const TerminosCondiciones = () => {
 
         <section>
           <h2>3. DESCRIPCIÓN DE LOS SERVICIOS</h2>
-          <p>Capital Trade Iberia ofrece los siguientes servicios:</p>
+          <p>Capital Iberia ofrece los siguientes servicios:</p>
 
           <div className="servicios-grid">
             <div className="servicio-item">
@@ -131,7 +131,7 @@ const TerminosCondiciones = () => {
 
           <h3>6.1 Plataforma de Información</h3>
           <p className="destacado-importante">
-            Capital Trade Iberia es una plataforma de <strong>GESTIÓN E INFORMACIÓN</strong> sobre operaciones comerciales.
+            Capital Iberia es una plataforma de <strong>GESTIÓN E INFORMACIÓN</strong> sobre operaciones comerciales.
             NO somos una entidad financiera regulada ni ofrecemos asesoramiento de inversión homologado.
           </p>
 
@@ -164,7 +164,7 @@ const TerminosCondiciones = () => {
           <h2>8. PROPIEDAD INTELECTUAL</h2>
           <p>
             Todo el contenido de la plataforma (diseño, textos, gráficos, logos, código)
-            es propiedad de Capital Trade Iberia y está protegido por leyes de propiedad intelectual.
+            es propiedad de Capital Iberia y está protegido por leyes de propiedad intelectual.
           </p>
           <p>Queda expresamente prohibido:</p>
           <ul>
@@ -212,7 +212,7 @@ const TerminosCondiciones = () => {
           <h2>11. LIMITACIÓN DE RESPONSABILIDAD</h2>
           <div className="limitacion-responsabilidad">
             <h3>⚖️ EXENCIÓN DE RESPONSABILIDAD</h3>
-            <p>Capital Trade Iberia NO se hace responsable de:</p>
+            <p>Capital Iberia NO se hace responsable de:</p>
             <ul>
               <li>❌ Pérdidas de capital derivadas del resultado de operaciones comerciales</li>
               <li>❌ Cambios en las condiciones del mercado o entorno comercial</li>
@@ -263,8 +263,8 @@ const TerminosCondiciones = () => {
           <h2>15. CONTACTO Y SOPORTE</h2>
           <p>Para consultas, soporte o reclamaciones:</p>
           <div className="contacto-box">
-            <p>📧 <strong>Email General:</strong> contacto@capitaltradeiberia.com</p>
-            <p>📧 <strong>Privacidad:</strong> privacidad@capitaltradeiberia.com</p>
+            <p>📧 <strong>Email General:</strong> contacto@capitaliberia.com</p>
+            <p>📧 <strong>Privacidad:</strong> privacidad@capitaliberia.com</p>
             <p>⏰ <strong>Horario:</strong> Lunes a Viernes, 9:00 - 18:00 (CET)</p>
           </div>
         </section>
@@ -275,7 +275,7 @@ const TerminosCondiciones = () => {
           <h3>16.1 Integridad del Acuerdo</h3>
           <p>
             Estos Términos, junto con la Política de Privacidad, constituyen el acuerdo completo
-            entre tú y Capital Trade Iberia.
+            entre tú y Capital Iberia.
           </p>
 
           <h3>16.2 Divisibilidad</h3>
@@ -293,7 +293,7 @@ const TerminosCondiciones = () => {
         <div className="aceptacion-final">
           <h3>✅ ACEPTACIÓN</h3>
           <p>
-            Al utilizar Capital Trade Iberia, confirmas que has leído, entendido y aceptado estos
+            Al utilizar Capital Iberia, confirmas que has leído, entendido y aceptado estos
             Términos y Condiciones en su totalidad.
           </p>
           <p>

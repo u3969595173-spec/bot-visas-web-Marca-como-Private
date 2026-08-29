@@ -40,11 +40,11 @@ export default function ProgramaCombinado() {
             {/* Header */}
             <div style={{ background: 'linear-gradient(135deg, #2a0845, #6441A5)', borderBottom: '2px solid #ef4444', padding: '3rem 1.5rem 2rem' }}>
                 <div style={{ maxWidth: 900, margin: '0 auto' }}>
-                    <p style={{ color: '#fca5a5', fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 0.5rem' }}>Capital Trade Iberia</p>
+                    <p style={{ color: '#fca5a5', fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 0.5rem' }}>Capital Iberia</p>
                     <h1 style={{ margin: '0 0 0.8rem', fontSize: 'clamp(1.8rem,4vw,2.8rem)', fontWeight: 900, color: '#fff' }}>🔥 Programa Combinado</h1>
                     <h2 style={{ margin: '0 0 1rem', fontSize: '1.2rem', color: '#fca5a5', fontWeight: 600 }}>Capital + Comunidad</h2>
                     <p style={{ margin: 0, color: '#cbd5e1', fontSize: '1.05rem', maxWidth: 700, lineHeight: 1.6 }}>
-                        En Capital Trade Iberia puedes crecer de dos formas: mediante tu propia participación de capital o mediante el desarrollo de una comunidad.
+                        En Capital Iberia puedes crecer de dos formas: mediante tu propia participación de capital o mediante el desarrollo de una comunidad.
                         <strong> Ambas modalidades pueden combinarse.</strong> El beneficio mensual correspondiente al capital se mantiene y, al desarrollar una comunidad, puedes desbloquear bonificaciones mensuales adicionales.
                     </p>
                 </div>
