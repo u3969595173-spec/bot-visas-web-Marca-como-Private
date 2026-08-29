@@ -55,6 +55,30 @@ def release_conn(conn):
 
 app = FastAPI(title="Capital Trade Iberia API")
 
+@app.on_event("startup")
+def startup_event():
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS notificaciones (
+                id SERIAL PRIMARY KEY,
+                inversor_id INT,
+                es_para_admin BOOLEAN DEFAULT FALSE,
+                mensaje TEXT NOT NULL,
+                tipo VARCHAR(50) DEFAULT 'SISTEMA',
+                leida BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+    except Exception as e:
+        print(f"Error inicializando BD (notificaciones): {e}")
+    finally:
+        if conn:
+            release_conn(conn)
+
 # CORS - solo dominios reales del frontend, no comodín
 app.add_middleware(
     CORSMiddleware,
@@ -317,6 +341,21 @@ async def registro_inversor(datos: InversorRegistroRequest):
         # Generar su codigo propio tipo ALAN13 para invitar
         codigo_propio = f"{datos.nombre[:3].upper()}{inversor_id}{datos.telefono[-2:] if len(datos.telefono)>2 else '99'}"
         cur.execute("UPDATE inversores SET codigo_referido = %s WHERE id = %s", (codigo_propio, inversor_id))
+        
+        # --- NOTIFICACIONES DE REGISTRO ---
+        cur.execute("""
+            INSERT INTO notificaciones (es_para_admin, mensaje, tipo) 
+            VALUES (TRUE, %s, 'SISTEMA')
+        """, (f"Nuevo usuario registrado: {datos.nombre}",))
+        
+        if datos.codigo_patrocinio:
+            cur.execute("SELECT id FROM inversores WHERE codigo_referido = %s", (datos.codigo_patrocinio,))
+            lider = cur.fetchone()
+            if lider:
+                cur.execute("""
+                    INSERT INTO notificaciones (inversor_id, mensaje, tipo)
+                    VALUES (%s, %s, 'REFERIDO')
+                """, (lider[0], f"¡Enhorabuena! {datos.nombre} se acaba de registrar en tu red."))
         
         conn.commit()
         cur.close()
@@ -620,6 +659,13 @@ async def crear_aportacion(datos: AportacionRequest, usuario = Depends(obtener_u
         """, (datos.inversor_id, datos.nombre, datos.email, datos.importe, datos.moneda, datos.estado))
         
         aportacion_id = cur.fetchone()[0]
+        
+        # --- NOTIFICAR ADMIN ---
+        cur.execute("""
+            INSERT INTO notificaciones (es_para_admin, mensaje, tipo) 
+            VALUES (TRUE, %s, 'INGRESO')
+        """, (f"Nueva aportación pendiente: €{datos.importe} de {datos.nombre}",))
+        
         conn.commit()
         cur.close()
         release_conn(conn)
@@ -780,8 +826,14 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
             
             inversion_data = cur.fetchone()
             if inversion_data:
-                # Disparar acelerador para el patrocinador (10% de importe)
+                # --- NOTIFICAR AL INVERSOR ---
                 inversor_id, importe = inversion_data
+                cur.execute("""
+                    INSERT INTO notificaciones (inversor_id, mensaje, tipo) 
+                    VALUES (%s, %s, 'INGRESO')
+                """, (inversor_id, f"Tu aportación de €{importe} ha sido aprobada y ya está originando rendimientos."))
+                
+                # Disparar acelerador para el patrocinador (10% de importe)
                 monto_acelerador = float(importe) * 0.10
 
                 # Buscar si el inversor fue referido por alguien (aún falta la tabla, previendo logica)
@@ -906,6 +958,13 @@ async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_a
         """, (inversor_id, datos.nombre, datos.email, datos.importe, moneda, datos.estado))
         
         retiro_id = cur.fetchone()[0]
+        
+        # --- NOTIFICAR ADMIN ---
+        cur.execute("""
+            INSERT INTO notificaciones (es_para_admin, mensaje, tipo) 
+            VALUES (TRUE, %s, 'RETIRO')
+        """, (f"Nueva solicitud de retiro: €{datos.importe} de {datos.nombre}",))
+        
         conn.commit()
         cur.close()
         release_conn(conn)
@@ -966,7 +1025,23 @@ async def actualizar_retiro(retiro_id: int, datos: dict, usuario = Depends(obten
         conn = get_conn()
         cur = conn.cursor()
 
-        cur.execute("UPDATE retiros SET estado = %s WHERE id = %s", (datos.get('estado'), retiro_id))
+        estado_nuevo = datos.get('estado')
+        cur.execute("UPDATE retiros SET estado = %s WHERE id = %s RETURNING inversor_id, importe", (estado_nuevo, retiro_id))
+        retiro_data = cur.fetchone()
+        
+        if retiro_data:
+            inversor_id, importe = retiro_data
+            if estado_nuevo == 'Aprobado' or estado_nuevo == 'Completado':
+                cur.execute("""
+                    INSERT INTO notificaciones (inversor_id, mensaje, tipo) 
+                    VALUES (%s, %s, 'RETIRO')
+                """, (inversor_id, f"Tu retiro de €{importe} ha sido procesado exitosamente."))
+            elif estado_nuevo == 'Rechazado':
+                cur.execute("""
+                    INSERT INTO notificaciones (inversor_id, mensaje, tipo) 
+                    VALUES (%s, %s, 'RETIRO')
+                """, (inversor_id, f"Tu solicitud de retiro de €{importe} ha sido rechazada."))
+                
         conn.commit()
         cur.close()
         release_conn(conn)
@@ -2680,6 +2755,77 @@ async def health_check():
 
 # ============================================================================
 # RUN
+# ============================================================================
+# NOTIFICACIONES (ALERTAS)
+# ============================================================================
+class Notificacion(BaseModel):
+    id: int
+    mensaje: str
+    tipo: str
+    leida: bool
+    created_at: str
+
+@app.get("/api/notificaciones")
+def obtener_notificaciones(usuario = Depends(obtener_usuario_actual)):
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        if usuario.get('rol') == 'admin':
+            cur.execute("""
+                SELECT id, mensaje, tipo, leida, created_at 
+                FROM notificaciones 
+                WHERE es_para_admin = TRUE 
+                ORDER BY created_at DESC LIMIT 50
+            """)
+        else:
+            inversor_id = usuario.get('id')
+            cur.execute("""
+                SELECT id, mensaje, tipo, leida, created_at 
+                FROM notificaciones 
+                WHERE inversor_id = %s 
+                ORDER BY created_at DESC LIMIT 50
+            """, (inversor_id,))
+        
+        notifs = cur.fetchall()
+        resultado = []
+        for n in notifs:
+            resultado.append({
+                "id": n[0],
+                "mensaje": n[1],
+                "tipo": n[2],
+                "leida": n[3],
+                "created_at": n[4].isoformat() if n[4] else None
+            })
+        return {"notificaciones": resultado}
+    finally:
+        release_conn(conn)
+
+@app.put("/api/notificaciones/{notif_id}/leida")
+def marcar_notificacion_leida(notif_id: int, usuario = Depends(obtener_usuario_actual)):
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("UPDATE notificaciones SET leida = TRUE WHERE id = %s", (notif_id,))
+        conn.commit()
+        return {"status": "ok"}
+    finally:
+        release_conn(conn)
+
+@app.put("/api/notificaciones/leer-todas")
+def marcar_todas_notificaciones_leidas(usuario = Depends(obtener_usuario_actual)):
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        if usuario.get('rol') == 'admin':
+            cur.execute("UPDATE notificaciones SET leida = TRUE WHERE es_para_admin = TRUE")
+        else:
+            inversor_id = usuario.get('id')
+            cur.execute("UPDATE notificaciones SET leida = TRUE WHERE inversor_id = %s", (inversor_id,))
+        conn.commit()
+        return {"status": "ok"}
+    finally:
+        release_conn(conn)
+
 # ============================================================================
 
 if __name__ == "__main__":

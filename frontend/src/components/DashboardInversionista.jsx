@@ -4,6 +4,8 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import './Platform.css';
 import './DashboardAdminExpandido.css';
 import FondoSolidarioPanel from './FondoSolidarioPanel';
+import ComunidadLider from './ComunidadLider'
+import NotificacionesCampana from './NotificacionesCampana'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -978,7 +980,8 @@ function DashboardInversionista() {
             <h1>{activeTab === 'resumen' ? 'Mi Cartera' : activeTab === 'operaciones' ? 'Avisos de operaciones' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
             <p className="subtitle">Gestión de capital y participación operativa</p>
           </div>
-          <div className="topbar-actions investor-topbar-actions">
+          <div className="topbar-actions investor-topbar-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <NotificacionesCampana />
             <button onClick={() => {
               window.open('https://wa.me/34677412858', '_blank')
             }} className="investor-support-button">
