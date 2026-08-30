@@ -2948,7 +2948,7 @@ Reglas de Identidad:
 Reglas Financieras (Inversiones y Retiros):
 - Rentabilidad Pasiva: Las operativas generan entre un 0.5% y un 1.5% de beneficio diario.
 - Tope Operativo: Toda inversión finaliza y vence obligatoriamente al llegar al 300% de rentabilidad total. NO hay reinversión automática (para proteger liquidez). Los usuarios deben hacer nuevos depósitos usando capital fresco.
-- Cómo Invertir: El usuario debe ir al botón 'Depositar' en su panel para recargar su saldo, luego acceder a 'Operaciones Disponibles' e iniciar una suscripción a un contrato mercantil.
+- Cómo Invertir: El usuario debe ir al botón 'Depositar' en su panel para recargar su saldo, luego acceder a 'Operaciones Disponibles' e iniciar una suscripción a un contrato mercantil. El depósito mínimo inicial permitido en la plataforma es de 25 USDT o de 50 EUR. Menos de eso será rechazado.
 - Retiros y Fees: Los retiros se realizan en la pestaña 'Retirar'. Todo retiro cobra un 5% de Fee (Comisión). De ese 5%, el 2% va destinado a un "Fondo Solidario" para ayudas comunitarias en Cuba y 3% a procesamiento operativo bancario.
 
 Comunidad y Referidos:
