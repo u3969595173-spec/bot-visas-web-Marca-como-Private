@@ -1406,8 +1406,18 @@ function DashboardInversionista() {
                 border: '2px solid rgba(255,255,255,0.2)'
               }}>
                 <h2 style={{ marginTop: 0 }}>🏦 Centro de Liquidez</h2>
-                <p style={{ opacity: 0.9, marginBottom: '1.5rem' }}>Saldo disponible en {monedaRetiro}: <strong style={{ fontSize: '20px' }}>{formatCurrency(saldoRetirable, monedaRetiro)}</strong></p>
-
+                <p style={{ opacity: 0.9, margin: '0 0 0.5rem 0' }}>Saldo disponible en {monedaRetiro}: <strong style={{ fontSize: '20px' }}>{formatCurrency(saldoRetirable, monedaRetiro)}</strong></p>
+                {tipoRetiro !== 'p2p' && saldoRetirable > 0 && (
+                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '13px', color: '#6ee7b7', fontWeight: '600' }}>
+                    Monto máximo a recibir en banco tras descontar 5% de fee: {formatCurrency(saldoRetirable * 0.95, monedaRetiro)}
+                  </p>
+                )}
+                {tipoRetiro === 'p2p' && saldoRetirable > 0 && (
+                  <p style={{ margin: '0 0 1.5rem 0', fontSize: '13px', color: '#60a5fa', fontWeight: '600' }}>
+                    Liquidez máxima a transferir (0% Fee): {formatCurrency(saldoRetirable, monedaRetiro)}
+                  </p>
+                )}
+                {saldoRetirable <= 0 && <div style={{ marginBottom: '1.5rem' }}></div>}
                 <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', width: '100%' }}>
                   <button type="button" onClick={() => { setTipoRetiro('banco'); setErrorRetiro('') }} style={{ flex: 1, padding: '1rem 0.5rem', background: tipoRetiro === 'banco' ? 'rgba(0,0,0,0.3)' : 'transparent', border: tipoRetiro === 'banco' ? '2px solid white' : '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
                     🏦 Retiro a Banco (5% Fee)
@@ -1469,13 +1479,22 @@ function DashboardInversionista() {
                         </div>
                       </div>
                     ) : (
-                      <div style={{ margin: '15px 0 0 0', padding: '12px', backgroundColor: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)' }}>
-                        <p style={{ margin: 0, fontSize: '13px', color: '#ffffff', fontWeight: 'bold', lineHeight: '1.4' }}>
-                          ⚠️ ATENCIÓN: Todo saldo disponible debe ser retirado a su cuenta externa personal. No está permitida la reinversión de capital interno directo.
-                        </p>
-                        <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#fef3c7' }}>
-                          * Nota: Se aplicará una deducción del 5% del importe retirado destinado al corporativo y al Fondo Solidario.
-                        </p>
+                      <div style={{ margin: '15px 0 0 0', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {montoRetiro && Number(montoRetiro) > 0 && Number(montoRetiro) <= saldoRetirable && (
+                          <div style={{ padding: '12px', backgroundColor: 'rgba(16, 185, 129, 0.15)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.4)' }}>
+                            <p style={{ margin: 0, fontSize: '14px', color: '#6ee7b7', fontWeight: 'bold' }}>
+                              ✅ Recibirás en tu Banco: {formatCurrency(Number(montoRetiro) * 0.95, monedaRetiro)}
+                            </p>
+                          </div>
+                        )}
+                        <div style={{ padding: '12px', backgroundColor: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                          <p style={{ margin: 0, fontSize: '13px', color: '#ffffff', fontWeight: 'bold', lineHeight: '1.4' }}>
+                            ⚠️ ATENCIÓN: Todo saldo disponible debe ser retirado a su cuenta externa personal. No está permitida la reinversión de capital interno directo.
+                          </p>
+                          <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#fef3c7' }}>
+                            * Nota: Se aplicará una deducción del 5% del importe retirado destinado al corporativo y al Fondo Solidario.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>
