@@ -93,6 +93,8 @@ app.add_middleware(
         "https://www.fortunariocash.com",
         "https://capitaliberia.com",
         "https://www.capitaliberia.com",
+        "https://capitaltradeiberia.com",
+        "https://www.capitaltradeiberia.com",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
