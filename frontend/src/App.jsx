@@ -19,6 +19,7 @@ import Comunidad from './components/Comunidad'
 import Programa from './components/Programa'
 import ProgramaPartner from './components/ProgramaPartner'
 import ProgramaCombinado from './components/ProgramaCombinado'
+import ChatbotIA from './components/ChatbotIA'
 
 function SobreNosotros() {
   return (
@@ -232,6 +233,7 @@ function App() {
     <BrowserRouter>
       <div className="app-shell">
         <Navbar isAuthenticated={isAuthenticated} setCurrentUser={() => setCurrentUser(null)} />
+        <ChatbotIA />
         <Routes>
           {/* RUTAS PÚBLICAS */}
           <Route path="/" element={<Home />} />
