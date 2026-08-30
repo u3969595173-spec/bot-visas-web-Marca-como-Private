@@ -2425,6 +2425,8 @@ function DashboardInversionista() {
                   padding: '2rem',
                   maxWidth: '500px',
                   width: '90%',
+                  maxHeight: '90vh',
+                  overflowY: 'auto',
                   boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
