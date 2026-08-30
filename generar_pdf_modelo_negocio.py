@@ -111,8 +111,8 @@ def make_document():
         str(OUTPUT_PATH), pagesize=A4,
         rightMargin=1.5 * cm, leftMargin=1.5 * cm,
         topMargin=1.7 * cm, bottomMargin=1.35 * cm,
-        title="Carta de presentacion - Modelo de negocio - Capital Trade Iberia",
-        author="Capital Trade Iberia",
+        title="Carta de presentacion - Modelo de negocio - Capital Iberia",
+        author="Capital Iberia",
     )
     story = []
 
@@ -136,7 +136,7 @@ def make_document():
     story += [
         paragraph("1. Carta de presentacion", styles["Heading"]),
         paragraph(
-            "Capital Trade Iberia es una plataforma digital de gestion e informacion sobre participaciones en operaciones comerciales. "
+            "Capital Iberia es una plataforma digital de gestion e informacion sobre participaciones en operaciones comerciales. "
             "Su objetivo es organizar el acceso de usuarios a oportunidades comerciales, facilitar la trazabilidad de las solicitudes y permitir el seguimiento de cada participacion desde un panel personal.",
             styles["Body"],
         ),
@@ -343,7 +343,7 @@ def make_document():
     story += [paragraph("7. Proximo paso", styles["Heading"])]
     story += [
         paragraph("Si deseas conocer una operacion o iniciar una solicitud, revisa primero el panel, las condiciones disponibles y la documentacion relacionada. Para consultas generales, soporte o aclaraciones sobre el uso de la plataforma:", styles["Body"]),
-        info_box("Capital Trade Iberia<br/>Web: capitaltradeiberia.com<br/>Email: contacto@capitaltradeiberia.com<br/>Soporte: WhatsApp +34 677 412 858<br/>Horario de soporte: todos los dias, de 08:00 a 00:00", styles, colors.HexColor("#EAF7FB")),
+        info_box("Capital Iberia<br/>Web: capitaliberia.com<br/>Email: contacto@capitaliberia.com<br/>Soporte: WhatsApp +34 677 412 858<br/>Horario de soporte: todos los dias, de 08:00 a 00:00", styles, colors.HexColor("#EAF7FB")),
         Spacer(1, 18),
         paragraph("Gracias por dedicar tiempo a comprender el modelo. Una participacion responsable comienza con informacion clara, verificacion de condiciones y una decision personal informada.", styles["Body"]),
     ]

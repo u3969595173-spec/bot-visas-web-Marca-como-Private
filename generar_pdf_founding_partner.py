@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Generador de PDF Founding Partner - Capital Trade Iberia
+Generador de PDF Founding Partner - Capital Iberia
 Crea un PDF futurista y profesional con el programa de partners
 """
 
@@ -224,7 +224,7 @@ class PDFFundingPartner:
         
         content.append(Paragraph(
             """
-            <b>Capital Trade Iberia</b> es una plataforma de <b>operaciones comerciales con estructura y transparencia</b>, 
+            <b>Capital Iberia</b> es una plataforma de <b>operaciones comerciales con estructura y transparencia</b>, 
             diseñada para conectar inversores con oportunidades de participación en proyectos comerciales entre 
             España y Cuba.
             """,
@@ -292,7 +292,7 @@ class PDFFundingPartner:
         content.append(Paragraph(
             """
             No buscamos simplemente afiliados o referidos. Buscamos <b>líderes de comunidad</b> que quieran 
-            <b>construir desde el comienzo</b> dentro de Capital Trade Iberia.
+            <b>construir desde el comienzo</b> dentro de Capital Iberia.
             <br/><br/>
             <i>"No queremos que seas un referido más. Queremos que seas uno de los líderes 
             que construyan la comunidad desde el inicio."</i>
@@ -525,7 +525,7 @@ class PDFFundingPartner:
         
         content.append(Paragraph(
             "Los Founding Partners podrán solicitar <b>apoyo de la plataforma</b> para organizar eventos " +
-            "significativos de su comunidad. Capital Trade Iberia puede participar como <b>patrocinador</b>.",
+            "significativos de su comunidad. Capital Iberia puede participar como <b>patrocinador</b>.",
             styles['TextoNormal']
         ))
         
@@ -667,7 +667,7 @@ class PDFFundingPartner:
             <b>propietarios del crecimiento</b> junto con nosotros.
             <br/><br/>
             <b>Founding Partners</b> significa ser <b>pionero en la construcción de 
-            una comunidad</b> dentro de Capital Trade Iberia, con beneficios exclusivos, 
+            una comunidad</b> dentro de Capital Iberia, con beneficios exclusivos, 
             recursos dedicados y crecimiento compartido.
             <br/><br/>
             <i>"Tu comunidad es nuestro comunidad. Tu éxito es nuestro éxito."</i>
@@ -708,7 +708,7 @@ class PDFFundingPartner:
         
         # Footer
         content.append(Paragraph(
-            f"Capital Trade Iberia | www.capitaltradeiberia.com | {datetime.now().strftime('%d de %B de %Y')}",
+            f"Capital Iberia | www.capitaliberia.com | {datetime.now().strftime('%d de %B de %Y')}",
             ParagraphStyle(
                 name='PDFFooter',
                 fontSize=8,

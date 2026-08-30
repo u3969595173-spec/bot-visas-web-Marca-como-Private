@@ -1,5 +1,5 @@
 """
-API REST - Capital Trade Iberia
+API REST - Capital Iberia
 Simple y funcional
 """
 from fastapi import FastAPI, Depends, HTTPException, Query, status
@@ -53,7 +53,7 @@ def release_conn(conn):
     except Exception:
         pass
 
-app = FastAPI(title="Capital Trade Iberia API")
+app = FastAPI(title="Capital Iberia API")
 
 @app.on_event("startup")
 def startup_event():
@@ -91,8 +91,8 @@ app.add_middleware(
         "https://majestic-souffle-c1d9f9.netlify.app",
         "https://fortunariocash.com",
         "https://www.fortunariocash.com",
-        "https://capitaltradeiberia.com",
-        "https://www.capitaltradeiberia.com",
+        "https://capitaliberia.com",
+        "https://www.capitaliberia.com",
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -2754,8 +2754,51 @@ async def health_check():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 # ============================================================================
-# RUN
+# ENDPOINT DE INTELIGENCIA ARTIFICIAL (CHATBOT)
 # ============================================================================
+class ChatMessageInfo(BaseModel):
+    message: str
+
+@app.post("/api/chat")
+async def chat_endpoint(data: ChatMessageInfo):
+    api_key = os.getenv("OPENAI_API_KEY")
+    # Respuesta Mock si no hay API Key configurada para no romper la plataforma
+    if not api_key or api_key == "":
+        return {"response": "He analizado tu mensaje. El Bot está 100% conectado al servidor Node/FastAPI. Para dotarlo de inteligencia real (GPT), pídele al administrador que asigne la variable OPENAI_API_KEY en el dashboard de Render. Tu mensaje fue: '" + data.message + "'"}
+    
+    try:
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=api_key)
+        
+        system_prompt = """Eres el Asistente corporativo IA de "Capital Iberia", una plataforma privada de gestión comercial e inversión (España-Cuba).
+Reglas estrictas de Identidad y Tono:
+- Tono hiper-profesional, exclusivo, directo y persuasivo. Hablas como un alto directivo de un fondo Europeo. No eres un robot amigable.
+- Nuestro negocio es REAL y FÍSICO: importación de bienes tangibles, gestión aduanal, contenedores (madera, maquinaria, cemento). 
+- TIENES PROHIBIDO hablar de "Visas de Estudio" o "Trámites de Visado". Toda la empresa transicionó a Inversión e Importación exclusiva.
+- TIENES PROHIBIDO asociar la empresa a criptomonedas, forex o trading especulativo.
+
+Reglas del Ecosistema y Rentabilidad:
+- Límite de Operativa: Toda inversión tiene un tope estricto y absoluto del 300% de rentabilidad. Una vez alcanzado ese tope, el contrato vence/muere.
+- Prohibida la auto-reinversión: Para proteger la liquidez corporativa, el interés compuesto y la reinversión del saldo interno están prohibidos. Los retiros deben ser reales y los nuevos depósitos deben ser capital externo fresco.
+- Programa Partner / Comunidad: Los inversores pueden actuar como "Líderes" creando su red (Comunidades). Solo se gana por "Referidos Directos".
+- Motor P2P Cautivo (Vouchers): Si un líder tiene mucho saldo, el sistema bloquea los retiros masivos. Su saldo interno SOLO puede transferirse a "Nuevos Referidos" (directos) para pagar su primer depósito inicial, forzando la expansión constante de la red.
+- Ruleta de Misiones (Captación): Existen bonos de bienvenida que caen "bloqueados". Solo se liberan haciendo misiones (depositar, aguantar 1 mes, invitar a alguien). Al liberarse, el bono pasa forzosamente a "Capital Activo" (jamás a efectivo retirable).
+- Tracking Portuario y Legal: Los flujos de las operativas se muestran con un rastreador visual estilo GPS y se suben fotos de los Bill of Lading (Aduana) para garantizar fiabilidad total.
+- Eres persuasivo pero tajante. Transmite completa seguridad bancaria europea y jamás dudes del poder de Capital Iberia."""
+
+        completion = await client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": data.message}
+            ],
+            max_tokens=300
+        )
+        return {"response": completion.choices[0].message.content}
+    except Exception as e:
+        return {"response": f"El servicio de Inteligencia Artificial está saturado. Código: {str(e)}"}
+
+# ===================================================================================
 # NOTIFICACIONES (ALERTAS)
 # ============================================================================
 class Notificacion(BaseModel):
