@@ -978,6 +978,114 @@ async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_a
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+class P2PTransferRequest(BaseModel):
+    email_receptor: str
+    importe: float
+    moneda: str
+
+@app.post("/api/retiros/transferir_p2p")
+async def transferir_p2p(datos: P2PTransferRequest, usuario = Depends(obtener_usuario_actual)):
+    """Transfiere Saldo Semilla internamente a un directo nuevo en red (0% Fee)"""
+    if usuario.get('rol') != 'inversor':
+        raise HTTPException(status_code=403, detail="Exclusivo para inversores")
+        
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        
+        inversor_origen_id = usuario.get('inversor_id')
+        moneda = datos.moneda.strip()
+        importe = float(datos.importe)
+        
+        if importe <= 0:
+            raise HTTPException(status_code=400, detail="El importe debe ser mayor a 0")
+        
+        # 1. Validar que tiene fondos en esa moneda 
+        cur.execute("""
+            SELECT 1 FROM aportaciones
+            WHERE inversor_id = %s AND moneda = %s AND (estado = 'Aprobada' OR estado = 'Activa' OR estado = 'Validada')
+            LIMIT 1
+        """, (inversor_origen_id, moneda))
+        if not cur.fetchone():
+            raise HTTPException(status_code=400, detail="No tienes fondos base activos en esa moneda.")
+
+        # 2. Localizar al receptor y confirmar jerarquía
+        cur.execute("SELECT id, referido_por, nombre, email FROM inversores WHERE email = %s LIMIT 1", (datos.email_receptor.strip(),))
+        receptor = cur.fetchone()
+        if not receptor:
+            raise HTTPException(status_code=404, detail="El correo indicado no pertenece a ninguna cuenta registrada.")
+            
+        receptor_id, sponsor_codigo, receptor_nombre, receptor_email = receptor
+        
+        cur.execute("SELECT codigo_referido, nombre, email FROM inversores WHERE id = %s LIMIT 1", (inversor_origen_id,))
+        origen_info = cur.fetchone()
+        origen_codigo, origen_nombre, origen_email = origen_info
+        
+        if str(sponsor_codigo) != str(origen_codigo):
+            raise HTTPException(status_code=403, detail="CANDADO ACTIVADO: Solo puedes usar el P2P para enviar saldo a cuentas registradas directamente con tu enlace de referidos.")
+            
+        # 3. Validar virginidad financiera del receptor (Cero inversiones pasadas)
+        cur.execute("SELECT COUNT(*) FROM aportaciones WHERE inversor_id = %s", (receptor_id,))
+        cuenta_inversiones = cur.fetchone()[0]
+        if cuenta_inversiones > 0:
+            raise HTTPException(status_code=403, detail="P2P DENEGADO: El destinatario ya tiene historial de inversiones. Estos Vouchers Internos son de un solo uso para financiar el alta de reclutas nuevos de tu red.")
+            
+        # 4. Transaccion - Ejecutar
+        # Restar balance de Origen generando un Retiro Completado (como si hubiera retirado, pero queda en la web)
+        cur.execute("""
+            INSERT INTO retiros (inversor_id, nombre, email, importe, moneda, estado)
+            VALUES (%s, %s, %s, %s, %s, 'Completada')
+        """, (inversor_origen_id, origen_nombre, origen_email, importe, moneda))
+        
+        # Aumentar balance de Receptor generando una Aportación Validada para iniciar retención 72h
+        cur.execute("""
+            INSERT INTO aportaciones (inversor_id, nombre, email, importe, moneda, estado, fecha_aprobacion)
+            VALUES (%s, %s, %s, %s, %s, 'Validada', CURRENT_TIMESTAMP)
+        """, (receptor_id, receptor_nombre, receptor_email, importe, moneda))
+
+        # --- REGISTRO DE TRAZABILIDAD P2P PARA ADMINISTRACIÓN ---
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS transferencias_p2p (
+                id SERIAL PRIMARY KEY,
+                origen_id INT,
+                origen_nombre VARCHAR(200),
+                receptor_id INT,
+                receptor_nombre VARCHAR(200),
+                importe DECIMAL(12,2),
+                moneda VARCHAR(30),
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("""
+            INSERT INTO transferencias_p2p (origen_id, origen_nombre, receptor_id, receptor_nombre, importe, moneda)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (inversor_origen_id, origen_nombre, receptor_id, receptor_nombre, importe, moneda))
+
+
+        
+        # Notificaciones internas
+        mensaje_admin = f"Red P2P: {origen_nombre} transfirió inteligentemente {importe} {moneda} financiando a su nuevo referido {receptor_nombre}."
+        cur.execute("INSERT INTO notificaciones (es_para_admin, mensaje, tipo) VALUES (TRUE, %s, 'ALTA_P2P')", (mensaje_admin,))
+        
+        msg_inversor = f"Has recibido el Voucher Semilla de {importe} {moneda} gracias a tu patrocinador corporativo {origen_nombre}. ¡Bienvenido a Capital Iberia!"
+        cur.execute("INSERT INTO notificaciones (inversor_id, mensaje, tipo) VALUES (%s, %s, 'P2P_RECIBIDO')", (receptor_id, msg_inversor))
+
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"success": True, "message": "Operación Cautiva Completa."}
+        
+    except HTTPException:
+        if 'conn' in locals() and conn:
+            conn.rollback()
+            release_conn(conn)
+        raise
+    except Exception as e:
+        if 'conn' in locals() and conn:
+            conn.rollback()
+            release_conn(conn)
+        raise HTTPException(status_code=500, detail=f"Error en bóveda criptográfica P2P: {str(e)}")
+
 
 @app.get("/api/retiros")
 async def obtener_retiros(usuario = Depends(obtener_usuario_actual)):
@@ -1382,16 +1490,75 @@ async def listar_solicitudes_participacion(usuario=Depends(obtener_usuario_actua
             SELECT id, nombre, email, telefono, pais, importe, moneda, estado, created_at
             FROM solicitudes_participacion ORDER BY created_at DESC
         """)
-        filas = cur.fetchall()
+        resultados = cur.fetchall()
         cur.close()
         release_conn(conn)
-        return {"solicitudes": [{
-            "id": f[0], "nombre": f[1], "email": f[2], "telefono": f[3], "pais": f[4],
-            "importe": float(f[5] or 0), "moneda": f[6], "estado": f[7],
-            "fecha": f[8].isoformat() if f[8] else None
-        } for f in filas]}
+        return {
+            "solicitudes": [
+                {"id": r[0], "nombre": r[1], "email": r[2], "telefono": r[3], "pais": r[4], "importe": float(r[5] or 0), "moneda": r[6], "estado": r[7], "created_at": r[8].isoformat() if r[8] else None}
+                for r in resultados
+            ]
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+# ============================================================================
+# ENDPOINTS - TRAZABILIDAD P2P (ADMIN)
+# ============================================================================
+
+@app.get("/api/transferencias_p2p")
+async def obtener_transferencias_p2p(usuario = Depends(obtener_usuario_actual)):
+    """Obtiene el historial de Vouchers Transferidos (solo Admin)"""
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        
+        # Verificar tabla por si nunca se ha hecho un P2P
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS transferencias_p2p (
+                id SERIAL PRIMARY KEY,
+                origen_id INT,
+                origen_nombre VARCHAR(200),
+                receptor_id INT,
+                receptor_nombre VARCHAR(200),
+                importe DECIMAL(12,2),
+                moneda VARCHAR(30),
+                fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        cur.execute("""
+            SELECT id, origen_id, origen_nombre, receptor_id, receptor_nombre, importe, moneda, fecha 
+            FROM transferencias_p2p 
+            ORDER BY fecha DESC
+        """)
+        resultados = cur.fetchall()
+        cur.close()
+        release_conn(conn)
+        
+        transferencias = []
+        for r in resultados:
+            transferencias.append({
+                "id": r[0], 
+                "origen_id": r[1], 
+                "origen_nombre": r[2], 
+                "receptor_id": r[3],
+                "receptor_nombre": r[4], 
+                "importe": float(r[5]), 
+                "moneda": r[6], 
+                "fecha": r[7].isoformat()
+            })
+            
+        return {"transferencias": transferencias}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+
 
 
 @app.put("/api/solicitudes-participacion/{solicitud_id}")
