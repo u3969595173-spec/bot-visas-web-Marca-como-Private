@@ -156,9 +156,9 @@ const RetirosCreditoPanel = () => {
         </div>
         <div className="stat-card">
           <div className="stat-value">
-            {(solicitudesPendientes.reduce((sum, s) => sum + (s.monto || 0), 0)).toFixed(2)}€
+            {(solicitudesPendientes.reduce((sum, s) => sum + (s.monto || 0), 0) * 0.95).toFixed(2)}€
           </div>
-          <div className="stat-label">💸 Total Pendiente</div>
+          <div className="stat-label">💸 Total a Pagar (Líquido)</div>
         </div>
       </div>
 
@@ -172,8 +172,8 @@ const RetirosCreditoPanel = () => {
                 <tr>
                   <th>Usuario</th>
                   <th>Tipo</th>
-                  <th>Monto</th>
-                  <th>Saldo Disponible</th>
+                  <th>Monto a Pagar (-5%)</th>
+                  <th>Saldo Disp.</th>
                   <th>Tipo Solicitud</th>
                   <th>Fecha</th>
                   <th>Acciones</th>
@@ -190,7 +190,8 @@ const RetirosCreditoPanel = () => {
                     </td>
                     <td>{getBadgeTipo(solicitud.beneficiario_tipo)}</td>
                     <td className="monto">
-                      <strong>{solicitud.monto?.toFixed(2)}€</strong>
+                      <strong style={{ color: '#10b981', fontSize: '15px' }}>{(solicitud.monto * 0.95)?.toFixed(2)}€</strong>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Solicitado: {solicitud.monto?.toFixed(2)}€</div>
                     </td>
                     <td className="saldo">
                       {solicitud.credito_disponible?.toFixed(2)}€
@@ -237,7 +238,7 @@ const RetirosCreditoPanel = () => {
                 <tr>
                   <th>Usuario</th>
                   <th>Tipo</th>
-                  <th>Monto</th>
+                  <th>Monto Pagado (-5%)</th>
                   <th>Tipo Solicitud</th>
                   <th>Fecha Aprobación</th>
                 </tr>
@@ -253,7 +254,8 @@ const RetirosCreditoPanel = () => {
                     </td>
                     <td>{getBadgeTipo(solicitud.beneficiario_tipo)}</td>
                     <td className="monto">
-                      <strong>{solicitud.monto?.toFixed(2)}€</strong>
+                      <strong style={{ color: '#10b981', fontSize: '14px' }}>{(solicitud.monto * 0.95)?.toFixed(2)}€</strong>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Solicitado: {solicitud.monto?.toFixed(2)}€</div>
                     </td>
                     <td>
                       <span className="badge badge-tipo">
@@ -279,7 +281,7 @@ const RetirosCreditoPanel = () => {
                 <tr>
                   <th>Usuario</th>
                   <th>Tipo</th>
-                  <th>Monto</th>
+                  <th>Monto Denegado</th>
                   <th>Tipo Solicitud</th>
                   <th>Fecha Rechazo</th>
                 </tr>
@@ -295,7 +297,8 @@ const RetirosCreditoPanel = () => {
                     </td>
                     <td>{getBadgeTipo(solicitud.beneficiario_tipo)}</td>
                     <td className="monto">
-                      <strong>{solicitud.monto?.toFixed(2)}€</strong>
+                      <strong style={{ color: '#ef4444', fontSize: '14px' }}>{(solicitud.monto * 0.95)?.toFixed(2)}€</strong>
+                      <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px' }}>Solicitado: {solicitud.monto?.toFixed(2)}€</div>
                     </td>
                     <td>
                       <span className="badge badge-tipo">
