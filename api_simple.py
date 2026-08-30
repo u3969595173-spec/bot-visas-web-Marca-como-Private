@@ -344,20 +344,24 @@ async def registro_inversor(datos: InversorRegistroRequest):
         codigo_propio = f"{datos.nombre[:3].upper()}{inversor_id}{datos.telefono[-2:] if len(datos.telefono)>2 else '99'}"
         cur.execute("UPDATE inversores SET codigo_referido = %s WHERE id = %s", (codigo_propio, inversor_id))
         
-        # --- NOTIFICACIONES DE REGISTRO ---
-        cur.execute("""
-            INSERT INTO notificaciones (es_para_admin, mensaje, tipo) 
-            VALUES (TRUE, %s, 'SISTEMA')
-        """, (f"Nuevo usuario registrado: {datos.nombre}",))
-        
-        if datos.codigo_patrocinio:
-            cur.execute("SELECT id FROM inversores WHERE codigo_referido = %s", (datos.codigo_patrocinio,))
-            lider = cur.fetchone()
-            if lider:
-                cur.execute("""
-                    INSERT INTO notificaciones (inversor_id, mensaje, tipo)
-                    VALUES (%s, %s, 'REFERIDO')
-                """, (lider[0], f"¡Enhorabuena! {datos.nombre} se acaba de registrar en tu red."))
+        # --- NOTIFICACIONES DE REGISTRO (Blindadas para no afectar el registro si fallan) ---
+        try:
+            cur.execute("""
+                INSERT INTO notificaciones (es_para_admin, mensaje, tipo) 
+                VALUES (TRUE, %s, 'SISTEMA')
+            """, (f"Nuevo usuario registrado: {datos.nombre}",))
+            
+            if datos.codigo_patrocinio:
+                cur.execute("SELECT id FROM inversores WHERE codigo_referido = %s", (datos.codigo_patrocinio,))
+                lider = cur.fetchone()
+                if lider:
+                    cur.execute("""
+                        INSERT INTO notificaciones (inversor_id, mensaje, tipo)
+                        VALUES (%s, %s, 'REFERIDO')
+                    """, (lider[0], f"¡Enhorabuena! {datos.nombre} se acaba de registrar en tu red."))
+        except Exception as err_notif:
+            print("Error interno al despachar notificacion (ignorado):", err_notif)
+            # El registro continua sin interrupciones
         
         conn.commit()
         cur.close()
