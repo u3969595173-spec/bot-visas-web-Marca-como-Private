@@ -111,6 +111,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [ofertasAportaciones, setOfertasAportaciones] = useState([])
   const [operacionesCatalogo, setOperacionesCatalogo] = useState([])
   const [avisosOperaciones, setAvisosOperaciones] = useState([])
+  const [transferenciasP2P, setTransferenciasP2P] = useState([])
   const [avisoEditandoId, setAvisoEditandoId] = useState(null)
   const [avisoOperacion, setAvisoOperacion] = useState({ operacionId: '', titulo: '', contenido: '', imagenes: [] })
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -321,6 +322,24 @@ function DashboardAdminExpandido({ onLogout }) {
   React.useEffect(() => {
     cargarAvisosOperaciones()
     const intervalo = setInterval(cargarAvisosOperaciones, 30000)
+    return () => clearInterval(intervalo)
+  }, [])
+
+  React.useEffect(() => {
+    const cargarTransferenciasP2P = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(`${API}/api/transferencias_p2p`, { headers: { 'Authorization': `Bearer ${token}` } })
+        if (response.ok) {
+          const data = await response.json()
+          setTransferenciasP2P(data.transferencias || [])
+        }
+      } catch (error) {
+        console.log('Error cargando historial p2p:', error)
+      }
+    }
+    cargarTransferenciasP2P()
+    const intervalo = setInterval(cargarTransferenciasP2P, 30000)
     return () => clearInterval(intervalo)
   }, [])
 
@@ -543,6 +562,7 @@ function DashboardAdminExpandido({ onLogout }) {
     { key: 'resumen', label: 'Resumen' },
     { key: 'aportaciones', label: 'Aportaciones' },
     { key: 'retiros', label: 'Retiros' },
+    { key: 'p2p', label: '🔄 Vouchers P2P' },
     { key: 'usuarios', label: 'Usuarios' },
     { key: 'operaciones', label: 'Operaciones' },
     { key: 'pagos', label: '📅 Pagos' },
