@@ -370,9 +370,19 @@ async def registro_inversor(datos: InversorRegistroRequest):
             "tipo": "Bearer",
             "inversor": {"id": inversor_id, "nombre": datos.nombre, "email": datos.email}
         }
-    except psycopg2.IntegrityError:
-        raise HTTPException(status_code=400, detail="Email ya existe")
+    except psycopg2.IntegrityError as e:
+        import traceback
+        traceback.print_exc()
+        if 'conn' in locals() and conn:
+            conn.rollback()
+            release_conn(conn)
+        raise HTTPException(status_code=400, detail=f"Error nativo DB: {str(e)}")
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+        if 'conn' in locals() and conn:
+            conn.rollback()
+            release_conn(conn)
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
