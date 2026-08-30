@@ -97,6 +97,8 @@ function DashboardInversionista() {
   const [notasRetiro, setNotasRetiro] = React.useState('')
   const [errorRetiro, setErrorRetiro] = React.useState('')
   const [successRetiro, setSuccessRetiro] = React.useState('')
+  const [tipoRetiro, setTipoRetiro] = React.useState('banco')
+  const [emailP2P, setEmailP2P] = React.useState('')
 
   // Estados para modal de inversión
   const [showInversionModal, setShowInversionModal] = React.useState(false)
@@ -575,6 +577,37 @@ function DashboardInversionista() {
 
     try {
       const token = localStorage.getItem('token')
+
+      if (tipoRetiro === 'p2p') {
+        if (!emailP2P.trim()) {
+          setErrorRetiro('Debes escribir el correo electrónico oficial de tu recomendado.')
+          return
+        }
+
+        const response = await fetch(`${API_URL}/api/retiros/transferir_p2p`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            email_receptor: emailP2P,
+            moneda: monedaRetiro,
+            importe: Number(importe)
+          })
+        })
+        const result = await response.json()
+        if (response.ok) {
+          setMontoRetiro('')
+          setEmailP2P('')
+          setSuccessRetiro('Operación Cautiva Completa. Voucher activado y enviado al 0% de comisión corporativa.')
+          // Recargar retiros y operaciones si es necesario para descontar saldo
+        } else {
+          setErrorRetiro(result.detail || 'Fallo de Transferencia Cautiva.')
+        }
+        return
+      }
+
       const nombreUsuario = currentUser?.name || currentUser?.nombre || 'Usuario'
       const correoUsuario = currentUser?.email || '—'
 
@@ -1372,8 +1405,17 @@ function DashboardInversionista() {
                 boxShadow: '0 8px 16px rgba(245, 158, 11, 0.3)',
                 border: '2px solid rgba(255,255,255,0.2)'
               }}>
-                <h2 style={{ marginTop: 0 }}>🏦 Solicitar Retiro</h2>
-                <p style={{ opacity: 0.9, marginBottom: '1.5rem' }}>Saldo disponible en la moneda elegida: <strong style={{ fontSize: '20px' }}>{formatCurrency(saldoRetirable, monedaRetiro)}</strong></p>
+                <h2 style={{ marginTop: 0 }}>🏦 Centro de Liquidez</h2>
+                <p style={{ opacity: 0.9, marginBottom: '1.5rem' }}>Saldo disponible en {monedaRetiro}: <strong style={{ fontSize: '20px' }}>{formatCurrency(saldoRetirable, monedaRetiro)}</strong></p>
+
+                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', width: '100%' }}>
+                  <button type="button" onClick={() => { setTipoRetiro('banco'); setErrorRetiro('') }} style={{ flex: 1, padding: '1rem 0.5rem', background: tipoRetiro === 'banco' ? 'rgba(0,0,0,0.3)' : 'transparent', border: tipoRetiro === 'banco' ? '2px solid white' : '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+                    🏦 Retiro a Banco (5% Fee)
+                  </button>
+                  <button type="button" onClick={() => { setTipoRetiro('p2p'); setErrorRetiro('') }} style={{ flex: 1, padding: '1rem 0.5rem', background: tipoRetiro === 'p2p' ? 'rgba(0,0,0,0.3)' : 'transparent', border: tipoRetiro === 'p2p' ? '2px solid #60a5fa' : '1px solid rgba(255,255,255,0.2)', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+                    🎫 Transferir a Nuevo Referido
+                  </button>
+                </div>
 
                 <form onSubmit={handleRetiroSubmit} style={{ display: 'grid', gap: '1rem' }}>
                   <div>
@@ -1406,68 +1448,61 @@ function DashboardInversionista() {
                       }}
                       required
                     />
-                    <div style={{ margin: '15px 0 0 0', padding: '12px', backgroundColor: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)' }}>
-                      <p style={{ margin: 0, fontSize: '13px', color: '#ffffff', fontWeight: 'bold', lineHeight: '1.4' }}>
-                        ⚠️ ATENCIÓN: Todo saldo disponible debe ser retirado a su cuenta externa personal. No está permitida la reinversión de capital interno directo (Normativa Financiera).
-                      </p>
-                      <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#fef3c7' }}>
-                        * Nota: Se aplicará una deducción del 5% del importe retirado destinado a comisiones bancarias o de red de la administración (Gas Fee).
-                      </p>
+                    {tipoRetiro === 'p2p' ? (
+                      <div style={{ margin: '15px 0 0 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label style={{ fontWeight: '600', fontSize: '14px' }}>Correo Electrónico (Receptor)</label>
+                        <input
+                          type="email"
+                          placeholder="ejemplo@correo.com"
+                          value={emailP2P}
+                          onChange={(e) => setEmailP2P(e.target.value)}
+                          style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '8px', fontSize: '14px', backgroundColor: 'transparent', color: 'white', outline: 'none' }}
+                          required={tipoRetiro === 'p2p'}
+                        />
+                        <div style={{ marginTop: '10px', padding: '12px', backgroundColor: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                          <p style={{ margin: 0, fontSize: '13px', color: '#10b981', fontWeight: 'bold' }}>
+                            <span style={{ fontSize: '16px' }}>✔️</span> TRANSFERENCIA LIBRE DE FEES (0%)
+                          </p>
+                          <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#fef3c7' }}>
+                            Permitido estrictamente para pagar el abono inicial de prospectos <strong>registrados con tu código y sin historial de inversión</strong>.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ margin: '15px 0 0 0', padding: '12px', backgroundColor: 'rgba(0, 0, 0, 0.25)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#ffffff', fontWeight: 'bold', lineHeight: '1.4' }}>
+                          ⚠️ ATENCIÓN: Todo saldo disponible debe ser retirado a su cuenta externa personal. No está permitida la reinversión de capital interno directo.
+                        </p>
+                        <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#fef3c7' }}>
+                          * Nota: Se aplicará una deducción del 5% del importe retirado destinado al corporativo y al Fondo Solidario.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {tipoRetiro === 'banco' && (
+                    <div>
+                      <label htmlFor="notas-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Notas (opcional)</label>
+                      <textarea
+                        id="notas-retiro"
+                        value={notasRetiro}
+                        onChange={(e) => setNotasRetiro(e.target.value)}
+                        placeholder="Cuenta destino o información adicional"
+                        style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '8px', fontSize: '14px', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontFamily: 'inherit', minHeight: '80px', boxSizing: 'border-box', resize: 'vertical' }}
+                      />
                     </div>
-                  </div>
+                  )}
 
-                  <div>
-                    <label htmlFor="notas-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Notas (opcional)</label>
-                    <textarea
-                      id="notas-retiro"
-                      value={notasRetiro}
-                      onChange={(e) => setNotasRetiro(e.target.value)}
-                      placeholder="Cuenta destino o información adicional"
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        backgroundColor: 'rgba(255,255,255,0.1)',
-                        color: 'white',
-                        fontFamily: 'inherit',
-                        minHeight: '80px',
-                        boxSizing: 'border-box',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-
-                  {errorRetiro && <div style={{
-                    backgroundColor: 'rgba(0,0,0,0.2)',
-                    color: '#fef3c7',
-                    padding: '0.75rem',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>⚠️ {errorRetiro}</div>}
-                  {successRetiro && <div style={{
-                    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                    color: '#dcfce7',
-                    padding: '0.75rem',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}>✅ {successRetiro}</div>}
+                  {errorRetiro && <div style={{ backgroundColor: 'rgba(0,0,0,0.2)', color: '#fef3c7', padding: '0.75rem', borderRadius: '6px', fontSize: '14px', fontWeight: '600' }}>⚠️ {errorRetiro}</div>}
+                  {successRetiro && <div style={{ backgroundColor: 'rgba(34, 197, 94, 0.2)', color: '#dcfce7', padding: '0.75rem', borderRadius: '6px', fontSize: '14px', fontWeight: '600' }}>✅ {successRetiro}</div>}
 
                   <button type="submit" style={{
-                    padding: '0.75rem',
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    color: 'white',
-                    border: '2px solid rgba(255,255,255,0.4)',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '15px',
-                    transition: 'all 0.3s'
+                    marginTop: '0.5rem', padding: '1rem',
+                    backgroundColor: tipoRetiro === 'p2p' ? '#3b82f6' : 'rgba(255,255,255,0.2)',
+                    color: 'white', border: tipoRetiro === 'p2p' ? 'none' : '2px solid rgba(255,255,255,0.4)',
+                    borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '15px', transition: 'all 0.3s'
                   }}>
-                    💰 Enviar Solicitud
+                    {tipoRetiro === 'p2p' ? '➡️ Ejecutar Transferencia' : '💰 Solicitar Retiro Externo'}
                   </button>
                 </form>
               </div>
@@ -1524,998 +1559,1013 @@ function DashboardInversionista() {
                 )}
               </div>
             </div>
-          )}
+          )
+          }
 
-          {activeTab === 'solicitudes' && (
-            <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
-              <div>
-                <h2 style={{ color: '#f8fafc', marginBottom: '1.5rem' }}>📋 Mis Solicitudes de Inversión</h2>
-                {(() => {
-                  const AHORA = Date.now()
-                  const HORAS_BLOQUEO = 72
-                  const userSolicitudes = userAportaciones
-
-                  const infoEstado = (item) => {
-                    if (item.estado === 'Rechazada') {
-                      return { label: '❌ Rechazada', color: '#fca5a5', bg: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }
-                    }
-                    if (item.estado === 'Activa' || item.estado === 'Validada') {
-                      const aprobadaEn = item.fecha_aprobacion ? new Date(item.fecha_aprobacion).getTime() : null
-                      const desbloqueaEn = aprobadaEn ? aprobadaEn + HORAS_BLOQUEO * 3600 * 1000 : null
-                      if (desbloqueaEn && desbloqueaEn > AHORA) {
-                        const restanteMs = desbloqueaEn - AHORA
-                        const horas = Math.floor(restanteMs / 3600000)
-                        const minutos = Math.floor((restanteMs % 3600000) / 60000)
-                        return {
-                          label: `🔒 Bloqueada ${horas}h ${minutos}m`,
-                          color: '#93c5fd', bg: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)',
-                          bloqueada: true, horas, minutos
-                        }
-                      }
-                      return { label: '✅ Activa', color: '#86efac', bg: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }
-                    }
-                    return { label: `⏳ ${item.estado || 'Pendiente'}`, color: '#fcd34d', bg: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(251, 191, 36, 0.3)' }
-                  }
-
-                  return userSolicitudes.length > 0 ? (
-                    <div style={{ display: 'grid', gap: '1rem' }}>
-                      {userSolicitudes.map((sol) => {
-                        const info = infoEstado(sol)
-                        return (
-                          <div key={sol.id} style={{
-                            backgroundColor: 'rgba(15, 23, 42, 0.8)',
-                            borderRadius: '12px',
-                            padding: '1.5rem',
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                            border: `2px solid ${info.borderColor}`,
-                            transition: 'all 0.3s'
-                          }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem' }}>
-                              <div>
-                                <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Solicitud #{sol.id}</p>
-                                <p style={{ margin: '0.5rem 0 0 0', fontSize: '20px', fontWeight: 'bold', color: '#f6c453' }}>
-                                  {formatCurrency(Number(sol.importe), sol.moneda)}
-                                </p>
-                                <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
-                                  📅 {safeFormatDate(sol.fecha)}
-                                </p>
-                              </div>
-                              <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
-                                <span style={{
-                                  display: 'inline-block',
-                                  padding: '0.5rem 1rem',
-                                  borderRadius: '20px',
-                                  fontSize: '12px',
-                                  fontWeight: '600',
-                                  backgroundColor: info.bg,
-                                  color: info.color
-                                }}>
-                                  {info.label}
-                                </span>
-                              </div>
-                            </div>
-
-                            {info.bloqueada && (
-                              <div style={{
-                                backgroundColor: 'rgba(59, 130, 246, 0.08)',
-                                padding: '1rem',
-                                borderRadius: '8px',
-                                fontSize: '13px',
-                                borderLeft: '4px solid #3b82f6',
-                                marginBottom: '0.75rem'
-                              }}>
-                                <p style={{ margin: 0, color: '#93c5fd', fontWeight: '600' }}>
-                                  ⏱️ Tu inversión está validada. Las ganancias comienzan a generarse tras 72 horas de bloqueo de seguridad.
-                                </p>
-                                <p style={{ margin: '0.5rem 0 0 0', color: '#dbeafe', fontSize: '12px' }}>
-                                  Faltan {info.horas}h {info.minutos}m para que quede totalmente activa.
-                                </p>
-                              </div>
-                            )}
-
-                            {sol.estado === 'Pendiente de validación' && !sol.tiene_justificante && (
-                              <button
-                                onClick={() => {
-                                  setSolicitudSeleccionada(sol)
-                                  setShowJustificante(true)
-                                }}
-                                style={{
-                                  width: '100%',
-                                  padding: '0.75rem',
-                                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '8px',
-                                  cursor: 'pointer',
-                                  fontWeight: '600',
-                                  fontSize: '14px',
-                                  transition: 'all 0.3s'
-                                }}
-                              >
-                                📎 Subir comprobante de transferencia
-                              </button>
-                            )}
-
-                            {sol.tiene_justificante && sol.estado === 'Pendiente de validación' && (
-                              <div style={{
-                                backgroundColor: '#fef3c7',
-                                padding: '1rem',
-                                borderRadius: '8px',
-                                fontSize: '13px',
-                                borderLeft: '4px solid #f59e0b'
-                              }}>
-                                <p style={{ margin: 0, fontWeight: '600', color: '#374151' }}>📋 Comprobante en revisión por el administrador</p>
-                              </div>
-                            )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{
-                      padding: '3rem 2rem',
-                      backgroundColor: 'linear-gradient(135deg, #f0f9ff 0%, #eff6ff 100%)',
-                      borderRadius: '12px',
-                      textAlign: 'center',
-                      color: '#0369a1',
-                      border: '2px dashed #0284c7'
-                    }}>
-                      <p style={{ fontSize: '18px', fontWeight: '600' }}>📭 No tienes solicitudes</p>
-                      <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>¡Comienza a invertir ahora mismo!</p>
-                    </div>
-                  )
-                })()}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'referidos' && (
-            <div className="content-grid" style={{ display: 'grid', gap: '2rem' }}>
-              {/* Panel Principal de Referidos */}
-              <div style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                borderRadius: '12px',
-                padding: '2rem',
-                color: 'white',
-                boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
-                border: '2px solid rgba(255,255,255,0.2)'
-              }}>
-                <h2 style={{ marginTop: 0, fontSize: '24px' }}>🎯 Tu Programa de Referidos</h2>
-                <p style={{ opacity: 0.95, marginBottom: '1rem', fontSize: '15px' }}>Gana el <strong>10% de cada inversión</strong> que realicen tus referidos. Acelerado al 300%.</p>
-
-                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                  <input
-                    type="text"
-                    value={`https://capitaliberia.com?ref=${getCodigoReferidoInversor().codigo}`}
-                    readOnly
-                    style={{
-                      flex: 1,
-                      minWidth: '200px',
-                      padding: '10px 12px',
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      borderRadius: '8px',
-                      fontFamily: 'monospace',
-                      fontSize: '13px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      color: 'white'
-                    }}
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`https://capitaliberia.com?ref=${getCodigoReferidoInversor().codigo}`)
-                      setSuccessRetiro('✅ Enlace copiado')
-                      setTimeout(() => setSuccessRetiro(''), 2000)
-                    }}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      color: 'white',
-                      border: '2px solid rgba(255,255,255,0.3)',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.3s'
-                    }}
-                  >
-                    📋 Copiar
-                  </button>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-                  <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>👥 Referidos Activos</p>
-                    <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>{getReferidosDelInversor().length}</p>
-                  </div>
-                  <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>💰 Comisiones Ganadas</p>
-                    <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>€{getReferidosDelInversor().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}</p>
-                  </div>
-                  <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>📊 Inversión Total</p>
-                    <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>€{getReferidosDelInversor().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tabla o Gráfica de Referidos */}
-              {getReferidosDelInversor().length > 0 ? (
-                <div className="referrals-panel" style={{
-                  backgroundColor: 'rgba(15, 23, 42, 0.88)',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  boxShadow: '0 8px 20px rgba(0, 0, 0, 0.28)',
-                  border: '1px solid rgba(148, 163, 184, 0.2)'
-                }}>
-                  <h3 style={{ marginTop: 0, color: '#f8fafc' }}>📈 Mis Referidos</h3>
-
-                  {/* Gráfica de inversiones */}
-                  {getReferidosDelInversor().length > 0 && (
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={getReferidosDelInversor().map((ref, idx) => ({
-                        nombre: `Ref ${idx + 1}`,
-                        inversion: ref.inversionTotal || 0,
-                        comision: (ref.inversionTotal || 0) * 0.1
-                      }))}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.22)" />
-                        <XAxis dataKey="nombre" stroke="#cbd5e1" tick={{ fill: '#cbd5e1', fontSize: 12 }} />
-                        <YAxis stroke="#cbd5e1" tick={{ fill: '#cbd5e1', fontSize: 12 }} />
-                        <Tooltip formatter={(value) => `€${value.toFixed(2)}`} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(148, 163, 184, 0.28)', borderRadius: '8px' }} labelStyle={{ color: '#f8fafc' }} itemStyle={{ color: '#e2e8f0' }} />
-                        <Legend wrapperStyle={{ color: '#e2e8f0' }} />
-                        <Bar dataKey="inversion" fill="#0284c7" name="Inversión" />
-                        <Bar dataKey="comision" fill="#10b981" name="Comisión 10%" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-
-                  <div className="referrals-table-scroll" style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', color: '#e2e8f0' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: 'rgba(51, 65, 85, 0.82)', borderBottom: '1px solid rgba(148, 163, 184, 0.28)' }}>
-                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Referido</th>
-                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
-                          <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>🎁 Comisión</th>
-                          <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>📅 Fecha</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {getReferidosDelInversor().slice(0, mostrarTodosReferidos ? undefined : 5).map((ref, idx) => {
-                          const comision = (ref.inversionTotal || 0) * 0.1
-                          return (
-                            <tr key={idx} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.12)', backgroundColor: idx % 2 === 0 ? 'rgba(15, 23, 42, 0.56)' : 'rgba(30, 41, 59, 0.52)' }}>
-                              <td style={{ padding: '12px', color: '#f8fafc' }}><strong>{ref.nombreReferido || ref.nombreInversor || 'Usuario'}</strong></td>
-                              <td style={{ padding: '12px', textAlign: 'right', color: '#0284c7', fontWeight: '600' }}>€{Number(ref.inversionTotal || 0).toLocaleString('es-ES')}</td>
-                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981', fontSize: '15px' }}>€{comision.toFixed(2)}</td>
-                              <td style={{ padding: '12px', color: '#cbd5e1', fontSize: '12px' }}>{new Date(ref.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                  {getReferidosDelInversor().length > 5 && (
-                    <button
-                      type="button"
-                      onClick={() => setMostrarTodosReferidos(!mostrarTodosReferidos)}
-                      style={{ marginTop: '1rem', padding: '9px 14px', backgroundColor: 'transparent', color: '#7dd3fc', border: '1px solid #0284c7', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
-                    >
-                      {mostrarTodosReferidos ? 'Ver menos' : `Ver más (${getReferidosDelInversor().length - 5})`}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div style={{
-                  padding: '3rem 2rem',
-                  background: 'rgba(6, 78, 59, 0.32)',
-                  borderRadius: '12px',
-                  textAlign: 'center',
-                  color: '#d1fae5',
-                  border: '1px dashed rgba(16, 185, 129, 0.7)'
-                }}>
-                  <p style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>👥 Aún no tienes referidos</p>
-                  <p style={{ color: '#a7f3d0', marginTop: '0.5rem' }}>¡Comparte tu enlace arriba para empezar a ganar comisiones!</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Panel de Comunidad (Solo Líderes) */}
-          {activeTab === 'comunidad-lider' && esLiderPropio && (
-            <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {
+            activeTab === 'solicitudes' && (
+              <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2rem' }}>
                 <div>
-                  <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.5rem', fontWeight: '800' }}>👑 Mi Comunidad (Niveles Infinitos)</h2>
-                  <p style={{ margin: '0.4rem 0 0 0', color: '#94a3b8', fontSize: '14px' }}>Visualiza el crecimiento completo de todas tus ramas y sub-ramas de referidos al momento.</p>
-                </div>
-              </div>
+                  <h2 style={{ color: '#f8fafc', marginBottom: '1.5rem' }}>📋 Mis Solicitudes de Inversión</h2>
+                  {(() => {
+                    const AHORA = Date.now()
+                    const HORAS_BLOQUEO = 72
+                    const userSolicitudes = userAportaciones
 
-              {!datosComunidadLider ? (
-                <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px' }}>
-                  <p>Cargando datos de comunidad...</p>
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1rem' }}>
-                    <div style={{ padding: '1.5rem', backgroundColor: 'rgba(15, 23, 42, 0.88)', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-                      <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#cbd5e1' }}>👥 Personas en tu Red</p>
-                      <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#f8fafc' }}>{datosComunidadLider.total_miembros}</p>
-                    </div>
-                    <div style={{ padding: '1.5rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-                      <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#86efac' }}>💰 Volumen Activo</p>
-                      <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>€{(datosComunidadLider.total_capital || 0).toLocaleString('es-ES')}</p>
-                    </div>
-                    <div style={{ padding: '1.5rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-                      <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#fca5a5' }}>⛔ Vencido (300%)</p>
-                      <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#ef4444' }}>€{(datosComunidadLider.total_vencido || 0).toLocaleString('es-ES')}</p>
-                    </div>
-                    <div style={{ padding: '1.5rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-                      <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#93c5fd' }}>💎 Ganancias Totales</p>
-                      <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#3b82f6' }}>€{(datosComunidadLider.total_ganancias || 0).toLocaleString('es-ES')}</p>
-                    </div>
-                  </div>
-
-                  <div className="referrals-panel" style={{
-                    backgroundColor: 'rgba(15, 23, 42, 0.88)', borderRadius: '12px', padding: '1.5rem',
-                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.28)', border: '1px solid rgba(148, 163, 184, 0.2)'
-                  }}>
-                    <h3 style={{ marginTop: 0, color: '#f8fafc', marginBottom: '1.5rem' }}>🌲 Estructura del Árbol</h3>
-
-                    {datosComunidadLider.miembros && datosComunidadLider.miembros.length > 0 ? (
-                      <div className="referrals-table-scroll" style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', color: '#e2e8f0', textAlign: 'left' }}>
-                          <thead>
-                            <tr style={{ backgroundColor: 'rgba(51, 65, 85, 0.82)', borderBottom: '1px solid rgba(148, 163, 184, 0.28)' }}>
-                              <th style={{ padding: '12px', fontWeight: '600' }}>Nivel</th>
-                              <th style={{ padding: '12px', fontWeight: '600' }}>Inversor</th>
-                              <th style={{ padding: '12px', fontWeight: '600' }}>País</th>
-                              <th style={{ padding: '12px', fontWeight: '600' }}>Inversión Activa</th>
-                              <th style={{ padding: '12px', fontWeight: '600' }}>Ganado</th>
-                              <th style={{ padding: '12px', fontWeight: '600' }}>300% Alcanzado</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {datosComunidadLider.miembros.map((miembro) => (
-                              <tr key={miembro.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.12)' }}>
-                                <td style={{ padding: '12px' }}>
-                                  <span style={{
-                                    backgroundColor: miembro.nivel === 1 ? 'rgba(59, 130, 246, 0.2)' : miembro.nivel === 2 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(148, 163, 184, 0.1)',
-                                    color: miembro.nivel === 1 ? '#93c5fd' : miembro.nivel === 2 ? '#fcd34d' : '#cbd5e1',
-                                    padding: '4px 8px', borderRadius: '4px', fontWeight: '700', fontSize: '12px'
-                                  }}>Nivel {miembro.nivel}</span>
-                                </td>
-                                <td style={{ padding: '12px', color: '#f8fafc', fontWeight: '600' }}>
-                                  {miembro.nombre}
-                                </td>
-                                <td style={{ padding: '12px', color: '#cbd5e1' }}>{miembro.pais || '—'}</td>
-                                <td style={{ padding: '12px', color: '#10b981', fontWeight: 'bold' }}>
-                                  €{Number(miembro.capital_activo || 0).toLocaleString('es-ES')}
-                                </td>
-                                <td style={{ padding: '12px', color: '#3b82f6', fontWeight: 'bold' }}>
-                                  €{Number(miembro.capital_ganado || 0).toLocaleString('es-ES')}
-                                </td>
-                                <td style={{ padding: '12px', color: '#ef4444', fontWeight: 'bold' }}>
-                                  €{Number(miembro.capital_vencido || 0).toLocaleString('es-ES')}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    ) : (
-                      <p style={{ color: '#94a3b8', textAlign: 'center', marginTop: '2rem' }}>Aún no hay inversores en tu red de comunidad.</p>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Pestaña: Ofertas Privadas */}
-          {activeTab === 'ofertas' && (
-            <div className="card admin-futuristic-card">
-              <div className="section-header">
-                <h2>🎁 Ofertas Restringidas</h2>
-              </div>
-              <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: '2rem' }}>
-                Ofertas especiales exclusivas para tu nivel de socio y líderes destacables.
-              </p>
-
-              {ofertasAsignadas.length === 0 ? (
-                <div style={{
-                  padding: '3rem 2rem',
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  borderRadius: '12px',
-                  textAlign: 'center',
-                  color: '#94a3b8',
-                  border: '1px solid rgba(255,255,255,0.05)'
-                }}>
-                  <p style={{ fontSize: '18px', margin: 0 }}>No hay ofertas privadas disponibles para tu rango actualmente.</p>
-                  <p style={{ marginTop: '0.5rem' }}>Sigue sumando referidos y aumentando tu capital para calificar pronto.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-                  {ofertasAsignadas.map(of => (
-                    <div key={of.id} style={{
-                      background: 'linear-gradient(145deg, rgba(16,185,129,0.1), rgba(15,23,42,0.9))',
-                      border: '1px solid rgba(16,185,129,0.3)',
-                      borderRadius: 14,
-                      padding: '1.5rem',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      position: 'relative'
-                    }}>
-                      <div style={{ position: 'absolute', top: 12, right: 12 }}>
-                        <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '4px 10px', borderRadius: 20, fontSize: 12 }}>
-                          Activa
-                        </span>
-                      </div>
-                      <h3 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>{of.nombre}</h3>
-                      <p style={{ fontSize: 13, color: '#f8fafc', marginBottom: '1rem', minHeight: 40 }}>{of.descripcion}</p>
-
-                      <div style={{ marginBottom: '1rem', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: 12 }}>
-                          <span style={{ color: '#94a3b8' }}>Llenado:</span>
-                          <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{of.progresoActual} / {of.importeMaximo} USDT</span>
-                        </div>
-                        <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, height: 8, width: '100%', overflow: 'hidden' }}>
-                          <div style={{ background: '#10b981', height: '100%', width: `${Math.min(100, (Number(of.progresoActual) / Number(of.importeMaximo)) * 100)}%` }}></div>
-                        </div>
-                      </div>
-
-                      <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: '1.5rem' }}>
-                        {of.condiciones && <p style={{ margin: 0, fontStyle: 'italic' }}>* {of.condiciones}</p>}
-                      </div>
-
-                      <button onClick={async () => {
-                        const monto = prompt(`Ingresa el importe que deseas aportar a la oferta "${of.nombre}":`)
-                        if (!monto || isNaN(monto) || Number(monto) <= 0) return alert('Importe inválido.')
-                        if (Number(monto) + Number(of.progresoActual) > Number(of.importeMaximo)) return alert('Esta oferta no admite un importe tan alto porque supera el máximo autorizado.')
-
-                        // Simulamos upload comprobante via prompt local para el inversor
-                        const nuevaAportacion = {
-                          id: Date.now().toString(),
-                          ofertaId: of.id,
-                          inversorNombre: currentUser?.name || currentUser?.nombre || 'Inversor',
-                          inversorId: currentUser?.id,
-                          importe: Number(monto),
-                          comprobante: null,
-                          estado: 'Pendiente de validación',
-                          fecha: new Date().toISOString()
-                        }
-
-                        const fileInput = document.createElement('input')
-                        fileInput.type = 'file'
-                        fileInput.accept = 'image/*,application/pdf'
-                        fileInput.onchange = (e) => {
-                          const file = e.target.files[0]
-                          if (file) {
-                            const reader = new FileReader()
-                            reader.onload = async (re) => {
-                              nuevaAportacion.comprobante = re.target.result
-
-                              try {
-                                const token = localStorage.getItem('token')
-                                const response = await fetch(`${API_URL}/api/ofertas/aportaciones`, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                  body: JSON.stringify(nuevaAportacion)
-                                })
-                                if (response.ok) {
-                                  const updated = [...ofertasAportaciones, nuevaAportacion]
-                                  setOfertasAportaciones(updated)
-                                  alert('✅ Tu aportación ha sido enviada para validación con el comprobante de pago.')
-                                } else {
-                                  alert('Error al enviar aportación')
-                                }
-                              } catch (err) {
-                                console.log(err)
-                                alert('Hubo un error contactando el servidor')
-                              }
-                            }
-                            reader.readAsDataURL(file)
+                    const infoEstado = (item) => {
+                      if (item.estado === 'Rechazada') {
+                        return { label: '❌ Rechazada', color: '#fca5a5', bg: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }
+                      }
+                      if (item.estado === 'Activa' || item.estado === 'Validada') {
+                        const aprobadaEn = item.fecha_aprobacion ? new Date(item.fecha_aprobacion).getTime() : null
+                        const desbloqueaEn = aprobadaEn ? aprobadaEn + HORAS_BLOQUEO * 3600 * 1000 : null
+                        if (desbloqueaEn && desbloqueaEn > AHORA) {
+                          const restanteMs = desbloqueaEn - AHORA
+                          const horas = Math.floor(restanteMs / 3600000)
+                          const minutos = Math.floor((restanteMs % 3600000) / 60000)
+                          return {
+                            label: `🔒 Bloqueada ${horas}h ${minutos}m`,
+                            color: '#93c5fd', bg: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)',
+                            bloqueada: true, horas, minutos
                           }
                         }
-                        alert('A continuación, selecciona el PDF o Imagen de tu comprobante de depósito.')
-                        fileInput.click()
+                        return { label: '✅ Activa', color: '#86efac', bg: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }
+                      }
+                      return { label: `⏳ ${item.estado || 'Pendiente'}`, color: '#fcd34d', bg: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(251, 191, 36, 0.3)' }
+                    }
 
-                      }} style={{ marginTop: 'auto', padding: '10px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold' }}>
-                        APORTAR AHORA
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                    return userSolicitudes.length > 0 ? (
+                      <div style={{ display: 'grid', gap: '1rem' }}>
+                        {userSolicitudes.map((sol) => {
+                          const info = infoEstado(sol)
+                          return (
+                            <div key={sol.id} style={{
+                              backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                              borderRadius: '12px',
+                              padding: '1.5rem',
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                              border: `2px solid ${info.borderColor}`,
+                              transition: 'all 0.3s'
+                            }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', marginBottom: '1rem' }}>
+                                <div>
+                                  <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>Solicitud #{sol.id}</p>
+                                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '20px', fontWeight: 'bold', color: '#f6c453' }}>
+                                    {formatCurrency(Number(sol.importe), sol.moneda)}
+                                  </p>
+                                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '12px', color: '#94a3b8' }}>
+                                    📅 {safeFormatDate(sol.fecha)}
+                                  </p>
+                                </div>
+                                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    padding: '0.5rem 1rem',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: '600',
+                                    backgroundColor: info.bg,
+                                    color: info.color
+                                  }}>
+                                    {info.label}
+                                  </span>
+                                </div>
+                              </div>
 
-          {/* Modal de Justificante */}
-          {showJustificante && solicitudSeleccionada && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000
-            }}>
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '2rem',
-                maxWidth: '500px',
-                width: '90%',
-                boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h2 style={{ margin: 0 }}>📎 Subir Comprobante</h2>
-                  <button onClick={() => {
-                    setShowJustificante(false)
-                    setSolicitudSeleccionada(null)
-                    setArchivoJustificante(null)
-                    setErrorJustificante('')
-                  }} style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer',
-                    color: '#6b7280'
-                  }}>×</button>
-                </div>
+                              {info.bloqueada && (
+                                <div style={{
+                                  backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                  padding: '1rem',
+                                  borderRadius: '8px',
+                                  fontSize: '13px',
+                                  borderLeft: '4px solid #3b82f6',
+                                  marginBottom: '0.75rem'
+                                }}>
+                                  <p style={{ margin: 0, color: '#93c5fd', fontWeight: '600' }}>
+                                    ⏱️ Tu inversión está validada. Las ganancias comienzan a generarse tras 72 horas de bloqueo de seguridad.
+                                  </p>
+                                  <p style={{ margin: '0.5rem 0 0 0', color: '#dbeafe', fontSize: '12px' }}>
+                                    Faltan {info.horas}h {info.minutos}m para que quede totalmente activa.
+                                  </p>
+                                </div>
+                              )}
 
-                <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
-                  Solicitud: {formatCurrency(Number(solicitudSeleccionada.importe), solicitudSeleccionada.moneda)}
-                </p>
+                              {sol.estado === 'Pendiente de validación' && !sol.tiene_justificante && (
+                                <button
+                                  onClick={() => {
+                                    setSolicitudSeleccionada(sol)
+                                    setShowJustificante(true)
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '0.75rem',
+                                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontWeight: '600',
+                                    fontSize: '14px',
+                                    transition: 'all 0.3s'
+                                  }}
+                                >
+                                  📎 Subir comprobante de transferencia
+                                </button>
+                              )}
 
-                {/* Mostrar cuenta bancaria de referencia */}
-                <div style={{ backgroundColor: '#f59e0b', border: '4px solid #f59e0b', borderRadius: '12px', padding: '2rem', marginBottom: '1.5rem', color: 'white' }}>
-                  <p style={{ margin: '0 0 1.5rem 0', fontWeight: 'bold', fontSize: '18px' }}>📌 Referencia de transferencia</p>
-                  {(() => {
-                    const cuentasAdmin = cuentasPago
-                    const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === solicitudSeleccionada.moneda)
-                    return cuentaSeleccionada ? (
-                      <div style={{ display: 'grid', gap: '1.2rem' }}>
-                        {cuentaSeleccionada.titular && (
-                          <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
-                          </div>
-                        )}
-                        <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                          <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : cuentaSeleccionada.iban ? '🏦 IBAN' : '💳 NÚMERO DE TARJETA'}</p>
-                          {(() => {
-                            const datoTransferencia = cuentaSeleccionada.iban || cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'
-                            return <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
-                              <p style={{ margin: 0, flex: 1, fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{datoTransferencia}</p>
-                              <button type="button" onClick={() => copiarDatoPago(datoTransferencia)} style={{ flexShrink: 0, padding: '8px 10px', background: 'rgba(15,23,42,0.28)', color: 'white', border: '1px solid rgba(255,255,255,0.45)', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>{datoCopiado === 'Copiado' ? 'Copiado' : 'Copiar'}</button>
+                              {sol.tiene_justificante && sol.estado === 'Pendiente de validación' && (
+                                <div style={{
+                                  backgroundColor: '#fef3c7',
+                                  padding: '1rem',
+                                  borderRadius: '8px',
+                                  fontSize: '13px',
+                                  borderLeft: '4px solid #f59e0b'
+                                }}>
+                                  <p style={{ margin: 0, fontWeight: '600', color: '#374151' }}>📋 Comprobante en revisión por el administrador</p>
+                                </div>
+                              )}
                             </div>
-                          })()}
-                        </div>
-                        {cuentaSeleccionada.concepto && (
-                          <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📝 CONCEPTO / DESCRIPCIÓN</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.concepto}</p>
-                          </div>
-                        )}
-                        {cuentaSeleccionada.red && (
-                          <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
-                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🌐 RED / BANCO</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.red || cuentaSeleccionada.banco || '—'}</p>
-                          </div>
-                        )}
+                          )
+                        })}
                       </div>
-                    ) : <p style={{ margin: 0, color: '#ffffff', fontWeight: 'bold', fontSize: '16px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada</p>
+                    ) : (
+                      <div style={{
+                        padding: '3rem 2rem',
+                        backgroundColor: 'linear-gradient(135deg, #f0f9ff 0%, #eff6ff 100%)',
+                        borderRadius: '12px',
+                        textAlign: 'center',
+                        color: '#0369a1',
+                        border: '2px dashed #0284c7'
+                      }}>
+                        <p style={{ fontSize: '18px', fontWeight: '600' }}>📭 No tienes solicitudes</p>
+                        <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>¡Comienza a invertir ahora mismo!</p>
+                      </div>
+                    )
                   })()}
                 </div>
+              </div>
+            )
+          }
 
-                {errorJustificante && (
-                  <div style={{
-                    backgroundColor: '#fee2e2',
-                    color: '#991b1b',
-                    padding: '0.75rem',
-                    borderRadius: '6px',
-                    marginBottom: '1rem',
-                    fontSize: '14px'
-                  }}>
-                    {errorJustificante}
-                  </div>
-                )}
-
+          {
+            activeTab === 'referidos' && (
+              <div className="content-grid" style={{ display: 'grid', gap: '2rem' }}>
+                {/* Panel Principal de Referidos */}
                 <div style={{
-                  border: '2px dashed #d1d5db',
-                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '12px',
                   padding: '2rem',
-                  textAlign: 'center',
-                  backgroundColor: '#f9fafb',
-                  marginBottom: '1.5rem'
+                  color: 'white',
+                  boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
+                  border: '2px solid rgba(255,255,255,0.2)'
                 }}>
-                  <input
-                    type="file"
-                    id="archivo-justificante"
-                    onChange={(e) => setArchivoJustificante(e.target.files?.[0] || null)}
-                    accept="image/*,.pdf"
-                    style={{ display: 'none' }}
-                  />
-                  <label htmlFor="archivo-justificante" style={{ cursor: 'pointer', display: 'block' }}>
-                    <p style={{ fontSize: '32px', margin: '0' }}>📁</p>
-                    <p style={{ margin: '0.5rem 0', fontWeight: '600', color: '#374151' }}>
-                      {archivoJustificante ? archivoJustificante.name : 'Haz clic para seleccionar archivo'}
-                    </p>
-                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', color: '#6b7280' }}>
-                      o arrastra un archivo aquí
-                    </p>
-                    <p style={{ margin: '0.5rem 0 0 0', fontSize: '11px', color: '#9ca3af' }}>
-                      JPG, PNG, PDF - Máximo 10MB
-                    </p>
-                  </label>
+                  <h2 style={{ marginTop: 0, fontSize: '24px' }}>🎯 Tu Programa de Referidos</h2>
+                  <p style={{ opacity: 0.95, marginBottom: '1rem', fontSize: '15px' }}>Gana el <strong>10% de cada inversión</strong> que realicen tus referidos. Acelerado al 300%.</p>
+
+                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+                    <input
+                      type="text"
+                      value={`https://capitaliberia.com?ref=${getCodigoReferidoInversor().codigo}`}
+                      readOnly
+                      style={{
+                        flex: 1,
+                        minWidth: '200px',
+                        padding: '10px 12px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderRadius: '8px',
+                        fontFamily: 'monospace',
+                        fontSize: '13px',
+                        backgroundColor: 'rgba(255,255,255,0.1)',
+                        color: 'white'
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`https://capitaliberia.com?ref=${getCodigoReferidoInversor().codigo}`)
+                        setSuccessRetiro('✅ Enlace copiado')
+                        setTimeout(() => setSuccessRetiro(''), 2000)
+                      }}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.3s'
+                      }}
+                    >
+                      📋 Copiar
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+                    <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                      <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>👥 Referidos Activos</p>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>{getReferidosDelInversor().length}</p>
+                    </div>
+                    <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                      <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>💰 Comisiones Ganadas</p>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>€{getReferidosDelInversor().reduce((sum, ref) => sum + ((ref.inversionTotal || 0) * 0.1), 0).toFixed(2)}</p>
+                    </div>
+                    <div style={{ padding: '1rem', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                      <p style={{ margin: 0, fontSize: '12px', opacity: 0.9, fontWeight: '600' }}>📊 Inversión Total</p>
+                      <p style={{ fontSize: '24px', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>€{getReferidosDelInversor().reduce((sum, ref) => sum + (ref.inversionTotal || 0), 0).toFixed(2)}</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <button
-                    onClick={() => {
+                {/* Tabla o Gráfica de Referidos */}
+                {getReferidosDelInversor().length > 0 ? (
+                  <div className="referrals-panel" style={{
+                    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    boxShadow: '0 8px 20px rgba(0, 0, 0, 0.28)',
+                    border: '1px solid rgba(148, 163, 184, 0.2)'
+                  }}>
+                    <h3 style={{ marginTop: 0, color: '#f8fafc' }}>📈 Mis Referidos</h3>
+
+                    {/* Gráfica de inversiones */}
+                    {getReferidosDelInversor().length > 0 && (
+                      <ResponsiveContainer width="100%" height={250}>
+                        <BarChart data={getReferidosDelInversor().map((ref, idx) => ({
+                          nombre: `Ref ${idx + 1}`,
+                          inversion: ref.inversionTotal || 0,
+                          comision: (ref.inversionTotal || 0) * 0.1
+                        }))}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.22)" />
+                          <XAxis dataKey="nombre" stroke="#cbd5e1" tick={{ fill: '#cbd5e1', fontSize: 12 }} />
+                          <YAxis stroke="#cbd5e1" tick={{ fill: '#cbd5e1', fontSize: 12 }} />
+                          <Tooltip formatter={(value) => `€${value.toFixed(2)}`} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(148, 163, 184, 0.28)', borderRadius: '8px' }} labelStyle={{ color: '#f8fafc' }} itemStyle={{ color: '#e2e8f0' }} />
+                          <Legend wrapperStyle={{ color: '#e2e8f0' }} />
+                          <Bar dataKey="inversion" fill="#0284c7" name="Inversión" />
+                          <Bar dataKey="comision" fill="#10b981" name="Comisión 10%" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+
+                    <div className="referrals-table-scroll" style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', color: '#e2e8f0' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: 'rgba(51, 65, 85, 0.82)', borderBottom: '1px solid rgba(148, 163, 184, 0.28)' }}>
+                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>👤 Referido</th>
+                            <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>💵 Inversión</th>
+                            <th style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>🎁 Comisión</th>
+                            <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>📅 Fecha</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {getReferidosDelInversor().slice(0, mostrarTodosReferidos ? undefined : 5).map((ref, idx) => {
+                            const comision = (ref.inversionTotal || 0) * 0.1
+                            return (
+                              <tr key={idx} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.12)', backgroundColor: idx % 2 === 0 ? 'rgba(15, 23, 42, 0.56)' : 'rgba(30, 41, 59, 0.52)' }}>
+                                <td style={{ padding: '12px', color: '#f8fafc' }}><strong>{ref.nombreReferido || ref.nombreInversor || 'Usuario'}</strong></td>
+                                <td style={{ padding: '12px', textAlign: 'right', color: '#0284c7', fontWeight: '600' }}>€{Number(ref.inversionTotal || 0).toLocaleString('es-ES')}</td>
+                                <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#10b981', fontSize: '15px' }}>€{comision.toFixed(2)}</td>
+                                <td style={{ padding: '12px', color: '#cbd5e1', fontSize: '12px' }}>{new Date(ref.fecha || Date.now()).toLocaleDateString('es-ES')}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {getReferidosDelInversor().length > 5 && (
+                      <button
+                        type="button"
+                        onClick={() => setMostrarTodosReferidos(!mostrarTodosReferidos)}
+                        style={{ marginTop: '1rem', padding: '9px 14px', backgroundColor: 'transparent', color: '#7dd3fc', border: '1px solid #0284c7', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}
+                      >
+                        {mostrarTodosReferidos ? 'Ver menos' : `Ver más (${getReferidosDelInversor().length - 5})`}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: '3rem 2rem',
+                    background: 'rgba(6, 78, 59, 0.32)',
+                    borderRadius: '12px',
+                    textAlign: 'center',
+                    color: '#d1fae5',
+                    border: '1px dashed rgba(16, 185, 129, 0.7)'
+                  }}>
+                    <p style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>👥 Aún no tienes referidos</p>
+                    <p style={{ color: '#a7f3d0', marginTop: '0.5rem' }}>¡Comparte tu enlace arriba para empezar a ganar comisiones!</p>
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          {/* Panel de Comunidad (Solo Líderes) */}
+          {
+            activeTab === 'comunidad-lider' && esLiderPropio && (
+              <div className="content-grid" style={{ display: 'grid', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '1.5rem', fontWeight: '800' }}>👑 Mi Comunidad (Niveles Infinitos)</h2>
+                    <p style={{ margin: '0.4rem 0 0 0', color: '#94a3b8', fontSize: '14px' }}>Visualiza el crecimiento completo de todas tus ramas y sub-ramas de referidos al momento.</p>
+                  </div>
+                </div>
+
+                {!datosComunidadLider ? (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px' }}>
+                    <p>Cargando datos de comunidad...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1rem' }}>
+                      <div style={{ padding: '1.5rem', backgroundColor: 'rgba(15, 23, 42, 0.88)', borderRadius: '12px', border: '1px solid rgba(148, 163, 184, 0.2)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                        <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#cbd5e1' }}>👥 Personas en tu Red</p>
+                        <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#f8fafc' }}>{datosComunidadLider.total_miembros}</p>
+                      </div>
+                      <div style={{ padding: '1.5rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                        <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#86efac' }}>💰 Volumen Activo</p>
+                        <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#10b981' }}>€{(datosComunidadLider.total_capital || 0).toLocaleString('es-ES')}</p>
+                      </div>
+                      <div style={{ padding: '1.5rem', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                        <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#fca5a5' }}>⛔ Vencido (300%)</p>
+                        <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#ef4444' }}>€{(datosComunidadLider.total_vencido || 0).toLocaleString('es-ES')}</p>
+                      </div>
+                      <div style={{ padding: '1.5rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
+                        <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#93c5fd' }}>💎 Ganancias Totales</p>
+                        <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#3b82f6' }}>€{(datosComunidadLider.total_ganancias || 0).toLocaleString('es-ES')}</p>
+                      </div>
+                    </div>
+
+                    <div className="referrals-panel" style={{
+                      backgroundColor: 'rgba(15, 23, 42, 0.88)', borderRadius: '12px', padding: '1.5rem',
+                      boxShadow: '0 8px 20px rgba(0, 0, 0, 0.28)', border: '1px solid rgba(148, 163, 184, 0.2)'
+                    }}>
+                      <h3 style={{ marginTop: 0, color: '#f8fafc', marginBottom: '1.5rem' }}>🌲 Estructura del Árbol</h3>
+
+                      {datosComunidadLider.miembros && datosComunidadLider.miembros.length > 0 ? (
+                        <div className="referrals-table-scroll" style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', color: '#e2e8f0', textAlign: 'left' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: 'rgba(51, 65, 85, 0.82)', borderBottom: '1px solid rgba(148, 163, 184, 0.28)' }}>
+                                <th style={{ padding: '12px', fontWeight: '600' }}>Nivel</th>
+                                <th style={{ padding: '12px', fontWeight: '600' }}>Inversor</th>
+                                <th style={{ padding: '12px', fontWeight: '600' }}>País</th>
+                                <th style={{ padding: '12px', fontWeight: '600' }}>Inversión Activa</th>
+                                <th style={{ padding: '12px', fontWeight: '600' }}>Ganado</th>
+                                <th style={{ padding: '12px', fontWeight: '600' }}>300% Alcanzado</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {datosComunidadLider.miembros.map((miembro) => (
+                                <tr key={miembro.id} style={{ borderBottom: '1px solid rgba(148, 163, 184, 0.12)' }}>
+                                  <td style={{ padding: '12px' }}>
+                                    <span style={{
+                                      backgroundColor: miembro.nivel === 1 ? 'rgba(59, 130, 246, 0.2)' : miembro.nivel === 2 ? 'rgba(245, 158, 11, 0.2)' : 'rgba(148, 163, 184, 0.1)',
+                                      color: miembro.nivel === 1 ? '#93c5fd' : miembro.nivel === 2 ? '#fcd34d' : '#cbd5e1',
+                                      padding: '4px 8px', borderRadius: '4px', fontWeight: '700', fontSize: '12px'
+                                    }}>Nivel {miembro.nivel}</span>
+                                  </td>
+                                  <td style={{ padding: '12px', color: '#f8fafc', fontWeight: '600' }}>
+                                    {miembro.nombre}
+                                  </td>
+                                  <td style={{ padding: '12px', color: '#cbd5e1' }}>{miembro.pais || '—'}</td>
+                                  <td style={{ padding: '12px', color: '#10b981', fontWeight: 'bold' }}>
+                                    €{Number(miembro.capital_activo || 0).toLocaleString('es-ES')}
+                                  </td>
+                                  <td style={{ padding: '12px', color: '#3b82f6', fontWeight: 'bold' }}>
+                                    €{Number(miembro.capital_ganado || 0).toLocaleString('es-ES')}
+                                  </td>
+                                  <td style={{ padding: '12px', color: '#ef4444', fontWeight: 'bold' }}>
+                                    €{Number(miembro.capital_vencido || 0).toLocaleString('es-ES')}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p style={{ color: '#94a3b8', textAlign: 'center', marginTop: '2rem' }}>Aún no hay inversores en tu red de comunidad.</p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          }
+
+          {/* Pestaña: Ofertas Privadas */}
+          {
+            activeTab === 'ofertas' && (
+              <div className="card admin-futuristic-card">
+                <div className="section-header">
+                  <h2>🎁 Ofertas Restringidas</h2>
+                </div>
+                <p style={{ color: '#94a3b8', fontSize: 14, marginBottom: '2rem' }}>
+                  Ofertas especiales exclusivas para tu nivel de socio y líderes destacables.
+                </p>
+
+                {ofertasAsignadas.length === 0 ? (
+                  <div style={{
+                    padding: '3rem 2rem',
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    borderRadius: '12px',
+                    textAlign: 'center',
+                    color: '#94a3b8',
+                    border: '1px solid rgba(255,255,255,0.05)'
+                  }}>
+                    <p style={{ fontSize: '18px', margin: 0 }}>No hay ofertas privadas disponibles para tu rango actualmente.</p>
+                    <p style={{ marginTop: '0.5rem' }}>Sigue sumando referidos y aumentando tu capital para calificar pronto.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+                    {ofertasAsignadas.map(of => (
+                      <div key={of.id} style={{
+                        background: 'linear-gradient(145deg, rgba(16,185,129,0.1), rgba(15,23,42,0.9))',
+                        border: '1px solid rgba(16,185,129,0.3)',
+                        borderRadius: 14,
+                        padding: '1.5rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        position: 'relative'
+                      }}>
+                        <div style={{ position: 'absolute', top: 12, right: 12 }}>
+                          <span style={{ background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', padding: '4px 10px', borderRadius: 20, fontSize: 12 }}>
+                            Activa
+                          </span>
+                        </div>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>{of.nombre}</h3>
+                        <p style={{ fontSize: 13, color: '#f8fafc', marginBottom: '1rem', minHeight: 40 }}>{of.descripcion}</p>
+
+                        <div style={{ marginBottom: '1rem', background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: 12 }}>
+                            <span style={{ color: '#94a3b8' }}>Llenado:</span>
+                            <span style={{ color: '#f1f5f9', fontWeight: 'bold' }}>{of.progresoActual} / {of.importeMaximo} USDT</span>
+                          </div>
+                          <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, height: 8, width: '100%', overflow: 'hidden' }}>
+                            <div style={{ background: '#10b981', height: '100%', width: `${Math.min(100, (Number(of.progresoActual) / Number(of.importeMaximo)) * 100)}%` }}></div>
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: '1.5rem' }}>
+                          {of.condiciones && <p style={{ margin: 0, fontStyle: 'italic' }}>* {of.condiciones}</p>}
+                        </div>
+
+                        <button onClick={async () => {
+                          const monto = prompt(`Ingresa el importe que deseas aportar a la oferta "${of.nombre}":`)
+                          if (!monto || isNaN(monto) || Number(monto) <= 0) return alert('Importe inválido.')
+                          if (Number(monto) + Number(of.progresoActual) > Number(of.importeMaximo)) return alert('Esta oferta no admite un importe tan alto porque supera el máximo autorizado.')
+
+                          // Simulamos upload comprobante via prompt local para el inversor
+                          const nuevaAportacion = {
+                            id: Date.now().toString(),
+                            ofertaId: of.id,
+                            inversorNombre: currentUser?.name || currentUser?.nombre || 'Inversor',
+                            inversorId: currentUser?.id,
+                            importe: Number(monto),
+                            comprobante: null,
+                            estado: 'Pendiente de validación',
+                            fecha: new Date().toISOString()
+                          }
+
+                          const fileInput = document.createElement('input')
+                          fileInput.type = 'file'
+                          fileInput.accept = 'image/*,application/pdf'
+                          fileInput.onchange = (e) => {
+                            const file = e.target.files[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = async (re) => {
+                                nuevaAportacion.comprobante = re.target.result
+
+                                try {
+                                  const token = localStorage.getItem('token')
+                                  const response = await fetch(`${API_URL}/api/ofertas/aportaciones`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                    body: JSON.stringify(nuevaAportacion)
+                                  })
+                                  if (response.ok) {
+                                    const updated = [...ofertasAportaciones, nuevaAportacion]
+                                    setOfertasAportaciones(updated)
+                                    alert('✅ Tu aportación ha sido enviada para validación con el comprobante de pago.')
+                                  } else {
+                                    alert('Error al enviar aportación')
+                                  }
+                                } catch (err) {
+                                  console.log(err)
+                                  alert('Hubo un error contactando el servidor')
+                                }
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }
+                          alert('A continuación, selecciona el PDF o Imagen de tu comprobante de depósito.')
+                          fileInput.click()
+
+                        }} style={{ marginTop: 'auto', padding: '10px', background: 'linear-gradient(135deg, #10b981, #059669)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 'bold' }}>
+                          APORTAR AHORA
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
+          {/* Modal de Justificante */}
+          {
+            showJustificante && solicitudSeleccionada && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000
+              }}>
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '2rem',
+                  maxWidth: '500px',
+                  width: '90%',
+                  boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h2 style={{ margin: 0 }}>📎 Subir Comprobante</h2>
+                    <button onClick={() => {
                       setShowJustificante(false)
                       setSolicitudSeleccionada(null)
                       setArchivoJustificante(null)
                       setErrorJustificante('')
-                    }}
-                    style={{
-                      padding: '0.75rem',
-                      backgroundColor: '#e5e7eb',
+                    }} style={{
+                      background: 'none',
                       border: 'none',
-                      borderRadius: '6px',
+                      fontSize: '24px',
                       cursor: 'pointer',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={subirJustificante}
-                    style={{
-                      padding: '0.75rem',
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '600'
-                    }}
-                  >
-                    Subir comprobante
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal de Programa de Aceleración (Rangos) */}
-          {showRangosModal && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000,
-              padding: '1rem'
-            }}>
-              <div style={{
-                backgroundColor: '#07111f',
-                border: '1px solid rgba(168, 85, 247, 0.3)',
-                borderRadius: '16px',
-                padding: '2rem',
-                maxWidth: '650px',
-                width: '95%',
-                maxHeight: '90vh',
-                overflowY: 'auto',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.15)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h2 style={{ margin: 0, color: '#f8fafc' }}>🏆 Programa Combinado</h2>
-                  <button onClick={() => setShowRangosModal(false)} style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '28px',
-                    cursor: 'pointer',
-                    color: '#94a3b8',
-                    transition: 'color 0.2s'
-                  }}>×</button>
-                </div>
-
-                <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
-                  En Capital Iberia puedes crecer de dos formas: mediante tu propia participación de capital o desarrollando una comunidad de red protegida.
-                </p>
-
-                {(() => {
-                  const rCapital = getRangoCapital()
-                  const rComunidad = getRangoComunidad()
-                  const nextCapital = getProximoRangoCapital()
-                  const nextComunidad = getProximoRangoComunidad()
-                  const referidosActivos = getReferidosActivosCount()
-
-                  return (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                      <div style={{ backgroundColor: rCapital ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255, 255, 255, 0.03)', color: '#f8fafc', border: rCapital ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: rCapital ? '#c084fc' : '#94a3b8', letterSpacing: '0.05em' }}>💎 RANGO DE CAPITAL</p>
-                        <p style={{ margin: '0.6rem 0', fontSize: '18px', fontWeight: '800' }}>
-                          {rCapital ? `${rCapital.emoji} ${rCapital.nombre}` : '🔒 Sin rango'}
-                        </p>
-                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', color: '#cbd5e1' }}>Tu Inversión: {formatCurrency(totalAportado, 'EUR')}</p>
-                        {nextCapital && (
-                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                            <p style={{ margin: '0 0 0.35rem 0', fontSize: '11px', fontWeight: '600', color: '#94a3b8' }}>Para {nextCapital.emoji} {nextCapital.nombre} te falta:</p>
-                            <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#60a5fa' }}>💰 {formatCurrency(Math.max(0, nextCapital.min - totalAportado), 'EUR')} más</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div style={{ backgroundColor: rComunidad ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.03)', color: '#f8fafc', border: rComunidad ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
-                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: rComunidad ? '#38bdf8' : '#94a3b8', letterSpacing: '0.05em' }}>👥 RANGO COMUNIDAD</p>
-                        <p style={{ margin: '0.6rem 0', fontSize: '18px', fontWeight: '800' }}>
-                          {rComunidad ? `${rComunidad.emoji} ${rComunidad.nombre}` : '🔒 Sin rango'}
-                        </p>
-                        <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', color: '#cbd5e1' }}>Miembros Activos: {referidosActivos}</p>
-                        {nextComunidad && (
-                          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-                            <p style={{ margin: '0 0 0.35rem 0', fontSize: '11px', fontWeight: '600', color: '#94a3b8' }}>Para {nextComunidad.emoji} {nextComunidad.nombre} te falta:</p>
-                            <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#60a5fa' }}>👤 {Math.max(0, nextComunidad.min - referidosActivos)} miembro{Math.max(0, nextComunidad.min - referidosActivos) === 1 ? '' : 's'}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })()}
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>💎 Niveles Capital</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                      {NIVELES_CAPITAL.map((nivel) => (
-                        <div key={nivel.nombre} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.85rem', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', color: '#cbd5e1' }}>
-                          <strong style={{ display: 'block', fontSize: '13px', color: '#f8fafc', marginBottom: '4px' }}>{nivel.emoji} {nivel.nombre}</strong>
-                          <span style={{ color: '#94a3b8' }}>Min: {formatCurrency(nivel.min, 'USD')}</span><br />
-                          <span style={{ color: '#4ade80', fontWeight: '600' }}>{nivel.beneficio}</span>
-                        </div>
-                      ))}
-                    </div>
+                      color: '#6b7280'
+                    }}>×</button>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>👥 Niveles Comunidad</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
-                      {NIVELES_COMUNIDAD.map((nivel) => (
-                        <div key={nivel.nombre} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.85rem', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', color: '#cbd5e1' }}>
-                          <strong style={{ display: 'block', fontSize: '13px', color: '#f8fafc', marginBottom: '4px' }}>{nivel.emoji} {nivel.nombre}</strong>
-                          <span style={{ color: '#94a3b8' }}>Min: {nivel.min} actvs.</span><br />
-                          <span style={{ color: '#60a5fa', fontWeight: '600' }}>{nivel.bonus}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '1rem', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '14px', fontWeight: '700', color: '#e2e8f0' }}>¿Cómo funciona?</h3>
-                  <p style={{ margin: '0.25rem 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.6' }}>
-                    <strong style={{ color: '#cbd5e1' }}>Los programas son independientes.</strong> Tus retornos de Capital garantizan mensualidades basadas en tu inversión personal. Tu crecimiento en la Comunidad te recompensa con bonus únicos transferidos por logros de equipo. Un miembro afiliado se considera "Activo" a partir de $100.
+                  <p style={{ color: '#6b7280', marginBottom: '1rem' }}>
+                    Solicitud: {formatCurrency(Number(solicitudSeleccionada.importe), solicitudSeleccionada.moneda)}
                   </p>
-                </div>
 
-                <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '12px', padding: '1rem' }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: '#fbbf24', fontWeight: '700' }}>⚠️ Bonificación aparte</h3>
-                  <p style={{ margin: 0, fontSize: '12.5px', color: '#fcd34d', fontWeight: '500', lineHeight: '1.5' }}>
-                    Esto no forma parte del programa de aceleración, es una bonificación aparte. Cuando el beneficio se venza y no subas de rango, tendrás otros beneficios adicionales.
-                  </p>
-                </div>
-
-                <div style={{ marginTop: '1.5rem' }}>
-                  <button
-                    onClick={() => setShowRangosModal(false)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      backgroundColor: '#a855f7',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Cerrar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Modal de Inversión */}
-          {showInversionModal && (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 1000
-            }}>
-              <div style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                padding: '2rem',
-                maxWidth: '500px',
-                width: '90%',
-                boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h2 style={{ margin: 0, color: '#111827' }}>💰 Invertir</h2>
-                  <button onClick={() => setShowInversionModal(false)} style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer',
-                    color: '#6b7280'
-                  }}>×</button>
-                </div>
-
-                {errorInversion && (
-                  <div style={{
-                    backgroundColor: '#fee2e2',
-                    color: '#991b1b',
-                    padding: '0.75rem',
-                    borderRadius: '6px',
-                    marginBottom: '1rem',
-                    fontSize: '14px'
-                  }}>
-                    {errorInversion}
-                  </div>
-                )}
-
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Moneda de inversión</label>
-                  <select
-                    value={monedaInversion}
-                    onChange={(e) => setMonedaInversion(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px'
-                    }}
-                  >
-                    <option value="USDT BEP-20">USDT BEP-20 (Criptomoneda)</option>
-                    <option value="EUR">EUR - Euro</option>
-                  </select>
-                </div>
-
-                {/* Mostrar cuentas bancarias */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold', color: '#374151', fontSize: '16px' }}>💳 Datos de transferencia</label>
-                  {(() => {
-                    const cuentasAdmin = cuentasPago
-                    const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === monedaInversion)
-                    return cuentaSeleccionada ? (
-                      <div style={{ backgroundColor: '#0284c7', border: '4px solid #0284c7', padding: '1.5rem', borderRadius: '12px', fontSize: '16px', color: 'white' }}>
-                        <div style={{ display: 'grid', gap: '1rem' }}>
-
+                  {/* Mostrar cuenta bancaria de referencia */}
+                  <div style={{ backgroundColor: '#f59e0b', border: '4px solid #f59e0b', borderRadius: '12px', padding: '2rem', marginBottom: '1.5rem', color: 'white' }}>
+                    <p style={{ margin: '0 0 1.5rem 0', fontWeight: 'bold', fontSize: '18px' }}>📌 Referencia de transferencia</p>
+                    {(() => {
+                      const cuentasAdmin = cuentasPago
+                      const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === solicitudSeleccionada.moneda)
+                      return cuentaSeleccionada ? (
+                        <div style={{ display: 'grid', gap: '1.2rem' }}>
                           {cuentaSeleccionada.titular && (
-                            <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                            <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
                               <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
                               <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
                             </div>
                           )}
-
-                          <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                          <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
                             <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : cuentaSeleccionada.iban ? '🏦 IBAN' : '💳 NÚMERO DE TARJETA'}</p>
                             {(() => {
                               const datoTransferencia = cuentaSeleccionada.iban || cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'
                               return <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
                                 <p style={{ margin: 0, flex: 1, fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{datoTransferencia}</p>
-                                <button type="button" onClick={() => copiarDatoPago(datoTransferencia)} style={{ flexShrink: 0, padding: '8px 10px', background: 'rgba(255,255,255,0.16)', color: 'white', border: '1px solid rgba(255,255,255,0.45)', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>{datoCopiado === 'Copiado' ? 'Copiado' : 'Copiar'}</button>
+                                <button type="button" onClick={() => copiarDatoPago(datoTransferencia)} style={{ flexShrink: 0, padding: '8px 10px', background: 'rgba(15,23,42,0.28)', color: 'white', border: '1px solid rgba(255,255,255,0.45)', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>{datoCopiado === 'Copiado' ? 'Copiado' : 'Copiar'}</button>
                               </div>
                             })()}
                           </div>
-
                           {cuentaSeleccionada.concepto && (
-                            <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                            <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
                               <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📝 CONCEPTO / DESCRIPCIÓN</p>
                               <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.concepto}</p>
                             </div>
                           )}
-
                           {cuentaSeleccionada.red && (
-                            <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
+                            <div style={{ backgroundColor: 'rgba(255,255,255,0.2)', padding: '1rem', borderRadius: '8px' }}>
                               <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🌐 RED / BANCO</p>
                               <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.red || cuentaSeleccionada.banco || '—'}</p>
                             </div>
                           )}
-
-                          <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
-                            <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📋 INSTRUCCIONES DEL ADMIN</p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.instrucciones || 'Sin instrucciones adicionales'}</p>
-                          </div>
                         </div>
-                      </div>
-                    ) : <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '16px', backgroundColor: '#fee2e2', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada o activa para esta moneda</p>
-                  })()}
-                </div>
-
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Monto a invertir</label>
-                  <input
-                    type="number"
-                    value={montoInversion}
-                    onChange={(e) => setMontoInversion(e.target.value)}
-                    placeholder="Ej: 1000"
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0.5rem 0 0 0' }}>
-                    Mínimo: {(() => {
-                      const cuentasAdmin = cuentasPago
-                      const cuentaConfig = cuentasAdmin.find(c => c.moneda === monedaInversion)
-                      const val = cuentaConfig?.minimo ? Number(cuentaConfig.minimo) : 100
-                      return formatCurrency(val, monedaInversion)
+                      ) : <p style={{ margin: 0, color: '#ffffff', fontWeight: 'bold', fontSize: '16px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada</p>
                     })()}
-                  </p>
-                </div>
+                  </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <button
-                    onClick={() => setShowInversionModal(false)}
-                    style={{
+                  {errorJustificante && (
+                    <div style={{
+                      backgroundColor: '#fee2e2',
+                      color: '#991b1b',
                       padding: '0.75rem',
-                      backgroundColor: '#e5e7eb',
-                      border: 'none',
                       borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={crearSolicitudInversion}
-                    style={{
-                      padding: '0.75rem',
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '600'
-                    }}
-                  >
-                    Solicitar inversión
-                  </button>
+                      marginBottom: '1rem',
+                      fontSize: '14px'
+                    }}>
+                      {errorJustificante}
+                    </div>
+                  )}
+
+                  <div style={{
+                    border: '2px dashed #d1d5db',
+                    borderRadius: '8px',
+                    padding: '2rem',
+                    textAlign: 'center',
+                    backgroundColor: '#f9fafb',
+                    marginBottom: '1.5rem'
+                  }}>
+                    <input
+                      type="file"
+                      id="archivo-justificante"
+                      onChange={(e) => setArchivoJustificante(e.target.files?.[0] || null)}
+                      accept="image/*,.pdf"
+                      style={{ display: 'none' }}
+                    />
+                    <label htmlFor="archivo-justificante" style={{ cursor: 'pointer', display: 'block' }}>
+                      <p style={{ fontSize: '32px', margin: '0' }}>📁</p>
+                      <p style={{ margin: '0.5rem 0', fontWeight: '600', color: '#374151' }}>
+                        {archivoJustificante ? archivoJustificante.name : 'Haz clic para seleccionar archivo'}
+                      </p>
+                      <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', color: '#6b7280' }}>
+                        o arrastra un archivo aquí
+                      </p>
+                      <p style={{ margin: '0.5rem 0 0 0', fontSize: '11px', color: '#9ca3af' }}>
+                        JPG, PNG, PDF - Máximo 10MB
+                      </p>
+                    </label>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <button
+                      onClick={() => {
+                        setShowJustificante(false)
+                        setSolicitudSeleccionada(null)
+                        setArchivoJustificante(null)
+                        setErrorJustificante('')
+                      }}
+                      style={{
+                        padding: '0.75rem',
+                        backgroundColor: '#e5e7eb',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        color: '#374151'
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={subirJustificante}
+                      style={{
+                        padding: '0.75rem',
+                        backgroundColor: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Subir comprobante
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )
+          }
 
-        </div>
-      </main>
-    </div>
+          {/* Modal de Programa de Aceleración (Rangos) */}
+          {
+            showRangosModal && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000,
+                padding: '1rem'
+              }}>
+                <div style={{
+                  backgroundColor: '#07111f',
+                  border: '1px solid rgba(168, 85, 247, 0.3)',
+                  borderRadius: '16px',
+                  padding: '2rem',
+                  maxWidth: '650px',
+                  width: '95%',
+                  maxHeight: '90vh',
+                  overflowY: 'auto',
+                  boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.15)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <h2 style={{ margin: 0, color: '#f8fafc' }}>🏆 Programa Combinado</h2>
+                    <button onClick={() => setShowRangosModal(false)} style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '28px',
+                      cursor: 'pointer',
+                      color: '#94a3b8',
+                      transition: 'color 0.2s'
+                    }}>×</button>
+                  </div>
+
+                  <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '1.5rem', fontWeight: '500', lineHeight: '1.5' }}>
+                    En Capital Iberia puedes crecer de dos formas: mediante tu propia participación de capital o desarrollando una comunidad de red protegida.
+                  </p>
+
+                  {(() => {
+                    const rCapital = getRangoCapital()
+                    const rComunidad = getRangoComunidad()
+                    const nextCapital = getProximoRangoCapital()
+                    const nextComunidad = getProximoRangoComunidad()
+                    const referidosActivos = getReferidosActivosCount()
+
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <div style={{ backgroundColor: rCapital ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255, 255, 255, 0.03)', color: '#f8fafc', border: rCapital ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
+                          <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: rCapital ? '#c084fc' : '#94a3b8', letterSpacing: '0.05em' }}>💎 RANGO DE CAPITAL</p>
+                          <p style={{ margin: '0.6rem 0', fontSize: '18px', fontWeight: '800' }}>
+                            {rCapital ? `${rCapital.emoji} ${rCapital.nombre}` : '🔒 Sin rango'}
+                          </p>
+                          <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', color: '#cbd5e1' }}>Tu Inversión: {formatCurrency(totalAportado, 'EUR')}</p>
+                          {nextCapital && (
+                            <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                              <p style={{ margin: '0 0 0.35rem 0', fontSize: '11px', fontWeight: '600', color: '#94a3b8' }}>Para {nextCapital.emoji} {nextCapital.nombre} te falta:</p>
+                              <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#60a5fa' }}>💰 {formatCurrency(Math.max(0, nextCapital.min - totalAportado), 'EUR')} más</p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ backgroundColor: rComunidad ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.03)', color: '#f8fafc', border: rComunidad ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '1rem', textAlign: 'center' }}>
+                          <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: rComunidad ? '#38bdf8' : '#94a3b8', letterSpacing: '0.05em' }}>👥 RANGO COMUNIDAD</p>
+                          <p style={{ margin: '0.6rem 0', fontSize: '18px', fontWeight: '800' }}>
+                            {rComunidad ? `${rComunidad.emoji} ${rComunidad.nombre}` : '🔒 Sin rango'}
+                          </p>
+                          <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', color: '#cbd5e1' }}>Miembros Activos: {referidosActivos}</p>
+                          {nextComunidad && (
+                            <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                              <p style={{ margin: '0 0 0.35rem 0', fontSize: '11px', fontWeight: '600', color: '#94a3b8' }}>Para {nextComunidad.emoji} {nextComunidad.nombre} te falta:</p>
+                              <p style={{ margin: 0, fontSize: '12px', fontWeight: '700', color: '#60a5fa' }}>👤 {Math.max(0, nextComunidad.min - referidosActivos)} miembro{Math.max(0, nextComunidad.min - referidosActivos) === 1 ? '' : 's'}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>💎 Niveles Capital</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                        {NIVELES_CAPITAL.map((nivel) => (
+                          <div key={nivel.nombre} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.85rem', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', color: '#cbd5e1' }}>
+                            <strong style={{ display: 'block', fontSize: '13px', color: '#f8fafc', marginBottom: '4px' }}>{nivel.emoji} {nivel.nombre}</strong>
+                            <span style={{ color: '#94a3b8' }}>Min: {formatCurrency(nivel.min, 'USD')}</span><br />
+                            <span style={{ color: '#4ade80', fontWeight: '600' }}>{nivel.beneficio}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <h3 style={{ margin: '0 0 0.75rem 0', color: '#e2e8f0', fontSize: '14px', fontWeight: '700' }}>👥 Niveles Comunidad</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: 1 }}>
+                        {NIVELES_COMUNIDAD.map((nivel) => (
+                          <div key={nivel.nombre} style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '0.85rem', fontSize: '12px', backgroundColor: 'rgba(0,0,0,0.3)', color: '#cbd5e1' }}>
+                            <strong style={{ display: 'block', fontSize: '13px', color: '#f8fafc', marginBottom: '4px' }}>{nivel.emoji} {nivel.nombre}</strong>
+                            <span style={{ color: '#94a3b8' }}>Min: {nivel.min} actvs.</span><br />
+                            <span style={{ color: '#60a5fa', fontWeight: '600' }}>{nivel.bonus}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ backgroundColor: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '1rem', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '14px', fontWeight: '700', color: '#e2e8f0' }}>¿Cómo funciona?</h3>
+                    <p style={{ margin: '0.25rem 0', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.6' }}>
+                      <strong style={{ color: '#cbd5e1' }}>Los programas son independientes.</strong> Tus retornos de Capital garantizan mensualidades basadas en tu inversión personal. Tu crecimiento en la Comunidad te recompensa con bonus únicos transferidos por logros de equipo. Un miembro afiliado se considera "Activo" a partir de $100.
+                    </p>
+                  </div>
+
+                  <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '12px', padding: '1rem' }}>
+                    <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '14px', color: '#fbbf24', fontWeight: '700' }}>⚠️ Bonificación aparte</h3>
+                    <p style={{ margin: 0, fontSize: '12.5px', color: '#fcd34d', fontWeight: '500', lineHeight: '1.5' }}>
+                      Esto no forma parte del programa de aceleración, es una bonificación aparte. Cuando el beneficio se venza y no subas de rango, tendrás otros beneficios adicionales.
+                    </p>
+                  </div>
+
+                  <div style={{ marginTop: '1.5rem' }}>
+                    <button
+                      onClick={() => setShowRangosModal(false)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        backgroundColor: '#a855f7',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          }
+
+          {/* Modal de Inversión */}
+          {
+            showInversionModal && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000
+              }}>
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '2rem',
+                  maxWidth: '500px',
+                  width: '90%',
+                  boxShadow: '0 20px 25px rgba(0, 0, 0, 0.15)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h2 style={{ margin: 0, color: '#111827' }}>💰 Invertir</h2>
+                    <button onClick={() => setShowInversionModal(false)} style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '24px',
+                      cursor: 'pointer',
+                      color: '#6b7280'
+                    }}>×</button>
+                  </div>
+
+                  {errorInversion && (
+                    <div style={{
+                      backgroundColor: '#fee2e2',
+                      color: '#991b1b',
+                      padding: '0.75rem',
+                      borderRadius: '6px',
+                      marginBottom: '1rem',
+                      fontSize: '14px'
+                    }}>
+                      {errorInversion}
+                    </div>
+                  )}
+
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Moneda de inversión</label>
+                    <select
+                      value={monedaInversion}
+                      onChange={(e) => setMonedaInversion(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px'
+                      }}
+                    >
+                      <option value="USDT BEP-20">USDT BEP-20 (Criptomoneda)</option>
+                      <option value="EUR">EUR - Euro</option>
+                    </select>
+                  </div>
+
+                  {/* Mostrar cuentas bancarias */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '1rem', fontWeight: 'bold', color: '#374151', fontSize: '16px' }}>💳 Datos de transferencia</label>
+                    {(() => {
+                      const cuentasAdmin = cuentasPago
+                      const cuentaSeleccionada = cuentasAdmin.find(c => c.moneda === monedaInversion)
+                      return cuentaSeleccionada ? (
+                        <div style={{ backgroundColor: '#0284c7', border: '4px solid #0284c7', padding: '1.5rem', borderRadius: '12px', fontSize: '16px', color: 'white' }}>
+                          <div style={{ display: 'grid', gap: '1rem' }}>
+
+                            {cuentaSeleccionada.titular && (
+                              <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                                <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>👤 TITULAR</p>
+                                <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.titular}</p>
+                              </div>
+                            )}
+
+                            <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                              <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>{cuentaSeleccionada.wallet ? '🔗 DIRECCIÓN WALLET' : cuentaSeleccionada.iban ? '🏦 IBAN' : '💳 NÚMERO DE TARJETA'}</p>
+                              {(() => {
+                                const datoTransferencia = cuentaSeleccionada.iban || cuentaSeleccionada.numero || cuentaSeleccionada.wallet || cuentaSeleccionada.cuenta || '—'
+                                return <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
+                                  <p style={{ margin: 0, flex: 1, fontWeight: 'bold', fontSize: '18px', fontFamily: 'monospace', letterSpacing: '1px', wordBreak: 'break-all' }}>{datoTransferencia}</p>
+                                  <button type="button" onClick={() => copiarDatoPago(datoTransferencia)} style={{ flexShrink: 0, padding: '8px 10px', background: 'rgba(255,255,255,0.16)', color: 'white', border: '1px solid rgba(255,255,255,0.45)', borderRadius: '6px', cursor: 'pointer', fontWeight: '700' }}>{datoCopiado === 'Copiado' ? 'Copiado' : 'Copiar'}</button>
+                                </div>
+                              })()}
+                            </div>
+
+                            {cuentaSeleccionada.concepto && (
+                              <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                                <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📝 CONCEPTO / DESCRIPCIÓN</p>
+                                <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.concepto}</p>
+                              </div>
+                            )}
+
+                            {cuentaSeleccionada.red && (
+                              <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px', backdropFilter: 'blur(10px)' }}>
+                                <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>🌐 RED / BANCO</p>
+                                <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '18px' }}>{cuentaSeleccionada.red || cuentaSeleccionada.banco || '—'}</p>
+                              </div>
+                            )}
+
+                            <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '8px' }}>
+                              <p style={{ margin: '0', fontWeight: 'bold', fontSize: '14px', opacity: 0.9 }}>📋 INSTRUCCIONES DEL ADMIN</p>
+                              <p style={{ margin: '0.5rem 0 0 0', fontWeight: 'bold', fontSize: '16px' }}>{cuentaSeleccionada.instrucciones || 'Sin instrucciones adicionales'}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '16px', backgroundColor: '#fee2e2', padding: '1rem', borderRadius: '8px' }}>❌ No hay cuenta configurada o activa para esta moneda</p>
+                    })()}
+                  </div>
+
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#374151' }}>Monto a invertir</label>
+                    <input
+                      type="number"
+                      value={montoInversion}
+                      onChange={(e) => setMontoInversion(e.target.value)}
+                      placeholder="Ej: 1000"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '0.5rem 0 0 0' }}>
+                      Mínimo: {(() => {
+                        const cuentasAdmin = cuentasPago
+                        const cuentaConfig = cuentasAdmin.find(c => c.moneda === monedaInversion)
+                        const val = cuentaConfig?.minimo ? Number(cuentaConfig.minimo) : 100
+                        return formatCurrency(val, monedaInversion)
+                      })()}
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <button
+                      onClick={() => setShowInversionModal(false)}
+                      style={{
+                        padding: '0.75rem',
+                        backgroundColor: '#e5e7eb',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        color: '#374151'
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={crearSolicitudInversion}
+                      style={{
+                        padding: '0.75rem',
+                        backgroundColor: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Solicitar inversión
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          }
+
+        </div >
+      </main >
+    </div >
   );
 }
 
