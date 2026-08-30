@@ -31,13 +31,13 @@ function Home() {
 
         <div className="hero-main">
           <div className="hero-logo-badge">
-            <div className="logo-icon">CT</div>
+            <div className="logo-icon">CI</div>
             <span className="logo-badge-text">Capital Iberia</span>
           </div>
 
           <h1 className="hero-company-name">
             <span className="text-white">Capital</span>
-            <span className="text-gold">Trade Iberia</span>
+            <span className="text-gold">Iberia</span>
           </h1>
 
           <p className="hero-tagline">
