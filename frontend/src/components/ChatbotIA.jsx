@@ -26,24 +26,33 @@ const ChatbotIA = () => {
         setIsOpen(!isOpen);
     };
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!inputValue.trim()) return;
 
-        // Add user message
-        const userMsg = { sender: 'user', text: inputValue };
+        const currentInput = inputValue;
+        const userMsg = { sender: 'user', text: currentInput };
         setMessages((prev) => [...prev, userMsg]);
         setInputValue('');
         setIsTyping(true);
 
-        // Simulate AI response delay (frontend stub for now to avoid calling python backend yet)
-        setTimeout(() => {
-            const botMsg = {
-                sender: 'bot',
-                text: 'He registrado tu consulta. Este módulo está listo a nivel visual y esperando la conexión al core del Servidor (OpenAI/Gemini) para tener análisis de texto real.'
-            };
-            setIsTyping(false);
+        try {
+            const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${BASE_URL}/api/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: currentInput })
+            });
+            const data = await response.json();
+
+            const botMsg = { sender: 'bot', text: data.response };
             setMessages((prev) => [...prev, botMsg]);
-        }, 1500);
+        } catch (error) {
+            setMessages((prev) => [...prev, { sender: 'bot', text: 'Mis núcleos de procesamiento están inactivos. Verifica la conexión a Internet o los puertos del servidor.' }]);
+        } finally {
+            setIsTyping(false);
+        }
     };
 
     const handleKeyPress = (e) => {
