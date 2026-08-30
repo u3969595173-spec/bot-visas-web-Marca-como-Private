@@ -1483,6 +1483,61 @@ function DashboardAdminExpandido({ onLogout }) {
             <RetirosCreditoPanel />
           )}
 
+          {activeTab === 'p2p' && (
+            <div className="admin-content-section fade-in">
+              <header className="section-header" style={{ marginBottom: '2rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Historial Corporativo de Vouchers (P2P)</h2>
+                  <p style={{ color: '#94a3b8', marginTop: '0.25rem' }}>Auditoría completa de saldos transferidos internamente entre los inversores.</p>
+                </div>
+              </header>
+
+              {transferenciasP2P.length > 0 ? (
+                <div style={{ overflowX: 'auto', backgroundColor: 'rgba(15, 23, 42, 0.6)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: 'rgba(0,0,0,0.3)', color: '#94a3b8', fontSize: '13px' }}>
+                        <th style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>ID / Fecha</th>
+                        <th style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Emisor (Origen)</th>
+                        <th style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Receptor (Destino)</th>
+                        <th style={{ padding: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'right' }}>Importe Trasladado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transferenciasP2P.map(t => (
+                        <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', ':hover': { backgroundColor: 'rgba(255,255,255,0.02)' } }}>
+                          <td style={{ padding: '1rem' }}>
+                            <div style={{ fontWeight: 'bold', color: '#f8fafc' }}>TXN #{t.id}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>{safeFormatDate(t.fecha)}</div>
+                          </td>
+                          <td style={{ padding: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '18px' }}>📤</span>
+                              <span style={{ color: '#f8fafc', fontWeight: '500' }}>{t.origen_nombre}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <span style={{ fontSize: '18px' }}>📥</span>
+                              <span style={{ color: '#e879f9', fontWeight: 'bold' }}>{t.receptor_nombre}</span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold', fontSize: '1.1rem', color: '#10b981' }}>
+                            {formatCurrency(t.importe, t.moneda)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b', backgroundColor: 'rgba(15, 23, 42, 0.4)', borderRadius: '12px', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                  No se han registrado transferencias corporativas P2P todavía.
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'solicitudes' && (
             <div className="card">
               <div className="section-header"><h2>Solicitudes de inversores</h2></div>
