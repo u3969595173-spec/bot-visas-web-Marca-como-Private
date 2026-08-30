@@ -1576,20 +1576,6 @@ function DashboardInversionista() {
                       if (item.estado === 'Rechazada') {
                         return { label: '❌ Rechazada', color: '#fca5a5', bg: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }
                       }
-                      if (item.estado === 'Retenida P2P') {
-                        const ingresadaEn = item.fecha ? new Date(item.fecha).getTime() : null
-                        const desbloqueaEn = ingresadaEn ? ingresadaEn + HORAS_BLOQUEO * 3600 * 1000 : null
-                        if (desbloqueaEn && desbloqueaEn > AHORA) {
-                          const restanteMs = desbloqueaEn - AHORA
-                          const horas = Math.floor(restanteMs / 3600000)
-                          const minutos = Math.floor((restanteMs % 3600000) / 60000)
-                          return {
-                            label: `🔐 Auditoría (P2P) ${horas}h ${minutos}m`,
-                            color: '#e879f9', bg: 'rgba(232, 121, 249, 0.15)', borderColor: 'rgba(232, 121, 249, 0.3)',
-                            bloqueada: true, horas, minutos, msg: '⏱️ Voucher Corporativo (P2P) ingresado. El capital comenzará a devengar beneficios diarios (0.5% - 1.5%) de forma directa en cuanto culminen las 72h de retención por seguridad de liquidez.'
-                          }
-                        }
-                      }
                       if (item.estado === 'Activa' || item.estado === 'Validada') {
                         const aprobadaEn = item.fecha_aprobacion ? new Date(item.fecha_aprobacion).getTime() : null
                         const desbloqueaEn = aprobadaEn ? aprobadaEn + HORAS_BLOQUEO * 3600 * 1000 : null
@@ -1600,7 +1586,7 @@ function DashboardInversionista() {
                           return {
                             label: `🔒 Bloqueada ${horas}h ${minutos}m`,
                             color: '#93c5fd', bg: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)',
-                            bloqueada: true, horas, minutos, msg: '⏱️ Tu inversión está validada. Las ganancias comienzan a generarse tras 72 horas de bloqueo de seguridad.'
+                            bloqueada: true, horas, minutos
                           }
                         }
                         return { label: '✅ Activa', color: '#86efac', bg: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.3)' }
@@ -1655,8 +1641,8 @@ function DashboardInversionista() {
                                   borderLeft: '4px solid #3b82f6',
                                   marginBottom: '0.75rem'
                                 }}>
-                                  <p style={{ margin: 0, color: info.msg?.includes('P2P') ? '#e879f9' : '#93c5fd', fontWeight: '600' }}>
-                                    {info.msg}
+                                  <p style={{ margin: 0, color: '#93c5fd', fontWeight: '600' }}>
+                                    ⏱️ Tu inversión está validada. Las ganancias comienzan a generarse tras 72 horas de bloqueo de seguridad.
                                   </p>
                                   <p style={{ margin: '0.5rem 0 0 0', color: '#dbeafe', fontSize: '12px' }}>
                                     Faltan {info.horas}h {info.minutos}m para que quede totalmente activa.
