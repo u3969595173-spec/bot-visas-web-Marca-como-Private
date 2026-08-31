@@ -1744,7 +1744,7 @@ function DashboardInversionista() {
                   <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                     <input
                       type="text"
-                      value={`https://capitaliberia.com?ref=${getCodigoReferidoInversor().codigo}`}
+                      value={`${window.location.origin}?ref=${getCodigoReferidoInversor().codigo}`}
                       readOnly
                       style={{
                         flex: 1,
@@ -1760,7 +1760,7 @@ function DashboardInversionista() {
                     />
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(`https://capitaliberia.com?ref=${getCodigoReferidoInversor().codigo}`)
+                        navigator.clipboard.writeText(`${window.location.origin}?ref=${getCodigoReferidoInversor().codigo}`)
                         setSuccessRetiro('✅ Enlace copiado')
                         setTimeout(() => setSuccessRetiro(''), 2000)
                       }}
