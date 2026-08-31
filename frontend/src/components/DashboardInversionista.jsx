@@ -130,6 +130,7 @@ function DashboardInversionista() {
   const [referidoPorPropio, setReferidoPorPropio] = React.useState(null)
   const [esLiderPropio, setEsLiderPropio] = React.useState(false)
   const [datosComunidadLider, setDatosComunidadLider] = React.useState(null)
+  const [isCardFlipped, setIsCardFlipped] = React.useState(false)
 
   React.useEffect(() => {
     const syncData = () => {
@@ -1021,55 +1022,94 @@ function DashboardInversionista() {
             <NotificacionesCampana />
           </div>
         </header>
-
         <div className="content-scroll">
 
           {activeTab === 'resumen' && (
             <>
-              {/* Tarjeta VIP Negra 3D */}
+              {/* Tarjeta VIP Negra 3D (Flip) */}
               <div className="vip-card-container" style={{
                 perspective: '1000px',
                 marginBottom: '2rem',
                 display: 'flex',
-                justifyContent: 'center'
-              }}>
-                <div className="vip-card" style={{
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }} onClick={() => setIsCardFlipped(!isCardFlipped)}>
+                <div className="vip-card-inner" style={{
+                  position: 'relative',
                   width: '100%',
                   maxWidth: '450px',
                   height: '240px',
-                  background: 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #000000 100%)',
-                  borderRadius: '16px',
-                  padding: '1.5rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  border: '1px solid rgba(246, 196, 83, 0.2)',
-                  transition: 'transform 0.4s ease',
-                  cursor: 'pointer'
-                }}
-                  onMouseOver={(e) => { e.currentTarget.style.transform = 'rotateY(10deg) rotateX(5deg) scale(1.02)' }}
-                  onMouseOut={(e) => { e.currentTarget.style.transform = 'rotateY(0deg) rotateX(0deg) scale(1)' }}
-                >
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 80% 20%, rgba(246, 196, 83, 0.15) 0%, transparent 60%)', pointerEvents: 'none' }}></div>
+                  transition: 'transform 0.6s',
+                  transformStyle: 'preserve-3d',
+                  transform: isCardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                }}>
+                  {/* FRENTE */}
+                  <div className="vip-card-front" style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    backfaceVisibility: 'hidden',
+                    background: 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #000000 100%)',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1)',
+                    border: '1px solid rgba(246, 196, 83, 0.2)',
+                    overflow: 'hidden'
+                  }}
+                    onMouseOver={(e) => { if (!isCardFlipped) e.currentTarget.parentElement.style.transform = 'rotateY(10deg) rotateX(5deg) scale(1.02)' }}
+                    onMouseOut={(e) => { if (!isCardFlipped) e.currentTarget.parentElement.style.transform = 'rotateY(0deg) rotateX(0deg) scale(1)' }}
+                  >
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 80% 20%, rgba(246, 196, 83, 0.15) 0%, transparent 60%)', pointerEvents: 'none' }}></div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
-                    <div>
-                      <h2 style={{ color: '#f6c453', margin: 0, fontSize: '18px', fontFamily: 'serif', letterSpacing: '2px', textTransform: 'uppercase' }}>CAPITAL IBERIA</h2>
-                      <p style={{ color: '#9ca3af', margin: '4px 0 0 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Global Investment Fund</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
+                      <div>
+                        <h2 style={{ color: '#f6c453', margin: 0, fontSize: '18px', fontFamily: 'serif', letterSpacing: '2px', textTransform: 'uppercase' }}>CAPITAL IBERIA</h2>
+                        <p style={{ color: '#f8fafc', margin: '4px 0 0 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', opacity: 0.8 }}>Asset Management</p>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.1)', padding: '5px 10px', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                        <span style={{ fontSize: '10px', color: '#f6c453', fontWeight: 'bold' }}>TAP TO FLIP ↺</span>
+                      </div>
                     </div>
-                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '?ref=' + (getCodigoReferidoInversor()?.codigo || ''))}`} alt="QR Referido" style={{ width: '60px', height: '60px', borderRadius: '4px', background: 'white', padding: '2px' }} />
+
+                    <div style={{ zIndex: 1 }}>
+                      <p style={{ color: 'rgba(255,255,255,0.5)', margin: '0 0 5px 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Inversor Acreditado</p>
+                      <p style={{ color: 'white', margin: 0, fontSize: '20px', letterSpacing: '2px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                        {currentUser?.name || currentUser?.nombre || 'Inversor VIP'}
+                      </p>
+                      <p style={{ color: '#f6c453', margin: '8px 0 0 0', fontSize: '13px', fontFamily: 'monospace', letterSpacing: '1px' }}>
+                        ID MEMBRESÍA: {getCodigoReferidoInversor()?.codigo || 'N/A'}
+                      </p>
+                    </div>
                   </div>
 
-                  <div style={{ zIndex: 1 }}>
-                    <p style={{ color: 'rgba(255,255,255,0.5)', margin: '0 0 5px 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Inversor Acreditado</p>
-                    <p style={{ color: 'white', margin: 0, fontSize: '20px', letterSpacing: '2px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                      {currentUser?.name || currentUser?.nombre || 'Inversor VIP'}
-                    </p>
-                    <p style={{ color: '#f6c453', margin: '8px 0 0 0', fontSize: '13px', fontFamily: 'monospace', letterSpacing: '1px' }}>
-                      ID MEMBRESÍA: {getCodigoReferidoInversor()?.codigo || 'N/A'}
+                  {/* REVERSO */}
+                  <div className="vip-card-back" style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    backfaceVisibility: 'hidden',
+                    background: 'linear-gradient(135deg, #000000 0%, #111827 100%)',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                    border: '1px solid rgba(246, 196, 83, 0.4)',
+                    transform: 'rotateY(180deg)',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'repeating-linear-gradient(45deg, rgba(246,196,83,0.03) 0px, rgba(246,196,83,0.03) 2px, transparent 2px, transparent 4px)' }}></div>
+                    <p style={{ color: '#f6c453', margin: '0 0 10px 0', fontSize: '12px', fontWeight: 'bold', letterSpacing: '1px' }}>CÓDIGO DE INVITACIÓN OFICIAL</p>
+                    <div style={{ background: 'white', padding: '10px', borderRadius: '8px', zIndex: 1 }}>
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(window.location.origin + '?ref=' + (getCodigoReferidoInversor()?.codigo || ''))}`} alt="QR Gigante Referido" style={{ width: '130px', height: '130px', display: 'block' }} />
+                    </div>
+                    <p style={{ color: '#9ca3af', margin: '15px 0 0 0', fontSize: '10px', textAlign: 'center', zIndex: 1 }}>
+                      Escanea este código para registrar nuevos asociados<br />bajo tu estructura corporativa.
                     </p>
                   </div>
                 </div>
