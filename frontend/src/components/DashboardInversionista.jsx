@@ -131,6 +131,7 @@ function DashboardInversionista() {
   const [esLiderPropio, setEsLiderPropio] = React.useState(false)
   const [datosComunidadLider, setDatosComunidadLider] = React.useState(null)
   const [isCardFlipped, setIsCardFlipped] = React.useState(false)
+  const [isSystemLoading, setIsSystemLoading] = React.useState(true)
 
   React.useEffect(() => {
     const syncData = () => {
@@ -138,6 +139,9 @@ function DashboardInversionista() {
     }
 
     syncData()
+    setTimeout(() => {
+      setIsSystemLoading(false)
+    }, 1500)
     window.addEventListener('storage', syncData)
     window.addEventListener('capital-trade-sync', syncData)
     const interval = setInterval(syncData, 5000)
@@ -1124,7 +1128,9 @@ function DashboardInversionista() {
                   backdropFilter: 'blur(10px)'
                 }}>
                   <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
-                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('activo')}</p>
+                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>
+                    {isSystemLoading ? <div className="skeleton-shimmer" style={{ width: '120px' }}></div> : mostrarSaldos('activo')}
+                  </p>
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital liberado por moneda</p>
                 </div>
 
@@ -1139,7 +1145,9 @@ function DashboardInversionista() {
                   backdropFilter: 'blur(10px)'
                 }}>
                   <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>📈 Ganancias Posibles</p>
-                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('gananciasPosibles')}</p>
+                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>
+                    {isSystemLoading ? <div className="skeleton-shimmer" style={{ width: '120px' }}></div> : mostrarSaldos('gananciasPosibles')}
+                  </p>
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Pool por moneda</p>
                 </div>
 
@@ -1154,7 +1162,9 @@ function DashboardInversionista() {
                   backdropFilter: 'blur(10px)'
                 }}>
                   <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💵 Saldo Disponible</p>
-                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirable')}</p>
+                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>
+                    {isSystemLoading ? <div className="skeleton-shimmer" style={{ width: '120px' }}></div> : mostrarSaldos('retirable')}
+                  </p>
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Disponible para retirar</p>
                 </div>
 
@@ -1169,7 +1179,9 @@ function DashboardInversionista() {
                   backdropFilter: 'blur(10px)'
                 }}>
                   <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>✅ Total Retirado</p>
-                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirado')}</p>
+                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>
+                    {isSystemLoading ? <div className="skeleton-shimmer" style={{ width: '120px' }}></div> : mostrarSaldos('retirado')}
+                  </p>
                   <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido por moneda</p>
                 </div>
 
