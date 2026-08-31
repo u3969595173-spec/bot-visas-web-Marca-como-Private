@@ -1025,108 +1025,159 @@ function DashboardInversionista() {
         <div className="content-scroll">
 
           {activeTab === 'resumen' && (
-            <div className="stats-grid portfolio-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-              {/* Inversión Activa - Gradiente Azul */}
-              <div className="portfolio-stat-card portfolio-stat-primary" style={{
-                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                color: 'white',
-                boxShadow: '0 8px 16px rgba(2, 132, 199, 0.3)',
-                border: '2px solid rgba(255,255,255,0.2)',
-                backdropFilter: 'blur(10px)'
+            <>
+              {/* Tarjeta VIP Negra 3D */}
+              <div className="vip-card-container" style={{
+                perspective: '1000px',
+                marginBottom: '2rem',
+                display: 'flex',
+                justifyContent: 'center'
               }}>
-                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
-                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('activo')}</p>
-                <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital liberado por moneda</p>
+                <div className="vip-card" style={{
+                  width: '100%',
+                  maxWidth: '450px',
+                  height: '240px',
+                  background: 'linear-gradient(135deg, #111827 0%, #1f2937 50%, #000000 100%)',
+                  borderRadius: '16px',
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  border: '1px solid rgba(246, 196, 83, 0.2)',
+                  transition: 'transform 0.4s ease',
+                  cursor: 'pointer'
+                }}
+                  onMouseOver={(e) => { e.currentTarget.style.transform = 'rotateY(10deg) rotateX(5deg) scale(1.02)' }}
+                  onMouseOut={(e) => { e.currentTarget.style.transform = 'rotateY(0deg) rotateX(0deg) scale(1)' }}
+                >
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'radial-gradient(circle at 80% 20%, rgba(246, 196, 83, 0.15) 0%, transparent 60%)', pointerEvents: 'none' }}></div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', zIndex: 1 }}>
+                    <div>
+                      <h2 style={{ color: '#f6c453', margin: 0, fontSize: '18px', fontFamily: 'serif', letterSpacing: '2px', textTransform: 'uppercase' }}>CAPITAL IBERIA</h2>
+                      <p style={{ color: '#9ca3af', margin: '4px 0 0 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Global Investment Fund</p>
+                    </div>
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '?ref=' + (getCodigoReferidoInversor()?.codigo || ''))}`} alt="QR Referido" style={{ width: '60px', height: '60px', borderRadius: '4px', background: 'white', padding: '2px' }} />
+                  </div>
+
+                  <div style={{ zIndex: 1 }}>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', margin: '0 0 5px 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Inversor Acreditado</p>
+                    <p style={{ color: 'white', margin: 0, fontSize: '20px', letterSpacing: '2px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                      {currentUser?.nombre || 'Inversor VIP'}
+                    </p>
+                    <p style={{ color: '#f6c453', margin: '8px 0 0 0', fontSize: '13px', fontFamily: 'monospace', letterSpacing: '1px' }}>
+                      ID MEMBRESÍA: {getCodigoReferidoInversor()?.codigo || 'N/A'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              {/* Ganancias Posibles - Gradiente Verde */}
-              <div className="portfolio-stat-card portfolio-stat-positive" style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                color: 'white',
-                boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
-                border: '2px solid rgba(255,255,255,0.2)',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>📈 Ganancias Posibles</p>
-                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('gananciasPosibles')}</p>
-                <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Pool por moneda</p>
-              </div>
-
-              {/* Saldo Disponible - Gradiente Púrpura */}
-              <div className="portfolio-stat-card portfolio-stat-available" style={{
-                background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                color: 'white',
-                boxShadow: '0 8px 16px rgba(168, 85, 247, 0.3)',
-                border: '2px solid rgba(255,255,255,0.2)',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💵 Saldo Disponible</p>
-                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirable')}</p>
-                <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Disponible para retirar</p>
-              </div>
-
-              {/* Total Retirado - Gradiente Naranja */}
-              <div className="portfolio-stat-card portfolio-stat-withdrawn" style={{
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                borderRadius: '12px',
-                padding: '1.5rem',
-                color: 'white',
-                boxShadow: '0 8px 16px rgba(245, 158, 11, 0.3)',
-                border: '2px solid rgba(255,255,255,0.2)',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>✅ Total Retirado</p>
-                <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirado')}</p>
-                <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido por moneda</p>
-              </div>
-
-              {/* Inversión Retenida - cuenta regresiva de bloqueo 72h */}
-              {capitalRetenido > 0 && (
-                <div className="portfolio-stat-card portfolio-stat-locked" style={{
-                  background: 'linear-gradient(135deg, #64748b 0%, #334155 100%)',
+              <div className="stats-grid portfolio-summary-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                {/* Inversión Activa - Gradiente Azul */}
+                <div className="portfolio-stat-card portfolio-stat-primary" style={{
+                  background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
                   borderRadius: '12px',
                   padding: '1.5rem',
                   color: 'white',
-                  boxShadow: '0 8px 16px rgba(51, 65, 85, 0.3)',
+                  boxShadow: '0 8px 16px rgba(2, 132, 199, 0.3)',
                   border: '2px solid rgba(255,255,255,0.2)',
                   backdropFilter: 'blur(10px)'
                 }}>
-                  <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
-                  <p className="retained-investments-count" style={{ margin: '0.75rem 0 0 0', fontSize: '13px', fontWeight: '700' }}>
-                    {aportacionesRetenidas.length} {aportacionesRetenidas.length === 1 ? 'inversión con bloqueo propio' : 'inversiones con bloqueos propios'}
-                  </p>
-                  <p style={{ margin: '0.25rem 0 0', fontSize: '10px', opacity: 0.8 }}>Cada inversión conserva su propia fecha de activación.</p>
-                  <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.65rem' }}>
-                    {(mostrarTodasRetenidas ? aportacionesRetenidas : aportacionesRetenidas.slice(0, 2)).map((item) => {
-                      const tiempo = obtenerTiempoRetenido(item)
-                      return (
-                        <div key={item.id} style={{ fontSize: '11px', lineHeight: 1.35, opacity: 0.95 }}>
-                          <strong>Inversión #{item.id}: {formatCurrency(Number(item.importe || 0), item.moneda || 'EUR')}</strong>
-                          <span style={{ display: 'block', fontFamily: 'monospace', fontWeight: '700' }}>
-                            ⏱️ {String(tiempo.horas).padStart(2, '0')}h {String(tiempo.minutos).padStart(2, '0')}m {String(tiempo.segundos).padStart(2, '0')}s para activarse
-                          </span>
-                        </div>
-                      )
-                    })}
-                    {aportacionesRetenidas.length > 2 && (
-                      <button
-                        type="button"
-                        className="retained-investments-toggle"
-                        onClick={() => setMostrarTodasRetenidas((mostrar) => !mostrar)}
-                      >
-                        {mostrarTodasRetenidas ? 'Ver menos' : `Ver ${aportacionesRetenidas.length - 2} más`}
-                      </button>
-                    )}
-                  </div>
+                  <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💰 Inversión Activa</p>
+                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('activo')}</p>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Capital liberado por moneda</p>
                 </div>
-              )}
-            </div>
+
+                {/* Ganancias Posibles - Gradiente Verde */}
+                <div className="portfolio-stat-card portfolio-stat-positive" style={{
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  color: 'white',
+                  boxShadow: '0 8px 16px rgba(16, 185, 129, 0.3)',
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>📈 Ganancias Posibles</p>
+                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('gananciasPosibles')}</p>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Pool por moneda</p>
+                </div>
+
+                {/* Saldo Disponible - Gradiente Púrpura */}
+                <div className="portfolio-stat-card portfolio-stat-available" style={{
+                  background: 'linear-gradient(135deg, #a855f7 0%, #9333ea 100%)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  color: 'white',
+                  boxShadow: '0 8px 16px rgba(168, 85, 247, 0.3)',
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>💵 Saldo Disponible</p>
+                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirable')}</p>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Disponible para retirar</p>
+                </div>
+
+                {/* Total Retirado - Gradiente Naranja */}
+                <div className="portfolio-stat-card portfolio-stat-withdrawn" style={{
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  borderRadius: '12px',
+                  padding: '1.5rem',
+                  color: 'white',
+                  boxShadow: '0 8px 16px rgba(245, 158, 11, 0.3)',
+                  border: '2px solid rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>✅ Total Retirado</p>
+                  <p style={{ margin: '0.75rem 0 0 0', fontSize: '22px', fontWeight: 'bold' }}>{mostrarSaldos('retirado')}</p>
+                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '12px', opacity: 0.8 }}>Dinero recibido por moneda</p>
+                </div>
+
+                {/* Inversión Retenida - cuenta regresiva de bloqueo 72h */}
+                {capitalRetenido > 0 && (
+                  <div className="portfolio-stat-card portfolio-stat-locked" style={{
+                    background: 'linear-gradient(135deg, #64748b 0%, #334155 100%)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    color: 'white',
+                    boxShadow: '0 8px 16px rgba(51, 65, 85, 0.3)',
+                    border: '2px solid rgba(255,255,255,0.2)',
+                    backdropFilter: 'blur(10px)'
+                  }}>
+                    <p style={{ margin: 0, fontSize: '14px', opacity: 0.9, fontWeight: '600' }}>🔒 Inversión Retenida</p>
+                    <p className="retained-investments-count" style={{ margin: '0.75rem 0 0 0', fontSize: '13px', fontWeight: '700' }}>
+                      {aportacionesRetenidas.length} {aportacionesRetenidas.length === 1 ? 'inversión con bloqueo propio' : 'inversiones con bloqueos propios'}
+                    </p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '10px', opacity: 0.8 }}>Cada inversión conserva su propia fecha de activación.</p>
+                    <div style={{ display: 'grid', gap: '0.4rem', marginTop: '0.65rem' }}>
+                      {(mostrarTodasRetenidas ? aportacionesRetenidas : aportacionesRetenidas.slice(0, 2)).map((item) => {
+                        const tiempo = obtenerTiempoRetenido(item)
+                        return (
+                          <div key={item.id} style={{ fontSize: '11px', lineHeight: 1.35, opacity: 0.95 }}>
+                            <strong>Inversión #{item.id}: {formatCurrency(Number(item.importe || 0), item.moneda || 'EUR')}</strong>
+                            <span style={{ display: 'block', fontFamily: 'monospace', fontWeight: '700' }}>
+                              ⏱️ {String(tiempo.horas).padStart(2, '0')}h {String(tiempo.minutos).padStart(2, '0')}m {String(tiempo.segundos).padStart(2, '0')}s para activarse
+                            </span>
+                          </div>
+                        )
+                      })}
+                      {aportacionesRetenidas.length > 2 && (
+                        <button
+                          type="button"
+                          className="retained-investments-toggle"
+                          onClick={() => setMostrarTodasRetenidas((mostrar) => !mostrar)}
+                        >
+                          {mostrarTodasRetenidas ? 'Ver menos' : `Ver ${aportacionesRetenidas.length - 2} más`}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
           )}
 
           {activeTab === 'fondo-solidario' && (
