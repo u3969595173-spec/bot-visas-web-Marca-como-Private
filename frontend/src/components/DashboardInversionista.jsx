@@ -1038,7 +1038,7 @@ function DashboardInversionista() {
                   position: 'relative',
                   width: '100%',
                   maxWidth: '450px',
-                  height: '240px',
+                  height: '210px',
                   transition: 'transform 0.6s',
                   transformStyle: 'preserve-3d',
                   transform: isCardFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)'
@@ -1104,12 +1104,12 @@ function DashboardInversionista() {
                     overflow: 'hidden'
                   }}>
                     <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'repeating-linear-gradient(45deg, rgba(246,196,83,0.03) 0px, rgba(246,196,83,0.03) 2px, transparent 2px, transparent 4px)' }}></div>
-                    <p style={{ color: '#f6c453', margin: '0 0 6px 0', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}>CÓDIGO DE INVITACIÓN OFICIAL</p>
-                    <div style={{ background: 'white', padding: '8px', borderRadius: '8px', zIndex: 1 }}>
-                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.origin + '?ref=' + (getCodigoReferidoInversor()?.codigo || ''))}`} alt="QR Gigante Referido" style={{ width: '100px', height: '100px', display: 'block' }} />
+                    <p style={{ color: '#f6c453', margin: '0 0 6px 0', fontSize: '9px', fontWeight: 'bold', letterSpacing: '1px' }}>CÓDIGO DE INVITACIÓN</p>
+                    <div style={{ background: 'white', padding: '6px', borderRadius: '6px', zIndex: 1 }}>
+                      <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(window.location.origin + '?ref=' + (getCodigoReferidoInversor()?.codigo || ''))}`} alt="QR Gigante Referido" style={{ width: '70px', height: '70px', display: 'block' }} />
                     </div>
-                    <p style={{ color: '#9ca3af', margin: '10px 0 0 0', fontSize: '9px', textAlign: 'center', zIndex: 1, lineHeight: '1.2' }}>
-                      Escanea este código para registrar nuevos asociados<br />bajo tu estructura corporativa.
+                    <p style={{ color: '#9ca3af', margin: '10px 0 0 0', fontSize: '8px', textAlign: 'center', zIndex: 1, lineHeight: '1.2', maxWidth: '80%' }}>
+                      Usa este código para añadir nuevos<br />asociados bajo tu estructura.
                     </p>
                   </div>
                 </div>
