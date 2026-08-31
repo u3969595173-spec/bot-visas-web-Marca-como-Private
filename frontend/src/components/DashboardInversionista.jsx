@@ -1066,7 +1066,7 @@ function DashboardInversionista() {
                   <div style={{ zIndex: 1 }}>
                     <p style={{ color: 'rgba(255,255,255,0.5)', margin: '0 0 5px 0', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px' }}>Inversor Acreditado</p>
                     <p style={{ color: 'white', margin: 0, fontSize: '20px', letterSpacing: '2px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
-                      {currentUser?.nombre || 'Inversor VIP'}
+                      {currentUser?.name || currentUser?.nombre || 'Inversor VIP'}
                     </p>
                     <p style={{ color: '#f6c453', margin: '8px 0 0 0', fontSize: '13px', fontFamily: 'monospace', letterSpacing: '1px' }}>
                       ID MEMBRESÍA: {getCodigoReferidoInversor()?.codigo || 'N/A'}
