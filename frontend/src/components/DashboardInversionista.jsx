@@ -1108,9 +1108,6 @@ function DashboardInversionista() {
                     <div style={{ background: 'white', padding: '6px', borderRadius: '6px', zIndex: 1 }}>
                       <img src={`https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(window.location.origin + '?ref=' + (getCodigoReferidoInversor()?.codigo || ''))}`} alt="QR Gigante Referido" style={{ width: '70px', height: '70px', display: 'block' }} />
                     </div>
-                    <p style={{ color: '#9ca3af', margin: '10px 0 0 0', fontSize: '8px', textAlign: 'center', zIndex: 1, lineHeight: '1.2', maxWidth: '80%' }}>
-                      Usa este código para añadir nuevos<br />asociados bajo tu estructura.
-                    </p>
                   </div>
                 </div>
               </div>
