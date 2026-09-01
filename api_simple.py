@@ -1340,6 +1340,84 @@ async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuari
         raise HTTPException(status_code=500, detail=f"Error nativo: {str(e)} | Traza: {err}")
 
 
+class InyeccionAdminRequest(BaseModel):
+    importe: float
+    moneda: str
+
+@app.post("/api/admin/inversores/{inversor_id}/aportaciones")
+async def inyectar_aportacion_admin(inversor_id: int, datos: InyeccionAdminRequest, usuario = Depends(obtener_usuario_actual)):
+    """Inyecta una aportación ya aprobada a cualquier usuario (Admin God Mode)"""
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        
+        cur.execute("SELECT nombre, email FROM inversores WHERE id = %s", (inversor_id,))
+        inv_data = cur.fetchone()
+        if not inv_data:
+            raise HTTPException(status_code=404, detail="Inversor no existe")
+        nombre_inv, email_inv = inv_data
+        
+        tasa_diaria = 0.5
+        
+        cur.execute("""
+            INSERT INTO aportaciones (inversor_id, nombre, email, importe, moneda, estado, fecha_aprobacion, tasa_diaria) 
+            VALUES (%s, %s, %s, %s, %s, 'Aprobada', CURRENT_TIMESTAMP, %s)
+            RETURNING id
+        """, (inversor_id, nombre_inv, email_inv, datos.importe, datos.moneda, tasa_diaria))
+        
+        aportacion_id = cur.fetchone()[0]
+        
+        cur.execute("""
+            INSERT INTO notificaciones (inversor_id, mensaje, tipo) 
+            VALUES (%s, %s, 'INGRESO')
+        """, (inversor_id, f"El corporativo ha inyectado {datos.importe} {datos.moneda} a tu cuenta. Se encuentra activa y retenida por 72h."))
+        
+        monto_acelerador = float(datos.importe) * 0.10
+        cur.execute("SELECT referido_por FROM inversores WHERE id = %s", (inversor_id,))
+        ref_row = cur.fetchone()
+        if ref_row and ref_row[0]:
+            patrocinador_codigo = ref_row[0]
+            cur.execute("SELECT id FROM inversores WHERE codigo_referido = %s", (patrocinador_codigo,))
+            patr_row = cur.fetchone()
+            if patr_row:
+                patrocinador_id = patr_row[0]
+                cur.execute("""
+                    SELECT id, importe, COALESCE(ganancia_acelerada, 0) as ganac, COALESCE(ganancia_rentabilidad, 0) as rent
+                    FROM aportaciones 
+                    WHERE inversor_id = %s AND (estado = 'Aprobada' OR estado = 'Activa')
+                    ORDER BY fecha_aprobacion ASC NULLS LAST, id ASC
+                """, (patrocinador_id,))
+                invs_activas = cur.fetchall()
+                
+                monto_restante = monto_acelerador
+                for inv in invs_activas:
+                    if monto_restante <= 0: break
+                    inv_id, inv_importe, inv_ganac, inv_rent = inv[0], float(inv[1]), float(inv[2]), float(inv[3])
+                    meta = inv_importe * 3.0
+                    espacio_libre = meta - (inv_rent + inv_ganac)
+                    
+                    if espacio_libre > 0:
+                        abs_ganado = min(monto_restante, espacio_libre)
+                        estado_inv = 'Activa'
+                        if (inv_rent + inv_ganac + abs_ganado) >= meta: estado_inv = 'Completada (300%)'
+                        cur.execute("UPDATE aportaciones SET ganancia_acelerada = ganancia_acelerada + %s, estado = %s WHERE id = %s", (abs_ganado, estado_inv, inv_id))
+                        monto_restante -= abs_ganado
+                        
+        conn.commit()
+        return {"success": True, "aportacion_id": aportacion_id}
+    except Exception as e:
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if 'conn' in locals() and conn:
+            cur.close()
+            release_conn(conn)
+
+
 @app.put("/api/admin/inversores/{inversor_id}/limpiar-vencidos")
 async def limpiar_vencidos_comunidad(inversor_id: int, usuario = Depends(obtener_usuario_actual)):
     """Convierte todos los paquetes 'Completada (300%)' de la comunidad de este líder a 'Archivado (300%)'"""
