@@ -120,6 +120,44 @@ function DashboardAdminExpandido({ onLogout }) {
   const [justificanteActual, setJustificanteActual] = useState(null)
   const [loadingJustificante, setLoadingJustificante] = useState(false)
 
+  // Inyección Administrativa
+  const [modalInyeccionVisible, setModalInyeccionVisible] = useState(false)
+  const [inyeccionForm, setInyeccionForm] = useState({ usuarioId: null, usuarioNombre: '', importe: '', moneda: 'USDT BEP-20' })
+  const [ejecutandoInyeccion, setEjecutandoInyeccion] = useState(false)
+
+  const abrirModalInyeccion = (id, nombre) => {
+    setInyeccionForm({ usuarioId: id, usuarioNombre: nombre, importe: '', moneda: 'USDT BEP-20' })
+    setModalInyeccionVisible(true)
+  }
+
+  const handleInyectarSaldo = async (e) => {
+    e.preventDefault()
+    if (!inyeccionForm.importe || Number(inyeccionForm.importe) <= 0) return
+    if (!window.confirm(`¿Estás seguro de inyectar ${inyeccionForm.importe} ${inyeccionForm.moneda} a ${inyeccionForm.usuarioNombre}? Esto no se puede deshacer.`)) return
+
+    setEjecutandoInyeccion(true)
+    try {
+      const token = localStorage.getItem('token')
+      const res = await fetch(`${API}/api/admin/inversores/${inyeccionForm.usuarioId}/aportaciones`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ importe: Number(inyeccionForm.importe), moneda: inyeccionForm.moneda })
+      })
+      if (res.ok) {
+        setMensaje(`💰 Inyección aplicada exitosamente a ${inyeccionForm.usuarioNombre}`)
+        setModalInyeccionVisible(false)
+        fetchData() // Recargar datos del dash admin
+      } else {
+        const data = await res.json()
+        alert('Error: ' + data.detail)
+      }
+    } catch (err) {
+      alert('Error inyectando saldo.')
+    } finally {
+      setEjecutandoInyeccion(false)
+    }
+  }
+
   // Líderes
   const [modalComunidadVisible, setModalComunidadVisible] = useState(false)
   const [comunidadActual, setComunidadActual] = useState(null)
@@ -1651,6 +1689,14 @@ function DashboardAdminExpandido({ onLogout }) {
                           👁️ Red
                         </button>
                       )}
+
+                      <button
+                        className="btn-action"
+                        onClick={() => abrirModalInyeccion(usuario.id, usuario.nombre || usuario.name || 'Usuario')}
+                        style={{ backgroundColor: '#8b5cf6', color: 'white', padding: '6px 10px', fontSize: '12px' }}
+                      >
+                        💰 Inyectar Saldo
+                      </button>
                     </div>
                   ])
                   : [['Sin registros', '—', '—', '—', '—', '—', 'Sin datos', '—']]
@@ -2642,6 +2688,35 @@ function DashboardAdminExpandido({ onLogout }) {
 
         </div>
       </main>
+
+      {modalInyeccionVisible && (
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="modal-content" style={{ maxWidth: '400px', width: '90%', padding: '2rem', backgroundColor: '#0f172a', border: '1px solid rgba(139, 92, 246, 0.5)', borderRadius: '12px' }}>
+            <h2 style={{ color: 'white', marginBottom: '0.2rem' }}>💰 Inyectar Saldo</h2>
+            <p style={{ color: '#94a3b8', fontSize: '13px', marginBottom: '1.5rem' }}>Generar aportación directa para: <strong style={{ color: '#8b5cf6' }}>{inyeccionForm.usuarioNombre}</strong></p>
+
+            <form onSubmit={handleInyectarSaldo} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#e2e8f0', fontSize: '14px' }}>Importe a inyectar</label>
+                <input type="number" step="0.01" value={inyeccionForm.importe} onChange={e => setInyeccionForm({ ...inyeccionForm, importe: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155', background: 'rgba(0,0,0,0.2)', color: 'white', boxSizing: 'border-box' }} required placeholder="Ej. 1000" />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#e2e8f0', fontSize: '14px' }}>Moneda</label>
+                <select value={inyeccionForm.moneda} onChange={e => setInyeccionForm({ ...inyeccionForm, moneda: e.target.value })} style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: '1px solid #334155', background: 'rgba(0,0,0,0.2)', color: 'white', boxSizing: 'border-box' }}>
+                  <option value="EUR">Euros (EUR)</option>
+                  <option value="USDT BEP-20">Tether (USDT BEP-20)</option>
+                </select>
+              </div>
+
+              <div style={{ marginTop: '0.5rem', display: 'flex', gap: '1rem' }}>
+                <button type="button" onClick={() => setModalInyeccionVisible(false)} style={{ flex: 1, padding: '0.75rem', borderRadius: '6px', background: 'transparent', border: '1px solid #475569', color: '#94a3b8', cursor: 'pointer', fontWeight: 'bold' }}>Cancelar</button>
+                <button type="submit" disabled={ejecutandoInyeccion} style={{ flex: 1, padding: '0.75rem', borderRadius: '6px', background: '#8b5cf6', border: 'none', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>{ejecutandoInyeccion ? 'Procesando...' : 'Inyectar Capital'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal Justificante */}
       {modalJustificanteVisible && (
