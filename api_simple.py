@@ -1364,7 +1364,7 @@ async def inyectar_aportacion_admin(inversor_id: int, datos: InyeccionAdminReque
         
         cur.execute("""
             INSERT INTO aportaciones (inversor_id, nombre, email, importe, moneda, estado, fecha_aprobacion, tasa_diaria) 
-            VALUES (%s, %s, %s, %s, %s, 'Aprobada', CURRENT_TIMESTAMP, %s)
+            VALUES (%s, %s, %s, %s, %s, 'Activa', CURRENT_TIMESTAMP, %s)
             RETURNING id
         """, (inversor_id, nombre_inv, email_inv, datos.importe, datos.moneda, tasa_diaria))
         
