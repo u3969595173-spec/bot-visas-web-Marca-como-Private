@@ -293,6 +293,7 @@ class AportacionRequest(TransaccionBase):
 
 class RetiroRequest(TransaccionBase):
     estado: str = "Pendiente de validación"
+    detalles: Optional[str] = None
 
 class JustificanteRequest(BaseModel):
     justificante: str
@@ -962,16 +963,17 @@ async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_a
                 importe DECIMAL(12,2),
                 moneda VARCHAR(30),
                 estado VARCHAR(50),
+                detalles TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         conn.commit()
 
         cur.execute("""
-            INSERT INTO retiros (inversor_id, nombre, email, importe, moneda, estado)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO retiros (inversor_id, nombre, email, importe, moneda, estado, detalles)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             RETURNING id
-        """, (inversor_id, datos.nombre, datos.email, datos.importe, moneda, datos.estado))
+        """, (inversor_id, datos.nombre, datos.email, datos.importe, moneda, datos.estado, datos.detalles))
         
         retiro_id = cur.fetchone()[0]
         
@@ -1112,10 +1114,10 @@ async def obtener_retiros(usuario = Depends(obtener_usuario_actual)):
 
 
         if usuario.get('rol') == 'admin':
-            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM retiros ORDER BY created_at DESC")
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, detalles FROM retiros ORDER BY created_at DESC")
         else:
             inversor_id = usuario.get('inversor_id')
-            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at FROM retiros WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
+            cur.execute("SELECT id, inversor_id, nombre, email, importe, moneda, estado, created_at, detalles FROM retiros WHERE inversor_id = %s ORDER BY created_at DESC", (inversor_id,))
         
         resultados = cur.fetchall()
         cur.close()
@@ -1131,7 +1133,8 @@ async def obtener_retiros(usuario = Depends(obtener_usuario_actual)):
                 "importe": float(row[4]),
                 "moneda": row[5],
                 "estado": row[6],
-                "fecha": row[7].isoformat() if row[7] else None
+                "fecha": row[7].isoformat() if row[7] else None,
+                "detalles": row[8]
             })
 
         return {"retiros": retiros}

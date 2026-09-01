@@ -174,6 +174,7 @@ const RetirosCreditoPanel = () => {
                   <th>Tipo</th>
                   <th>Monto a Pagar (-5%)</th>
                   <th>Saldo Disp.</th>
+                  <th>Destino (Wallet/IBAN)</th>
                   <th>Tipo Solicitud</th>
                   <th>Fecha</th>
                   <th>Acciones</th>
@@ -195,6 +196,15 @@ const RetirosCreditoPanel = () => {
                     </td>
                     <td className="saldo">
                       {solicitud.credito_disponible?.toFixed(2)}€
+                    </td>
+                    <td className="destino">
+                      {solicitud.detalles ? (
+                        <div style={{ fontSize: '11px', background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '4px', wordBreak: 'break-all', maxWidth: '200px' }}>
+                          {solicitud.detalles}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#94a3b8', fontSize: '11px' }}>---</span>
+                      )}
                     </td>
                     <td>
                       <span className="badge badge-tipo">

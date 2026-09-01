@@ -629,7 +629,8 @@ function DashboardInversionista() {
           email: correoUsuario,
           importe: Number(importe),
           moneda: monedaRetiro,
-          estado: 'Pendiente de validación'
+          estado: 'Pendiente de validación',
+          detalles: notasRetiro
         })
       })
 
@@ -1600,15 +1601,46 @@ function DashboardInversionista() {
                   </div>
 
                   {tipoRetiro === 'banco' && (
-                    <div>
-                      <label htmlFor="notas-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Notas (opcional)</label>
-                      <textarea
-                        id="notas-retiro"
-                        value={notasRetiro}
-                        onChange={(e) => setNotasRetiro(e.target.value)}
-                        placeholder="Cuenta destino o información adicional"
-                        style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '8px', fontSize: '14px', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontFamily: 'inherit', minHeight: '80px', boxSizing: 'border-box', resize: 'vertical' }}
-                      />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '10px' }}>
+                      {monedaRetiro === 'USDT BEP-20' ? (
+                        <div>
+                          <label htmlFor="wallet-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Dirección de Billetera (Network: BEP-20)</label>
+                          <input
+                            id="wallet-retiro"
+                            type="text"
+                            value={notasRetiro}
+                            onChange={(e) => setNotasRetiro(e.target.value)}
+                            placeholder="0x..."
+                            style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '8px', fontSize: '14px', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', boxSizing: 'border-box' }}
+                            required
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <label htmlFor="iban-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>IBAN (Cuenta Bancaria)</label>
+                            <input
+                              id="iban-retiro"
+                              type="text"
+                              placeholder="ESXX XXXX XXXX XXXX"
+                              onChange={(e) => setNotasRetiro(`IBAN: ${e.target.value} | Titular: ${document.getElementById('titular-retiro')?.value || ''}`)}
+                              style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '8px', fontSize: '14px', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', boxSizing: 'border-box' }}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor="titular-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Nombre del Titular</label>
+                            <input
+                              id="titular-retiro"
+                              type="text"
+                              placeholder="Juan Pérez"
+                              onChange={(e) => setNotasRetiro(`IBAN: ${document.getElementById('iban-retiro')?.value || ''} | Titular: ${e.target.value}`)}
+                              style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255,255,255,0.3)', borderRadius: '8px', fontSize: '14px', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', boxSizing: 'border-box' }}
+                              required
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
 
