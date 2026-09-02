@@ -1604,9 +1604,9 @@ function DashboardInversionista() {
 
                   {tipoRetiro === 'banco' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '10px' }}>
-                      {monedaRetiro === 'USDT BEP-20' ? (
+                      {(monedaRetiro || '').includes('USDT') ? (
                         <div>
-                          <label htmlFor="wallet-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Dirección de Billetera (Network: BEP-20)</label>
+                          <label htmlFor="wallet-retiro" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '14px' }}>Dirección de Billetera (Red externa compatible: TRC-20, BEP-20, ERC-20)</label>
                           <input
                             id="wallet-retiro"
                             type="text"
