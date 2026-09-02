@@ -622,7 +622,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const esCapitalRetenido = (item) => {
     if (item.estado !== 'Activa' && item.estado !== 'Validada') return false
     if (!item.fechaAprobacion) return false
-    return new Date(item.fechaAprobacion).getTime() + HORAS_BLOQUEO_CAPITAL * 3600000 > Date.now()
+    return new Date(item.fechaAprobacion + (item.fechaAprobacion.includes('Z') ? '' : 'Z')).getTime() + HORAS_BLOQUEO_CAPITAL * 3600000 > Date.now()
   }
 
   const totalAportacionesPendientes = aportacionesNormalizadas.filter((item) => item.estado === 'Pendiente de validación').length
@@ -1861,7 +1861,7 @@ function DashboardAdminExpandido({ onLogout }) {
                       user.ganancias[moneda] = (user.ganancias[moneda] || 0) + importe * 3 // pool total es importe × 3
 
                       const desbloqueaEn = aport.fechaAprobacion
-                        ? new Date(aport.fechaAprobacion).getTime() + HORAS_BLOQUEO * 3600000
+                        ? new Date(aport.fechaAprobacion + (aport.fechaAprobacion.includes('Z') ? '' : 'Z')).getTime() + HORAS_BLOQUEO * 3600000
                         : null
                       if (desbloqueaEn && desbloqueaEn > Date.now()) {
                         user.capitalRetenido[moneda] = (user.capitalRetenido[moneda] || 0) + importe

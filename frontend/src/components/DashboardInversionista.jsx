@@ -500,7 +500,7 @@ function DashboardInversionista() {
   const aportacionesRetenidas = userAportaciones.filter((item) => {
     if (item.estado !== 'Activa' && item.estado !== 'Validada') return false
     if (!item.fecha_aprobacion) return false
-    return new Date(item.fecha_aprobacion).getTime() + HORAS_BLOQUEO * 3600000 > ahora
+    return new Date(item.fecha_aprobacion + (item.fecha_aprobacion.includes('Z') ? '' : 'Z')).getTime() + HORAS_BLOQUEO * 3600000 > ahora
   })
   const capitalRetenido = aportacionesRetenidas.reduce((sum, item) => sum + Number(item.importe || 0), 0)
   const capitalActivo = totalAportado - capitalRetenido
@@ -526,7 +526,7 @@ function DashboardInversionista() {
     }
   }, [monedasConSaldo.join('|'), monedaRetiro])
   const obtenerTiempoRetenido = (item) => {
-    const restanteMs = Math.max(0, new Date(item.fecha_aprobacion).getTime() + HORAS_BLOQUEO * 3600000 - ahora)
+    const restanteMs = Math.max(0, new Date(item.fecha_aprobacion + (item.fecha_aprobacion.includes('Z') ? '' : 'Z')).getTime() + HORAS_BLOQUEO * 3600000 - ahora)
     return {
       horas: Math.floor(restanteMs / 3600000),
       minutos: Math.floor((restanteMs % 3600000) / 60000),
