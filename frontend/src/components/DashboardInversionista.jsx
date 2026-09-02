@@ -460,7 +460,8 @@ function DashboardInversionista() {
     .reduce((sum, item) => {
       const inicial = Number(item.importe || 0) * 3
       const actual = Number(item.gananciasDisponibles !== undefined ? item.gananciasDisponibles : item.importe * 3)
-      return sum + (inicial - actual)
+      const acelerada = Number(item.ganancia_acelerada || 0)
+      return sum + (inicial - actual) + acelerada
     }, 0)
 
   // Saldo disponible para retirar = Lo que ha ganado - Lo que ya retiró
@@ -475,7 +476,8 @@ function DashboardInversionista() {
       const saldo = saldos[moneda] || { aportado: 0, gananciasPosibles: 0, disponible: 0, retenido: 0, retirado: 0 }
       saldo.aportado += Number(item.importe || 0)
       saldo.gananciasPosibles += pendiente
-      saldo.disponible += Math.max(0, inicial - pendiente)
+      const acelerada = Number(item.ganancia_acelerada || 0)
+      saldo.disponible += Math.max(0, inicial - pendiente) + acelerada
       saldos[moneda] = saldo
       return saldos
     }, {})
