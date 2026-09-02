@@ -1728,7 +1728,7 @@ function DashboardInversionista() {
                         return { label: '❌ Rechazada', color: '#fca5a5', bg: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }
                       }
                       if (item.estado === 'Activa' || item.estado === 'Validada') {
-                        const aprobadaEn = item.fecha_aprobacion ? new Date(item.fecha_aprobacion).getTime() : null
+                        const aprobadaEn = item.fecha_aprobacion ? new Date(item.fecha_aprobacion + (item.fecha_aprobacion.includes('Z') ? '' : 'Z')).getTime() : null
                         const desbloqueaEn = aprobadaEn ? aprobadaEn + HORAS_BLOQUEO * 3600 * 1000 : null
                         if (desbloqueaEn && desbloqueaEn > AHORA) {
                           const restanteMs = desbloqueaEn - AHORA
