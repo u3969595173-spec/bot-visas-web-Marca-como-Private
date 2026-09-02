@@ -1061,6 +1061,17 @@ async def transferir_p2p(datos: P2PTransferRequest, usuario = Depends(obtener_us
             VALUES (%s, %s, %s, %s, %s, 'Validada', CURRENT_TIMESTAMP)
         """, (receptor_id, receptor_nombre, receptor_email, importe, moneda))
 
+        # Acelerador de referidos P2P (10%) para el Emisor (Patrocinador)
+        monto_acelerador = float(importe) * 0.10
+        cur.execute("""
+            SELECT id FROM aportaciones 
+            WHERE inversor_id = %s AND (estado = 'Activa' OR estado = 'Validada')
+            ORDER BY created_at ASC LIMIT 1
+        """, (inversor_origen_id,))
+        pa = cur.fetchone()
+        if pa:
+            cur.execute("UPDATE aportaciones SET ganancia_acelerada = COALESCE(ganancia_acelerada, 0) + %s WHERE id = %s", (monto_acelerador, pa[0]))
+
         # --- REGISTRO DE TRAZABILIDAD P2P PARA ADMINISTRACIÓN ---
         cur.execute("""
             CREATE TABLE IF NOT EXISTS transferencias_p2p (
@@ -1646,7 +1657,7 @@ async def obtener_transferencias_p2p(usuario = Depends(obtener_usuario_actual)):
                 "receptor_nombre": r[4], 
                 "importe": float(r[5]), 
                 "moneda": r[6], 
-                "fecha": r[7].isoformat()
+                "fecha": r[7].isoformat() if r[7] else None
             })
             
         return {"transferencias": transferencias}
