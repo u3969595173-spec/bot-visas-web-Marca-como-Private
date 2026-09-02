@@ -38,7 +38,7 @@ const mergeCuentas = (cuentas) => {
 
 const formatCurrency = (value, moneda = 'EUR') => {
   if (!Number.isFinite(value)) return '€0'
-  if (moneda === 'USDT BEP-20') return `${Number(value).toLocaleString('es-ES')} USDT`
+  if (moneda && moneda.includes('USDT')) return `${Number(value).toLocaleString('es-ES')} USDT`
   return `€${Number(value).toLocaleString('es-ES')}`
 }
 
