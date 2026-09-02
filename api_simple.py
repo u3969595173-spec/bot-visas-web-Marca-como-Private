@@ -946,11 +946,20 @@ async def crear_retiro(datos: RetiroRequest, usuario = Depends(obtener_usuario_a
 
         inversor_id = usuario.get('inversor_id')
         moneda = datos.moneda.strip()
-        cur.execute("""
-            SELECT 1 FROM aportaciones
-            WHERE inversor_id = %s AND moneda = %s AND (estado = 'Aprobada' OR estado = 'Activa' OR estado = 'Validada')
-            LIMIT 1
-        """, (inversor_id, moneda))
+        if 'USDT' in moneda.upper():
+            query_validacion = """
+                SELECT 1 FROM aportaciones
+                WHERE inversor_id = %s AND moneda LIKE %s AND (estado = 'Aprobada' OR estado = 'Activa' OR estado = 'Validada')
+                LIMIT 1
+            """
+            cur.execute(query_validacion, (inversor_id, '%USDT%'))
+        else:
+            query_validacion = """
+                SELECT 1 FROM aportaciones
+                WHERE inversor_id = %s AND moneda = %s AND (estado = 'Aprobada' OR estado = 'Activa' OR estado = 'Validada')
+                LIMIT 1
+            """
+            cur.execute(query_validacion, (inversor_id, moneda))
         if not cur.fetchone():
             raise HTTPException(status_code=400, detail="El retiro debe usar una moneda con inversión activa")
 
@@ -1019,11 +1028,20 @@ async def transferir_p2p(datos: P2PTransferRequest, usuario = Depends(obtener_us
             raise HTTPException(status_code=400, detail="El importe debe ser mayor a 0")
         
         # 1. Validar que tiene fondos en esa moneda 
-        cur.execute("""
-            SELECT 1 FROM aportaciones
-            WHERE inversor_id = %s AND moneda = %s AND (estado = 'Aprobada' OR estado = 'Activa' OR estado = 'Validada')
-            LIMIT 1
-        """, (inversor_origen_id, moneda))
+        if 'USDT' in moneda.upper():
+            query_validacion = """
+                SELECT 1 FROM aportaciones
+                WHERE inversor_id = %s AND moneda LIKE %s AND (estado = 'Aprobada' OR estado = 'Activa' OR estado = 'Validada')
+                LIMIT 1
+            """
+            cur.execute(query_validacion, (inversor_origen_id, '%USDT%'))
+        else:
+            query_validacion = """
+                SELECT 1 FROM aportaciones
+                WHERE inversor_id = %s AND moneda = %s AND (estado = 'Aprobada' OR estado = 'Activa' OR estado = 'Validada')
+                LIMIT 1
+            """
+            cur.execute(query_validacion, (inversor_origen_id, moneda))
         if not cur.fetchone():
             raise HTTPException(status_code=400, detail="No tienes fondos base activos en esa moneda.")
 
