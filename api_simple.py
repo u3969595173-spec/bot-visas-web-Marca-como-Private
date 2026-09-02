@@ -1052,7 +1052,7 @@ async def transferir_p2p(datos: P2PTransferRequest, usuario = Depends(obtener_us
         # Restar balance de Origen generando un Retiro Completado (como si hubiera retirado, pero queda en la web)
         cur.execute("""
             INSERT INTO retiros (inversor_id, nombre, email, importe, moneda, estado)
-            VALUES (%s, %s, %s, %s, %s, 'Completada')
+            VALUES (%s, %s, %s, %s, %s, 'Aprobado')
         """, (inversor_origen_id, origen_nombre, origen_email, importe, moneda))
         
         # Aumentar balance de Receptor generando una Aportación Validada para iniciar retención 72h
