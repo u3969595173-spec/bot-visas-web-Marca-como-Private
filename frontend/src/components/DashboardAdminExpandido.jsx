@@ -1566,7 +1566,7 @@ function DashboardAdminExpandido({ onLogout }) {
                         <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.2s', ':hover': { backgroundColor: 'rgba(255,255,255,0.02)' } }}>
                           <td style={{ padding: '1rem' }}>
                             <div style={{ fontWeight: 'bold', color: '#f8fafc' }}>TXN #{t.id}</div>
-                            <div style={{ fontSize: '12px', color: '#64748b' }}>{safeFormatDate(t.fecha)}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>{t.fecha ? new Date(t.fecha).toLocaleString() : 'N/A'}</div>
                           </td>
                           <td style={{ padding: '1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
