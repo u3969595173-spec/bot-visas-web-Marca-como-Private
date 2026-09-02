@@ -33,7 +33,7 @@ const formatCurrency = (value, moneda) => {
 }
 
 const sumarPorMoneda = (items, calcularImporte = (item) => item.importe) => items.reduce((totales, item) => {
-  const moneda = item.moneda || 'EUR'
+  const moneda = (item.moneda || 'EUR').includes('USDT') ? 'USDT' : (item.moneda || 'EUR')
   totales[moneda] = (totales[moneda] || 0) + Number(calcularImporte(item) || 0)
   return totales
 }, {})
@@ -1853,7 +1853,7 @@ function DashboardAdminExpandido({ onLogout }) {
                     }
                     const user = usuariosMap.get(aport.usuario)
                     const importe = Number(aport.importe || 0)
-                    const moneda = aport.moneda || 'EUR'
+                    const moneda = (aport.moneda || 'EUR').includes('USDT') ? 'USDT' : (aport.moneda || 'EUR')
                     user.capital[moneda] = (user.capital[moneda] || 0) + importe
                     user.aportaciones.push(aport)
                     // Pool Activo = capital × 3 (si es activa)
@@ -1877,7 +1877,7 @@ function DashboardAdminExpandido({ onLogout }) {
                     if (usuariosMap.has(usuario)) {
                       const user = usuariosMap.get(usuario)
                       if (retiro.estado === 'Aprobado' || retiro.estado === 'Procesado') {
-                        const moneda = retiro.moneda || 'EUR'
+                        const moneda = (retiro.moneda || 'EUR').includes('USDT') ? 'USDT' : (retiro.moneda || 'EUR')
                         user.retiros[moneda] = (user.retiros[moneda] || 0) + Number(retiro.importe || retiro.monto || 0)
                       }
                     }

@@ -470,7 +470,7 @@ function DashboardInversionista() {
   const saldosPorMoneda = userAportaciones
     .filter((item) => item.estado === 'Activa' || item.estado === 'Validada')
     .reduce((saldos, item) => {
-      const moneda = item.moneda || 'EUR'
+      const moneda = (item.moneda || 'EUR').includes('USDT') ? 'USDT' : (item.moneda || 'EUR')
       const inicial = Number(item.importe || 0) * 3
       const pendiente = Number(item.gananciasDisponibles !== undefined ? item.gananciasDisponibles : item.importe * 3)
       const saldo = saldos[moneda] || { aportado: 0, gananciasPosibles: 0, disponible: 0, retenido: 0, retirado: 0 }
@@ -485,7 +485,7 @@ function DashboardInversionista() {
   userRetiros
     .filter((item) => item.estado === 'Aprobado' || item.estado === 'Procesado')
     .forEach((item) => {
-      const moneda = item.moneda || 'EUR'
+      const moneda = (item.moneda || 'EUR').includes('USDT') ? 'USDT' : (item.moneda || 'EUR')
       const saldo = saldosPorMoneda[moneda] || { aportado: 0, gananciasPosibles: 0, disponible: 0, retenido: 0, retirado: 0 }
       saldo.retirado += Number(item.importe || 0)
       saldosPorMoneda[moneda] = saldo
@@ -507,7 +507,7 @@ function DashboardInversionista() {
   const capitalRetenido = aportacionesRetenidas.reduce((sum, item) => sum + Number(item.importe || 0), 0)
   const capitalActivo = totalAportado - capitalRetenido
   aportacionesRetenidas.forEach((item) => {
-    const moneda = item.moneda || 'EUR'
+    const moneda = (item.moneda || 'EUR').includes('USDT') ? 'USDT' : (item.moneda || 'EUR')
     const saldo = saldosPorMoneda[moneda] || { aportado: 0, gananciasPosibles: 0, disponible: 0, retenido: 0, retirado: 0 }
     saldo.retenido += Number(item.importe || 0)
     saldosPorMoneda[moneda] = saldo
