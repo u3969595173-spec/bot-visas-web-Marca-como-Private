@@ -145,7 +145,7 @@ function DashboardInversionista() {
     }, 1500)
     window.addEventListener('storage', syncData)
     window.addEventListener('capital-trade-sync', syncData)
-    const interval = setInterval(syncData, 5000)
+    const interval = setInterval(syncData, 30000)
 
     return () => {
       window.removeEventListener('storage', syncData)
@@ -351,7 +351,7 @@ function DashboardInversionista() {
       cargarAportaciones()
       cargarReferidos()
       cargarComisionesReferidos()
-    }, 5000)
+    }, 30000)
 
     return () => clearInterval(intervalo)
   }, [])
@@ -420,7 +420,7 @@ function DashboardInversionista() {
     const intervalo = setInterval(() => {
       cargarRetiros()
       cargarOfertas()
-    }, 5000)
+    }, 30000)
 
     return () => clearInterval(intervalo)
   }, [])
@@ -440,7 +440,7 @@ function DashboardInversionista() {
       }
     }
     cargarPagosRentabilidad()
-    const intervalo = setInterval(cargarPagosRentabilidad, 10000)
+    const intervalo = setInterval(cargarPagosRentabilidad, 30000)
     return () => clearInterval(intervalo)
   }, [])
 

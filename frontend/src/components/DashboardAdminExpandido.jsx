@@ -332,7 +332,7 @@ function DashboardAdminExpandido({ onLogout }) {
 
     const intervaloConfig = setInterval(cargarConfig, 30000) // cada 30s
     const intervaloCuentas = setInterval(cargarCuentas, 30000)
-    const intervaloOfertas = setInterval(cargarOfertas, 10000) // cada 10s
+    const intervaloOfertas = setInterval(cargarOfertas, 30000)
 
     return () => {
       clearInterval(intervaloConfig)
@@ -399,7 +399,7 @@ function DashboardAdminExpandido({ onLogout }) {
       }
     }
     cargarPagosRentabilidad()
-    const intervalo = setInterval(cargarPagosRentabilidad, 10000)
+    const intervalo = setInterval(cargarPagosRentabilidad, 30000)
     return () => clearInterval(intervalo)
   }, [])
 
@@ -424,7 +424,7 @@ function DashboardAdminExpandido({ onLogout }) {
     }
 
     cargarAportaciones()
-    const intervalo = setInterval(cargarAportaciones, 5000)
+    const intervalo = setInterval(cargarAportaciones, 30000)
 
     return () => clearInterval(intervalo)
   }, [])
@@ -450,7 +450,7 @@ function DashboardAdminExpandido({ onLogout }) {
     }
 
     cargarRetiros()
-    const intervalo = setInterval(cargarRetiros, 5000)
+    const intervalo = setInterval(cargarRetiros, 30000)
 
     return () => clearInterval(intervalo)
   }, [])
@@ -511,7 +511,7 @@ function DashboardAdminExpandido({ onLogout }) {
     }
 
     cargarReferidos()
-    const intervalo = setInterval(cargarReferidos, 10000)
+    const intervalo = setInterval(cargarReferidos, 30000)
 
     return () => clearInterval(intervalo)
   }, [])
@@ -537,7 +537,7 @@ function DashboardAdminExpandido({ onLogout }) {
     }
 
     cargarInversoresPendientes()
-    const intervalo = setInterval(cargarInversoresPendientes, 5000) // Actualizar cada 5s
+    const intervalo = setInterval(cargarInversoresPendientes, 30000)
 
     return () => clearInterval(intervalo)
   }, [])
@@ -563,7 +563,7 @@ function DashboardAdminExpandido({ onLogout }) {
     }
 
     cargarInversoresValidados()
-    const intervalo = setInterval(cargarInversoresValidados, 5000) // Actualizar cada 5s
+    const intervalo = setInterval(cargarInversoresValidados, 30000)
 
     return () => clearInterval(intervalo)
   }, [])
@@ -591,7 +591,7 @@ function DashboardAdminExpandido({ onLogout }) {
     }
 
     cargarSolicitudesInversion()
-    const intervalo = setInterval(cargarSolicitudesInversion, 5000) // Actualizar cada 5s
+    const intervalo = setInterval(cargarSolicitudesInversion, 30000)
 
     return () => clearInterval(intervalo)
   }, [])
