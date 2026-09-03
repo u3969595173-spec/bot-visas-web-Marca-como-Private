@@ -1641,12 +1641,12 @@ function DashboardInversionista() {
                         </div>
 
                         {/* ALERTA 5% ABAJO, MÁS PEQUEÑA Y BONITA */}
-                        <div style={{ marginTop: '5px', padding: '10px 14px', background: 'linear-gradient(to right, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0))', borderLeft: '3px solid #f59e0b', borderRadius: '4px' }}>
-                          <p style={{ margin: 0, fontSize: '12px', color: '#fbbf24', fontWeight: '600' }}>
-                            ⚠️ Todo saldo disponible debe ser retirado externamente. No se permite la reinversión directa.
+                        <div style={{ marginTop: '5px', padding: '10px 14px', backgroundColor: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(148, 163, 184, 0.1)', borderRadius: '6px' }}>
+                          <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8', fontWeight: '500' }}>
+                            <span style={{ color: '#fbbf24' }}>⚠️</span> Todo saldo disponible debe ser retirado externamente. No se permite la reinversión directa.
                           </p>
-                          <p style={{ margin: '4px 0 0 0', fontSize: '11px', color: '#d1d5db', fontStyle: 'italic' }}>
-                            Nota: Se deducirá un 5% de fee del importe total destinado a liquidez corporativa.
+                          <p style={{ margin: '4px 0 0 20px', fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
+                            Nota: Se deducirá un 5% de fee corporativo al ejecutar el envío.
                           </p>
                         </div>
 
