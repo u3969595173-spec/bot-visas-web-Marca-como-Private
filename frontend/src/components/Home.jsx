@@ -50,8 +50,8 @@ function Home() {
             <button className="cta-main" onClick={() => navigate('/registro')}>
               Solicitar información
             </button>
-            <button className="cta-ghost" onClick={() => navigate('/operaciones')}>
-              Ver operaciones
+            <button className="cta-ghost" onClick={() => navigate('/login')} style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+              <span>🔐</span> Inicio de sesión
             </button>
           </div>
         </div>
