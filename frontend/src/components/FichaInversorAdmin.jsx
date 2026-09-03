@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 
 const formatCurrency = (value, currency) => {
   const amount = Number(value || 0)
@@ -43,7 +44,7 @@ function FichaInversorAdmin({ inversor, aportaciones, retiros, pagos, mensajes, 
 
   const monedas = [...new Set([...Object.keys(cartera), ...Object.keys(retirado), ...Object.keys(acreditado)])]
 
-  return (
+  return createPortal(
     <div className="investor-detail-backdrop" role="presentation" onMouseDown={onClose}>
       <section className="investor-detail-panel" role="dialog" aria-modal="true" aria-labelledby="investor-detail-title" onMouseDown={event => event.stopPropagation()}>
         <header className="investor-detail-header">
@@ -121,7 +122,7 @@ function FichaInversorAdmin({ inversor, aportaciones, retiros, pagos, mensajes, 
         </footer>
       </section>
     </div>
-  )
+  , document.body)
 }
 
 export default FichaInversorAdmin
