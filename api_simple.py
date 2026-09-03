@@ -28,16 +28,25 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 from psycopg2 import pool as _pg_pool
 DB_POOL = None
 _FALLBACK_CONN_IDS = set()  # conexiones directas (no del pool) pendientes de cerrar
+DB_CONNECTION_OPTIONS = {
+    "sslmode": "require",
+    "connect_timeout": 10,
+    "options": "-c statement_timeout=15000",
+    "keepalives": 1,
+    "keepalives_idle": 30,
+    "keepalives_interval": 10,
+    "keepalives_count": 3,
+}
 
 def get_conn():
     global DB_POOL
     if DB_POOL is None:
-        DB_POOL = _pg_pool.ThreadedConnectionPool(1, 30, DATABASE_URL, sslmode="require")
+        DB_POOL = _pg_pool.ThreadedConnectionPool(1, 30, DATABASE_URL, **DB_CONNECTION_OPTIONS)
     try:
         return DB_POOL.getconn()
     except _pg_pool.PoolError:
         # Pool agotado momentaneamente: abrir una conexion directa de respaldo
-        conn = psycopg2.connect(DATABASE_URL, sslmode='require')
+        conn = psycopg2.connect(DATABASE_URL, **DB_CONNECTION_OPTIONS)
         _FALLBACK_CONN_IDS.add(id(conn))
         return conn
 
@@ -3210,7 +3219,7 @@ async def resetear_datos_demo(usuario=Depends(obtener_usuario_actual)):
 # ============================================================================
 
 @app.get("/api/health")
-async def health_check():
+def health_check():
     """Verifica que la API está disponible"""
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
