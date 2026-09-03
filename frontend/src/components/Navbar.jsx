@@ -80,6 +80,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
           {userIsAuthenticated && !isAdmin && (
             <>
               <Link to="/dashboard" className={`nav-link ${isActive('/dashboard')}`}>Dashboard</Link>
+              <Link to="/mercado" className={`nav-link ${isActive('/mercado')}`}>Anuncios</Link>
               <Link to="/comunidad" className={`nav-link ${isActive('/comunidad')}`}>Comunidad</Link>
               <Link to="/perfil" className={`nav-link ${isActive('/perfil')}`}>Perfil</Link>
               <button onClick={handleLogout} className="logout-btn">Salir</button>
@@ -89,6 +90,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
           {isAdmin && (
             <>
               <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Panel Admin</Link>
+              <Link to="/mercado" className={`nav-link ${isActive('/mercado')}`}>Anuncios</Link>
               <Link to="/comunidad" className={`nav-link ${isActive('/comunidad')}`}>Comunidad</Link>
               <button onClick={handleLogout} className="logout-btn">Salir</button>
             </>
@@ -96,7 +98,6 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
         </nav>
 
         <div className="navbar-actions">
-          {userIsAuthenticated && <Link to="/mercado" className={`marketplace-shortcut ${isActive('/mercado')}`}>Anuncios</Link>}
           <button className="icon-btn mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             <Menu size={20} />
           </button>
@@ -124,6 +125,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
             {userIsAuthenticated && !isAdmin && (
               <>
                 <Link to="/dashboard" className="mobile-menu-link" onClick={closeMobileMenu}>Dashboard</Link>
+                <Link to="/mercado" className="mobile-menu-link" onClick={closeMobileMenu}>Anuncios</Link>
                 <Link to="/comunidad" className="mobile-menu-link" onClick={closeMobileMenu}>Comunidad</Link>
                 <Link to="/perfil" className="mobile-menu-link" onClick={closeMobileMenu}>Perfil</Link>
                 <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">Cerrar sesión</button>
@@ -133,6 +135,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
             {isAdmin && (
               <>
                 <Link to="/admin" className="mobile-menu-link" onClick={closeMobileMenu}>Panel Admin</Link>
+                <Link to="/mercado" className="mobile-menu-link" onClick={closeMobileMenu}>Anuncios</Link>
                 <Link to="/comunidad" className="mobile-menu-link" onClick={closeMobileMenu}>Comunidad</Link>
                 <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">Cerrar sesión</button>
               </>

@@ -114,25 +114,6 @@
   /* gap-4 */
 }
 
-.marketplace-shortcut {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 0 0.8rem;
-  border: 1px solid rgba(246, 196, 83, 0.7);
-  border-radius: 6px;
-  color: #f6c453;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.marketplace-shortcut:hover,
-.marketplace-shortcut.active {
-  background: #f6c453;
-  color: #07111f;
-}
-
 .icon-btn {
   padding: 0.5rem;
   border-radius: 0.5rem;
