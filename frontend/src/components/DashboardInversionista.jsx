@@ -84,6 +84,7 @@ function DashboardInversionista() {
   const [aportaciones, setAportaciones] = React.useState([])
   const [retiros, setRetiros] = React.useState([])
   const [pagosRentabilidad, setPagosRentabilidad] = React.useState([])
+  const [comisionesReferidos, setComisionesReferidos] = React.useState([])
   const [referidos, setReferidos] = React.useState([])
   const [ofertasPrivadas, setOfertasPrivadas] = React.useState([])
   const [ofertasAportaciones, setOfertasAportaciones] = React.useState([])
@@ -327,11 +328,29 @@ function DashboardInversionista() {
       }
     }
 
+    const cargarComisionesReferidos = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (!token) return
+        const response = await fetch(`${API_URL}/api/comisiones-referidos`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (response.ok) {
+          const data = await response.json()
+          setComisionesReferidos(data.comisiones || [])
+        }
+      } catch (error) {
+        console.log('Error cargando comisiones de referidos:', error)
+      }
+    }
+
     cargarAportaciones()
     cargarReferidos()
+    cargarComisionesReferidos()
     const intervalo = setInterval(() => {
       cargarAportaciones()
       cargarReferidos()
+      cargarComisionesReferidos()
     }, 5000)
 
     return () => clearInterval(intervalo)
@@ -481,6 +500,13 @@ function DashboardInversionista() {
       saldos[moneda] = saldo
       return saldos
     }, {})
+
+  comisionesReferidos.forEach((comision) => {
+    const moneda = (comision.moneda || 'EUR').includes('USDT') ? 'USDT' : (comision.moneda || 'EUR')
+    const saldo = saldosPorMoneda[moneda] || { aportado: 0, gananciasPosibles: 0, disponible: 0, retenido: 0, retirado: 0 }
+    saldo.disponible += Number(comision.importe || 0)
+    saldosPorMoneda[moneda] = saldo
+  })
 
   userRetiros
     .filter((item) => item.estado === 'Aprobado' || item.estado === 'Procesado')

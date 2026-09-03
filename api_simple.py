@@ -53,6 +53,43 @@ def release_conn(conn):
     except Exception:
         pass
 
+def asegurar_y_acreditar_comision_referido(cur, aportacion_id, inversor_id, importe, moneda):
+    """Registra el 10% del aporte para el patrocinador sin requerir una inversión propia."""
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS comisiones_referidos (
+            id SERIAL PRIMARY KEY,
+            patrocinador_id INT NOT NULL,
+            referido_id INT NOT NULL,
+            aportacion_id INT NOT NULL UNIQUE,
+            importe DECIMAL(12,2) NOT NULL,
+            moneda VARCHAR(30) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("SELECT referido_por FROM inversores WHERE id = %s", (inversor_id,))
+    referido = cur.fetchone()
+    if not referido or not referido[0]:
+        return None
+    cur.execute("SELECT id, nombre FROM inversores WHERE codigo_referido = %s", (referido[0],))
+    patrocinador = cur.fetchone()
+    if not patrocinador:
+        return None
+    patrocinador_id, patrocinador_nombre = patrocinador
+    monto = round(float(importe) * 0.10, 2)
+    cur.execute("""
+        INSERT INTO comisiones_referidos (patrocinador_id, referido_id, aportacion_id, importe, moneda)
+        VALUES (%s, %s, %s, %s, %s)
+        ON CONFLICT (aportacion_id) DO NOTHING
+        RETURNING importe
+    """, (patrocinador_id, inversor_id, aportacion_id, monto, moneda))
+    if not cur.fetchone():
+        return None
+    cur.execute("""
+        INSERT INTO notificaciones (inversor_id, mensaje, tipo)
+        VALUES (%s, %s, 'COMISION_REFERIDO')
+    """, (patrocinador_id, f"Has recibido {monto:.2f} {moneda} de comisión por la aportación de un referido."))
+    return {"patrocinador_id": patrocinador_id, "patrocinador_nombre": patrocinador_nombre, "importe": monto, "moneda": moneda}
+
 app = FastAPI(title="Capital Iberia API")
 
 @app.on_event("startup")
@@ -876,66 +913,19 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
                 UPDATE aportaciones 
                 SET estado = %s, fecha_aprobacion = CURRENT_TIMESTAMP, tasa_diaria = %s 
                 WHERE id = %s
-                RETURNING inversor_id, importe
+                RETURNING inversor_id, importe, moneda
             """, (estado, tasa_diaria, aportacion_id))
             
             inversion_data = cur.fetchone()
             if inversion_data:
                 # --- NOTIFICAR AL INVERSOR ---
-                inversor_id, importe = inversion_data
+                inversor_id, importe, moneda = inversion_data
                 cur.execute("""
                     INSERT INTO notificaciones (inversor_id, mensaje, tipo) 
                     VALUES (%s, %s, 'INGRESO')
                 """, (inversor_id, f"Tu aportación de €{importe} ha sido aprobada y ya está originando rendimientos."))
                 
-                # Disparar acelerador para el patrocinador (10% de importe)
-                monto_acelerador = float(importe) * 0.10
-
-                # Buscar si el inversor fue referido por alguien (aún falta la tabla, previendo logica)
-                cur.execute("SELECT referido_por FROM inversores WHERE id = %s", (inversor_id,))
-                ref_row = cur.fetchone()
-                if ref_row and ref_row[0]:
-                    patrocinador_codigo = ref_row[0]
-                    # Encontrar al patrocinador
-                    cur.execute("SELECT id FROM inversores WHERE codigo_referido = %s", (patrocinador_codigo,))
-                    patr_row = cur.fetchone()
-                    if patr_row:
-                        patrocinador_id = patr_row[0]
-                        # Repartir acelerador en sus inversiones activas en cascada (FIFO)
-                        cur.execute("""
-                            SELECT id, importe, COALESCE(ganancia_acelerada, 0) as ganac, COALESCE(ganancia_rentabilidad, 0) as rent, fecha_aprobacion
-                            FROM aportaciones 
-                            WHERE inversor_id = %s AND (estado = 'Aprobada' OR estado = 'Activa')
-                            ORDER BY fecha_aprobacion ASC NULLS LAST, id ASC
-                        """, (patrocinador_id,))
-                        invs_activas = cur.fetchall()
-                        
-                        monto_restante = monto_acelerador
-                        
-                        for inv in invs_activas:
-                            if monto_restante <= 0:
-                                break
-                            
-                            inv_id = inv[0]
-                            inv_importe = float(inv[1])
-                            inv_ganac = float(inv[2])
-                            inv_rent = float(inv[3])
-                            
-                            meta = inv_importe * 3.0
-                            
-                            # Validar espacio libre teniendo en cuenta TODO lo ganado hasta el momento
-                            espacio_libre = meta - (inv_rent + inv_ganac)
-                            
-                            if espacio_libre > 0:
-                                abs_ganado = min(monto_restante, espacio_libre)
-                                
-                                estado = 'Activa'
-                                # Si este pago llena la meta al 300%, completamos el contrato.
-                                if (inv_rent + inv_ganac + abs_ganado) >= meta:
-                                    estado = 'Completada (300%)'
-
-                                cur.execute("UPDATE aportaciones SET ganancia_acelerada = ganancia_acelerada + %s, estado = %s WHERE id = %s", (abs_ganado, estado, inv_id))
-                                monto_restante -= abs_ganado
+                asegurar_y_acreditar_comision_referido(cur, aportacion_id, inversor_id, importe, moneda)
         else:
             cur.execute("UPDATE aportaciones SET estado = %s WHERE id = %s", (estado, aportacion_id))
 
@@ -946,6 +936,59 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
         return {"success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.get("/api/comisiones-referidos")
+async def obtener_comisiones_referidos(usuario = Depends(obtener_usuario_actual)):
+    """Devuelve las comisiones de referido acreditadas fuera de las inversiones."""
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS comisiones_referidos (
+                id SERIAL PRIMARY KEY,
+                patrocinador_id INT NOT NULL,
+                referido_id INT NOT NULL,
+                aportacion_id INT NOT NULL UNIQUE,
+                importe DECIMAL(12,2) NOT NULL,
+                moneda VARCHAR(30) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        if usuario.get('rol') == 'admin':
+            cur.execute("""
+                SELECT c.id, c.patrocinador_id, c.referido_id, c.aportacion_id, c.importe, c.moneda, c.created_at,
+                       p.nombre, r.nombre
+                FROM comisiones_referidos c
+                JOIN inversores p ON p.id = c.patrocinador_id
+                JOIN inversores r ON r.id = c.referido_id
+                ORDER BY c.created_at DESC
+            """)
+        else:
+            cur.execute("""
+                SELECT c.id, c.patrocinador_id, c.referido_id, c.aportacion_id, c.importe, c.moneda, c.created_at,
+                       p.nombre, r.nombre
+                FROM comisiones_referidos c
+                JOIN inversores p ON p.id = c.patrocinador_id
+                JOIN inversores r ON r.id = c.referido_id
+                WHERE c.patrocinador_id = %s
+                ORDER BY c.created_at DESC
+            """, (usuario.get('inversor_id'),))
+        filas = cur.fetchall()
+        conn.commit()
+        return {"comisiones": [{
+            "id": fila[0], "patrocinador_id": fila[1], "referido_id": fila[2], "aportacion_id": fila[3],
+            "importe": float(fila[4]), "moneda": fila[5], "fecha": fila[6].isoformat() if fila[6] else None,
+            "patrocinador": fila[7], "referido": fila[8]
+        } for fila in filas]}
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    finally:
+        if conn:
+            cur.close()
+            release_conn(conn)
 
 
 @app.delete("/api/aportaciones/{aportacion_id}")
@@ -1442,36 +1485,7 @@ async def inyectar_aportacion_admin(inversor_id: int, datos: InyeccionAdminReque
             VALUES (%s, %s, 'INGRESO')
         """, (inversor_id, f"El corporativo ha inyectado {datos.importe} {datos.moneda} a tu cuenta. Se encuentra activa y retenida por 72h."))
         
-        monto_acelerador = float(datos.importe) * 0.10
-        cur.execute("SELECT referido_por FROM inversores WHERE id = %s", (inversor_id,))
-        ref_row = cur.fetchone()
-        if ref_row and ref_row[0]:
-            patrocinador_codigo = ref_row[0]
-            cur.execute("SELECT id FROM inversores WHERE codigo_referido = %s", (patrocinador_codigo,))
-            patr_row = cur.fetchone()
-            if patr_row:
-                patrocinador_id = patr_row[0]
-                cur.execute("""
-                    SELECT id, importe, COALESCE(ganancia_acelerada, 0) as ganac, COALESCE(ganancia_rentabilidad, 0) as rent
-                    FROM aportaciones 
-                    WHERE inversor_id = %s AND (estado = 'Aprobada' OR estado = 'Activa')
-                    ORDER BY fecha_aprobacion ASC NULLS LAST, id ASC
-                """, (patrocinador_id,))
-                invs_activas = cur.fetchall()
-                
-                monto_restante = monto_acelerador
-                for inv in invs_activas:
-                    if monto_restante <= 0: break
-                    inv_id, inv_importe, inv_ganac, inv_rent = inv[0], float(inv[1]), float(inv[2]), float(inv[3])
-                    meta = inv_importe * 3.0
-                    espacio_libre = meta - (inv_rent + inv_ganac)
-                    
-                    if espacio_libre > 0:
-                        abs_ganado = min(monto_restante, espacio_libre)
-                        estado_inv = 'Activa'
-                        if (inv_rent + inv_ganac + abs_ganado) >= meta: estado_inv = 'Completada (300%)'
-                        cur.execute("UPDATE aportaciones SET ganancia_acelerada = ganancia_acelerada + %s, estado = %s WHERE id = %s", (abs_ganado, estado_inv, inv_id))
-                        monto_restante -= abs_ganado
+        asegurar_y_acreditar_comision_referido(cur, aportacion_id, inversor_id, datos.importe, datos.moneda)
                         
         conn.commit()
         return {"success": True, "aportacion_id": aportacion_id}
