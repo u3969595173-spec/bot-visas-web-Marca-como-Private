@@ -1031,6 +1031,14 @@ function DashboardInversionista() {
         </header>
         <div className="content-scroll">
 
+          <div style={{ margin: '0 0 1.5rem 0', padding: '1rem', background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)', borderLeft: '4px solid #10b981', borderRadius: '0 8px 8px 0', borderTop: '1px solid rgba(16,185,129,0.1)', borderRight: '1px solid rgba(16,185,129,0.1)', borderBottom: '1px solid rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span style={{ fontSize: '28px' }}>🚀</span>
+            <div>
+              <p style={{ margin: 0, color: '#34d399', fontWeight: 'bold', fontSize: '15px' }}>REPARTO DIARIO COMPLETADO: +1.5%</p>
+              <p style={{ margin: '4px 0 0 0', color: '#cbd5e1', fontSize: '13px' }}>Se ha liquidado satisfactoriamente el rendimiento operativo del 1.5% sobre el capital total. Los fondos ya se ecnuentran unificados y disponibles en su Saldo Retirable.</p>
+            </div>
+          </div>
+
           {activeTab === 'resumen' && (
             <>
               {/* Tarjeta VIP Negra 3D (Flip) */}
