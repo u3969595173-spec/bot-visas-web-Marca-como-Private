@@ -20,6 +20,7 @@ import Programa from './components/Programa'
 import ProgramaPartner from './components/ProgramaPartner'
 import ProgramaCombinado from './components/ProgramaCombinado'
 import ChatbotIA from './components/ChatbotIA'
+import MercadoP2P from './components/MercadoP2P'
 
 function SobreNosotros() {
   return (
@@ -261,6 +262,7 @@ function App() {
           <Route path="/operacion/:id" element={<OperacionDetalle />} />
           <Route path="/solicitud-participacion" element={<SolicitudParticipacion />} />
           <Route path="/perfil" element={<PerfilInversor />} />
+          <Route path="/mercado" element={isAuthenticated ? <MercadoP2P /> : <Navigate to="/login" />} />
           <Route
             path="/comunidad"
             element={isAuthenticated ? <Comunidad /> : <Navigate to="/login" />}

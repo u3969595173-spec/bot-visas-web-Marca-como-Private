@@ -149,6 +149,16 @@ class InversorLoginRequest(BaseModel):
     email: str
     password: str
 
+class MercadoAnuncioRequest(BaseModel):
+    tipo: str
+    titulo: str
+    categoria: str = "Otros"
+    cantidad: str = ""
+    precio: str
+    moneda: str = ""
+    descripcion: str = ""
+    telefono: str
+
 # --- ADMIN ENDPOINT: REPARTIR RENDIMIENTO DIARIO ---
 class PayoutRequest(BaseModel):
     porcentaje: float
@@ -2362,6 +2372,88 @@ async def eliminar_aviso_operacion(aviso_id: str, usuario=Depends(obtener_usuari
 # ============================================================================
 # ENDPOINTS - OFERTAS PRIVADAS (LÍDERES)
 # ============================================================================
+
+# ============================================================================
+# ENDPOINTS - MERCADO ENTRE USUARIOS
+# ============================================================================
+@app.get("/api/mercado/anuncios")
+async def obtener_anuncios_mercado(usuario=Depends(obtener_usuario_actual)):
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS mercado_anuncios (
+                id SERIAL PRIMARY KEY, inversor_id INT NOT NULL, nombre VARCHAR(200) NOT NULL,
+                tipo VARCHAR(10) NOT NULL, titulo VARCHAR(160) NOT NULL, categoria VARCHAR(80) NOT NULL DEFAULT 'Otros',
+                cantidad VARCHAR(100), precio VARCHAR(100) NOT NULL, moneda VARCHAR(50), descripcion TEXT,
+                telefono VARCHAR(40) NOT NULL, estado VARCHAR(20) NOT NULL DEFAULT 'Activa',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        if usuario.get('rol') == 'admin':
+            cur.execute("SELECT id, inversor_id, nombre, tipo, titulo, categoria, cantidad, precio, moneda, descripcion, telefono, estado, created_at FROM mercado_anuncios ORDER BY created_at DESC")
+        else:
+            cur.execute("SELECT id, inversor_id, nombre, tipo, titulo, categoria, cantidad, precio, moneda, descripcion, telefono, estado, created_at FROM mercado_anuncios WHERE estado = 'Activa' OR inversor_id = %s ORDER BY created_at DESC", (usuario.get('inversor_id'),))
+        rows = cur.fetchall()
+        conn.commit()
+        anuncios = [{"id": row[0], "inversor_id": row[1], "nombre": row[2], "tipo": row[3], "titulo": row[4], "categoria": row[5], "cantidad": row[6], "precio": row[7], "moneda": row[8], "descripcion": row[9], "telefono": row[10], "estado": row[11], "created_at": row[12].isoformat() if row[12] else None} for row in rows]
+        cur.close()
+        release_conn(conn)
+        return {"anuncios": anuncios}
+    except Exception as e:
+        if conn: release_conn(conn)
+        raise HTTPException(status_code=500, detail=f"Error cargando el mercado: {str(e)}")
+
+@app.post("/api/mercado/anuncios")
+async def publicar_anuncio_mercado(datos: MercadoAnuncioRequest, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'inversor':
+        raise HTTPException(status_code=403, detail="Solo los inversores pueden publicar anuncios")
+    if datos.tipo not in ('Compra', 'Venta') or not datos.titulo.strip() or not datos.precio.strip() or not datos.telefono.strip():
+        raise HTTPException(status_code=400, detail="Completa tipo, producto, precio fijo y teléfono")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT nombre FROM inversores WHERE id = %s", (usuario.get('inversor_id'),))
+        inversor = cur.fetchone()
+        if not inversor: raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        cur.execute("INSERT INTO mercado_anuncios (inversor_id, nombre, tipo, titulo, categoria, cantidad, precio, moneda, descripcion, telefono) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id", (usuario.get('inversor_id'), inversor[0], datos.tipo, datos.titulo.strip(), datos.categoria.strip() or 'Otros', datos.cantidad.strip(), datos.precio.strip(), datos.moneda.strip(), datos.descripcion.strip(), datos.telefono.strip()))
+        anuncio_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"id": anuncio_id, "success": True}
+    except HTTPException:
+        if conn: release_conn(conn)
+        raise
+    except Exception as e:
+        if conn: release_conn(conn)
+        raise HTTPException(status_code=500, detail=f"Error publicando el anuncio: {str(e)}")
+
+@app.put("/api/mercado/anuncios/{anuncio_id}")
+async def actualizar_anuncio_mercado(anuncio_id: int, datos: dict, usuario=Depends(obtener_usuario_actual)):
+    estado = datos.get('estado')
+    if estado not in ('Activa', 'Pausada', 'Cerrada', 'Oculta'): raise HTTPException(status_code=400, detail="Estado no válido")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT inversor_id FROM mercado_anuncios WHERE id = %s", (anuncio_id,))
+        anuncio = cur.fetchone()
+        if not anuncio: raise HTTPException(status_code=404, detail="Anuncio no encontrado")
+        if usuario.get('rol') != 'admin' and anuncio[0] != usuario.get('inversor_id'): raise HTTPException(status_code=403, detail="No puedes modificar este anuncio")
+        cur.execute("UPDATE mercado_anuncios SET estado = %s WHERE id = %s", (estado, anuncio_id))
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"success": True}
+    except HTTPException:
+        if conn: release_conn(conn)
+        raise
+    except Exception as e:
+        if conn: release_conn(conn)
+        raise HTTPException(status_code=500, detail=f"Error actualizando el anuncio: {str(e)}")
 
 class OfertaRequest(BaseModel):
     nombre: str
