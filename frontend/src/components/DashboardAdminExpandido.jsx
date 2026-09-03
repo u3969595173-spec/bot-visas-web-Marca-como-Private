@@ -5,6 +5,7 @@ import './DashboardAdminExpandido.css'
 import RetirosCreditoPanel from './RetirosCreditoPanel'
 import FondoSolidarioPanel from './FondoSolidarioPanel'
 import NotificacionesCampana from './NotificacionesCampana'
+import FichaInversorAdmin from './FichaInversorAdmin'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -115,6 +116,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [avisoEditandoId, setAvisoEditandoId] = useState(null)
   const [avisoOperacion, setAvisoOperacion] = useState({ operacionId: '', titulo: '', contenido: '', imagenes: [] })
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [inversorSeleccionado, setInversorSeleccionado] = useState(null)
 
   const [modalJustificanteVisible, setModalJustificanteVisible] = useState(false)
   const [justificanteActual, setJustificanteActual] = useState(null)
@@ -1660,6 +1662,14 @@ function DashboardAdminExpandido({ onLogout }) {
                     <div key={`acciones-${usuario.id}`} style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
                       <button
                         className="btn-action"
+                        onClick={() => setInversorSeleccionado(usuario)}
+                        style={{ backgroundColor: '#0f766e', color: 'white', padding: '6px 10px', fontSize: '12px' }}
+                      >
+                        Ver ficha
+                      </button>
+
+                      <button
+                        className="btn-action"
                         onClick={() => {
                           if (usuario.telefono && usuario.telefono.trim() !== '—') {
                             window.open(`https://wa.me/${usuario.telefono.replace(/\D/g, '')}`, '_blank');
@@ -1765,6 +1775,25 @@ function DashboardAdminExpandido({ onLogout }) {
                 <div className="section-header">
                   <div>
                     <h2>📢 Diario de operaciones</h2>
+                {inversorSeleccionado && (
+                  <FichaInversorAdmin
+                    inversor={inversorSeleccionado}
+                    aportaciones={aportaciones}
+                    retiros={retiros}
+                    pagos={pagosRentabilidad}
+                    mensajes={mensajes}
+                    referidos={referidos}
+                    onClose={() => setInversorSeleccionado(null)}
+                    onInjectBalance={(id, nombre) => {
+                      setInversorSeleccionado(null)
+                      abrirModalInyeccion(id, nombre)
+                    }}
+                    onViewCommunity={(id, nombre) => {
+                      setInversorSeleccionado(null)
+                      fetchComunidad(id, nombre)
+                    }}
+                  />
+                )}
                     <p style={{ margin: '0.4rem 0 0', color: '#64748b', fontSize: '13px' }}>Publica avances reales de cualquiera de las seis operaciones. Cada aviso aparecerá al instante para los inversores.</p>
                   </div>
                 </div>
