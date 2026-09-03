@@ -945,6 +945,16 @@ function DashboardInversionista() {
         </div>
 
         <nav className="sidebar-nav">
+          <div className="nav-group-title">COMUNIDAD</div>
+          <Link to="/comunidad" className="sidebar-tab highlight" style={{ textDecoration: 'none' }}>
+            <div className="tab-indicator" />
+            <span className="tab-label">🌐 Chat Global</span>
+          </Link>
+          <Link to="/mercado" className="sidebar-tab highlight" style={{ textDecoration: 'none' }}>
+            <div className="tab-indicator" />
+            <span className="tab-label">🛍 Anuncios: comprar y vender</span>
+          </Link>
+          <div className="nav-divider"></div>
           <div className="nav-group-title">PORTAFOLIO</div>
           <button className={`sidebar-tab ${activeTab === 'resumen' ? 'active' : ''}`} onClick={() => setActiveTab('resumen')}>
             <div className="tab-indicator" /> <span className="tab-label">📊 Mi Cartera</span>
@@ -977,19 +987,11 @@ function DashboardInversionista() {
             <div className="tab-indicator" /> <span className="tab-label">🤝 Fondo Solidario</span>
           </button>
 
-          <div className="nav-divider"></div>
-          <div className="nav-group-title">EXTRAS</div>
-
           {esLiderPropio && (
             <button className={`sidebar-tab highlight ${activeTab === 'comunidad-lider' ? 'active' : ''}`} onClick={() => setActiveTab('comunidad-lider')} style={{ fontWeight: 'bold' }}>
               <div className="tab-indicator" /> <span className="tab-label">👑 Mi Comunidad (Red)</span>
             </button>
           )}
-
-          <Link to="/comunidad" className="sidebar-tab highlight" style={{ textDecoration: 'none' }}>
-            <div className="tab-indicator" />
-            <span className="tab-label">🌐 Chat Global</span>
-          </Link>
         </nav>
 
         <div className="sidebar-footer">

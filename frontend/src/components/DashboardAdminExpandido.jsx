@@ -1255,6 +1255,16 @@ function DashboardAdminExpandido({ onLogout }) {
         </div>
 
         <nav className="sidebar-nav">
+          <div className="nav-group-title">COMUNIDAD</div>
+          <button onClick={() => navigate('/comunidad')} className="sidebar-tab highlight">
+            <div className="tab-indicator" />
+            <span className="tab-label">💬 Comunidad Interna</span>
+          </button>
+          <Link to="/mercado" className="sidebar-tab highlight" style={{ textDecoration: 'none' }}>
+            <div className="tab-indicator" />
+            <span className="tab-label">🛍 Anuncios: comprar y vender</span>
+          </Link>
+          <div className="nav-divider"></div>
           <div className="nav-group-title">MENÚ PRINCIPAL</div>
           {tabs.map((tab) => (
             <button
@@ -1266,14 +1276,6 @@ function DashboardAdminExpandido({ onLogout }) {
               <span className="tab-label">{tab.label}</span>
             </button>
           ))}
-
-          <div className="nav-divider"></div>
-          <div className="nav-group-title">EXTRAS</div>
-
-          <button onClick={() => navigate('/comunidad')} className="sidebar-tab highlight">
-            <div className="tab-indicator" />
-            <span className="tab-label">💬 Comunidad Interna</span>
-          </button>
         </nav>
 
         <div className="sidebar-footer">
