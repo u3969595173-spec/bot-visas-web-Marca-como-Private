@@ -21,6 +21,9 @@ function FichaInversorAdmin({ inversor, aportaciones, retiros, pagos, mensajes, 
   const pagosInversor = pagos.filter(item => Number(item.inversor_id) === Number(inversor.id))
   const mensajesInversor = mensajes.filter(item => Number(item.usuarioId) === Number(inversor.id))
   const referidosDirectos = referidos.filter(item => item.referidoPor === inversor.codigo_referido)
+  const aportacionesPendientes = aportacionesInversor.filter(item => item.estado === 'Pendiente de validación')
+  const aportacionesRechazadas = aportacionesInversor.filter(item => item.estado === 'Rechazada')
+  const retirosEnRevision = retirosInversor.filter(item => !completedWithdrawalStates.has(item.estado) && item.estado !== 'Rechazado')
 
   const cartera = aportacionesInversor.reduce((totales, item) => {
     if (!activeStates.has(item.estado)) return totales
@@ -43,6 +46,25 @@ function FichaInversorAdmin({ inversor, aportaciones, retiros, pagos, mensajes, 
   }, {})
 
   const monedas = [...new Set([...Object.keys(cartera), ...Object.keys(retirado), ...Object.keys(acreditado)])]
+  const resumenPorMoneda = monedas.map(moneda => {
+    const capitalTotal = aportacionesInversor
+      .filter(item => item.moneda === moneda)
+      .reduce((total, item) => total + Number(item.importe || 0), 0)
+    const metaGanancia = aportacionesInversor
+      .filter(item => item.moneda === moneda)
+      .reduce((total, item) => total + Number(item.meta_ganancia || 0), 0)
+    const gananciaTotal = aportacionesInversor
+      .filter(item => item.moneda === moneda)
+      .reduce((total, item) => total + Number(item.ganancia_total || 0), 0)
+    return { moneda, capitalTotal, metaGanancia, gananciaTotal }
+  })
+  const comprobantes = aportacionesInversor.filter(item => item.tiene_justificante).length
+  const actividad = [
+    ...aportacionesInversor.map(item => ({ fecha: item.fecha, tipo: 'Aportación', detalle: `${formatCurrency(item.importe, item.moneda)} · ${item.estado}` })),
+    ...retirosInversor.map(item => ({ fecha: item.fecha, tipo: 'Retiro', detalle: `${formatCurrency(item.importe, item.moneda)} · ${item.estado}` })),
+    ...pagosInversor.map(item => ({ fecha: item.fecha || item.created_at, tipo: 'Rendimiento acreditado', detalle: formatCurrency(item.importe, item.moneda) })),
+    ...mensajesInversor.map(item => ({ fecha: item.fecha, tipo: item.tipo === 'admin' ? 'Mensaje del administrador' : 'Mensaje del inversor', detalle: item.contenido || item.mensaje || 'Mensaje sin contenido' }))
+  ].sort((left, right) => new Date(right.fecha || 0) - new Date(left.fecha || 0))
 
   return createPortal(
     <div className="investor-detail-backdrop" role="presentation" onMouseDown={onClose}>
@@ -74,6 +96,36 @@ function FichaInversorAdmin({ inversor, aportaciones, retiros, pagos, mensajes, 
             ) : <p className="investor-empty">No tiene movimientos financieros registrados.</p>}
           </section>
 
+          <section className="investor-detail-section">
+            <h3>Estado de cuenta</h3>
+            <div className="investor-account-grid">
+              <div><span>Aportaciones</span><strong>{aportacionesInversor.length}</strong></div>
+              <div><span>Pendientes de validar</span><strong>{aportacionesPendientes.length}</strong></div>
+              <div><span>Rechazadas</span><strong>{aportacionesRechazadas.length}</strong></div>
+              <div><span>Retiros en revisión</span><strong>{retirosEnRevision.length}</strong></div>
+              <div><span>Comprobantes cargados</span><strong>{comprobantes} de {aportacionesInversor.length}</strong></div>
+              <div><span>Último movimiento</span><strong>{actividad.length ? formatDate(actividad[0].fecha) : 'Sin actividad'}</strong></div>
+            </div>
+          </section>
+
+          {resumenPorMoneda.length > 0 && (
+            <section className="investor-detail-section">
+              <h3>Progreso de rendimientos</h3>
+              <div className="investor-progress-grid">
+                {resumenPorMoneda.map(resumen => {
+                  const progreso = resumen.metaGanancia > 0 ? Math.min(100, (resumen.gananciaTotal / resumen.metaGanancia) * 100) : 0
+                  return <div className="investor-progress-card" key={resumen.moneda}>
+                    <div><strong>{resumen.moneda}</strong><span>{progreso.toFixed(1)}%</span></div>
+                    <div className="investor-progress-track"><span style={{ width: `${progreso}%` }} /></div>
+                    <p>Capital aportado: {formatCurrency(resumen.capitalTotal, resumen.moneda)}</p>
+                    <p>Ganancia acumulada: {formatCurrency(resumen.gananciaTotal, resumen.moneda)}</p>
+                    <p>Meta de ganancia: {formatCurrency(resumen.metaGanancia, resumen.moneda)}</p>
+                  </div>
+                })}
+              </div>
+            </section>
+          )}
+
           <section className="investor-detail-section investor-detail-data-grid">
             <div><span>Teléfono</span><strong>{inversor.telefono || 'Sin registrar'}</strong></div>
             <div><span>País</span><strong>{inversor.pais || 'Sin registrar'}</strong></div>
@@ -87,10 +139,10 @@ function FichaInversorAdmin({ inversor, aportaciones, retiros, pagos, mensajes, 
             <h3>Aportaciones</h3>
             <div className="investor-detail-table-wrap">
               <table className="investor-detail-table">
-                <thead><tr><th>Fecha</th><th>Importe</th><th>Estado</th><th>Ganancia</th></tr></thead>
+                <thead><tr><th>Fecha</th><th>Importe</th><th>Estado</th><th>Ganancia</th><th>Último pago</th><th>Documento</th></tr></thead>
                 <tbody>{aportacionesInversor.length ? aportacionesInversor.map(item => (
-                  <tr key={item.id}><td>{formatDate(item.fecha)}</td><td>{formatCurrency(item.importe, item.moneda)}</td><td>{item.estado}</td><td>{formatCurrency(item.ganancia_total, item.moneda)}</td></tr>
-                )) : <tr><td colSpan="4">No hay aportaciones registradas.</td></tr>}</tbody>
+                  <tr key={item.id}><td>{formatDate(item.fecha)}</td><td>{formatCurrency(item.importe, item.moneda)}</td><td>{item.estado}</td><td>{formatCurrency(item.ganancia_total, item.moneda)}</td><td>{formatDate(item.ultima_fecha_pago)}</td><td>{item.tiene_justificante ? 'Cargado' : 'Pendiente'}</td></tr>
+                )) : <tr><td colSpan="6">No hay aportaciones registradas.</td></tr>}</tbody>
               </table>
             </div>
           </section>
@@ -108,10 +160,10 @@ function FichaInversorAdmin({ inversor, aportaciones, retiros, pagos, mensajes, 
           </section>
 
           <section className="investor-detail-section">
-            <h3>Actividad reciente</h3>
+            <h3>Cronología completa</h3>
             <div className="investor-activity-list">
-              {mensajesInversor.slice(0, 5).map(item => <p key={item.id}>{formatDate(item.fecha)} · {item.contenido || item.mensaje || 'Mensaje sin contenido'}</p>)}
-              {!mensajesInversor.length && <p className="investor-empty">No hay mensajes registrados.</p>}
+              {actividad.slice(0, 20).map((item, index) => <p key={`${item.tipo}-${item.fecha}-${index}`}><strong>{item.tipo}</strong> · {formatDate(item.fecha)} · {item.detalle}</p>)}
+              {!actividad.length && <p className="investor-empty">No hay actividad registrada.</p>}
             </div>
           </section>
         </div>

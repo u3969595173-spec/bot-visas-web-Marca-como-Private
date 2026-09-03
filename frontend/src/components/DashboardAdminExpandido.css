@@ -403,6 +403,17 @@
 .investor-wallet-card > span, .investor-wallet-card small, .investor-detail-data-grid span { color: #94a3b8; font-size: 12px; }
 .investor-wallet-card strong { color: #f8fafc; font-size: 20px; }
 .investor-wallet-card div { font-size: 13px; color: #cbd5e1; }
+.investor-account-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.investor-account-grid div { display: grid; gap: 6px; padding: 13px; background: #17233a; border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 7px; }
+.investor-account-grid span { color: #94a3b8; font-size: 11px; text-transform: uppercase; }
+.investor-account-grid strong { font-size: 15px; color: #f8fafc; }
+.investor-progress-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.investor-progress-card { padding: 15px; background: #17233a; border: 1px solid rgba(148, 163, 184, 0.16); border-radius: 8px; }
+.investor-progress-card > div:first-child { display: flex; justify-content: space-between; color: #f8fafc; }
+.investor-progress-card > div:first-child span { color: #f6c453; font-size: 13px; font-weight: 700; }
+.investor-progress-card p { margin: 8px 0 0; color: #cbd5e1; font-size: 12px; }
+.investor-progress-track { height: 7px; margin-top: 12px; overflow: hidden; background: #0b1220; border-radius: 999px; }
+.investor-progress-track span { display: block; height: 100%; background: #f6c453; border-radius: inherit; }
 .investor-detail-data-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 .investor-detail-data-grid div { display: grid; gap: 4px; }
 .investor-detail-data-grid strong { font-size: 14px; word-break: break-word; }
