@@ -321,7 +321,7 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
 
 
 @app.get("/api/pagos-rentabilidad")
-async def obtener_pagos_rentabilidad(usuario = Depends(obtener_usuario_actual)):
+def obtener_pagos_rentabilidad(usuario = Depends(obtener_usuario_actual)):
     """Historial de pagos de rentabilidad; el inversor solo ve los propios."""
     conn = None
     try:
@@ -509,7 +509,7 @@ async def login_inversor(datos: InversorLoginRequest):
 
 
 @app.get("/api/inversores/perfil")
-async def get_perfil(usuario=Depends(obtener_usuario_actual)):
+def get_perfil(usuario=Depends(obtener_usuario_actual)):
     """Devuelve el perfil completo del inversor autenticado"""
     try:
         conn = get_conn()
@@ -650,14 +650,14 @@ def _ensure_config_table(cur, conn):
 
 
 @app.get("/api/admin/config")
-async def get_config(usuario=Depends(obtener_usuario_actual)):
+def get_config(usuario=Depends(obtener_usuario_actual)):
     if usuario.get("rol") != "admin":
         raise HTTPException(status_code=403, detail="Solo admins")
     return {"minimos": {"EUR": 500, "USDT BEP-20": 50}}
 
 
 @app.get("/api/admin/cuentas")
-async def get_cuentas(usuario=Depends(obtener_usuario_actual)):
+def get_cuentas(usuario=Depends(obtener_usuario_actual)):
     if usuario.get("rol") != "admin":
         raise HTTPException(status_code=403, detail="Solo admins")
     try:
@@ -697,7 +697,7 @@ async def update_cuentas(datos: dict, usuario=Depends(obtener_usuario_actual)):
 
 
 @app.get("/api/metodos-pago")
-async def get_metodos_publico():
+def get_metodos_publico():
     """Para inversores: ver métodos de pago disponibles (sin auth)"""
     try:
         conn = get_conn()
@@ -845,7 +845,7 @@ async def obtener_justificante(id: int, usuario = Depends(obtener_usuario_actual
 
 
 @app.get("/api/aportaciones")
-async def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
+def obtener_aportaciones(usuario = Depends(obtener_usuario_actual)):
     """Obtiene aportaciones (admin ve todas, inversor ve suyas)"""
     try:
         conn = get_conn()
@@ -947,7 +947,7 @@ async def actualizar_aportacion(aportacion_id: int, datos: dict, usuario = Depen
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.get("/api/comisiones-referidos")
-async def obtener_comisiones_referidos(usuario = Depends(obtener_usuario_actual)):
+def obtener_comisiones_referidos(usuario = Depends(obtener_usuario_actual)):
     """Devuelve las comisiones de referido acreditadas fuera de las inversiones."""
     conn = None
     try:
@@ -1225,7 +1225,7 @@ async def transferir_p2p(datos: P2PTransferRequest, usuario = Depends(obtener_us
 
 
 @app.get("/api/retiros")
-async def obtener_retiros(usuario = Depends(obtener_usuario_actual)):
+def obtener_retiros(usuario = Depends(obtener_usuario_actual)):
     """Obtiene retiros (admin ve todas, inversor ve suyas)"""
     try:
         conn = get_conn()
@@ -1368,7 +1368,7 @@ async def obtener_inversores_validados(usuario = Depends(obtener_usuario_actual)
 
 
 @app.get("/api/comunidad/{inversor_id}")
-async def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuario_actual)):
+def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuario_actual)):
     """Obtiene la comunidad multinivel de un inversor"""
     try:
         conn = get_conn()
@@ -1694,7 +1694,7 @@ async def listar_solicitudes_participacion(usuario=Depends(obtener_usuario_actua
 # ============================================================================
 
 @app.get("/api/transferencias_p2p")
-async def obtener_transferencias_p2p(usuario = Depends(obtener_usuario_actual)):
+def obtener_transferencias_p2p(usuario = Depends(obtener_usuario_actual)):
     """Obtiene el historial de Vouchers Transferidos (solo Admin)"""
     if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
@@ -1845,7 +1845,7 @@ def _ensure_referidos_table(cur, conn):
 
 
 @app.get("/api/referidos")
-async def obtener_referidos(usuario = Depends(obtener_usuario_actual)):
+def obtener_referidos(usuario = Depends(obtener_usuario_actual)):
     """Obtiene todos los referidos calculando la inversión total en vivo desde aportaciones"""
     try:
         conn = get_conn()
@@ -2290,7 +2290,7 @@ def _fila_a_aviso_operacion(fila):
 
 
 @app.get("/api/avisos-operaciones")
-async def listar_avisos_operaciones(usuario=Depends(obtener_usuario_actual)):
+def listar_avisos_operaciones(usuario=Depends(obtener_usuario_actual)):
     """Publicaciones operativas visibles para inversores autenticados."""
     conn = None
     try:
@@ -2593,7 +2593,7 @@ async def crear_oferta(datos: OfertaRequest, usuario=Depends(obtener_usuario_act
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.get("/api/ofertas")
-async def obtener_ofertas(usuario=Depends(obtener_usuario_actual)):
+def obtener_ofertas(usuario=Depends(obtener_usuario_actual)):
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -2693,7 +2693,7 @@ async def registrar_aportacion_oferta(datos: AportacionOfertaRequest, usuario=De
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.get("/api/ofertas/aportaciones")
-async def obtener_aportaciones_ofertas(usuario=Depends(obtener_usuario_actual)):
+def obtener_aportaciones_ofertas(usuario=Depends(obtener_usuario_actual)):
     try:
         conn = get_conn()
         cur = conn.cursor()
@@ -2787,7 +2787,7 @@ async def validar_aportacion_oferta(aportacion_id: str, datos: dict, usuario=Dep
 
 
 @app.get("/api/comunidad/mensajes")
-async def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obtener_usuario_actual)):
+def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obtener_usuario_actual)):
     """Obtiene mensajes públicos o la conversación privada con el admin."""
     try:
         conn = get_conn()
@@ -2845,7 +2845,7 @@ async def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obten
 
 
 @app.post("/api/comunidad/mensajes")
-async def crear_mensaje(datos: dict, privado: bool = Query(False), usuario = Depends(obtener_usuario_actual)):
+def crear_mensaje(datos: dict, privado: bool = Query(False), usuario = Depends(obtener_usuario_actual)):
     """Crea un mensaje público o privado con el administrador."""
     try:
         conn = get_conn()
@@ -2874,15 +2874,15 @@ async def crear_mensaje(datos: dict, privado: bool = Query(False), usuario = Dep
 
 
 @app.get("/api/chat-admin/mensajes")
-async def obtener_mensajes_chat_admin(usuario = Depends(obtener_usuario_actual)):
+def obtener_mensajes_chat_admin(usuario = Depends(obtener_usuario_actual)):
     """Obtiene solo la conversación privada entre el inversor y el admin."""
-    return await obtener_mensajes(privado=True, usuario=usuario)
+    return obtener_mensajes(privado=True, usuario=usuario)
 
 
 @app.post("/api/chat-admin/mensajes")
-async def crear_mensaje_chat_admin(datos: dict, usuario = Depends(obtener_usuario_actual)):
+def crear_mensaje_chat_admin(datos: dict, usuario = Depends(obtener_usuario_actual)):
     """Guarda un mensaje privado entre el inversor y el admin."""
-    return await crear_mensaje(datos, privado=True, usuario=usuario)
+    return crear_mensaje(datos, privado=True, usuario=usuario)
 
 
 # ============================================================================
