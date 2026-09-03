@@ -1775,25 +1775,6 @@ function DashboardAdminExpandido({ onLogout }) {
                 <div className="section-header">
                   <div>
                     <h2>📢 Diario de operaciones</h2>
-                {inversorSeleccionado && (
-                  <FichaInversorAdmin
-                    inversor={inversorSeleccionado}
-                    aportaciones={aportaciones}
-                    retiros={retiros}
-                    pagos={pagosRentabilidad}
-                    mensajes={mensajes}
-                    referidos={referidos}
-                    onClose={() => setInversorSeleccionado(null)}
-                    onInjectBalance={(id, nombre) => {
-                      setInversorSeleccionado(null)
-                      abrirModalInyeccion(id, nombre)
-                    }}
-                    onViewCommunity={(id, nombre) => {
-                      setInversorSeleccionado(null)
-                      fetchComunidad(id, nombre)
-                    }}
-                  />
-                )}
                     <p style={{ margin: '0.4rem 0 0', color: '#64748b', fontSize: '13px' }}>Publica avances reales de cualquiera de las seis operaciones. Cada aviso aparecerá al instante para los inversores.</p>
                   </div>
                 </div>
@@ -2874,6 +2855,26 @@ function DashboardAdminExpandido({ onLogout }) {
             </div>
           </div>
         </div>
+      )}
+
+      {inversorSeleccionado && (
+        <FichaInversorAdmin
+          inversor={inversorSeleccionado}
+          aportaciones={aportaciones}
+          retiros={retiros}
+          pagos={pagosRentabilidad}
+          mensajes={mensajes}
+          referidos={referidos}
+          onClose={() => setInversorSeleccionado(null)}
+          onInjectBalance={(id, nombre) => {
+            setInversorSeleccionado(null)
+            abrirModalInyeccion(id, nombre)
+          }}
+          onViewCommunity={(id, nombre) => {
+            setInversorSeleccionado(null)
+            fetchComunidad(id, nombre)
+          }}
+        />
       )}
 
     </div>
