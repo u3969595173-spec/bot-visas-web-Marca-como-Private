@@ -41,9 +41,6 @@ function ReporteRepartoImagen({ reporte, onClose }) {
     context.fillStyle = '#f8fafc'
     context.font = '600 27px Arial'
     context.fillText(`ACUMULADO MENSUAL: ${formatPercent(reporte.acumulado_mensual)}%`, width / 2, 682)
-    context.fillStyle = '#94a3b8'
-    context.font = '400 23px Arial'
-    context.fillText(`${reporte.contratos_procesados} contratos procesados`, width / 2, 735)
     context.textAlign = 'left'
     context.fillStyle = '#f6c453'
     context.fillRect(60, 850, width - 120, 2)
