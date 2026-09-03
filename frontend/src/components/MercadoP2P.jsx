@@ -71,7 +71,7 @@ function MercadoP2P() {
   const visibles = anuncios.filter(anuncio => filtro === 'Todos' || anuncio.tipo === filtro)
   return <main className="market-page">
     <header className="market-header"><div><p>Mercado entre usuarios</p><h1>Compra y venta directa</h1><span>Publica lo que quieras vender o comprar a un precio fijo.</span></div><button className="market-primary" onClick={() => { setMostrarFormulario(!mostrarFormulario); if (mostrarFormulario) { setAnuncioEditando(null); setFormulario(initialForm) } }}>{mostrarFormulario ? 'Cerrar' : 'Publicar anuncio'}</button></header>
-    <p className="market-notice">Capital Iberia facilita el contacto entre usuarios. La negociación, entrega y pago se acuerdan directamente entre las partes.</p>
+    <p className="market-notice">Capital Iberia facilita el contacto entre usuarios. La negociación, entrega y pago se acuerdan directamente entre las partes. Si un miembro denuncia una estafa, estudiaremos lo ocurrido y las pruebas disponibles. Cuando se confirme el fraude, la plataforma retirará los fondos correspondientes al responsable para entregarlos a la persona afectada.</p>
     {error && <p className="market-error">{error}</p>}
     {mostrarFormulario && <form className="market-form" onSubmit={publicar}><h2>{anuncioEditando ? 'Editar anuncio' : 'Nuevo anuncio'}</h2><div className="market-form-grid">
       <label>Quiero<select value={formulario.tipo} onChange={event => setFormulario({ ...formulario, tipo: event.target.value })}><option>Venta</option><option>Compra</option></select></label>
