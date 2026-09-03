@@ -11,6 +11,7 @@ function MercadoP2P() {
   const [filtro, setFiltro] = React.useState('Todos')
   const [mostrarFormulario, setMostrarFormulario] = React.useState(false)
   const [formulario, setFormulario] = React.useState(initialForm)
+  const [anuncioEditando, setAnuncioEditando] = React.useState(null)
   const [cargando, setCargando] = React.useState(true)
   const [error, setError] = React.useState('')
   const [publicando, setPublicando] = React.useState(false)
@@ -35,10 +36,10 @@ function MercadoP2P() {
     event.preventDefault()
     setPublicando(true); setError('')
     try {
-      const response = await fetch(`${API}/api/mercado/anuncios`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(formulario) })
+      const response = await fetch(anuncioEditando ? `${API}/api/mercado/anuncios/${anuncioEditando}` : `${API}/api/mercado/anuncios`, { method: anuncioEditando ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify(formulario) })
       const data = await response.json()
       if (!response.ok) throw new Error(data.detail || 'No se pudo publicar el anuncio.')
-      setFormulario(initialForm); setMostrarFormulario(false); await cargarAnuncios()
+      setFormulario(initialForm); setAnuncioEditando(null); setMostrarFormulario(false); await cargarAnuncios()
     } catch (requestError) { setError(requestError.message || 'No se pudo publicar el anuncio.') }
     finally { setPublicando(false) }
   }
@@ -46,6 +47,19 @@ function MercadoP2P() {
   const cambiarEstado = async (id, estado) => {
     const response = await fetch(`${API}/api/mercado/anuncios/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ estado }) })
     if (response.ok) cargarAnuncios(); else setError('No se pudo actualizar el anuncio.')
+  }
+
+  const editar = anuncio => {
+    setFormulario({ tipo: anuncio.tipo, titulo: anuncio.titulo, categoria: anuncio.categoria || 'Otros', cantidad: anuncio.cantidad || '', precio: anuncio.precio, moneda: anuncio.moneda || '', descripcion: anuncio.descripcion || '', telefono: anuncio.telefono || '' })
+    setAnuncioEditando(anuncio.id)
+    setMostrarFormulario(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const eliminar = async id => {
+    if (!window.confirm('¿Eliminar este anuncio definitivamente?')) return
+    const response = await fetch(`${API}/api/mercado/anuncios/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
+    if (response.ok) cargarAnuncios(); else setError('No se pudo eliminar el anuncio.')
   }
 
   const contactar = anuncio => {
@@ -56,10 +70,10 @@ function MercadoP2P() {
 
   const visibles = anuncios.filter(anuncio => filtro === 'Todos' || anuncio.tipo === filtro)
   return <main className="market-page">
-    <header className="market-header"><div><p>Mercado entre usuarios</p><h1>Compra y venta directa</h1><span>Publica lo que quieras vender o comprar a un precio fijo.</span></div><button className="market-primary" onClick={() => setMostrarFormulario(!mostrarFormulario)}>{mostrarFormulario ? 'Cerrar' : 'Publicar anuncio'}</button></header>
+    <header className="market-header"><div><p>Mercado entre usuarios</p><h1>Compra y venta directa</h1><span>Publica lo que quieras vender o comprar a un precio fijo.</span></div><button className="market-primary" onClick={() => { setMostrarFormulario(!mostrarFormulario); if (mostrarFormulario) { setAnuncioEditando(null); setFormulario(initialForm) } }}>{mostrarFormulario ? 'Cerrar' : 'Publicar anuncio'}</button></header>
     <p className="market-notice">Capital Iberia facilita el contacto entre usuarios. La negociación, entrega y pago se acuerdan directamente entre las partes.</p>
     {error && <p className="market-error">{error}</p>}
-    {mostrarFormulario && <form className="market-form" onSubmit={publicar}><h2>Nuevo anuncio</h2><div className="market-form-grid">
+    {mostrarFormulario && <form className="market-form" onSubmit={publicar}><h2>{anuncioEditando ? 'Editar anuncio' : 'Nuevo anuncio'}</h2><div className="market-form-grid">
       <label>Quiero<select value={formulario.tipo} onChange={event => setFormulario({ ...formulario, tipo: event.target.value })}><option>Venta</option><option>Compra</option></select></label>
       <label>Producto o activo *<input value={formulario.titulo} onChange={event => setFormulario({ ...formulario, titulo: event.target.value })} placeholder="Ej.: Chaqueta, USDT, móvil..." maxLength="160" required /></label>
       <label>Categoría<select value={formulario.categoria} onChange={event => setFormulario({ ...formulario, categoria: event.target.value })}><option>Otros</option><option>Ropa y accesorios</option><option>Criptoactivos</option><option>Moneda</option><option>Electrónica</option><option>Hogar</option><option>Servicios</option></select></label>
@@ -68,11 +82,11 @@ function MercadoP2P() {
       <label>Moneda de pago<input value={formulario.moneda} onChange={event => setFormulario({ ...formulario, moneda: event.target.value })} placeholder="Ej.: EUR, USD, CUP" maxLength="50" /></label>
       <label className="market-form-wide">Número de WhatsApp *<input type="tel" value={formulario.telefono} onChange={event => setFormulario({ ...formulario, telefono: event.target.value })} placeholder="Ej.: +34 600 000 000" maxLength="40" required /></label>
       <label className="market-form-wide">Descripción<textarea value={formulario.descripcion} onChange={event => setFormulario({ ...formulario, descripcion: event.target.value })} placeholder="Estado, detalles y condiciones del producto." maxLength="1000" rows="3" /></label>
-    </div><button className="market-primary" disabled={publicando}>{publicando ? 'Publicando...' : 'Publicar anuncio'}</button></form>}
+    </div><button className="market-primary" disabled={publicando}>{publicando ? 'Guardando...' : anuncioEditando ? 'Guardar cambios' : 'Publicar anuncio'}</button></form>}
     <div className="market-filters">{['Todos', 'Venta', 'Compra'].map(item => <button key={item} onClick={() => setFiltro(item)} className={filtro === item ? 'active' : ''}>{item}</button>)}</div>
     {cargando ? <p className="market-empty">Cargando anuncios...</p> : <section className="market-grid">{visibles.map(anuncio => {
       const esMio = Number(anuncio.inversor_id) === Number(user?.id)
-      return <article className={`market-card ${anuncio.tipo === 'Compra' ? 'market-buy' : 'market-sell'}`} key={anuncio.id}><div className="market-card-top"><span>{anuncio.tipo}</span><small>{anuncio.estado}</small></div><p className="market-category">{anuncio.categoria}</p><h2>{anuncio.titulo}</h2>{anuncio.cantidad && <p>Cantidad: <strong>{anuncio.cantidad}</strong></p>}<div className="market-price">{anuncio.precio} {anuncio.moneda}</div>{anuncio.descripcion && <p className="market-description">{anuncio.descripcion}</p>}<p className="market-owner">Publicado por {esMio ? 'ti' : anuncio.nombre}</p>{esMio ? <div className="market-owner-actions"><button onClick={() => cambiarEstado(anuncio.id, anuncio.estado === 'Activa' ? 'Pausada' : 'Activa')}>{anuncio.estado === 'Activa' ? 'Pausar' : 'Activar'}</button><button onClick={() => cambiarEstado(anuncio.id, 'Cerrada')}>Cerrar venta</button></div> : anuncio.estado === 'Activa' && <button className="market-whatsapp" onClick={() => contactar(anuncio)}>Hablar por WhatsApp</button>}</article>
+      return <article className={`market-card ${anuncio.tipo === 'Compra' ? 'market-buy' : 'market-sell'}`} key={anuncio.id}><div className="market-card-top"><span>{anuncio.tipo}</span><small>{anuncio.estado}</small></div><p className="market-category">{anuncio.categoria}</p><h2>{anuncio.titulo}</h2>{anuncio.cantidad && <p>Cantidad: <strong>{anuncio.cantidad}</strong></p>}<div className="market-price">{anuncio.precio} {anuncio.moneda}</div>{anuncio.descripcion && <p className="market-description">{anuncio.descripcion}</p>}<p className="market-owner">Publicado por {esMio ? 'ti' : anuncio.nombre}</p>{esMio ? <div className="market-owner-actions"><button onClick={() => editar(anuncio)}>Editar</button><button onClick={() => cambiarEstado(anuncio.id, anuncio.estado === 'Activa' ? 'Pausada' : 'Activa')}>{anuncio.estado === 'Activa' ? 'Pausar' : 'Activar'}</button><button onClick={() => eliminar(anuncio.id)}>Eliminar</button></div> : anuncio.estado === 'Activa' && <button className="market-whatsapp" onClick={() => contactar(anuncio)}>Hablar por WhatsApp</button>}</article>
     })}</section>}
     {!cargando && !visibles.length && <p className="market-empty">No hay anuncios para este filtro todavía.</p>}
   </main>

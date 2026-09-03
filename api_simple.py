@@ -2434,7 +2434,7 @@ async def publicar_anuncio_mercado(datos: MercadoAnuncioRequest, usuario=Depends
 @app.put("/api/mercado/anuncios/{anuncio_id}")
 async def actualizar_anuncio_mercado(anuncio_id: int, datos: dict, usuario=Depends(obtener_usuario_actual)):
     estado = datos.get('estado')
-    if estado not in ('Activa', 'Pausada', 'Cerrada', 'Oculta'): raise HTTPException(status_code=400, detail="Estado no válido")
+    if estado is not None and estado not in ('Activa', 'Pausada', 'Cerrada', 'Oculta'): raise HTTPException(status_code=400, detail="Estado no válido")
     conn = None
     try:
         conn = get_conn()
@@ -2443,7 +2443,19 @@ async def actualizar_anuncio_mercado(anuncio_id: int, datos: dict, usuario=Depen
         anuncio = cur.fetchone()
         if not anuncio: raise HTTPException(status_code=404, detail="Anuncio no encontrado")
         if usuario.get('rol') != 'admin' and anuncio[0] != usuario.get('inversor_id'): raise HTTPException(status_code=403, detail="No puedes modificar este anuncio")
-        cur.execute("UPDATE mercado_anuncios SET estado = %s WHERE id = %s", (estado, anuncio_id))
+        campos_editables = ('tipo', 'titulo', 'categoria', 'cantidad', 'precio', 'moneda', 'descripcion', 'telefono')
+        valores = {campo: str(datos[campo]).strip() for campo in campos_editables if campo in datos}
+        if valores:
+            if valores.get('tipo') and valores['tipo'] not in ('Compra', 'Venta'):
+                raise HTTPException(status_code=400, detail="Tipo de anuncio no válido")
+            if not valores.get('titulo', 'ok') or not valores.get('precio', 'ok') or not valores.get('telefono', 'ok'):
+                raise HTTPException(status_code=400, detail="Producto, precio y teléfono no pueden quedar vacíos")
+            asignaciones = ', '.join(f"{campo} = %s" for campo in valores)
+            cur.execute(f"UPDATE mercado_anuncios SET {asignaciones} WHERE id = %s", (*valores.values(), anuncio_id))
+        elif estado is not None:
+            cur.execute("UPDATE mercado_anuncios SET estado = %s WHERE id = %s", (estado, anuncio_id))
+        else:
+            raise HTTPException(status_code=400, detail="No hay cambios para guardar")
         conn.commit()
         cur.close()
         release_conn(conn)
@@ -2454,6 +2466,28 @@ async def actualizar_anuncio_mercado(anuncio_id: int, datos: dict, usuario=Depen
     except Exception as e:
         if conn: release_conn(conn)
         raise HTTPException(status_code=500, detail=f"Error actualizando el anuncio: {str(e)}")
+
+@app.delete("/api/mercado/anuncios/{anuncio_id}")
+async def eliminar_anuncio_mercado(anuncio_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT inversor_id FROM mercado_anuncios WHERE id = %s", (anuncio_id,))
+        anuncio = cur.fetchone()
+        if not anuncio: raise HTTPException(status_code=404, detail="Anuncio no encontrado")
+        if usuario.get('rol') != 'admin' and anuncio[0] != usuario.get('inversor_id'): raise HTTPException(status_code=403, detail="No puedes eliminar este anuncio")
+        cur.execute("DELETE FROM mercado_anuncios WHERE id = %s", (anuncio_id,))
+        conn.commit()
+        cur.close()
+        release_conn(conn)
+        return {"success": True}
+    except HTTPException:
+        if conn: release_conn(conn)
+        raise
+    except Exception as e:
+        if conn: release_conn(conn)
+        raise HTTPException(status_code=500, detail=f"Error eliminando el anuncio: {str(e)}")
 
 class OfertaRequest(BaseModel):
     nombre: str
