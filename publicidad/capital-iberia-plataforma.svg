@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#081a2b"/><stop offset="1" stop-color="#102f47"/></linearGradient>
+    <linearGradient id="gold" x1="0" x2="1"><stop stop-color="#f7cf6a"/><stop offset="1" stop-color="#c88e2f"/></linearGradient>
+  </defs>
+  <rect width="1080" height="1080" fill="url(#bg)"/>
+  <path d="M0 765C218 650 385 761 575 639C775 510 888 626 1080 505V1080H0Z" fill="#0b2438"/>
+  <path d="M0 850C225 721 427 874 634 736C797 627 943 695 1080 629V1080H0Z" fill="#071523" opacity=".85"/>
+  <g fill="none" stroke="#f7cf6a" opacity=".4"><circle cx="856" cy="224" r="124" stroke-width="2"/><circle cx="856" cy="224" r="89" stroke-width="2"/><path d="M732 224h248M856 100v248" stroke-width="2"/></g>
+  <rect x="72" y="72" width="94" height="94" rx="12" fill="url(#gold)"/><text x="119" y="133" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="36" fill="#081a2b">CI</text>
+  <text x="190" y="112" font-family="Arial, sans-serif" font-weight="700" font-size="31" letter-spacing="3" fill="#fff">CAPITAL IBERIA</text>
+  <text x="190" y="150" font-family="Arial, sans-serif" font-size="18" letter-spacing="4" fill="#f7cf6a">CRECE · CONECTA · AVANZA</text>
+  <text x="72" y="350" font-family="Arial, sans-serif" font-weight="800" font-size="95" fill="#fff">UNA NUEVA FORMA</text>
+  <text x="72" y="455" font-family="Arial, sans-serif" font-weight="800" font-size="95" fill="#fff">DE CONECTAR</text>
+  <rect x="72" y="505" width="152" height="8" fill="url(#gold)"/>
+  <text x="72" y="590" font-family="Arial, sans-serif" font-size="35" fill="#d8e4ed">Operaciones comerciales, comunidad</text>
+  <text x="72" y="638" font-family="Arial, sans-serif" font-size="35" fill="#d8e4ed">y herramientas para avanzar juntos.</text>
+  <rect x="72" y="890" width="520" height="86" rx="8" fill="url(#gold)"/><text x="332" y="946" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="28" fill="#071523">DESCUBRE CAPITAL IBERIA</text>
+  <text x="72" y="1030" font-family="Arial, sans-serif" font-size="23" letter-spacing="1" fill="#aabdc9">CAPITALIBERIA.COM</text>
+</svg>
