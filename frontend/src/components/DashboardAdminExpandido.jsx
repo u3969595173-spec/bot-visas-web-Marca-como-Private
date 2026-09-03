@@ -6,6 +6,7 @@ import RetirosCreditoPanel from './RetirosCreditoPanel'
 import FondoSolidarioPanel from './FondoSolidarioPanel'
 import NotificacionesCampana from './NotificacionesCampana'
 import FichaInversorAdmin from './FichaInversorAdmin'
+import ReporteRepartoImagen from './ReporteRepartoImagen'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -97,6 +98,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [guardandoCuentas, setGuardandoCuentas] = useState(false)
   const [minimos, setMinimos] = useState({ 'USDT BEP-20': 50, EUR: 500 })
   const [porcentajeSemanal, setPorcentajeSemanal] = useState('')
+  const [reporteReparto, setReporteReparto] = useState(null)
   const [pagosRentabilidad, setPagosRentabilidad] = useState([])
   const [usuariosRegistrados, setUsuariosRegistrados] = useState([])
   const [solicitudes, setSolicitudes] = useState([])
@@ -1223,6 +1225,7 @@ function DashboardAdminExpandido({ onLogout }) {
         }
 
         setMensaje(`✅ ${data.mensaje || 'Reparto completado.'} / Importe total pagado: €${totalPagado.toFixed(2)}`)
+        setReporteReparto(data)
         setTimeout(() => setMensaje(''), 4000)
         setPorcentajeSemanal('')
       } catch (err) {
@@ -1731,6 +1734,7 @@ function DashboardAdminExpandido({ onLogout }) {
                   </div>
                 </div>
               </div>
+              {reporteReparto && <ReporteRepartoImagen reporte={reporteReparto} onClose={() => setReporteReparto(null)} />}
             </div>
           )}
           {activeTab === 'pagos' && (

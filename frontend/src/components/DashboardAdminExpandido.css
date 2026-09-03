@@ -426,6 +426,11 @@
 .investor-empty { color: #94a3b8; margin: 0; }
 .investor-detail-actions { justify-content: flex-start; border-top: 1px solid rgba(148, 163, 184, 0.2); border-bottom: 0; }
 
+.payment-report-card { display: grid; gap: 16px; margin-top: 24px; padding: 20px; border: 1px solid rgba(246, 196, 83, 0.35); border-radius: 8px; background: rgba(15, 23, 42, 0.9); }
+.payment-report-card h3, .payment-report-card p { margin: 0; }.payment-report-card h3 { color: #f6c453; }.payment-report-card p { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+.payment-report-canvas { width: min(100%, 450px); margin: 0 auto; border-radius: 6px; box-shadow: 0 12px 28px rgba(0,0,0,.35); }
+.payment-report-actions { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
 @media (max-width: 600px) {
   .investor-detail-header, .investor-detail-actions, .investor-detail-body { padding: 18px; }
   .investor-detail-header { align-items: flex-start; }

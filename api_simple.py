@@ -185,6 +185,16 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS repartos_diarios (
+                id SERIAL PRIMARY KEY,
+                porcentaje DECIMAL(8,4) NOT NULL,
+                contratos_procesados INT NOT NULL DEFAULT 0,
+                total_pagado DECIMAL(14,2) NOT NULL DEFAULT 0,
+                fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         
         # Buscar todas las aportaciones activas cuyas 72 horas ya vencieron.
         cur.execute("""
@@ -235,8 +245,26 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
                 pagados += 1
                 total_repartido += importe_acreditado
 
+        cur.execute("""
+            INSERT INTO repartos_diarios (porcentaje, contratos_procesados, total_pagado)
+            VALUES (%s, %s, %s)
+            RETURNING fecha
+        """, (datos.porcentaje, pagados, total_repartido))
+        fecha_reparto = cur.fetchone()[0]
+        cur.execute("""
+            SELECT COALESCE(SUM(porcentaje), 0) FROM repartos_diarios
+            WHERE date_trunc('month', fecha) = date_trunc('month', %s::date)
+        """, (fecha_reparto,))
+        acumulado_mensual = float(cur.fetchone()[0])
         conn.commit()
-        return {"mensaje": f"Reparto completado. {pagados} contratos procesados.", "total_pagado": total_repartido}
+        return {
+            "mensaje": f"Reparto completado. {pagados} contratos procesados.",
+            "total_pagado": total_repartido,
+            "porcentaje": datos.porcentaje,
+            "fecha": fecha_reparto.isoformat(),
+            "contratos_procesados": pagados,
+            "acumulado_mensual": acumulado_mensual
+        }
     except Exception as e:
         if conn: conn.rollback()
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
