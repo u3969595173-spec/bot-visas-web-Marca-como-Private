@@ -2124,7 +2124,6 @@ function DashboardInversionista() {
                                 <th style={{ padding: '12px', fontWeight: '600' }}>Inversor</th>
                                 <th style={{ padding: '12px', fontWeight: '600' }}>País</th>
                                 <th style={{ padding: '12px', fontWeight: '600' }}>Inversión Activa</th>
-                                <th style={{ padding: '12px', fontWeight: '600' }}>Ganado</th>
                                 <th style={{ padding: '12px', fontWeight: '600' }}>300% Alcanzado</th>
                               </tr>
                             </thead>
@@ -2144,9 +2143,6 @@ function DashboardInversionista() {
                                   <td style={{ padding: '12px', color: '#cbd5e1' }}>{miembro.pais || '—'}</td>
                                   <td style={{ padding: '12px', color: '#10b981', fontWeight: 'bold' }}>
                                     €{Number(miembro.capital_activo || 0).toLocaleString('es-ES')}
-                                  </td>
-                                  <td style={{ padding: '12px', color: '#3b82f6', fontWeight: 'bold' }}>
-                                    €{Number(miembro.capital_ganado || 0).toLocaleString('es-ES')}
                                   </td>
                                   <td style={{ padding: '12px', color: '#ef4444', fontWeight: 'bold' }}>
                                     €{Number(miembro.capital_vencido || 0).toLocaleString('es-ES')}
