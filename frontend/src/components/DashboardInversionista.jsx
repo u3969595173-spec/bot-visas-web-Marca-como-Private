@@ -228,8 +228,16 @@ function DashboardInversionista() {
         console.log('Error verificando cuenta:', error)
       }
     }
+
     verificarCuenta()
-  }, [])
+    const intervalo = setInterval(verificarCuenta, 30000)
+    window.addEventListener('focus', verificarCuenta)
+
+    return () => {
+      clearInterval(intervalo)
+      window.removeEventListener('focus', verificarCuenta)
+    }
+  }, [navigate])
 
   // Cargar minimos desde API
   React.useEffect(() => {
