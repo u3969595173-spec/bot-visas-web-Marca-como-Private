@@ -2104,7 +2104,7 @@ function DashboardInversionista() {
                         <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#ef4444' }}>€{(datosComunidadLider.total_vencido || 0).toLocaleString('es-ES')}</p>
                       </div>
                       <div style={{ padding: '1.5rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.3)', boxShadow: '0 8px 20px rgba(0,0,0,0.2)' }}>
-                        <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#93c5fd' }}>💎 Ganancias Totales</p>
+                        <p style={{ margin: 0, fontSize: '13px', opacity: 0.9, fontWeight: '600', color: '#93c5fd' }}>💎 Ganancias Totales (0,2% diario)</p>
                         <p style={{ fontSize: '28px', fontWeight: 'bold', margin: '0.5rem 0 0 0', color: '#3b82f6' }}>€{(datosComunidadLider.total_ganancias || 0).toLocaleString('es-ES')}</p>
                       </div>
                     </div>

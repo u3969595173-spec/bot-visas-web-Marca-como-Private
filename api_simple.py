@@ -1457,7 +1457,6 @@ def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuario_actu
         miembros = []
         total_capital = 0
         total_vencido = 0
-        total_ganancias = 0
 
         for row in resultados:
             capital_act = float(row[4])
@@ -1465,7 +1464,6 @@ def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuario_actu
             cap_ganado = float(row[9])
             total_capital += capital_act
             total_vencido += cap_vencido
-            total_ganancias += cap_ganado
             miembros.append({
                 "id": row[0],
                 "nombre": row[1],
@@ -1478,6 +1476,36 @@ def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuario_actu
                 "capital_vencido": cap_vencido,
                 "capital_ganado": cap_ganado
             })
+
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS ganancias_comunidad_diarias (
+                id SERIAL PRIMARY KEY,
+                lider_id INT NOT NULL,
+                fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+                volumen_activo DECIMAL(14,2) NOT NULL,
+                porcentaje DECIMAL(6,4) NOT NULL DEFAULT 0.2,
+                importe DECIMAL(14,2) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE (lider_id, fecha)
+            )
+        """)
+        ganancia_diaria = round(total_capital * 0.002, 2)
+        cur.execute("""
+            INSERT INTO ganancias_comunidad_diarias (lider_id, volumen_activo, porcentaje, importe)
+            VALUES (%s, %s, 0.2, %s)
+            ON CONFLICT (lider_id, fecha) DO NOTHING
+        """, (inversor_id, total_capital, ganancia_diaria))
+        cur.execute("""
+            SELECT COALESCE(SUM(importe), 0)
+            FROM ganancias_comunidad_diarias
+            WHERE lider_id = %s
+        """, (inversor_id,))
+        total_ganancias = float(cur.fetchone()[0])
+        conn.commit()
+        cur.close()
+        release_conn(conn)
 
         return {
             "miembros": miembros, 
