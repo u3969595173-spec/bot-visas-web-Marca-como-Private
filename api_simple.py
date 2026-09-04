@@ -1464,7 +1464,7 @@ class InyeccionAdminRequest(BaseModel):
     moneda: str
 
 @app.post("/api/admin/inversores/{inversor_id}/aportaciones")
-async def inyectar_aportacion_admin(inversor_id: int, datos: InyeccionAdminRequest, usuario = Depends(obtener_usuario_actual)):
+def inyectar_aportacion_admin(inversor_id: int, datos: InyeccionAdminRequest, usuario = Depends(obtener_usuario_actual)):
     """Inyecta una aportación ya aprobada a cualquier usuario (Admin God Mode)"""
     if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
