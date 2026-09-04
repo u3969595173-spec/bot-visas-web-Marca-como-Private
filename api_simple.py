@@ -320,6 +320,41 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
             release_conn(conn)
 
 
+@app.get("/api/repartos-diarios/ultimo")
+def obtener_ultimo_reparto_diario(usuario = Depends(obtener_usuario_actual)):
+    """Devuelve el último reparto operativo publicado para el aviso del inversor."""
+    conn = None
+    cur = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT fecha, porcentaje, contratos_procesados, total_pagado, created_at
+            FROM repartos_diarios
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+        """)
+        reparto = cur.fetchone()
+        if not reparto:
+            return {"reparto": None}
+        return {
+            "reparto": {
+                "fecha": reparto[0].isoformat(),
+                "porcentaje": float(reparto[1]),
+                "contratos_procesados": reparto[2],
+                "total_pagado": float(reparto[3]),
+                "created_at": reparto[4].isoformat() if reparto[4] else None,
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            release_conn(conn)
+
+
 @app.get("/api/pagos-rentabilidad")
 def obtener_pagos_rentabilidad(usuario = Depends(obtener_usuario_actual)):
     """Historial de pagos de rentabilidad; el inversor solo ve los propios."""

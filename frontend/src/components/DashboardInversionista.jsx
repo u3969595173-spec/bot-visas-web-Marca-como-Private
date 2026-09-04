@@ -84,6 +84,7 @@ function DashboardInversionista() {
   const [aportaciones, setAportaciones] = React.useState([])
   const [retiros, setRetiros] = React.useState([])
   const [pagosRentabilidad, setPagosRentabilidad] = React.useState([])
+  const [ultimoReparto, setUltimoReparto] = React.useState(null)
   const [comisionesReferidos, setComisionesReferidos] = React.useState([])
   const [referidos, setReferidos] = React.useState([])
   const [ofertasPrivadas, setOfertasPrivadas] = React.useState([])
@@ -438,10 +439,17 @@ function DashboardInversionista() {
       try {
         const token = localStorage.getItem('token')
         if (!token) return
-        const response = await fetch(`${API_URL}/api/pagos-rentabilidad`, { headers: { 'Authorization': `Bearer ${token}` } })
+        const [response, responseReparto] = await Promise.all([
+          fetch(`${API_URL}/api/pagos-rentabilidad`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_URL}/api/repartos-diarios/ultimo`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ])
         if (response.ok) {
           const data = await response.json()
           setPagosRentabilidad(data.pagos || [])
+        }
+        if (responseReparto.ok) {
+          const dataReparto = await responseReparto.json()
+          setUltimoReparto(dataReparto.reparto || null)
         }
       } catch (error) {
         console.log('Error cargando historial de pagos:', error)
@@ -1067,13 +1075,15 @@ function DashboardInversionista() {
         </header>
         <div className="content-scroll">
 
-          <div style={{ margin: '0 0 1.5rem 0', padding: '1rem', background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)', borderLeft: '4px solid #10b981', borderRadius: '0 8px 8px 0', borderTop: '1px solid rgba(16,185,129,0.1)', borderRight: '1px solid rgba(16,185,129,0.1)', borderBottom: '1px solid rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <span style={{ fontSize: '28px' }}>🚀</span>
-            <div>
-              <p style={{ margin: 0, color: '#34d399', fontWeight: 'bold', fontSize: '15px' }}>REPARTO DIARIO COMPLETADO: +1.5%</p>
-              <p style={{ margin: '4px 0 0 0', color: '#cbd5e1', fontSize: '13px' }}>Se ha liquidado satisfactoriamente el rendimiento operativo del 1.5% sobre el capital total. Los fondos ya se ecnuentran unificados y disponibles en su Saldo Retirable.</p>
+          {ultimoReparto && (
+            <div style={{ margin: '0 0 1.5rem 0', padding: '1rem', background: 'linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)', borderLeft: '4px solid #10b981', borderRadius: '0 8px 8px 0', borderTop: '1px solid rgba(16,185,129,0.1)', borderRight: '1px solid rgba(16,185,129,0.1)', borderBottom: '1px solid rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <span style={{ fontSize: '28px' }}>🚀</span>
+              <div>
+                <p style={{ margin: 0, color: '#34d399', fontWeight: 'bold', fontSize: '15px' }}>REPARTO DIARIO COMPLETADO: +{Number(ultimoReparto.porcentaje).toLocaleString('es-ES')}%</p>
+                <p style={{ margin: '4px 0 0 0', color: '#cbd5e1', fontSize: '13px' }}>El reparto operativo del {Number(ultimoReparto.porcentaje).toLocaleString('es-ES')}% se registró el {safeFormatDate(ultimoReparto.fecha)}. Consulta Mis Pagos para ver los movimientos aplicados a tu cuenta.</p>
+              </div>
             </div>
-          </div>
+          )}
 
           {activeTab === 'resumen' && (
             <>
