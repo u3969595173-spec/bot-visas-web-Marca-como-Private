@@ -35,14 +35,18 @@ function Comunidad() {
         } catch (e) {
             if (!silencioso) {
                 if (e.response?.status === 401) { navigate('/login'); }
-                else { setCargando(false); setError('Error al cargar los mensajes.'); }
+                else {
+                    setCargando(false)
+                    const detalle = e.response?.data?.detail || e.message || 'No se pudo conectar con el servidor.'
+                    setError(`Error al cargar los mensajes: ${detalle}`)
+                }
             }
         }
     };
 
     useEffect(() => {
         fetchMensajes(false);
-        pollingRef.current = setInterval(() => fetchMensajes(true), 3000);
+        pollingRef.current = setInterval(() => fetchMensajes(true), 5000);
         return () => clearInterval(pollingRef.current);
     }, []);
 

@@ -118,7 +118,20 @@ def startup_event():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS mensajes_comunidad (
+                id SERIAL PRIMARY KEY,
+                autor_id INT,
+                autor_nombre VARCHAR(200),
+                autor_rol VARCHAR(50),
+                mensaje TEXT,
+                destinatario VARCHAR(200),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario VARCHAR(200)")
         conn.commit()
+        cur.close()
     except Exception as e:
         print(f"Error inicializando BD (notificaciones): {e}")
     finally:
@@ -2855,20 +2868,6 @@ def obtener_mensajes(privado: bool = Query(False), usuario = Depends(obtener_usu
     try:
         conn = get_conn()
         cur = conn.cursor()
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS mensajes_comunidad (
-                id SERIAL PRIMARY KEY,
-                autor_id INT,
-                autor_nombre VARCHAR(200),
-                autor_rol VARCHAR(50),
-                mensaje TEXT,
-                destinatario VARCHAR(200),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cur.execute("ALTER TABLE mensajes_comunidad ADD COLUMN IF NOT EXISTS destinatario VARCHAR(200)")
-        conn.commit()
 
         if privado:
             if usuario.get('rol') == 'admin':
