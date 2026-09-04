@@ -1441,7 +1441,7 @@ def get_comunidad_lider(inversor_id: int, usuario = Depends(obtener_usuario_actu
             )
             SELECT 
                 c.id, c.nombre, c.email, c.nivel,
-                COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Activa'), 0) as capital_activo,
+                COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado IN ('Activa', 'Validada')), 0) as capital_activo,
                 COALESCE((SELECT SUM(importe) FROM retiros WHERE inversor_id = c.id AND estado = 'Aprobado'), 0) as retirado,
                 c.telefono, c.pais,
                 COALESCE((SELECT SUM(importe) FROM aportaciones WHERE inversor_id = c.id AND estado = 'Completada (300%%)'), 0) as capital_vencido,
