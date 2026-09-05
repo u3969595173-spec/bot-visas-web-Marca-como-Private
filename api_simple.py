@@ -1556,7 +1556,7 @@ class InyeccionAdminRequest(BaseModel):
 
 @app.post("/api/admin/inversores/{inversor_id}/aportaciones")
 def inyectar_aportacion_admin(inversor_id: int, datos: InyeccionAdminRequest, usuario = Depends(obtener_usuario_actual)):
-    """Inyecta una aportación ya aprobada a cualquier usuario (Admin God Mode)"""
+    """Inyecta una aportación retenida por 72 horas a cualquier usuario (Admin God Mode)"""
     if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
@@ -1574,7 +1574,7 @@ def inyectar_aportacion_admin(inversor_id: int, datos: InyeccionAdminRequest, us
         
         cur.execute("""
             INSERT INTO aportaciones (inversor_id, nombre, email, importe, moneda, estado, fecha_aprobacion, tasa_diaria) 
-            VALUES (%s, %s, %s, %s, %s, 'Activa', CURRENT_TIMESTAMP, %s)
+            VALUES (%s, %s, %s, %s, %s, 'Validada', CURRENT_TIMESTAMP, %s)
             RETURNING id
         """, (inversor_id, nombre_inv, email_inv, datos.importe, datos.moneda, tasa_diaria))
         
