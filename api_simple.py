@@ -374,7 +374,13 @@ def obtener_ultimo_reparto_diario(usuario = Depends(obtener_usuario_actual)):
                 "created_at": reparto[4].isoformat() if reparto[4] else None,
             }
         }
+    except HTTPException:
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        raise
     except Exception as e:
+        if 'conn' in locals() and conn:
+            conn.rollback()
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
     finally:
         if cur:
@@ -2726,18 +2732,47 @@ def obtener_ofertas(usuario=Depends(obtener_usuario_actual)):
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @app.put("/api/ofertas/{oferta_id}")
-async def actualizar_oferta(oferta_id: str, datos: dict, usuario=Depends(obtener_usuario_actual)):
+def actualizar_oferta(oferta_id: str, datos: dict, usuario=Depends(obtener_usuario_actual)):
     if usuario.get('rol') != 'admin':
         raise HTTPException(status_code=403, detail="Acceso denegado")
+    if 'importeMaximo' in datos:
+        try:
+            importe_maximo = float(datos['importeMaximo'])
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="El importe máximo no es válido")
+        if importe_maximo <= 0:
+            raise HTTPException(status_code=400, detail="El importe máximo debe ser mayor que cero")
     try:
         conn = get_conn()
         cur = conn.cursor()
-        cur.execute("UPDATE ofertas_privadas SET estado = %s WHERE id = %s", (datos.get('estado'), oferta_id))
+        if 'importeMaximo' in datos:
+            cur.execute("""
+                UPDATE ofertas_privadas
+                SET importe_maximo = %s,
+                    estado = CASE WHEN progreso_actual >= %s THEN 'Completada' ELSE estado END
+                WHERE id = %s AND progreso_actual <= %s
+                RETURNING importe_maximo, progreso_actual, estado
+            """, (importe_maximo, importe_maximo, oferta_id, importe_maximo))
+            oferta = cur.fetchone()
+            if not oferta:
+                raise HTTPException(status_code=400, detail="El nuevo límite no puede ser menor que el importe ya registrado")
+        elif 'estado' in datos:
+            cur.execute("UPDATE ofertas_privadas SET estado = %s WHERE id = %s", (datos['estado'], oferta_id))
+        else:
+            raise HTTPException(status_code=400, detail="No hay cambios para guardar")
         conn.commit()
         cur.close()
         release_conn(conn)
+        if 'importeMaximo' in datos:
+            return {"success": True, "importeMaximo": float(oferta[0]), "progresoActual": float(oferta[1]), "estado": oferta[2]}
         return {"success": True}
+    except HTTPException:
+        if 'conn' in locals() and conn:
+            conn.rollback()
+        raise
     except Exception as e:
+        if 'conn' in locals() and conn:
+            conn.rollback()
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 

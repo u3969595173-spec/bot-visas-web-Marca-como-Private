@@ -795,6 +795,38 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
+  const handleEditarLimiteOferta = async (oferta) => {
+    const progreso = Number(oferta.progresoActual || 0)
+    const nuevoLimite = prompt(`Nuevo importe máximo. Ya registrado: ${progreso.toFixed(2)}`, oferta.importeMaximo)
+    if (nuevoLimite === null) return
+    if (Number.isNaN(Number(nuevoLimite)) || Number(nuevoLimite) <= 0) {
+      alert('Indica un importe máximo válido.')
+      return
+    }
+    if (Number(nuevoLimite) < progreso) {
+      alert(`No puedes poner un límite menor que lo ya registrado: ${progreso.toFixed(2)}.`)
+      return
+    }
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API}/api/ofertas/${oferta.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ importeMaximo: Number(nuevoLimite) })
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        alert(data.detail || 'No se pudo actualizar el importe máximo.')
+        return
+      }
+      setOfertasPrivadas(ofertasPrivadas.map(of => of.id === oferta.id ? { ...of, importeMaximo: data.importeMaximo, progresoActual: data.progresoActual, estado: data.estado } : of))
+      setMensaje('✅ Importe máximo actualizado')
+      setTimeout(() => setMensaje(''), 3000)
+    } catch (err) {
+      alert('Error de conexión al actualizar el importe máximo.')
+    }
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('usuario')
@@ -2334,7 +2366,7 @@ function DashboardAdminExpandido({ onLogout }) {
               <h3 style={{ color: '#f8fafc' }}>Ofertas Activas / Completadas</h3>
               <div className="table-container">
                 <table className="tabla-estudiantes">
-                  <thead><tr><th>Nombre</th><th>Destinatarios</th><th>Progreso</th><th>Estado</th><th>Abonos</th></tr></thead>
+                  <thead><tr><th>Nombre</th><th>Destinatarios</th><th>Progreso</th><th>Estado</th><th>Gestión</th></tr></thead>
                   <tbody>
                     {ofertasPrivadas.map(of => (
                       <tr key={of.id}>
@@ -2378,12 +2410,15 @@ function DashboardAdminExpandido({ onLogout }) {
                           </select>
                         </td>
                         <td>
-                          {of.estado === 'Activa' ? <button onClick={() => handleRegistrarAbonoOferta(of)} style={{ padding: '6px 10px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>Registrar abono</button> : 'Completada'}
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {of.estado === 'Activa' && <button onClick={() => handleRegistrarAbonoOferta(of)} style={{ padding: '6px 10px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>Registrar abono</button>}
+                            <button onClick={() => handleEditarLimiteOferta(of)} style={{ padding: '6px 10px', background: '#475569', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>Editar límite</button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                     {ofertasPrivadas.length === 0 && (
-                      <tr><td colSpan="4" style={{ textAlign: 'center', color: '#94a3b8' }}>Sin ofertas creadas</td></tr>
+                      <tr><td colSpan="5" style={{ textAlign: 'center', color: '#94a3b8' }}>Sin ofertas creadas</td></tr>
                     )}
                   </tbody>
                 </table>
