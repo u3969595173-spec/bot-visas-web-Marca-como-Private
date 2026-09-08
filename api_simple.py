@@ -2748,6 +2748,10 @@ class AportacionOfertaRequest(BaseModel):
     importe: float
     comprobante: str = ""
 
+class AbonoOfertaAdminRequest(BaseModel):
+    emailInversor: str
+    importe: float
+
 @app.post("/api/ofertas/aportaciones")
 async def registrar_aportacion_oferta(datos: AportacionOfertaRequest, usuario=Depends(obtener_usuario_actual)):
     try:
@@ -2782,6 +2786,67 @@ async def registrar_aportacion_oferta(datos: AportacionOfertaRequest, usuario=De
         return {"id": str(row[0]), "fecha": row[1].isoformat(), "success": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.post("/api/ofertas/{oferta_id}/abonos")
+def registrar_abono_oferta_admin(oferta_id: str, datos: AbonoOfertaAdminRequest, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    if datos.importe <= 0:
+        raise HTTPException(status_code=400, detail="El importe debe ser mayor que cero")
+
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT importe_maximo, progreso_actual, estado, inversor_id_especial
+            FROM ofertas_privadas WHERE id = %s FOR UPDATE
+        """, (oferta_id,))
+        oferta = cur.fetchone()
+        if not oferta:
+            raise HTTPException(status_code=404, detail="Oferta no encontrada")
+        importe_maximo, progreso_actual, estado, inversor_especial = oferta
+        if estado != 'Activa':
+            raise HTTPException(status_code=400, detail="La oferta no está activa")
+
+        email = datos.emailInversor.strip().lower()
+        if inversor_especial and inversor_especial.strip().lower() != email:
+            raise HTTPException(status_code=400, detail="Esta oferta está asignada a otro inversor")
+        cur.execute("SELECT id, nombre, email FROM inversores WHERE LOWER(email) = %s", (email,))
+        inversor = cur.fetchone()
+        if not inversor:
+            raise HTTPException(status_code=404, detail="No existe un inversor con ese correo")
+
+        pendiente = float(importe_maximo) - float(progreso_actual or 0)
+        if datos.importe > pendiente + 0.000001:
+            raise HTTPException(status_code=400, detail=f"El abono supera el importe pendiente de {pendiente:.2f}")
+
+        cur.execute("""
+            INSERT INTO ofertas_aportaciones (id, oferta_id, inversor_id, inversor_nombre, importe, comprobante, estado, validador_id, fecha_validacion)
+            VALUES (%s, %s, %s, %s, %s, %s, 'Validado', %s, CURRENT_TIMESTAMP)
+        """, (f"oferta-aportacion-{uuid.uuid4().hex}", oferta_id, str(inversor[0]), inversor[1], datos.importe, 'Registrado por administración', usuario.get('email', 'admin')))
+        cur.execute("""
+            UPDATE ofertas_privadas
+            SET progreso_actual = progreso_actual + %s,
+                estado = CASE WHEN progreso_actual + %s >= importe_maximo THEN 'Completada' ELSE estado END
+            WHERE id = %s
+            RETURNING progreso_actual, importe_maximo, estado
+        """, (datos.importe, datos.importe, oferta_id))
+        progreso, maximo, nuevo_estado = cur.fetchone()
+        conn.commit()
+        return {"success": True, "progresoActual": float(progreso), "importeMaximo": float(maximo), "estado": nuevo_estado}
+    except HTTPException:
+        if conn:
+            conn.rollback()
+        raise
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    finally:
+        if conn:
+            cur.close()
+            release_conn(conn)
 
 @app.get("/api/ofertas/aportaciones")
 def obtener_aportaciones_ofertas(usuario=Depends(obtener_usuario_actual)):

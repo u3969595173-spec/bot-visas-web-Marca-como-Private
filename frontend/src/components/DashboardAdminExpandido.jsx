@@ -761,6 +761,40 @@ function DashboardAdminExpandido({ onLogout }) {
     }
   }
 
+  const handleRegistrarAbonoOferta = async (oferta) => {
+    const email = oferta.inversorIdEspecial || prompt('Correo del inversor que realizó el abono:')
+    if (!email?.trim()) return
+    const pendiente = Number(oferta.importeMaximo) - Number(oferta.progresoActual || 0)
+    const importe = prompt(`Importe recibido. Pendiente por completar: ${pendiente.toFixed(2)}`)
+    if (!importe || Number.isNaN(Number(importe)) || Number(importe) <= 0) {
+      alert('Indica un importe válido.')
+      return
+    }
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${API}/api/ofertas/${oferta.id}/abonos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ emailInversor: email.trim(), importe: Number(importe) })
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        alert(data.detail || 'No se pudo registrar el abono.')
+        return
+      }
+      setOfertasPrivadas(ofertasPrivadas.map(of => of.id === oferta.id ? {
+        ...of,
+        progresoActual: data.progresoActual,
+        importeMaximo: data.importeMaximo,
+        estado: data.estado
+      } : of))
+      setMensaje('✅ Abono registrado y progreso actualizado')
+      setTimeout(() => setMensaje(''), 3000)
+    } catch (err) {
+      alert('Error de conexión al registrar el abono.')
+    }
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('usuario')
@@ -2300,7 +2334,7 @@ function DashboardAdminExpandido({ onLogout }) {
               <h3 style={{ color: '#f8fafc' }}>Ofertas Activas / Completadas</h3>
               <div className="table-container">
                 <table className="tabla-estudiantes">
-                  <thead><tr><th>Nombre</th><th>Destinatarios</th><th>Progreso</th><th>Estado</th></tr></thead>
+                  <thead><tr><th>Nombre</th><th>Destinatarios</th><th>Progreso</th><th>Estado</th><th>Abonos</th></tr></thead>
                   <tbody>
                     {ofertasPrivadas.map(of => (
                       <tr key={of.id}>
@@ -2342,6 +2376,9 @@ function DashboardAdminExpandido({ onLogout }) {
                             <option value="Cancelada">Cancelada</option>
                             <option value="Completada">Completada</option>
                           </select>
+                        </td>
+                        <td>
+                          {of.estado === 'Activa' ? <button onClick={() => handleRegistrarAbonoOferta(of)} style={{ padding: '6px 10px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}>Registrar abono</button> : 'Completada'}
                         </td>
                       </tr>
                     ))}
