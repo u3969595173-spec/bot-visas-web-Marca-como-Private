@@ -235,7 +235,7 @@ function DashboardAdminExpandido({ onLogout }) {
   const [nuevaOferta, setNuevaOferta] = useState({
     nombre: '', descripcion: '', condiciones: '',
     programa: 'Comunidad', nivel: '',
-    inversorIdEspecial: '', importeMaximo: ''
+    inversorIdEspecial: '', importeMaximo: '', tipoEnvio: 'general'
   })
 
   const fetchJustificante = async (id) => {
@@ -675,8 +675,26 @@ function DashboardAdminExpandido({ onLogout }) {
   const handleCrearOferta = async (e) => {
     e.preventDefault()
     if (!nuevaOferta.nombre || !nuevaOferta.importeMaximo) return
+    if (nuevaOferta.tipoEnvio === 'usuario' && !nuevaOferta.inversorIdEspecial.trim()) {
+      alert('Indica el correo del inversor destinatario.')
+      return
+    }
+    if (nuevaOferta.tipoEnvio === 'general' && !nuevaOferta.nivel) {
+      alert('Selecciona el nivel destinatario.')
+      return
+    }
+    const { tipoEnvio, ...datosOferta } = nuevaOferta
     const id = Date.now().toString()
-    const oferta = { ...nuevaOferta, inversorIdEspecial: nuevaOferta.inversorIdEspecial.trim().toLowerCase(), id, estado: 'Activa', progreso_actual: 0.0, importe_maximo: parseFloat(nuevaOferta.importeMaximo) }
+    const oferta = {
+      ...datosOferta,
+      programa: tipoEnvio === 'usuario' ? 'Usuario específico' : nuevaOferta.programa,
+      nivel: tipoEnvio === 'usuario' ? '' : nuevaOferta.nivel,
+      inversorIdEspecial: tipoEnvio === 'usuario' ? nuevaOferta.inversorIdEspecial.trim().toLowerCase() : '',
+      id,
+      estado: 'Activa',
+      progreso_actual: 0.0,
+      importe_maximo: parseFloat(nuevaOferta.importeMaximo)
+    }
 
     try {
       const token = localStorage.getItem('token')
@@ -688,7 +706,7 @@ function DashboardAdminExpandido({ onLogout }) {
       if (response.ok) {
         const actualizadas = [...ofertasPrivadas, { ...oferta, importeMaximo: oferta.importe_maximo, progresoActual: 0.0, fechaCreacion: new Date().toISOString() }]
         setOfertasPrivadas(actualizadas)
-        setNuevaOferta({ nombre: '', descripcion: '', condiciones: '', programa: 'Comunidad', nivel: '', inversorIdEspecial: '', importeMaximo: '' })
+        setNuevaOferta({ nombre: '', descripcion: '', condiciones: '', programa: 'Comunidad', nivel: '', inversorIdEspecial: '', importeMaximo: '', tipoEnvio: 'general' })
         setMensaje('✅ Oferta privada creada exitosamente')
         setTimeout(() => setMensaje(''), 3000)
       } else {
@@ -2197,35 +2215,41 @@ function DashboardAdminExpandido({ onLogout }) {
                 <h3 style={{ margin: '0 0 1rem 0', color: '#10b981' }}>Crear Nueva Oferta</h3>
                 <form onSubmit={handleCrearOferta} style={{ display: 'grid', gap: '1rem', gridTemplateColumns: '1fr 1fr' }}>
                   <div style={{ gridColumn: 'span 2' }}>
+                    <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: '0.45rem' }}>Tipo de envío</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button type="button" onClick={() => setNuevaOferta({ ...nuevaOferta, tipoEnvio: 'general', inversorIdEspecial: '' })} style={{ flex: 1, padding: '0.65rem', borderRadius: 8, border: nuevaOferta.tipoEnvio === 'general' ? '1px solid #10b981' : '1px solid #1e293b', background: nuevaOferta.tipoEnvio === 'general' ? 'rgba(16,185,129,0.15)' : '#07111f', color: '#f8fafc', cursor: 'pointer', fontWeight: 'bold' }}>Envío general</button>
+                      <button type="button" onClick={() => setNuevaOferta({ ...nuevaOferta, tipoEnvio: 'usuario', nivel: '' })} style={{ flex: 1, padding: '0.65rem', borderRadius: 8, border: nuevaOferta.tipoEnvio === 'usuario' ? '1px solid #10b981' : '1px solid #1e293b', background: nuevaOferta.tipoEnvio === 'usuario' ? 'rgba(16,185,129,0.15)' : '#07111f', color: '#f8fafc', cursor: 'pointer', fontWeight: 'bold' }}>Envío a usuario</button>
+                    </div>
+                  </div>
+                  <div style={{ gridColumn: 'span 2' }}>
                     <label style={{ fontSize: 12, color: '#94a3b8' }}>Nombre de la Oferta</label>
                     <input required value={nuevaOferta.nombre} onChange={e => setNuevaOferta({ ...nuevaOferta, nombre: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
                   </div>
-                  <div>
+                  {nuevaOferta.tipoEnvio === 'general' && <div>
                     <label style={{ fontSize: 12, color: '#94a3b8' }}>Programa Destino</label>
                     <select value={nuevaOferta.programa} onChange={e => setNuevaOferta({ ...nuevaOferta, programa: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }}>
                       <option value="Comunidad">👥 Comunidad</option>
                       <option value="Capital">💎 Capital</option>
                       <option value="Combinado">🔥 Combinado</option>
                     </select>
-                  </div>
-                  <div>
+                  </div>}
+                  {nuevaOferta.tipoEnvio === 'general' && <div>
                     <label style={{ fontSize: 12, color: '#94a3b8' }}>Nivel Específico</label>
-                    <select required value={nuevaOferta.nivel} onChange={e => setNuevaOferta({ ...nuevaOferta, nivel: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }}>
+                    <select value={nuevaOferta.nivel} onChange={e => setNuevaOferta({ ...nuevaOferta, nivel: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }}>
                       <option value="">Seleccione Nivel</option>
                       {nuevaOferta.programa === 'Comunidad' && ['Community', 'Leader', 'Senior Leader', 'Elite Leader', 'Executive Leader', 'Founding Leader'].map(n => <option key={n} value={n}>{n}</option>)}
                       {nuevaOferta.programa === 'Capital' && ['Partner', 'Premium Partner', 'VIP Partner', 'Strategic Partner', 'Founding Partner'].map(n => <option key={n} value={n}>{n}</option>)}
                       {nuevaOferta.programa === 'Combinado' && ['Todos los Combinados'].map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
-                  </div>
+                  </div>}
                   <div>
                     <label style={{ fontSize: 12, color: '#94a3b8' }}>Importe Máximo Autorizado (USDT/EUR)</label>
                     <input required type="number" value={nuevaOferta.importeMaximo} onChange={e => setNuevaOferta({ ...nuevaOferta, importeMaximo: e.target.value })} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Enviar solo a un inversor (opcional)</label>
-                    <input type="email" value={nuevaOferta.inversorIdEspecial} onChange={e => setNuevaOferta({ ...nuevaOferta, inversorIdEspecial: e.target.value })} placeholder="Correo con el que inicia sesión el inversor" style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
-                    <small style={{ color: '#64748b', fontSize: 11 }}>Ejemplo: persona@email.com. Déjalo vacío para aplicar las reglas del programa.</small>
-                  </div>
+                  {nuevaOferta.tipoEnvio === 'usuario' && <div>
+                    <label style={{ fontSize: 12, color: '#94a3b8' }}>Correo del inversor</label>
+                    <input required type="email" value={nuevaOferta.inversorIdEspecial} onChange={e => setNuevaOferta({ ...nuevaOferta, inversorIdEspecial: e.target.value })} placeholder="Correo con el que inicia sesión el inversor" style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
+                  </div>}
                   <div style={{ gridColumn: 'span 2' }}>
                     <label style={{ fontSize: 12, color: '#94a3b8' }}>Descripción</label>
                     <textarea value={nuevaOferta.descripcion} onChange={e => setNuevaOferta({ ...nuevaOferta, descripcion: e.target.value })} rows={2} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: '#07111f', border: '1px solid #1e293b', color: '#f8fafc' }} />
