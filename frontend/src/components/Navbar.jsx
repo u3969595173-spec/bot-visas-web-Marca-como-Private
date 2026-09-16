@@ -69,7 +69,6 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
           <Link to="/operaciones" className={`nav-link ${isActive('/operaciones')}`}>Operaciones</Link>
           <Link to="/sobre-nosotros" className={`nav-link ${isActive('/sobre-nosotros')}`}>Nosotros</Link>
           <Link to="/contacto" className={`nav-link ${isActive('/contacto')}`}>Contacto</Link>
-          <Link to="/comunidad" className={`nav-link ${isActive('/comunidad')}`}>Comunidad</Link>
 
           {!userIsAuthenticated && (
             <>
@@ -95,6 +94,9 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
         </nav>
 
         <div className="navbar-actions">
+          <Link to="/comunidad" className={`community-access ${isActive('/comunidad')}`}>
+            Comunidad
+          </Link>
           <button className="icon-btn mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             <Menu size={20} />
           </button>
@@ -111,7 +113,6 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
             <Link to="/operaciones" className="mobile-menu-link" onClick={closeMobileMenu}>Operaciones</Link>
             <Link to="/sobre-nosotros" className="mobile-menu-link" onClick={closeMobileMenu}>Nosotros</Link>
             <Link to="/contacto" className="mobile-menu-link" onClick={closeMobileMenu}>Contacto</Link>
-            <Link to="/comunidad" className="mobile-menu-link" onClick={closeMobileMenu}>Comunidad</Link>
 
             {!userIsAuthenticated && (
               <>

@@ -114,6 +114,36 @@
   /* gap-4 */
 }
 
+.community-access {
+  background: #f6c453;
+  border: 1px solid #f6c453;
+  border-radius: 0.375rem;
+  color: #07111f;
+  flex: 0 0 auto;
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.5rem 0.75rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.community-access:hover,
+.community-access.active {
+  background: #dba93a;
+  border-color: #dba93a;
+}
+
+@media (max-width: 374px) {
+  .community-access {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.5rem;
+  }
+
+  .navbar-actions {
+    gap: 0.5rem;
+  }
+}
+
 .icon-btn {
   padding: 0.5rem;
   border-radius: 0.5rem;
