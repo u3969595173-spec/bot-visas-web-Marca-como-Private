@@ -69,6 +69,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
           <Link to="/operaciones" className={`nav-link ${isActive('/operaciones')}`}>Operaciones</Link>
           <Link to="/sobre-nosotros" className={`nav-link ${isActive('/sobre-nosotros')}`}>Nosotros</Link>
           <Link to="/contacto" className={`nav-link ${isActive('/contacto')}`}>Contacto</Link>
+          <Link to="/comunidad" className={`nav-link ${isActive('/comunidad')}`}>Comunidad</Link>
 
           {!userIsAuthenticated && (
             <>
@@ -80,7 +81,6 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
           {userIsAuthenticated && !isAdmin && (
             <>
               <Link to="/dashboard" className={`nav-link ${isActive('/dashboard')}`}>Dashboard</Link>
-              <Link to="/comunidad" className={`nav-link ${isActive('/comunidad')}`}>Comunidad</Link>
               <Link to="/perfil" className={`nav-link ${isActive('/perfil')}`}>Perfil</Link>
               <button onClick={handleLogout} className="logout-btn">Salir</button>
             </>
@@ -89,7 +89,6 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
           {isAdmin && (
             <>
               <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Panel Admin</Link>
-              <Link to="/comunidad" className={`nav-link ${isActive('/comunidad')}`}>Comunidad</Link>
               <button onClick={handleLogout} className="logout-btn">Salir</button>
             </>
           )}
@@ -112,6 +111,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
             <Link to="/operaciones" className="mobile-menu-link" onClick={closeMobileMenu}>Operaciones</Link>
             <Link to="/sobre-nosotros" className="mobile-menu-link" onClick={closeMobileMenu}>Nosotros</Link>
             <Link to="/contacto" className="mobile-menu-link" onClick={closeMobileMenu}>Contacto</Link>
+            <Link to="/comunidad" className="mobile-menu-link" onClick={closeMobileMenu}>Comunidad</Link>
 
             {!userIsAuthenticated && (
               <>
@@ -123,7 +123,6 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
             {userIsAuthenticated && !isAdmin && (
               <>
                 <Link to="/dashboard" className="mobile-menu-link" onClick={closeMobileMenu}>Dashboard</Link>
-                <Link to="/comunidad" className="mobile-menu-link" onClick={closeMobileMenu}>Comunidad</Link>
                 <Link to="/perfil" className="mobile-menu-link" onClick={closeMobileMenu}>Perfil</Link>
                 <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">Cerrar sesión</button>
               </>
@@ -132,7 +131,6 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
             {isAdmin && (
               <>
                 <Link to="/admin" className="mobile-menu-link" onClick={closeMobileMenu}>Panel Admin</Link>
-                <Link to="/comunidad" className="mobile-menu-link" onClick={closeMobileMenu}>Comunidad</Link>
                 <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">Cerrar sesión</button>
               </>
             )}
