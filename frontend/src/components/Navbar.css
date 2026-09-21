@@ -77,7 +77,7 @@
   display: none;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .navbar-links {
     display: flex;
     align-items: center;
@@ -165,7 +165,7 @@
   display: flex;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .mobile-menu-btn {
     display: none;
   }
@@ -203,7 +203,7 @@
   overflow-y: auto;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1280px) {
   .mobile-menu {
     display: none;
   }

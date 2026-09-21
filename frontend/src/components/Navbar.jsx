@@ -106,6 +106,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
       {mobileMenuOpen && (
         <div className="mobile-menu">
           <div className="mobile-menu-content">
+            <Link to="/comunidad" className="mobile-menu-link" onClick={closeMobileMenu}>Comunidad</Link>
             <Link to="/como-funciona" className="mobile-menu-link" onClick={closeMobileMenu}>Cómo funciona</Link>
             <Link to="/programa" className="mobile-menu-link" onClick={closeMobileMenu}>Programa Líderes</Link>
             <Link to="/programa-partner" className="mobile-menu-link" onClick={closeMobileMenu}>Programa Partner</Link>
