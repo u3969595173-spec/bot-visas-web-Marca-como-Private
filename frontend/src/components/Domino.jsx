@@ -6,10 +6,23 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const fichaKey = ficha => ficha.join('-')
 
-function Ficha({ ficha, activa, onClick, compacta = false }) {
-  return <button className={`domino-ficha ${activa ? 'activa' : ''} ${compacta ? 'compacta' : ''}`} onClick={onClick} type="button">
-    <span>{ficha[0]}</span><i /><span>{ficha[1]}</span>
+const puntosPorValor = { 0: [], 1: ['centro'], 2: ['arriba-izquierda', 'abajo-derecha'], 3: ['arriba-izquierda', 'centro', 'abajo-derecha'], 4: ['arriba-izquierda', 'arriba-derecha', 'abajo-izquierda', 'abajo-derecha'], 5: ['arriba-izquierda', 'arriba-derecha', 'centro', 'abajo-izquierda', 'abajo-derecha'], 6: ['arriba-izquierda', 'arriba-derecha', 'medio-izquierda', 'medio-derecha', 'abajo-izquierda', 'abajo-derecha'] }
+
+function Cara({ valor }) {
+  return <span className="domino-cara">{puntosPorValor[valor].map(posicion => <i key={posicion} className={posicion} />)}</span>
+}
+
+function Ficha({ ficha, activa, onClick, compacta = false, mesaClase = '' }) {
+  return <button className={`domino-ficha ${activa ? 'activa' : ''} ${compacta ? 'compacta' : ''} ${mesaClase}`} onClick={onClick} type="button" aria-label={`${ficha[0]} con ${ficha[1]}`}>
+    <Cara valor={ficha[0]} /><b /><Cara valor={ficha[1]} />
   </button>
+}
+
+function claseMesa(indice) {
+  if (indice < 8) return `mesa-tramo uno posicion-${indice}`
+  if (indice < 13) return `mesa-tramo giro-derecha posicion-${indice - 8}`
+  if (indice < 21) return `mesa-tramo dos posicion-${indice - 13}`
+  return `mesa-tramo giro-izquierda posicion-${indice - 21}`
 }
 
 function Domino() {
@@ -119,7 +132,7 @@ function Domino() {
     <section className="domino-score">{[0, 1].map(pareja => <div key={pareja} className={partida?.mi_posicion % 2 === pareja ? 'mi-pareja' : ''}><span>Pareja {pareja + 1}</span><strong>{partida?.puntuacion?.[pareja] || 0}</strong><small>/ {partida?.limite_puntos || 200}</small></div>)}</section>
     {partida?.estado === 'jugando' && <section className={`domino-ubicacion ${partida.ubicacion_pareja_lista ? 'verificada' : ''}`}><span>{partida.ubicacion_pareja_lista ? 'Ubicación de la pareja verificada' : 'La pareja debe validar una distancia mínima de 1 km'}</span>{!partida.ubicacion_pareja_lista && <button className="domino-secondary" onClick={activarUbicacion} disabled={accionando}>Activar ubicación</button>}</section>}
     <section className="domino-jugadores">{partida?.jugadores?.map(jugador => <div className={`${jugador.posicion === partida.mi_posicion ? 'soy-yo ' : ''}${jugador.posicion === partida.turno ? 'turno-activo' : ''}`} key={jugador.id}><strong>{jugador.nombre}{jugador.posicion === partida.mi_posicion ? ' (tú)' : ''}</strong><span>{jugador.fichas} fichas</span></div>)}</section>
-    <section className="domino-tablero"><div className="domino-mesa">{partida?.mesa?.length ? partida.mesa.map((ficha, indice) => <Ficha key={`${fichaKey(ficha)}-${indice}`} ficha={ficha} compacta />) : <span>La mesa espera la salida.</span>}</div>{miTurno && partida?.estado === 'jugando' && <div className="domino-controles"><button className="domino-secondary" disabled={!seleccionada || accionando} onClick={() => enviarJugada('izquierda')}>Jugar izquierda</button><button className="domino-primary" disabled={!seleccionada || accionando} onClick={() => enviarJugada('derecha')}>Jugar derecha</button><button className="domino-pass" disabled={accionando} onClick={pasar}>Pasar</button></div>}</section>
+    <section className="domino-tablero"><div className="domino-mesa">{partida?.mesa?.length ? partida.mesa.map((ficha, indice) => <Ficha key={`${fichaKey(ficha)}-${indice}`} ficha={ficha} compacta mesaClase={claseMesa(indice)} />) : <span>La mesa espera la salida.</span>}</div>{miTurno && partida?.estado === 'jugando' && <div className="domino-controles"><button className="domino-secondary" disabled={!seleccionada || accionando} onClick={() => enviarJugada('izquierda')}>Jugar izquierda</button><button className="domino-primary" disabled={!seleccionada || accionando} onClick={() => enviarJugada('derecha')}>Jugar derecha</button><button className="domino-pass" disabled={accionando} onClick={pasar}>Pasar</button></div>}</section>
     <section className="domino-mano"><div><h2>Tus fichas</h2><span>{miTurno ? 'Selecciona una ficha' : 'Esperando turno'}</span></div><div className="domino-fichas">{partida?.mis_fichas?.map((ficha, indice) => <Ficha key={`${fichaKey(ficha)}-${indice}`} ficha={ficha} activa={seleccionada && fichaKey(seleccionada) === fichaKey(ficha)} onClick={() => miTurno && setSeleccionada(ficha)} />)}</div></section>
     <section className="domino-eventos"><h2>Últimas jugadas</h2>{partida?.eventos?.map((evento, indice) => <p key={`${evento}-${indice}`}>{evento}</p>)}</section>
   </main>
