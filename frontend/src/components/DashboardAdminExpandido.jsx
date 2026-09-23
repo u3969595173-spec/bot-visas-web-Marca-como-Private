@@ -1348,6 +1348,10 @@ function DashboardAdminExpandido({ onLogout }) {
             <div className="tab-indicator" />
             <span className="tab-label">🛍 Anuncios: comprar y vender</span>
           </Link>
+          <Link to="/admin/torneos-domino" className="sidebar-tab highlight" style={{ textDecoration: 'none' }}>
+            <div className="tab-indicator" />
+            <span className="tab-label">🏆 Torneos de Dominó</span>
+          </Link>
           <div className="nav-divider"></div>
           <div className="nav-group-title">MENÚ PRINCIPAL</div>
           {tabs.map((tab) => (

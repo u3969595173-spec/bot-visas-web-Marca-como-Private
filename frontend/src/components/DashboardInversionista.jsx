@@ -996,6 +996,10 @@ function DashboardInversionista() {
             <div className="tab-indicator" />
             <span className="tab-label">🛍 Anuncios: comprar y vender</span>
           </Link>
+          <Link to="/domino/torneos" className="sidebar-tab highlight" style={{ textDecoration: 'none' }}>
+            <div className="tab-indicator" />
+            <span className="tab-label">🏆 Torneos de Dominó</span>
+          </Link>
           <div className="nav-divider"></div>
           <div className="nav-group-title">PORTAFOLIO</div>
           <button className={`sidebar-tab ${activeTab === 'resumen' ? 'active' : ''}`} onClick={() => setActiveTab('resumen')}>
