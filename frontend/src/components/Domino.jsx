@@ -13,7 +13,7 @@ function Cara({ valor }) {
 }
 
 function Ficha({ ficha, activa, onClick, compacta = false, mesaClase = '', style }) {
-  return <button className={`domino-ficha ${activa ? 'activa' : ''} ${compacta ? 'compacta' : ''} ${mesaClase}`} onClick={onClick} style={style} type="button" aria-label={`${ficha[0]} con ${ficha[1]}`}>
+  return <button className={`domino-ficha ${activa ? 'activa' : ''} ${compacta ? 'compacta' : ''} ${compacta && ficha[0] === ficha[1] ? 'doble' : ''} ${mesaClase}`} onClick={onClick} style={style} type="button" aria-label={`${ficha[0]} con ${ficha[1]}`}>
     <Cara valor={ficha[0]} /><b /><Cara valor={ficha[1]} />
   </button>
 }
