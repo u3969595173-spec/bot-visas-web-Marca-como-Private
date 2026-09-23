@@ -21,6 +21,7 @@ import ProgramaPartner from './components/ProgramaPartner'
 import ProgramaCombinado from './components/ProgramaCombinado'
 import ChatbotIA from './components/ChatbotIA'
 import MercadoP2P from './components/MercadoP2P'
+import Domino from './components/Domino'
 
 function SobreNosotros() {
   return (
@@ -263,6 +264,7 @@ function App() {
           <Route path="/solicitud-participacion" element={<SolicitudParticipacion />} />
           <Route path="/perfil" element={<PerfilInversor />} />
           <Route path="/mercado" element={isAuthenticated ? <MercadoP2P /> : <Navigate to="/login" />} />
+          <Route path="/domino" element={isAuthenticated ? <Domino /> : <Navigate to="/login" />} />
           <Route
             path="/comunidad"
             element={isAuthenticated ? <Comunidad /> : <Navigate to="/login" />}

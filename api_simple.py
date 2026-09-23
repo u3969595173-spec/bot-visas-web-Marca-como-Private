@@ -14,6 +14,8 @@ import os
 import uuid
 from dotenv import load_dotenv
 import psycopg2
+from psycopg2.extras import Json
+import random
 
 load_dotenv()
 
@@ -217,6 +219,13 @@ class MercadoAnuncioRequest(BaseModel):
     moneda: str = ""
     descripcion: str = ""
     telefono: str
+
+class DominoPartidaRequest(BaseModel):
+    nombre: Optional[str] = None
+
+class DominoJugadaRequest(BaseModel):
+    ficha: list[int]
+    lado: str
 
 # --- ADMIN ENDPOINT: REPARTIR RENDIMIENTO DIARIO ---
 class PayoutRequest(BaseModel):
@@ -3457,6 +3466,274 @@ Sé conciso y claro si el usuario te pregunta por algún flujo. Jamás hables de
         return {"response": completion.choices[0].message.content}
     except Exception as e:
         return {"response": f"El servicio de Inteligencia Artificial está saturado. Código: {str(e)}"}
+
+DOMINO_LIMITE_PUNTOS = 200
+
+def _asegurar_tabla_domino(cur):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS domino_partidas (
+            id SERIAL PRIMARY KEY,
+            codigo VARCHAR(12) UNIQUE NOT NULL,
+            estado VARCHAR(20) NOT NULL DEFAULT 'esperando',
+            jugadores JSONB NOT NULL DEFAULT '[]'::jsonb,
+            juego JSONB,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+def _crear_codigo_domino(cur):
+    for intento in range(20):
+        codigo = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=6))
+        cur.execute("SELECT 1 FROM domino_partidas WHERE codigo = %s", (codigo,))
+        if not cur.fetchone():
+            return codigo
+    raise HTTPException(status_code=500, detail="No se pudo crear el código de sala")
+
+def _iniciar_mano_domino(jugadores, puntuacion, salidor_anterior=None, primera_mano=False, numero_mano=1):
+    fichas = [[valor_izquierdo, valor_derecho] for valor_izquierdo in range(7) for valor_derecho in range(valor_izquierdo, 7)]
+    random.shuffle(fichas)
+    manos = {str(jugador['id']): fichas[indice * 7:(indice + 1) * 7] for indice, jugador in enumerate(jugadores)}
+    if primera_mano:
+        salidor = next(indice for indice, jugador in enumerate(jugadores) if [6, 6] in manos[str(jugador['id'])])
+    else:
+        salidor = (salidor_anterior + 1) % 4
+    return {
+        'mano': numero_mano, 'puntuacion': puntuacion, 'salidor': salidor, 'turno': salidor,
+        'mesa': [], 'manos': manos, 'pases_seguidos': 0,
+        'eventos': [f"Comienza la mano {numero_mano}. Sale {jugadores[salidor]['nombre']}."]
+    }
+
+def _sumar_fichas_restantes(juego):
+    return sum(sum(ficha) for mano in juego['manos'].values() for ficha in mano)
+
+def _terminar_mano_domino(juego, jugadores, equipo_ganador, motivo):
+    puntos = _sumar_fichas_restantes(juego)
+    juego['puntuacion'][str(equipo_ganador)] += puntos
+    juego['eventos'].append(f"La pareja {equipo_ganador + 1} gana {puntos} puntos por {motivo}.")
+    if juego['puntuacion'][str(equipo_ganador)] >= DOMINO_LIMITE_PUNTOS:
+        juego['ganador'] = equipo_ganador
+        juego['eventos'].append(f"La pareja {equipo_ganador + 1} gana la partida.")
+        return 'finalizada', juego
+    siguiente = _iniciar_mano_domino(jugadores, juego['puntuacion'], juego['salidor'], numero_mano=juego['mano'] + 1)
+    siguiente['eventos'] = juego['eventos'][-5:] + siguiente['eventos']
+    return 'jugando', siguiente
+
+def _vista_domino(jugadores, juego, jugador_id, estado):
+    posicion = next((indice for indice, jugador in enumerate(jugadores) if jugador['id'] == jugador_id), None)
+    if posicion is None:
+        raise HTTPException(status_code=403, detail="No perteneces a esta partida")
+    respuesta = {
+        'estado': estado, 'mi_posicion': posicion, 'limite_puntos': DOMINO_LIMITE_PUNTOS,
+        'jugadores': [
+            {'id': jugador['id'], 'nombre': jugador['nombre'], 'posicion': indice, 'pareja': indice % 2,
+             'fichas': len(juego['manos'].get(str(jugador['id']), [])) if juego else 0}
+            for indice, jugador in enumerate(jugadores)
+        ]
+    }
+    if juego:
+        respuesta.update({
+            'mano': juego['mano'], 'puntuacion': juego['puntuacion'], 'salidor': juego['salidor'],
+            'turno': juego['turno'], 'mesa': juego['mesa'],
+            'mis_fichas': juego['manos'].get(str(jugador_id), []),
+            'pases_seguidos': juego['pases_seguidos'], 'eventos': juego.get('eventos', [])[-6:],
+            'ganador': juego.get('ganador')
+        })
+    return respuesta
+
+@app.get("/api/domino/partidas")
+def listar_partidas_domino(usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'inversor':
+        raise HTTPException(status_code=403, detail="Solo los inversores pueden entrar a las salas")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _asegurar_tabla_domino(cur)
+        cur.execute("SELECT codigo, estado, jugadores, created_at FROM domino_partidas WHERE estado IN ('esperando', 'jugando') ORDER BY updated_at DESC LIMIT 30")
+        salas = []
+        for codigo, estado, jugadores, created_at in cur.fetchall():
+            participantes = jugadores or []
+            salas.append({'codigo': codigo, 'estado': estado, 'jugadores': len(participantes),
+                          'creador': participantes[0]['nombre'] if participantes else 'Sala',
+                          'es_mia': any(jugador['id'] == usuario.get('inversor_id') for jugador in participantes),
+                          'created_at': created_at.isoformat() if created_at else None})
+        conn.commit()
+        return {'salas': salas}
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudieron cargar las salas: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.post("/api/domino/partidas")
+def crear_partida_domino(datos: DominoPartidaRequest, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'inversor':
+        raise HTTPException(status_code=403, detail="Solo los inversores pueden crear salas")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _asegurar_tabla_domino(cur)
+        cur.execute("SELECT nombre FROM inversores WHERE id = %s", (usuario.get('inversor_id'),))
+        inversor = cur.fetchone()
+        if not inversor: raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        codigo = _crear_codigo_domino(cur)
+        nombre = (datos.nombre or inversor[0]).strip()[:50] or inversor[0]
+        cur.execute("INSERT INTO domino_partidas (codigo, jugadores) VALUES (%s, %s)", (codigo, Json([{'id': usuario.get('inversor_id'), 'nombre': nombre}])))
+        conn.commit()
+        return {'codigo': codigo}
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo crear la sala: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.post("/api/domino/partidas/{codigo}/unirse")
+def unirse_partida_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'inversor':
+        raise HTTPException(status_code=403, detail="Solo los inversores pueden unirse a salas")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _asegurar_tabla_domino(cur)
+        cur.execute("SELECT estado, jugadores FROM domino_partidas WHERE codigo = %s FOR UPDATE", (codigo.upper(),))
+        fila = cur.fetchone()
+        if not fila: raise HTTPException(status_code=404, detail="Sala no encontrada")
+        estado, jugadores = fila[0], fila[1] or []
+        jugador_id = usuario.get('inversor_id')
+        if any(jugador['id'] == jugador_id for jugador in jugadores):
+            conn.commit()
+            return {'codigo': codigo.upper(), 'estado': estado}
+        if estado != 'esperando' or len(jugadores) >= 4: raise HTTPException(status_code=400, detail="La sala ya está completa")
+        cur.execute("SELECT nombre FROM inversores WHERE id = %s", (jugador_id,))
+        inversor = cur.fetchone()
+        if not inversor: raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        jugadores.append({'id': jugador_id, 'nombre': inversor[0]})
+        juego, nuevo_estado = None, estado
+        if len(jugadores) == 4:
+            juego = _iniciar_mano_domino(jugadores, {'0': 0, '1': 0}, primera_mano=True)
+            nuevo_estado = 'jugando'
+        cur.execute("UPDATE domino_partidas SET jugadores = %s, juego = %s, estado = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (Json(jugadores), Json(juego) if juego else None, nuevo_estado, codigo.upper()))
+        conn.commit()
+        return {'codigo': codigo.upper(), 'estado': nuevo_estado}
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo entrar a la sala: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.get("/api/domino/partidas/{codigo}")
+def obtener_partida_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _asegurar_tabla_domino(cur)
+        cur.execute("SELECT estado, jugadores, juego FROM domino_partidas WHERE codigo = %s", (codigo.upper(),))
+        fila = cur.fetchone()
+        if not fila: raise HTTPException(status_code=404, detail="Sala no encontrada")
+        return _vista_domino(fila[1] or [], fila[2], usuario.get('inversor_id'), fila[0])
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"No se pudo cargar la partida: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+def _cargar_partida_para_jugada(cur, codigo, jugador_id):
+    _asegurar_tabla_domino(cur)
+    cur.execute("SELECT estado, jugadores, juego FROM domino_partidas WHERE codigo = %s FOR UPDATE", (codigo.upper(),))
+    fila = cur.fetchone()
+    if not fila: raise HTTPException(status_code=404, detail="Sala no encontrada")
+    estado, jugadores, juego = fila[0], fila[1] or [], fila[2]
+    posicion = next((indice for indice, jugador in enumerate(jugadores) if jugador['id'] == jugador_id), None)
+    if posicion is None: raise HTTPException(status_code=403, detail="No perteneces a esta partida")
+    if estado != 'jugando': raise HTTPException(status_code=400, detail="La partida no está en juego")
+    if juego['turno'] != posicion: raise HTTPException(status_code=400, detail="No es tu turno")
+    return estado, jugadores, juego, posicion
+
+@app.post("/api/domino/partidas/{codigo}/jugar")
+def jugar_domino(codigo: str, datos: DominoJugadaRequest, usuario=Depends(obtener_usuario_actual)):
+    if datos.lado not in ('izquierda', 'derecha') or len(datos.ficha) != 2 or any(valor not in range(7) for valor in datos.ficha):
+        raise HTTPException(status_code=400, detail="Jugada no válida")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        estado, jugadores, juego, posicion = _cargar_partida_para_jugada(cur, codigo, usuario.get('inversor_id'))
+        mano = juego['manos'][str(usuario.get('inversor_id'))]
+        ficha = list(datos.ficha)
+        ficha_real = ficha if ficha in mano else ficha[::-1] if ficha[::-1] in mano else None
+        if not ficha_real: raise HTTPException(status_code=400, detail="No tienes esa ficha")
+        if not juego['mesa']:
+            if juego['mano'] == 1 and ficha_real != [6, 6]: raise HTTPException(status_code=400, detail="La primera mano debe comenzar con el doble seis")
+            ficha_orientada = ficha_real
+        elif datos.lado == 'izquierda':
+            extremo = juego['mesa'][0][0]
+            if extremo not in ficha_real: raise HTTPException(status_code=400, detail="La ficha no encaja a la izquierda")
+            ficha_orientada = ficha_real if ficha_real[1] == extremo else ficha_real[::-1]
+        else:
+            extremo = juego['mesa'][-1][1]
+            if extremo not in ficha_real: raise HTTPException(status_code=400, detail="La ficha no encaja a la derecha")
+            ficha_orientada = ficha_real if ficha_real[0] == extremo else ficha_real[::-1]
+        mano.remove(ficha_real)
+        if datos.lado == 'izquierda': juego['mesa'].insert(0, ficha_orientada)
+        else: juego['mesa'].append(ficha_orientada)
+        juego['pases_seguidos'] = 0
+        juego['eventos'].append(f"{jugadores[posicion]['nombre']} jugó {ficha_real[0]}-{ficha_real[1]}.")
+        if not mano: estado, juego = _terminar_mano_domino(juego, jugadores, posicion % 2, 'cierre')
+        else: juego['turno'] = (posicion + 1) % 4
+        cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))
+        conn.commit()
+        return _vista_domino(jugadores, juego, usuario.get('inversor_id'), estado)
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo registrar la jugada: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.post("/api/domino/partidas/{codigo}/pasar")
+def pasar_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        estado, jugadores, juego, posicion = _cargar_partida_para_jugada(cur, codigo, usuario.get('inversor_id'))
+        mano = juego['manos'][str(usuario.get('inversor_id'))]
+        if juego['mesa']:
+            extremos = {juego['mesa'][0][0], juego['mesa'][-1][1]}
+            if any(valor in extremos for ficha in mano for valor in ficha): raise HTTPException(status_code=400, detail="Tienes una ficha que puedes jugar")
+        juego['pases_seguidos'] += 1
+        juego['eventos'].append(f"{jugadores[posicion]['nombre']} pasó.")
+        if juego['pases_seguidos'] >= 4:
+            suma_pareja_cero = sum(sum(ficha) for indice in (0, 2) for ficha in juego['manos'][str(jugadores[indice]['id'])])
+            suma_pareja_uno = sum(sum(ficha) for indice in (1, 3) for ficha in juego['manos'][str(jugadores[indice]['id'])])
+            equipo_ganador = juego['salidor'] % 2 if suma_pareja_cero == suma_pareja_uno else 0 if suma_pareja_cero < suma_pareja_uno else 1
+            estado, juego = _terminar_mano_domino(juego, jugadores, equipo_ganador, 'tranca')
+        else:
+            juego['turno'] = (posicion + 1) % 4
+        cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))
+        conn.commit()
+        return _vista_domino(jugadores, juego, usuario.get('inversor_id'), estado)
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo pasar el turno: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
 
 # ===================================================================================
 # NOTIFICACIONES (ALERTAS)
