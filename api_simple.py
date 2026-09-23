@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import Json
 import random
+import math
 
 load_dotenv()
 
@@ -226,6 +227,10 @@ class DominoPartidaRequest(BaseModel):
 class DominoJugadaRequest(BaseModel):
     ficha: list[int]
     lado: str
+
+class DominoUbicacionRequest(BaseModel):
+    latitud: float
+    longitud: float
 
 # --- ADMIN ENDPOINT: REPARTIR RENDIMIENTO DIARIO ---
 class PayoutRequest(BaseModel):
@@ -3500,12 +3505,30 @@ def _iniciar_mano_domino(jugadores, puntuacion, salidor_anterior=None, primera_m
         salidor = (salidor_anterior + 1) % 4
     return {
         'mano': numero_mano, 'puntuacion': puntuacion, 'salidor': salidor, 'turno': salidor,
-        'mesa': [], 'manos': manos, 'pases_seguidos': 0,
+        'mesa': [], 'manos': manos, 'pases_seguidos': 0, 'ubicaciones': {},
         'eventos': [f"Comienza la mano {numero_mano}. Sale {jugadores[salidor]['nombre']}."]
     }
 
 def _sumar_fichas_restantes(juego):
     return sum(sum(ficha) for mano in juego['manos'].values() for ficha in mano)
+
+def _distancia_domino_metros(ubicacion_a, ubicacion_b):
+    radio_tierra = 6371000
+    latitud_a = math.radians(ubicacion_a['latitud'])
+    latitud_b = math.radians(ubicacion_b['latitud'])
+    diferencia_latitud = math.radians(ubicacion_b['latitud'] - ubicacion_a['latitud'])
+    diferencia_longitud = math.radians(ubicacion_b['longitud'] - ubicacion_a['longitud'])
+    formula = math.sin(diferencia_latitud / 2) ** 2 + math.cos(latitud_a) * math.cos(latitud_b) * math.sin(diferencia_longitud / 2) ** 2
+    return radio_tierra * 2 * math.atan2(math.sqrt(formula), math.sqrt(1 - formula))
+
+def _validar_distancia_pareja_domino(juego, jugadores, posicion):
+    ubicaciones = juego.get('ubicaciones', {})
+    jugador_id = str(jugadores[posicion]['id'])
+    companero_id = str(jugadores[(posicion + 2) % 4]['id'])
+    if jugador_id not in ubicaciones or companero_id not in ubicaciones:
+        raise HTTPException(status_code=400, detail="Tú y tu compañero deben activar la ubicación para jugar")
+    if _distancia_domino_metros(ubicaciones[jugador_id], ubicaciones[companero_id]) < 1000:
+        raise HTTPException(status_code=400, detail="Los compañeros deben estar separados al menos 1 km")
 
 def _terminar_mano_domino(juego, jugadores, equipo_ganador, motivo):
     puntos = _sumar_fichas_restantes(juego)
@@ -3513,6 +3536,7 @@ def _terminar_mano_domino(juego, jugadores, equipo_ganador, motivo):
     juego['eventos'].append(f"La pareja {equipo_ganador + 1} gana {puntos} puntos por {motivo}.")
     if juego['puntuacion'][str(equipo_ganador)] >= DOMINO_LIMITE_PUNTOS:
         juego['ganador'] = equipo_ganador
+        juego['ubicaciones'] = {}
         juego['eventos'].append(f"La pareja {equipo_ganador + 1} gana la partida.")
         return 'finalizada', juego
     siguiente = _iniciar_mano_domino(jugadores, juego['puntuacion'], juego['salidor'], numero_mano=juego['mano'] + 1)
@@ -3537,7 +3561,11 @@ def _vista_domino(jugadores, juego, jugador_id, estado):
             'turno': juego['turno'], 'mesa': juego['mesa'],
             'mis_fichas': juego['manos'].get(str(jugador_id), []),
             'pases_seguidos': juego['pases_seguidos'], 'eventos': juego.get('eventos', [])[-6:],
-            'ganador': juego.get('ganador')
+            'ganador': juego.get('ganador'),
+            'ubicacion_pareja_lista': all(
+                str(jugadores[indice]['id']) in juego.get('ubicaciones', {})
+                for indice in (posicion, (posicion + 2) % 4)
+            )
         })
     return respuesta
 
@@ -3658,7 +3686,39 @@ def _cargar_partida_para_jugada(cur, codigo, jugador_id):
     if posicion is None: raise HTTPException(status_code=403, detail="No perteneces a esta partida")
     if estado != 'jugando': raise HTTPException(status_code=400, detail="La partida no está en juego")
     if juego['turno'] != posicion: raise HTTPException(status_code=400, detail="No es tu turno")
+    _validar_distancia_pareja_domino(juego, jugadores, posicion)
     return estado, jugadores, juego, posicion
+
+@app.post("/api/domino/partidas/{codigo}/ubicacion")
+def actualizar_ubicacion_domino(codigo: str, datos: DominoUbicacionRequest, usuario=Depends(obtener_usuario_actual)):
+    if not -90 <= datos.latitud <= 90 or not -180 <= datos.longitud <= 180:
+        raise HTTPException(status_code=400, detail="Ubicación no válida")
+    conn = None
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        _asegurar_tabla_domino(cur)
+        cur.execute("SELECT estado, jugadores, juego FROM domino_partidas WHERE codigo = %s FOR UPDATE", (codigo.upper(),))
+        fila = cur.fetchone()
+        if not fila: raise HTTPException(status_code=404, detail="Sala no encontrada")
+        estado, jugadores, juego = fila[0], fila[1] or [], fila[2]
+        jugador_id = usuario.get('inversor_id')
+        if not any(jugador['id'] == jugador_id for jugador in jugadores):
+            raise HTTPException(status_code=403, detail="No perteneces a esta partida")
+        if estado != 'jugando' or not juego:
+            raise HTTPException(status_code=400, detail="La ubicación se activa cuando la partida comienza")
+        juego.setdefault('ubicaciones', {})[str(jugador_id)] = {'latitud': datos.latitud, 'longitud': datos.longitud}
+        cur.execute("UPDATE domino_partidas SET juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (Json(juego), codigo.upper()))
+        conn.commit()
+        return _vista_domino(jugadores, juego, jugador_id, estado)
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo validar la ubicación: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
 
 @app.post("/api/domino/partidas/{codigo}/jugar")
 def jugar_domino(codigo: str, datos: DominoJugadaRequest, usuario=Depends(obtener_usuario_actual)):

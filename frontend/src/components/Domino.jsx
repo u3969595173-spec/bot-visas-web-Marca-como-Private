@@ -124,6 +124,32 @@ function Domino() {
     }
   }
 
+  const activarUbicacion = () => {
+    if (!navigator.geolocation) {
+      setError('Este dispositivo no permite usar ubicación.')
+      return
+    }
+    setAccionando(true); setError('')
+    navigator.geolocation.getCurrentPosition(async posicion => {
+      try {
+        const respuesta = await fetch(`${API}/api/domino/partidas/${codigo}/ubicacion`, {
+          method: 'POST', headers,
+          body: JSON.stringify({ latitud: posicion.coords.latitude, longitud: posicion.coords.longitude })
+        })
+        const datos = await respuesta.json()
+        if (!respuesta.ok) throw new Error(datos.detail || 'No se pudo validar la ubicación.')
+        setPartida(datos)
+      } catch (requestError) {
+        setError(requestError.message || 'No se pudo validar la ubicación.')
+      } finally {
+        setAccionando(false)
+      }
+    }, () => {
+      setError('Debes permitir la ubicación para jugar con tu pareja.')
+      setAccionando(false)
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 })
+  }
+
   const volverASalas = () => {
     setCodigo(''); setPartida(null); setSeleccionada(null); setCargando(true); cargarSalas()
   }
@@ -146,6 +172,7 @@ function Domino() {
     <header className="domino-game-header"><button onClick={volverASalas} className="domino-link">Salas</button><div><p className="domino-eyebrow">Mesa {codigo}</p><h1>Dominó suizo</h1></div><span className={miTurno ? 'domino-turno es-mi-turno' : 'domino-turno'}>{ganador ? `${ganador} ganó` : partida?.estado === 'esperando' ? `Esperando ${4 - (partida?.jugadores?.length || 0)} jugadores` : miTurno ? 'Tu turno' : `Turno de ${jugadorActual?.nombre || '...'}`}</span></header>
     {error && <p className="domino-error">{error}</p>}
     <section className="domino-score">{[0, 1].map(pareja => <div key={pareja} className={partida?.mi_posicion % 2 === pareja ? 'mi-pareja' : ''}><span>Pareja {pareja + 1}</span><strong>{partida?.puntuacion?.[pareja] || 0}</strong><small>/ {partida?.limite_puntos || 200}</small></div>)}</section>
+    {partida?.estado === 'jugando' && <section className={`domino-ubicacion ${partida.ubicacion_pareja_lista ? 'verificada' : ''}`}><span>{partida.ubicacion_pareja_lista ? 'Ubicación de la pareja verificada' : 'La pareja debe validar una distancia mínima de 1 km'}</span>{!partida.ubicacion_pareja_lista && <button className="domino-secondary" onClick={activarUbicacion} disabled={accionando}>Activar ubicación</button>}</section>}
     <section className="domino-jugadores">{partida?.jugadores?.map(jugador => <div className={`${jugador.posicion === partida.mi_posicion ? 'soy-yo ' : ''}${jugador.posicion === partida.turno ? 'turno-activo' : ''}`} key={jugador.id}><strong>{jugador.nombre}{jugador.posicion === partida.mi_posicion ? ' (tú)' : ''}</strong><span>{jugador.fichas} fichas</span></div>)}</section>
     <section className="domino-tablero"><div className="domino-mesa">{partida?.mesa?.length ? partida.mesa.map((ficha, indice) => <Ficha key={`${fichaKey(ficha)}-${indice}`} ficha={ficha} compacta />) : <span>La mesa espera la salida.</span>}</div>{miTurno && partida?.estado === 'jugando' && <div className="domino-controles"><button className="domino-secondary" disabled={!seleccionada || accionando} onClick={() => enviarJugada('izquierda')}>Jugar izquierda</button><button className="domino-primary" disabled={!seleccionada || accionando} onClick={() => enviarJugada('derecha')}>Jugar derecha</button><button className="domino-pass" disabled={accionando} onClick={pasar}>Pasar</button></div>}</section>
     <section className="domino-mano"><div><h2>Tus fichas</h2><span>{miTurno ? 'Selecciona una ficha' : 'Esperando turno'}</span></div><div className="domino-fichas">{partida?.mis_fichas?.map((ficha, indice) => <Ficha key={`${fichaKey(ficha)}-${indice}`} ficha={ficha} activa={seleccionada && fichaKey(seleccionada) === fichaKey(ficha)} onClick={() => miTurno && setSeleccionada(ficha)} />)}</div></section>
