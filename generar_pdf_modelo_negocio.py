@@ -1,5 +1,6 @@
 from datetime import date
 from pathlib import Path
+from shutil import copyfile
 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
@@ -16,7 +17,8 @@ from reportlab.platypus import (
 )
 
 
-OUTPUT_PATH = Path(__file__).with_name("Carta_Presentacion_Modelo_Negocio_Capital_Trade_Iberia.pdf")
+OUTPUT_PATH = Path(__file__).parent / "frontend" / "public" / "assets" / "guia-plataforma-capital-iberia.pdf"
+LEGACY_OUTPUT_PATH = Path(__file__).with_name("Carta_Presentacion_Modelo_Negocio_Capital_Trade_Iberia.pdf")
 
 NAVY = colors.HexColor("#07111F")
 BLUE = colors.HexColor("#0E7490")
@@ -101,7 +103,7 @@ def page_header_footer(canvas, document):
     canvas.drawString(1.5 * cm, height - 0.95 * cm, "CAPITAL TRADE IBERIA")
     canvas.setFont("Helvetica", 8)
     canvas.setFillColor(SLATE)
-    canvas.drawRightString(width - 1.5 * cm, 0.8 * cm, f"Modelo de negocio | Pagina {document.page}")
+    canvas.drawRightString(width - 1.5 * cm, 0.8 * cm, f"Guia de la plataforma | Pagina {document.page}")
     canvas.restoreState()
 
 
@@ -111,13 +113,13 @@ def make_document():
         str(OUTPUT_PATH), pagesize=A4,
         rightMargin=1.5 * cm, leftMargin=1.5 * cm,
         topMargin=1.7 * cm, bottomMargin=1.35 * cm,
-        title="Carta de presentacion - Modelo de negocio - Capital Iberia",
+        title="Guia de uso de la plataforma - Capital Iberia",
         author="Capital Iberia",
     )
     story = []
 
     cover = Table([[""], [paragraph("CAPITAL TRADE IBERIA", styles["CoverBrand"])], [paragraph(
-        "Carta de presentacion del modelo de negocio y funcionamiento de la plataforma", styles["CoverSubtitle"]
+        "Guia actualizada de uso y funcionamiento de la plataforma", styles["CoverSubtitle"]
     )], [""], [paragraph(
         "Informacion para usuarios interesados", styles["CoverSubtitle"]
     )], [paragraph(
@@ -134,7 +136,7 @@ def make_document():
     story += [Spacer(1, 2.1 * cm), cover, PageBreak()]
 
     story += [
-        paragraph("1. Carta de presentacion", styles["Heading"]),
+        paragraph("1. Como funciona la plataforma", styles["Heading"]),
         paragraph(
             "Capital Iberia es una plataforma digital de gestion e informacion sobre participaciones en operaciones comerciales. "
             "Su objetivo es organizar el acceso de usuarios a oportunidades comerciales, facilitar la trazabilidad de las solicitudes y permitir el seguimiento de cada participacion desde un panel personal.",
@@ -199,7 +201,7 @@ def make_document():
         paragraph("Paso 1. Registro y acceso", styles["Subheading"]),
         paragraph("El usuario crea una cuenta con datos veraces y mantiene sus credenciales de acceso de forma personal y confidencial. La cuenta permite consultar las opciones disponibles, solicitudes, avisos, movimientos y documentacion asociada.", styles["Body"]),
         paragraph("Paso 2. Eleccion de importe y moneda", styles["Subheading"]),
-        paragraph("Desde el panel se selecciona el importe y una moneda o metodo que este configurado en ese momento. La configuracion puede incluir MLC, CUP, EUR o USDT por red BEP-20. Los minimos de participacion actualmente configurados son 50 MLC, 25.000 CUP y 50 USDT. Las cuentas receptoras e instrucciones deben revisarse en el momento de la solicitud.", styles["Body"]),
+        paragraph("Desde el panel se selecciona el importe y uno de los metodos habilitados. Actualmente las aportaciones se realizan en EUR o USDT por red BEP-20 (BSC). Los minimos configurados son 500 EUR y 50 USDT. CUP y MLC no estan disponibles para nuevas aportaciones. Las cuentas receptoras e instrucciones deben revisarse en el momento de la solicitud.", styles["Body"]),
         paragraph("Paso 3. Transferencia y comprobante", styles["Subheading"]),
         paragraph("El usuario realiza la transferencia siguiendo los datos mostrados y carga el comprobante. La solicitud queda registrada como pendiente de validacion; el usuario no debe considerar una aportacion activa antes de la revision administrativa.", styles["Body"]),
         paragraph("Paso 4. Revision y activacion", styles["Subheading"]),
@@ -245,11 +247,11 @@ def make_document():
         paragraph(
             "Este es el programa para quien desea avanzar solo con su propia participacion de capital. Para entrar se debe mantener capital propio dentro del programa; no se exige atraer ni mantener referidos. El rango se determina por el capital total propio y no por las aportaciones de otras personas.", styles["Body"]
         ),
-        bullet("Partner: de 500 a 999 USDT de capital propio. Beneficio de 25 USDT al mes durante 2 meses.", styles),
-        bullet("Premium Partner: de 1.000 a 2.499 USDT. Beneficio de 50 USDT al mes durante 3 meses.", styles),
-        bullet("VIP Partner: de 2.500 a 4.999 USDT. Beneficio de 100 USDT al mes durante 4 meses.", styles),
-        bullet("Strategic Partner: de 5.000 a 9.999 USDT. Beneficio de 150 USDT al mes durante 6 meses.", styles),
-        bullet("Founding Partner: desde 10.000 USDT. Beneficio de 250 USDT al mes durante 12 meses.", styles),
+        bullet("Partner: de 500 a 4.999 USDT de capital propio. Beneficio de 50 USDT al mes, sujeto a las condiciones vigentes.", styles),
+        bullet("Premium Partner: de 5.000 a 9.999 USDT. Beneficio de 150 USDT al mes, sujeto a las condiciones vigentes.", styles),
+        bullet("VIP Partner: de 10.000 a 24.999 USDT. Beneficio de 250 USDT al mes, sujeto a las condiciones vigentes.", styles),
+        bullet("Strategic Partner: de 25.000 a 49.999 USDT. Beneficio de 350 USDT al mes, sujeto a las condiciones vigentes.", styles),
+        bullet("Founding Partner: de 50.000 a 100.000 USDT. Beneficio de 450 USDT al mes, sujeto a las condiciones vigentes.", styles),
         paragraph(
             "Al aumentar el capital propio, el panel actualiza el rango que corresponda. Ademas del beneficio temporal indicado, los niveles pueden dar acceso a promociones, descuentos, ofertas especiales, campanas anticipadas o condiciones preferentes, siempre segun disponibilidad y condiciones de cada campana.", styles["Body"]
         ),
@@ -290,7 +292,7 @@ def make_document():
         paragraph("El panel centraliza la informacion operativa de cada usuario. Entre otras funciones, permite consultar:", styles["Body"]),
         bullet("Aportaciones y solicitudes con su importe, moneda, estado y fecha.", styles),
         bullet("Relojes de bloqueo individual de las aportaciones aun retenidas.", styles),
-        bullet("Capital liberado, ganancias registradas y retiros, separados por moneda para no mezclar valores de MLC, CUP, EUR y USDT.", styles),
+        bullet("Capital liberado, ganancias registradas y retiros, separados por moneda para no mezclar valores de EUR y USDT.", styles),
         bullet("Avisos de operaciones, documentacion, ofertas que correspondan y comunicacion de soporte.", styles),
         paragraph("Comunidad interna de usuarios", styles["Subheading"]),
         paragraph(
@@ -329,18 +331,33 @@ def make_document():
             "Ejemplo: si el usuario solicita retirar 100 USDT, el cargo de procesamiento es de 5 USDT y el importe neto a enviar es de 95 USDT. El panel y la solicitud deben revisarse antes de confirmar el retiro.", styles["Body"]
         ),
         paragraph("Plazos orientativos de procesamiento", styles["Subheading"]),
-        bullet("Retiros en MLC y CUP: se procesan manualmente con un plazo maximo estimado de hasta 24 horas. Este margen considera la situacion operativa y de conectividad del pais, asi como la revision de cada solicitud.", styles),
-        bullet("Retiros en USDT: se procesan manualmente con un plazo maximo estimado de hasta 3 horas, una vez verificados los datos de la red y de la billetera de destino.", styles),
+        bullet("Los retiros se procesan manualmente en la moneda correspondiente, EUR o USDT BEP-20, una vez verificados los datos de destino y la solicitud.", styles),
         paragraph(
             "Los plazos se cuentan desde que la solicitud contiene la informacion completa y supera la revision administrativa. Una incidencia tecnica, datos incorrectos, controles de seguridad o limitaciones externas pueden requerir una comunicacion adicional antes de completar el retiro.", styles["Body"]
         ),
         info_box(
-            "Regla de moneda: los saldos y retiros se gestionan por moneda. Una participacion en USDT no debe presentarse ni retirarse como EUR, y una participacion en MLC o CUP conserva igualmente su moneda de origen.", styles,
+            "Regla de moneda: los saldos y retiros se gestionan por moneda. Una participacion en USDT no debe presentarse ni retirarse como EUR. CUP y MLC no forman parte de los metodos actuales.", styles,
         ),
         PageBreak(),
     ]
 
-    story += [paragraph("7. Proximo paso", styles["Heading"])]
+    story += [
+        paragraph("7. Torneos de Domino Iberia", styles["Heading"]),
+        paragraph("La plataforma incorpora Torneos de Domino como espacio de comunidad. El acceso esta disponible desde la seccion Comunidad del panel. Las mesas oficiales se crean exclusivamente desde los torneos.", styles["Body"]),
+        paragraph("Como participar", styles["Subheading"]),
+        bullet("El administrador crea el torneo, define el minimo de parejas para iniciarlo, el costo de inscripcion por pareja y los premios del 1. al 8. puesto.", styles),
+        bullet("Un jugador crea un codigo de pareja y se lo comparte a su companero. La pareja queda pendiente hasta que el administrador la aprueba.", styles),
+        bullet("Para jugar, los dos integrantes deben permitir la ubicacion del navegador y estar separados por al menos 1 km.", styles),
+        paragraph("Reglas de juego y torneo", styles["Subheading"]),
+        bullet("Cada partida tiene cuatro jugadores, dos parejas y fichas doble-seis. Cada jugador recibe siete fichas; la primera mano comienza con el doble-seis.", styles),
+        bullet("La partida se juega hasta 200 puntos. Si se cierra la mano, se suman las fichas restantes; un empate de cierre corresponde a la pareja que inicio la mano.", styles),
+        bullet("El torneo usa diez rondas suizas: todas las parejas aprobadas continúan y el sistema evita repetir rivales. El ranking ordena victorias, diferencia de puntos y puntos a favor.", styles),
+        bullet("Las ocho primeras parejas pasan a cuartos de final, semifinales, final y partido por el tercer puesto. Los puestos del 4. al 8. tambien reciben el premio configurado por el administrador.", styles),
+        info_box("La pantalla de torneo actualiza automaticamente las parejas inscritas, el ranking y las mesas. Tambien incluye la imagen promocional y el reglamento especifico de Domino.", styles, colors.HexColor("#EAF7FB")),
+        PageBreak(),
+    ]
+
+    story += [paragraph("8. Proximo paso", styles["Heading"])]
     story += [
         paragraph("Si deseas conocer una operacion o iniciar una solicitud, revisa primero el panel, las condiciones disponibles y la documentacion relacionada. Para consultas generales, soporte o aclaraciones sobre el uso de la plataforma:", styles["Body"]),
         info_box("Capital Iberia<br/>Web: capitaliberia.com<br/>Email: contacto@capitaliberia.com<br/>Soporte: WhatsApp +34 677 412 858<br/>Horario de soporte: todos los dias, de 08:00 a 00:00", styles, colors.HexColor("#EAF7FB")),
@@ -349,6 +366,7 @@ def make_document():
     ]
 
     document.build(story, onFirstPage=lambda canvas, doc: None, onLaterPages=page_header_footer)
+    copyfile(OUTPUT_PATH, LEGACY_OUTPUT_PATH)
     print(f"PDF creado: {OUTPUT_PATH}")
 
 

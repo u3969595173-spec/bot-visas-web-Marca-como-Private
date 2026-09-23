@@ -77,7 +77,7 @@ function TorneosDomino({ admin = false }) {
     try { await request(`/api/admin/domino/torneos/${seleccionado.id}/siguiente-ronda`, { method: 'POST', body: '{}' }); await cargarDetalle(seleccionado.id); await cargar() } catch (requestError) { setError(requestError.message) } finally { setOcupado(false) }
   }
 
-  const recursosTorneo = <section className="domino-recursos"><a href="/assets/torneo-domino-iberia-promocion.svg" target="_blank" rel="noreferrer">Imagen promocional</a><a href="/assets/reglas-torneo-domino-iberia.pdf" target="_blank" rel="noreferrer">Reglamento PDF</a></section>
+  const recursosTorneo = <section className="domino-recursos"><a href="/assets/torneo-domino-iberia-promocion.svg" target="_blank" rel="noreferrer">Imagen promocional</a><a href="/assets/reglas-torneo-domino-iberia.pdf" target="_blank" rel="noreferrer">Reglamento PDF</a><a href="/assets/guia-plataforma-capital-iberia.pdf" target="_blank" rel="noreferrer">Guía de la plataforma</a></section>
 
   if (!seleccionado) return <main className="domino-page">
     <header className="domino-header"><div><p className="domino-eyebrow">Dominó suizo</p><h1>{admin ? 'Administrar torneos' : 'Torneos'}</h1><span>10 rondas suizas, top 8 y fase final.</span></div><Link to={admin ? '/admin' : '/dashboard'} className="domino-link">Volver</Link></header>
