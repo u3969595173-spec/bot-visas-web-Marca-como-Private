@@ -129,6 +129,7 @@ def build_pdf():
         paragraph("- Semifinales: los ganadores de cuartos disputan dos llaves.", bullet),
         paragraph("- Final: los ganadores de semifinales compiten por el primer lugar.", bullet),
         paragraph("- Tercer puesto: los perdedores de semifinales juegan por el tercer lugar.", bullet),
+        paragraph("- Premios: ademas del podio, las parejas que finalicen del 4. al 8. lugar tambien reciben el premio configurado para esa posicion.", bullet),
         paragraph("6. BUENAS PRACTICAS", heading),
         paragraph("- Mantente conectado durante tu mesa y revisa el tablero con frecuencia.", bullet),
         paragraph("- Activa la ubicacion antes de jugar para evitar bloqueos de turno.", bullet),

@@ -239,6 +239,7 @@ class DominoTorneoRequest(BaseModel):
     premio_primero: int = 0
     premio_segundo: int = 0
     premio_tercero: int = 0
+    premio_cuarto_a_octavo: int = 0
 
 class DominoCodigoParejaRequest(BaseModel):
     codigo: str
@@ -3682,7 +3683,7 @@ def crear_torneo_domino(datos: DominoTorneoRequest, usuario=Depends(obtener_usua
     conn = None
     try:
         conn = get_conn(); cur = conn.cursor(); _asegurar_tablas_torneo_domino(cur)
-        premios = {'primero': max(0, datos.premio_primero), 'segundo': max(0, datos.premio_segundo), 'tercero': max(0, datos.premio_tercero)}
+        premios = {'primero': max(0, datos.premio_primero), 'segundo': max(0, datos.premio_segundo), 'tercero': max(0, datos.premio_tercero), 'cuarto_a_octavo': max(0, datos.premio_cuarto_a_octavo)}
         cur.execute("INSERT INTO domino_torneos (nombre, max_parejas, min_parejas, costo_inscripcion, premios) VALUES (%s, 30, %s, %s, %s) RETURNING id", (datos.nombre.strip()[:120], datos.min_parejas, max(0, datos.costo_inscripcion), Json(premios)))
         torneo_id = cur.fetchone()[0]; conn.commit()
         return {'id': torneo_id}
