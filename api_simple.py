@@ -3693,6 +3693,25 @@ def crear_torneo_domino(datos: DominoTorneoRequest, usuario=Depends(obtener_usua
     finally:
         if conn: release_conn(conn)
 
+@app.delete("/api/admin/domino/torneos/{torneo_id}")
+def eliminar_torneo_domino(torneo_id: int, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin': raise HTTPException(status_code=403, detail="Acceso denegado")
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tablas_torneo_domino(cur)
+        cur.execute("DELETE FROM domino_partidas WHERE torneo_id = %s", (torneo_id,))
+        cur.execute("DELETE FROM domino_torneos WHERE id = %s RETURNING id", (torneo_id,))
+        if not cur.fetchone(): raise HTTPException(status_code=404, detail="Torneo no encontrado")
+        conn.commit(); return {'ok': True}
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo eliminar el torneo: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
 @app.post("/api/domino/torneos/{torneo_id}/parejas")
 def crear_pareja_torneo_domino(torneo_id: int, usuario=Depends(obtener_usuario_actual)):
     if usuario.get('rol') != 'inversor': raise HTTPException(status_code=403, detail="Solo los inversores pueden inscribirse")
