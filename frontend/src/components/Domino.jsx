@@ -17,7 +17,7 @@ function Domino() {
   const token = localStorage.getItem('token')
   const [salas, setSalas] = React.useState([])
   const [codigoEntrada, setCodigoEntrada] = React.useState('')
-  const [codigo, setCodigo] = React.useState('')
+  const [codigo, setCodigo] = React.useState(() => new URLSearchParams(window.location.search).get('mesa') || '')
   const [partida, setPartida] = React.useState(null)
   const [seleccionada, setSeleccionada] = React.useState(null)
   const [cargando, setCargando] = React.useState(true)
@@ -155,7 +155,7 @@ function Domino() {
   }
 
   if (!codigo) return <main className="domino-page">
-    <header className="domino-header"><div><p className="domino-eyebrow">Comunidad</p><h1>Dominó suizo</h1><span>Partidas por parejas a 200 puntos</span></div><Link to="/comunidad" className="domino-link">Comunidad</Link></header>
+    <header className="domino-header"><div><p className="domino-eyebrow">Comunidad</p><h1>Dominó suizo</h1><span>Partidas por parejas a 200 puntos</span></div><Link to="/domino/torneos" className="domino-link">Torneos</Link></header>
     {error && <p className="domino-error">{error}</p>}
     <section className="domino-lobby">
       <div className="domino-lobby-action"><h2>Nueva mesa</h2><button className="domino-primary" onClick={crearSala} disabled={accionando}>{accionando ? 'Creando...' : 'Crear sala'}</button></div>

@@ -232,6 +232,16 @@ class DominoUbicacionRequest(BaseModel):
     latitud: float
     longitud: float
 
+class DominoTorneoRequest(BaseModel):
+    nombre: str
+    max_parejas: int = 30
+    premio_primero: int = 0
+    premio_segundo: int = 0
+    premio_tercero: int = 0
+
+class DominoCodigoParejaRequest(BaseModel):
+    codigo: str
+
 # --- ADMIN ENDPOINT: REPARTIR RENDIMIENTO DIARIO ---
 class PayoutRequest(BaseModel):
     porcentaje: float
@@ -3486,6 +3496,57 @@ def _asegurar_tabla_domino(cur):
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    cur.execute("ALTER TABLE domino_partidas ADD COLUMN IF NOT EXISTS torneo_id INT")
+    cur.execute("ALTER TABLE domino_partidas ADD COLUMN IF NOT EXISTS emparejamiento_id INT")
+
+def _asegurar_tablas_torneo_domino(cur):
+    _asegurar_tabla_domino(cur)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS domino_torneos (
+            id SERIAL PRIMARY KEY,
+            nombre VARCHAR(120) NOT NULL,
+            max_parejas INT NOT NULL DEFAULT 30,
+            rondas_suizas INT NOT NULL DEFAULT 10,
+            estado VARCHAR(20) NOT NULL DEFAULT 'inscripcion',
+            premios JSONB NOT NULL DEFAULT '{}'::jsonb,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS domino_parejas_torneo (
+            id SERIAL PRIMARY KEY,
+            torneo_id INT NOT NULL REFERENCES domino_torneos(id) ON DELETE CASCADE,
+            jugador_uno_id INT NOT NULL,
+            jugador_uno_nombre VARCHAR(200) NOT NULL,
+            jugador_dos_id INT,
+            jugador_dos_nombre VARCHAR(200),
+            codigo VARCHAR(10) UNIQUE NOT NULL,
+            estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+            victorias INT NOT NULL DEFAULT 0,
+            derrotas INT NOT NULL DEFAULT 0,
+            puntos_favor INT NOT NULL DEFAULT 0,
+            puntos_contra INT NOT NULL DEFAULT 0,
+            diferencia INT NOT NULL DEFAULT 0,
+            rivales JSONB NOT NULL DEFAULT '[]'::jsonb,
+            UNIQUE(torneo_id, jugador_uno_id),
+            UNIQUE(torneo_id, jugador_dos_id)
+        )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS domino_emparejamientos_torneo (
+            id SERIAL PRIMARY KEY,
+            torneo_id INT NOT NULL REFERENCES domino_torneos(id) ON DELETE CASCADE,
+            ronda INT NOT NULL,
+            fase VARCHAR(20) NOT NULL DEFAULT 'suizo',
+            pareja_a_id INT NOT NULL REFERENCES domino_parejas_torneo(id),
+            pareja_b_id INT NOT NULL REFERENCES domino_parejas_torneo(id),
+            partida_codigo VARCHAR(12) UNIQUE,
+            estado VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+            ganador_pareja_id INT REFERENCES domino_parejas_torneo(id),
+            UNIQUE(torneo_id, ronda, fase, pareja_a_id),
+            UNIQUE(torneo_id, ronda, fase, pareja_b_id)
+        )
+    """)
 
 def _crear_codigo_domino(cur):
     for intento in range(20):
@@ -3494,6 +3555,282 @@ def _crear_codigo_domino(cur):
         if not cur.fetchone():
             return codigo
     raise HTTPException(status_code=500, detail="No se pudo crear el código de sala")
+
+def _crear_codigo_pareja_domino(cur):
+    for intento in range(20):
+        codigo = ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=8))
+        cur.execute("SELECT 1 FROM domino_parejas_torneo WHERE codigo = %s", (codigo,))
+        if not cur.fetchone():
+            return codigo
+    raise HTTPException(status_code=500, detail="No se pudo crear el código de pareja")
+
+def _ranking_torneo_domino(cur, torneo_id):
+    cur.execute("""
+        SELECT id, jugador_uno_nombre, jugador_dos_nombre, estado, victorias, derrotas, puntos_favor, puntos_contra, diferencia, rivales
+        FROM domino_parejas_torneo WHERE torneo_id = %s AND estado = 'aprobada'
+        ORDER BY victorias DESC, diferencia DESC, puntos_favor DESC, id ASC
+    """, (torneo_id,))
+    return [
+        {'id': fila[0], 'jugador_uno': fila[1], 'jugador_dos': fila[2], 'estado': fila[3], 'victorias': fila[4],
+         'derrotas': fila[5], 'puntos_favor': fila[6], 'puntos_contra': fila[7], 'diferencia': fila[8], 'rivales': fila[9] or [], 'posicion': indice + 1}
+        for indice, fila in enumerate(cur.fetchall())
+    ]
+
+def _crear_partida_torneo_domino(cur, torneo_id, emparejamiento_id, pareja_a_id, pareja_b_id):
+    cur.execute("""
+        SELECT id, jugador_uno_id, jugador_uno_nombre, jugador_dos_id, jugador_dos_nombre
+        FROM domino_parejas_torneo WHERE id IN (%s, %s) ORDER BY id
+    """, (pareja_a_id, pareja_b_id))
+    parejas = {fila[0]: fila for fila in cur.fetchall()}
+    pareja_a, pareja_b = parejas[pareja_a_id], parejas[pareja_b_id]
+    jugadores = [
+        {'id': pareja_a[1], 'nombre': pareja_a[2]}, {'id': pareja_b[1], 'nombre': pareja_b[2]},
+        {'id': pareja_a[3], 'nombre': pareja_a[4]}, {'id': pareja_b[3], 'nombre': pareja_b[4]}
+    ]
+    codigo = _crear_codigo_domino(cur)
+    juego = _iniciar_mano_domino(jugadores, {'0': 0, '1': 0}, primera_mano=True)
+    cur.execute("""
+        INSERT INTO domino_partidas (codigo, estado, jugadores, juego, torneo_id, emparejamiento_id)
+        VALUES (%s, 'jugando', %s, %s, %s, %s)
+    """, (codigo, Json(jugadores), Json(juego), torneo_id, emparejamiento_id))
+    cur.execute("UPDATE domino_emparejamientos_torneo SET partida_codigo = %s, estado = 'jugando' WHERE id = %s", (codigo, emparejamiento_id))
+    return codigo
+
+def _registrar_resultado_torneo_domino(cur, codigo, juego):
+    cur.execute("SELECT torneo_id, emparejamiento_id FROM domino_partidas WHERE codigo = %s", (codigo.upper(),))
+    partida = cur.fetchone()
+    if not partida or not partida[0] or not partida[1]:
+        return
+    torneo_id, emparejamiento_id = partida
+    cur.execute("SELECT pareja_a_id, pareja_b_id, estado FROM domino_emparejamientos_torneo WHERE id = %s FOR UPDATE", (emparejamiento_id,))
+    emparejamiento = cur.fetchone()
+    if not emparejamiento or emparejamiento[2] == 'finalizada':
+        return
+    pareja_a_id, pareja_b_id = emparejamiento[0], emparejamiento[1]
+    ganador_id = pareja_a_id if juego['ganador'] == 0 else pareja_b_id
+    perdedor_id = pareja_b_id if ganador_id == pareja_a_id else pareja_a_id
+    puntos_a, puntos_b = juego['puntuacion']['0'], juego['puntuacion']['1']
+    cur.execute("""
+        UPDATE domino_parejas_torneo
+        SET victorias = victorias + 1, puntos_favor = puntos_favor + %s, puntos_contra = puntos_contra + %s, diferencia = diferencia + %s,
+            rivales = CASE WHEN rivales @> %s::jsonb THEN rivales ELSE rivales || %s::jsonb END
+        WHERE id = %s
+    """, (puntos_a if ganador_id == pareja_a_id else puntos_b, puntos_b if ganador_id == pareja_a_id else puntos_a,
+          abs(puntos_a - puntos_b), Json([perdedor_id]), Json([perdedor_id]), ganador_id))
+    cur.execute("""
+        UPDATE domino_parejas_torneo
+        SET derrotas = derrotas + 1, puntos_favor = puntos_favor + %s, puntos_contra = puntos_contra + %s, diferencia = diferencia - %s,
+            rivales = CASE WHEN rivales @> %s::jsonb THEN rivales ELSE rivales || %s::jsonb END
+        WHERE id = %s
+    """, (puntos_b if ganador_id == pareja_a_id else puntos_a, puntos_a if ganador_id == pareja_a_id else puntos_b,
+          abs(puntos_a - puntos_b), Json([ganador_id]), Json([ganador_id]), perdedor_id))
+    cur.execute("UPDATE domino_emparejamientos_torneo SET estado = 'finalizada', ganador_pareja_id = %s WHERE id = %s", (ganador_id, emparejamiento_id))
+
+def _parejas_suizas_domino(ranking, aleatorio=False):
+    pendientes = ranking[:]
+    if aleatorio:
+        random.shuffle(pendientes)
+    parejas = []
+    while pendientes:
+        pareja_a = pendientes.pop(0)
+        rivales = set(pareja_a.get('rivales', []))
+        candidatos = list(reversed(pendientes)) if not aleatorio else pendientes[:]
+        pareja_b = next((candidato for candidato in candidatos if candidato['id'] not in rivales), None)
+        if not pareja_b:
+            raise HTTPException(status_code=400, detail="No se pudo evitar repetir rivales en esta ronda")
+        pendientes.remove(pareja_b)
+        parejas.append((pareja_a['id'], pareja_b['id']))
+    return parejas
+
+def _crear_emparejamientos_torneo(cur, torneo_id, ronda, fase, cruces):
+    for pareja_a_id, pareja_b_id in cruces:
+        cur.execute("""
+            INSERT INTO domino_emparejamientos_torneo (torneo_id, ronda, fase, pareja_a_id, pareja_b_id)
+            VALUES (%s, %s, %s, %s, %s) RETURNING id
+        """, (torneo_id, ronda, fase, pareja_a_id, pareja_b_id))
+        _crear_partida_torneo_domino(cur, torneo_id, cur.fetchone()[0], pareja_a_id, pareja_b_id)
+
+@app.get("/api/domino/torneos")
+def listar_torneos_domino(usuario=Depends(obtener_usuario_actual)):
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tablas_torneo_domino(cur)
+        cur.execute("""
+            SELECT t.id, t.nombre, t.max_parejas, t.rondas_suizas, t.estado, t.premios, COUNT(p.id)
+            FROM domino_torneos t LEFT JOIN domino_parejas_torneo p ON p.torneo_id = t.id AND p.estado = 'aprobada'
+            GROUP BY t.id ORDER BY t.created_at DESC
+        """)
+        torneos = [{'id': fila[0], 'nombre': fila[1], 'max_parejas': fila[2], 'rondas_suizas': fila[3], 'estado': fila[4], 'premios': fila[5], 'parejas_aprobadas': fila[6]} for fila in cur.fetchall()]
+        conn.commit()
+        return {'torneos': torneos}
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudieron cargar los torneos: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.post("/api/admin/domino/torneos")
+def crear_torneo_domino(datos: DominoTorneoRequest, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin': raise HTTPException(status_code=403, detail="Acceso denegado")
+    if not datos.nombre.strip() or not 4 <= datos.max_parejas <= 30 or datos.max_parejas % 2:
+        raise HTTPException(status_code=400, detail="El torneo necesita un nombre y un número par de 4 a 30 parejas")
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tablas_torneo_domino(cur)
+        premios = {'primero': max(0, datos.premio_primero), 'segundo': max(0, datos.premio_segundo), 'tercero': max(0, datos.premio_tercero)}
+        cur.execute("INSERT INTO domino_torneos (nombre, max_parejas, premios) VALUES (%s, %s, %s) RETURNING id", (datos.nombre.strip()[:120], datos.max_parejas, Json(premios)))
+        torneo_id = cur.fetchone()[0]; conn.commit()
+        return {'id': torneo_id}
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo crear el torneo: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.post("/api/domino/torneos/{torneo_id}/parejas")
+def crear_pareja_torneo_domino(torneo_id: int, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'inversor': raise HTTPException(status_code=403, detail="Solo los inversores pueden inscribirse")
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tablas_torneo_domino(cur)
+        cur.execute("SELECT estado, max_parejas FROM domino_torneos WHERE id = %s", (torneo_id,)); torneo = cur.fetchone()
+        if not torneo or torneo[0] != 'inscripcion': raise HTTPException(status_code=400, detail="La inscripción no está disponible")
+        cur.execute("SELECT nombre FROM inversores WHERE id = %s", (usuario.get('inversor_id'),)); inversor = cur.fetchone()
+        if not inversor: raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        cur.execute("SELECT COUNT(*) FROM domino_parejas_torneo WHERE torneo_id = %s", (torneo_id,))
+        if cur.fetchone()[0] >= torneo[1]: raise HTTPException(status_code=400, detail="El torneo alcanzó el máximo de parejas")
+        codigo = _crear_codigo_pareja_domino(cur)
+        cur.execute("INSERT INTO domino_parejas_torneo (torneo_id, jugador_uno_id, jugador_uno_nombre, codigo) VALUES (%s, %s, %s, %s) RETURNING id", (torneo_id, usuario.get('inversor_id'), inversor[0], codigo))
+        pareja_id = cur.fetchone()[0]; conn.commit()
+        return {'pareja_id': pareja_id, 'codigo': codigo}
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo crear la pareja: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.post("/api/domino/torneos/{torneo_id}/parejas/unirse")
+def unirse_pareja_torneo_domino(torneo_id: int, datos: DominoCodigoParejaRequest, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'inversor': raise HTTPException(status_code=403, detail="Solo los inversores pueden inscribirse")
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tablas_torneo_domino(cur)
+        cur.execute("SELECT id, jugador_uno_id, jugador_dos_id, estado FROM domino_parejas_torneo WHERE torneo_id = %s AND codigo = %s FOR UPDATE", (torneo_id, datos.codigo.strip().upper()))
+        pareja = cur.fetchone()
+        if not pareja or pareja[3] != 'pendiente': raise HTTPException(status_code=400, detail="Código de pareja no disponible")
+        if pareja[1] == usuario.get('inversor_id') or pareja[2]: raise HTTPException(status_code=400, detail="No puedes unirte a esta pareja")
+        cur.execute("SELECT nombre FROM inversores WHERE id = %s", (usuario.get('inversor_id'),)); inversor = cur.fetchone()
+        if not inversor: raise HTTPException(status_code=404, detail="Inversor no encontrado")
+        cur.execute("UPDATE domino_parejas_torneo SET jugador_dos_id = %s, jugador_dos_nombre = %s WHERE id = %s", (usuario.get('inversor_id'), inversor[0], pareja[0]))
+        conn.commit(); return {'pareja_id': pareja[0], 'estado': 'pendiente'}
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo unir a la pareja: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.post("/api/admin/domino/torneos/{torneo_id}/parejas/{pareja_id}/aprobar")
+def aprobar_pareja_torneo_domino(torneo_id: int, pareja_id: int, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin': raise HTTPException(status_code=403, detail="Acceso denegado")
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tablas_torneo_domino(cur)
+        cur.execute("UPDATE domino_parejas_torneo SET estado = 'aprobada' WHERE id = %s AND torneo_id = %s AND jugador_dos_id IS NOT NULL", (pareja_id, torneo_id))
+        if cur.rowcount != 1: raise HTTPException(status_code=400, detail="La pareja debe tener dos jugadores para aprobarse")
+        conn.commit(); return {'ok': True}
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo aprobar la pareja: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.post("/api/admin/domino/torneos/{torneo_id}/siguiente-ronda")
+def siguiente_ronda_torneo_domino(torneo_id: int, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin': raise HTTPException(status_code=403, detail="Acceso denegado")
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tablas_torneo_domino(cur)
+        cur.execute("SELECT estado, rondas_suizas FROM domino_torneos WHERE id = %s FOR UPDATE", (torneo_id,)); torneo = cur.fetchone()
+        if not torneo or torneo[0] == 'finalizado': raise HTTPException(status_code=400, detail="El torneo no está disponible")
+        cur.execute("SELECT COUNT(*) FROM domino_emparejamientos_torneo WHERE torneo_id = %s AND estado != 'finalizada'", (torneo_id,))
+        if cur.fetchone()[0]: raise HTTPException(status_code=400, detail="Aún hay mesas sin terminar")
+        ranking = _ranking_torneo_domino(cur, torneo_id)
+        if torneo[0] == 'inscripcion':
+            if len(ranking) < 4 or len(ranking) % 2: raise HTTPException(status_code=400, detail="Se necesitan al menos cuatro parejas aprobadas y un número par")
+            cruces, ronda, fase = _parejas_suizas_domino(ranking, aleatorio=True), 1, 'suizo'
+            cur.execute("UPDATE domino_torneos SET estado = 'suizo' WHERE id = %s", (torneo_id,))
+        elif torneo[0] == 'suizo':
+            cur.execute("SELECT COALESCE(MAX(ronda), 0) FROM domino_emparejamientos_torneo WHERE torneo_id = %s AND fase = 'suizo'", (torneo_id,)); ronda_actual = cur.fetchone()[0]
+            if ronda_actual < torneo[1]: cruces, ronda, fase = _parejas_suizas_domino(ranking), ronda_actual + 1, 'suizo'
+            else:
+                if len(ranking) < 8: raise HTTPException(status_code=400, detail="El top 8 requiere al menos ocho parejas")
+                cruces, ronda, fase = [(ranking[0]['id'], ranking[7]['id']), (ranking[1]['id'], ranking[6]['id']), (ranking[2]['id'], ranking[5]['id']), (ranking[3]['id'], ranking[4]['id'])], 1, 'cuartos'
+                cur.execute("UPDATE domino_torneos SET estado = 'eliminatorias' WHERE id = %s", (torneo_id,))
+        else:
+            cur.execute("SELECT fase, ganador_pareja_id, pareja_a_id, pareja_b_id FROM domino_emparejamientos_torneo WHERE torneo_id = %s ORDER BY id", (torneo_id,))
+            resultados = cur.fetchall(); fases = [fila[0] for fila in resultados]
+            if 'final' in fases and 'tercer_puesto' in fases:
+                cur.execute("UPDATE domino_torneos SET estado = 'finalizado' WHERE id = %s", (torneo_id,)); conn.commit(); return {'estado': 'finalizado'}
+            cuartos = [fila for fila in resultados if fila[0] == 'cuartos']
+            semis = [fila for fila in resultados if fila[0] == 'semifinal']
+            if len(cuartos) == 4 and not semis:
+                ganadores = [fila[1] for fila in cuartos]
+                cruces, ronda, fase = [(ganadores[0], ganadores[3]), (ganadores[1], ganadores[2])], 1, 'semifinal'
+            elif len(semis) == 2:
+                ganadores = [fila[1] for fila in semis]
+                perdedores = [fila[3] if fila[1] == fila[2] else fila[2] for fila in semis]
+                _crear_emparejamientos_torneo(cur, torneo_id, 1, 'final', [(ganadores[0], ganadores[1])])
+                _crear_emparejamientos_torneo(cur, torneo_id, 1, 'tercer_puesto', [(perdedores[0], perdedores[1])])
+                conn.commit(); return {'estado': 'final', 'mesas': 2}
+            else: raise HTTPException(status_code=400, detail="No se puede generar la siguiente fase todavía")
+        _crear_emparejamientos_torneo(cur, torneo_id, ronda, fase, cruces)
+        conn.commit(); return {'estado': fase, 'ronda': ronda, 'mesas': len(cruces)}
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo generar la ronda: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.get("/api/domino/torneos/{torneo_id}")
+def obtener_torneo_domino(torneo_id: int, usuario=Depends(obtener_usuario_actual)):
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tablas_torneo_domino(cur)
+        cur.execute("SELECT nombre, max_parejas, rondas_suizas, estado, premios FROM domino_torneos WHERE id = %s", (torneo_id,)); torneo = cur.fetchone()
+        if not torneo: raise HTTPException(status_code=404, detail="Torneo no encontrado")
+        ranking = _ranking_torneo_domino(cur, torneo_id)
+        cur.execute("""
+            SELECT e.id, e.ronda, e.fase, e.pareja_a_id, e.pareja_b_id, e.partida_codigo, e.estado, e.ganador_pareja_id
+            FROM domino_emparejamientos_torneo e WHERE e.torneo_id = %s ORDER BY e.id DESC
+        """, (torneo_id,))
+        nombres = {pareja['id']: f"{pareja['jugador_uno']} y {pareja['jugador_dos']}" for pareja in ranking}
+        mesas = [{'id': fila[0], 'ronda': fila[1], 'fase': fila[2], 'pareja_a': nombres.get(fila[3], 'Pareja'), 'pareja_b': nombres.get(fila[4], 'Pareja'), 'codigo': fila[5], 'estado': fila[6], 'ganador_pareja_id': fila[7]} for fila in cur.fetchall()]
+        cur.execute("SELECT id, jugador_uno_nombre, jugador_dos_nombre, estado FROM domino_parejas_torneo WHERE torneo_id = %s ORDER BY id", (torneo_id,))
+        parejas = [{'id': fila[0], 'jugador_uno': fila[1], 'jugador_dos': fila[2], 'estado': fila[3]} for fila in cur.fetchall()]
+        cur.execute("SELECT id, jugador_uno_id, jugador_dos_id, codigo, estado FROM domino_parejas_torneo WHERE torneo_id = %s AND (%s IN (jugador_uno_id, jugador_dos_id))", (torneo_id, usuario.get('inversor_id')))
+        mi_pareja = cur.fetchone()
+        conn.commit()
+        return {'id': torneo_id, 'nombre': torneo[0], 'max_parejas': torneo[1], 'rondas_suizas': torneo[2], 'estado': torneo[3], 'premios': torneo[4], 'ranking': ranking, 'parejas': parejas, 'mesas': mesas, 'mi_pareja': {'id': mi_pareja[0], 'codigo': mi_pareja[3], 'estado': mi_pareja[4]} if mi_pareja else None}
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo cargar el torneo: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
 
 def _iniciar_mano_domino(jugadores, puntuacion, salidor_anterior=None, primera_mano=False, numero_mano=1):
     fichas = [[valor_izquierdo, valor_derecho] for valor_izquierdo in range(7) for valor_derecho in range(valor_izquierdo, 7)]
@@ -3540,6 +3877,7 @@ def _terminar_mano_domino(juego, jugadores, equipo_ganador, motivo):
         juego['eventos'].append(f"La pareja {equipo_ganador + 1} gana la partida.")
         return 'finalizada', juego
     siguiente = _iniciar_mano_domino(jugadores, juego['puntuacion'], juego['salidor'], numero_mano=juego['mano'] + 1)
+    siguiente['ubicaciones'] = juego.get('ubicaciones', {})
     siguiente['eventos'] = juego['eventos'][-5:] + siguiente['eventos']
     return 'jugando', siguiente
 
@@ -3749,7 +4087,9 @@ def jugar_domino(codigo: str, datos: DominoJugadaRequest, usuario=Depends(obtene
         else: juego['mesa'].append(ficha_orientada)
         juego['pases_seguidos'] = 0
         juego['eventos'].append(f"{jugadores[posicion]['nombre']} jugó {ficha_real[0]}-{ficha_real[1]}.")
-        if not mano: estado, juego = _terminar_mano_domino(juego, jugadores, posicion % 2, 'cierre')
+        if not mano:
+            estado, juego = _terminar_mano_domino(juego, jugadores, posicion % 2, 'cierre')
+            if estado == 'finalizada': _registrar_resultado_torneo_domino(cur, codigo, juego)
         else: juego['turno'] = (posicion + 1) % 4
         cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))
         conn.commit()
@@ -3781,6 +4121,7 @@ def pasar_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
             suma_pareja_uno = sum(sum(ficha) for indice in (1, 3) for ficha in juego['manos'][str(jugadores[indice]['id'])])
             equipo_ganador = juego['salidor'] % 2 if suma_pareja_cero == suma_pareja_uno else 0 if suma_pareja_cero < suma_pareja_uno else 1
             estado, juego = _terminar_mano_domino(juego, jugadores, equipo_ganador, 'tranca')
+            if estado == 'finalizada': _registrar_resultado_torneo_domino(cur, codigo, juego)
         else:
             juego['turno'] = (posicion + 1) % 4
         cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))

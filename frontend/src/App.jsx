@@ -22,6 +22,7 @@ import ProgramaCombinado from './components/ProgramaCombinado'
 import ChatbotIA from './components/ChatbotIA'
 import MercadoP2P from './components/MercadoP2P'
 import Domino from './components/Domino'
+import TorneosDomino from './components/TorneosDomino'
 
 function SobreNosotros() {
   return (
@@ -265,6 +266,7 @@ function App() {
           <Route path="/perfil" element={<PerfilInversor />} />
           <Route path="/mercado" element={isAuthenticated ? <MercadoP2P /> : <Navigate to="/login" />} />
           <Route path="/domino" element={isAuthenticated ? <Domino /> : <Navigate to="/login" />} />
+          <Route path="/domino/torneos" element={isAuthenticated ? <TorneosDomino /> : <Navigate to="/login" />} />
           <Route
             path="/comunidad"
             element={isAuthenticated ? <Comunidad /> : <Navigate to="/login" />}
@@ -283,6 +285,7 @@ function App() {
             path="/admin/operaciones"
             element={currentUser?.role === 'admin' ? <AdminOperaciones /> : <Navigate to="/admin/login" />}
           />
+          <Route path="/admin/torneos-domino" element={currentUser?.role === 'admin' ? <TorneosDomino admin /> : <Navigate to="/admin/login" />} />
 
           {/* REDIRECTS */}
           <Route path="/portal" element={<Navigate to="/dashboard" replace />} />

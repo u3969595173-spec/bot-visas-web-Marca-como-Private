@@ -89,6 +89,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
           {isAdmin && (
             <>
               <Link to="/admin" className={`nav-link ${isActive('/admin')}`}>Panel Admin</Link>
+              <Link to="/admin/torneos-domino" className={`nav-link ${isActive('/admin/torneos-domino')}`}>Torneos</Link>
               <button onClick={handleLogout} className="logout-btn">Salir</button>
             </>
           )}
@@ -135,6 +136,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
             {isAdmin && (
               <>
                 <Link to="/admin" className="mobile-menu-link" onClick={closeMobileMenu}>Panel Admin</Link>
+                <Link to="/admin/torneos-domino" className="mobile-menu-link" onClick={closeMobileMenu}>Torneos</Link>
                 <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">Cerrar sesión</button>
               </>
             )}
