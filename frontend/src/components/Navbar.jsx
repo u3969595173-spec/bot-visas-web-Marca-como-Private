@@ -80,7 +80,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
           {userIsAuthenticated && !isAdmin && (
             <>
               <Link to="/dashboard" className={`nav-link ${isActive('/dashboard')}`}>Dashboard</Link>
-              <Link to="/domino" className={`nav-link ${isActive('/domino')}`}>Dominó</Link>
+              <Link to="/domino/torneos" className={`nav-link ${isActive('/domino/torneos')}`}>Torneos</Link>
               <Link to="/perfil" className={`nav-link ${isActive('/perfil')}`}>Perfil</Link>
               <button onClick={handleLogout} className="logout-btn">Salir</button>
             </>
@@ -127,7 +127,7 @@ const Navbar = ({ isAuthenticated, setCurrentUser }) => {
             {userIsAuthenticated && !isAdmin && (
               <>
                 <Link to="/dashboard" className="mobile-menu-link" onClick={closeMobileMenu}>Dashboard</Link>
-                <Link to="/domino" className="mobile-menu-link" onClick={closeMobileMenu}>Dominó</Link>
+                <Link to="/domino/torneos" className="mobile-menu-link" onClick={closeMobileMenu}>Torneos</Link>
                 <Link to="/perfil" className="mobile-menu-link" onClick={closeMobileMenu}>Perfil</Link>
                 <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="mobile-menu-logout">Cerrar sesión</button>
               </>

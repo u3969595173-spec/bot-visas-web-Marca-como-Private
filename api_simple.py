@@ -3934,6 +3934,8 @@ def listar_partidas_domino(usuario=Depends(obtener_usuario_actual)):
 
 @app.post("/api/domino/partidas")
 def crear_partida_domino(datos: DominoPartidaRequest, usuario=Depends(obtener_usuario_actual)):
+    raise HTTPException(status_code=403, detail="Las mesas solo se crean desde un torneo")
+
     if usuario.get('rol') != 'inversor':
         raise HTTPException(status_code=403, detail="Solo los inversores pueden crear salas")
     conn = None
@@ -3960,6 +3962,8 @@ def crear_partida_domino(datos: DominoPartidaRequest, usuario=Depends(obtener_us
 
 @app.post("/api/domino/partidas/{codigo}/unirse")
 def unirse_partida_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
+    raise HTTPException(status_code=403, detail="Las mesas solo se asignan desde un torneo")
+
     if usuario.get('rol') != 'inversor':
         raise HTTPException(status_code=403, detail="Solo los inversores pueden unirse a salas")
     conn = None
