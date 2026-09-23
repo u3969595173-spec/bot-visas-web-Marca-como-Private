@@ -3867,7 +3867,8 @@ def _iniciar_mano_domino(jugadores, puntuacion, salidor_anterior=None, primera_m
         salidor = (salidor_anterior + 1) % 4
     return {
         'mano': numero_mano, 'puntuacion': puntuacion, 'salidor': salidor, 'turno': salidor,
-        'mesa': [], 'manos': manos, 'pases_seguidos': 0, 'ubicaciones': {},
+        'mesa': [], 'salida': None, 'rama_izquierda': [], 'rama_derecha': [],
+        'manos': manos, 'pases_seguidos': 0, 'ubicaciones': {},
         'eventos': [f"Comienza la mano {numero_mano}. Sale {jugadores[salidor]['nombre']}."]
     }
 
@@ -3921,7 +3922,8 @@ def _vista_domino(jugadores, juego, jugador_id, estado):
     if juego:
         respuesta.update({
             'mano': juego['mano'], 'puntuacion': juego['puntuacion'], 'salidor': juego['salidor'],
-            'turno': juego['turno'], 'mesa': juego['mesa'],
+            'turno': juego['turno'], 'mesa': juego['mesa'], 'salida': juego.get('salida'),
+            'rama_izquierda': juego.get('rama_izquierda', []), 'rama_derecha': juego.get('rama_derecha', []),
             'mis_fichas': juego['manos'].get(str(jugador_id), []),
             'pases_seguidos': juego['pases_seguidos'], 'eventos': juego.get('eventos', [])[-6:],
             'ganador': juego.get('ganador'),
@@ -4112,6 +4114,12 @@ def jugar_domino(codigo: str, datos: DominoJugadaRequest, usuario=Depends(obtene
             if extremo not in ficha_real: raise HTTPException(status_code=400, detail="La ficha no encaja a la derecha")
             ficha_orientada = ficha_real if ficha_real[0] == extremo else ficha_real[::-1]
         mano.remove(ficha_real)
+        if not juego['mesa']:
+            juego['salida'] = ficha_orientada
+        elif datos.lado == 'izquierda':
+            juego.setdefault('rama_izquierda', []).append(ficha_orientada[::-1])
+        else:
+            juego.setdefault('rama_derecha', []).append(ficha_orientada)
         if datos.lado == 'izquierda': juego['mesa'].insert(0, ficha_orientada)
         else: juego['mesa'].append(ficha_orientada)
         juego['pases_seguidos'] = 0
