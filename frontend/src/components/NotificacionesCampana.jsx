@@ -6,6 +6,17 @@ const NotificacionesCampana = () => {
     const [notificaciones, setNotificaciones] = useState([]);
     const [abierto, setAbierto] = useState(false);
     const menuRef = useRef(null);
+    const notificacionesConocidasRef = useRef(null);
+
+    const mostrarNotificacionDelSistema = (notificacion) => {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+        new Notification('Capital Trade', {
+            body: notificacion.mensaje,
+            tag: `notificacion-${notificacion.id}`,
+            renotify: true
+        });
+    };
 
     const fetchNotificaciones = async () => {
         try {
@@ -17,7 +28,17 @@ const NotificacionesCampana = () => {
             });
             if (res.ok) {
                 const data = await res.json();
-                setNotificaciones(data.notificaciones || []);
+                const nuevasNotificaciones = data.notificaciones || [];
+                const idsActuales = new Set(nuevasNotificaciones.map(notificacion => notificacion.id));
+
+                if (notificacionesConocidasRef.current) {
+                    nuevasNotificaciones
+                        .filter(notificacion => !notificacion.leida && !notificacionesConocidasRef.current.has(notificacion.id))
+                        .forEach(mostrarNotificacionDelSistema);
+                }
+
+                notificacionesConocidasRef.current = idsActuales;
+                setNotificaciones(nuevasNotificaciones);
             }
         } catch (error) {
             console.error("Error obteniendo notificaciones", error);
@@ -26,8 +47,7 @@ const NotificacionesCampana = () => {
 
     useEffect(() => {
         fetchNotificaciones();
-        // Auto-refresh cada 60 segundos
-        const interval = setInterval(fetchNotificaciones, 60000);
+        const interval = setInterval(fetchNotificaciones, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -77,10 +97,19 @@ const NotificacionesCampana = () => {
 
     const esMobile = window.innerWidth <= 768;
 
+    const abrirNotificaciones = async () => {
+        setAbierto(!abierto);
+        if ('Notification' in window && Notification.permission === 'default') {
+            await Notification.requestPermission();
+        }
+    };
+
     return (
         <div style={{ position: 'relative' }} ref={menuRef}>
             <button
-                onClick={() => setAbierto(!abierto)}
+                onClick={abrirNotificaciones}
+                aria-label="Abrir notificaciones"
+                title="Abrir notificaciones y activar avisos del sistema"
                 style={{
                     background: 'none', border: 'none', fontSize: '22px',
                     cursor: 'pointer', position: 'relative', padding: '8px',
