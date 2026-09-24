@@ -3684,6 +3684,53 @@ def simular_partida_bots_domino(usuario=Depends(obtener_usuario_actual)):
     except RuntimeError as error:
         raise HTTPException(status_code=500, detail=str(error))
 
+@app.post("/api/admin/domino/practica/iniciar")
+def iniciar_practica_bots_domino(usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tabla_domino(cur)
+        jugadores = [
+            {'id': -1, 'nombre': 'Ana Bot'}, {'id': -2, 'nombre': 'Jorge Bot'},
+            {'id': -3, 'nombre': 'Maria Bot'}, {'id': -4, 'nombre': 'Carlos Bot'}
+        ]
+        codigo = _crear_codigo_domino(cur)
+        juego = _iniciar_mano_domino(jugadores, {'0': 0, '1': 0}, primera_mano=True)
+        cur.execute("INSERT INTO domino_partidas (codigo, estado, jugadores, juego) VALUES (%s, 'jugando', %s, %s)", (codigo, Json(jugadores), Json(juego)))
+        conn.commit()
+        return _vista_practica_bots_domino(codigo, 'jugando', jugadores, juego)
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo iniciar la práctica: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
+@app.post("/api/admin/domino/practica/{codigo}/avanzar")
+def avanzar_practica_bots_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tabla_domino(cur)
+        cur.execute("SELECT estado, jugadores, juego FROM domino_partidas WHERE codigo = %s FOR UPDATE", (codigo.upper(),))
+        fila = cur.fetchone()
+        if not fila: raise HTTPException(status_code=404, detail="Práctica no encontrada")
+        estado, jugadores, juego = fila
+        if estado == 'jugando':
+            estado, juego = _jugar_turno_bot_domino(juego, jugadores)
+            cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))
+        conn.commit()
+        return _vista_practica_bots_domino(codigo.upper(), estado, jugadores, juego)
+    except HTTPException:
+        if conn: conn.rollback()
+        raise
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo avanzar la práctica: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
 @app.post("/api/admin/domino/torneos")
 def crear_torneo_domino(datos: DominoTorneoRequest, usuario=Depends(obtener_usuario_actual)):
     if usuario.get('rol') != 'admin': raise HTTPException(status_code=403, detail="Acceso denegado")
@@ -3988,6 +4035,19 @@ def _simular_partida_bots_domino():
     return {
         'ganador': f"Pareja {juego['ganador'] + 1}", 'puntuacion': juego['puntuacion'],
         'manos_jugadas': juego['mano'], 'turnos': turnos, 'eventos': historial[-12:]
+    }
+
+def _vista_practica_bots_domino(codigo, estado, jugadores, juego):
+    return {
+        'codigo': codigo, 'estado': estado, 'mano': juego['mano'], 'turno': juego['turno'],
+        'jugadores': [
+            {'nombre': jugador['nombre'], 'fichas': len(juego['manos'][str(jugador['id'])])}
+            for jugador in jugadores
+        ],
+        'puntuacion': juego['puntuacion'], 'mesa': juego['mesa'], 'salida': juego.get('salida'),
+        'rama_izquierda': juego.get('rama_izquierda', []), 'rama_derecha': juego.get('rama_derecha', []),
+        'ganador': f"Pareja {juego['ganador'] + 1}" if juego.get('ganador') is not None else None,
+        'eventos': juego.get('eventos', [])[-8:]
     }
 
 def _vista_domino(jugadores, juego, jugador_id, estado):
