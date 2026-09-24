@@ -3675,6 +3675,15 @@ def listar_torneos_domino(usuario=Depends(obtener_usuario_actual)):
     finally:
         if conn: release_conn(conn)
 
+@app.post("/api/admin/domino/practica/simular")
+def simular_partida_bots_domino(usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    try:
+        return _simular_partida_bots_domino()
+    except RuntimeError as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
 @app.post("/api/admin/domino/torneos")
 def crear_torneo_domino(datos: DominoTorneoRequest, usuario=Depends(obtener_usuario_actual)):
     if usuario.get('rol') != 'admin': raise HTTPException(status_code=403, detail="Acceso denegado")
@@ -3906,6 +3915,77 @@ def _terminar_mano_domino(juego, jugadores, equipo_ganador, motivo):
     siguiente['ubicaciones'] = juego.get('ubicaciones', {})
     siguiente['eventos'] = juego['eventos'][-5:] + siguiente['eventos']
     return 'jugando', siguiente
+
+def _elegir_jugada_bot_domino(juego, jugadores, posicion):
+    mano = juego['manos'][str(jugadores[posicion]['id'])]
+    if not juego['mesa']:
+        return ([6, 6], 'derecha', [6, 6]) if [6, 6] in mano else (None, None, None)
+    extremo_izquierdo, extremo_derecho = juego['mesa'][0][0], juego['mesa'][-1][1]
+    opciones = []
+    for ficha in mano:
+        if extremo_izquierdo in ficha:
+            orientada = ficha if ficha[1] == extremo_izquierdo else ficha[::-1]
+            opciones.append((sum(ficha), ficha[0] == ficha[1], ficha, 'izquierda', orientada))
+        if extremo_derecho in ficha:
+            orientada = ficha if ficha[0] == extremo_derecho else ficha[::-1]
+            opciones.append((sum(ficha), ficha[0] == ficha[1], ficha, 'derecha', orientada))
+    if not opciones:
+        return None, None
+    _, _, ficha, lado, orientada = max(opciones, key=lambda opcion: (opcion[0], opcion[1], opcion[2]))
+    return (ficha, lado, orientada)
+
+def _jugar_turno_bot_domino(juego, jugadores):
+    posicion = juego['turno']
+    jugador = jugadores[posicion]
+    mano = juego['manos'][str(jugador['id'])]
+    seleccion = _elegir_jugada_bot_domino(juego, jugadores, posicion)
+    if seleccion[0] is None:
+        juego['pases_seguidos'] += 1
+        juego['eventos'].append(f"{jugador['nombre']} pasó.")
+        if juego['pases_seguidos'] >= 4:
+            suma_pareja_cero = sum(sum(ficha) for indice in (0, 2) for ficha in juego['manos'][str(jugadores[indice]['id'])])
+            suma_pareja_uno = sum(sum(ficha) for indice in (1, 3) for ficha in juego['manos'][str(jugadores[indice]['id'])])
+            ganador = juego['salidor'] % 2 if suma_pareja_cero == suma_pareja_uno else 0 if suma_pareja_cero < suma_pareja_uno else 1
+            return _terminar_mano_domino(juego, jugadores, ganador, 'tranca')
+        juego['turno'] = (posicion + 1) % 4
+        return 'jugando', juego
+    ficha_real, lado, ficha_orientada = seleccion
+    mano.remove(ficha_real)
+    if not juego['mesa']:
+        juego['salida'] = ficha_orientada
+    elif lado == 'izquierda':
+        juego.setdefault('rama_izquierda', []).append(ficha_orientada[::-1])
+    else:
+        juego.setdefault('rama_derecha', []).append(ficha_orientada)
+    if lado == 'izquierda':
+        juego['mesa'].insert(0, ficha_orientada)
+    else:
+        juego['mesa'].append(ficha_orientada)
+    juego['pases_seguidos'] = 0
+    juego['eventos'].append(f"{jugador['nombre']} jugó {ficha_real[0]}-{ficha_real[1]}.")
+    if not mano:
+        return _terminar_mano_domino(juego, jugadores, posicion % 2, 'cierre')
+    juego['turno'] = (posicion + 1) % 4
+    return 'jugando', juego
+
+def _simular_partida_bots_domino():
+    jugadores = [
+        {'id': -1, 'nombre': 'Ana Bot'}, {'id': -2, 'nombre': 'Jorge Bot'},
+        {'id': -3, 'nombre': 'Maria Bot'}, {'id': -4, 'nombre': 'Carlos Bot'}
+    ]
+    juego = _iniciar_mano_domino(jugadores, {'0': 0, '1': 0}, primera_mano=True)
+    estado, turnos = 'jugando', 0
+    historial = []
+    while estado == 'jugando' and turnos < 10000:
+        estado, juego = _jugar_turno_bot_domino(juego, jugadores)
+        historial.extend(juego.get('eventos', [])[-1:])
+        turnos += 1
+    if estado != 'finalizada':
+        raise RuntimeError('La simulación de bots no pudo terminar la partida')
+    return {
+        'ganador': f"Pareja {juego['ganador'] + 1}", 'puntuacion': juego['puntuacion'],
+        'manos_jugadas': juego['mano'], 'turnos': turnos, 'eventos': historial[-12:]
+    }
 
 def _vista_domino(jugadores, juego, jugador_id, estado):
     posicion = next((indice for indice, jugador in enumerate(jugadores) if jugador['id'] == jugador_id), None)
