@@ -3919,7 +3919,10 @@ def _terminar_mano_domino(juego, jugadores, equipo_ganador, motivo):
 def _elegir_jugada_bot_domino(juego, jugadores, posicion):
     mano = juego['manos'][str(jugadores[posicion]['id'])]
     if not juego['mesa']:
-        return ([6, 6], 'derecha', [6, 6]) if [6, 6] in mano else (None, None, None)
+        if juego['mano'] == 1:
+            return ([6, 6], 'derecha', [6, 6]) if [6, 6] in mano else (None, None, None)
+        ficha = max(mano, key=lambda opcion: (sum(opcion), opcion[0] == opcion[1], opcion))
+        return ficha, 'derecha', ficha
     extremo_izquierdo, extremo_derecho = juego['mesa'][0][0], juego['mesa'][-1][1]
     opciones = []
     for ficha in mano:
