@@ -3706,6 +3706,30 @@ def iniciar_practica_bots_domino(usuario=Depends(obtener_usuario_actual)):
     finally:
         if conn: release_conn(conn)
 
+@app.post("/api/admin/domino/practica/jugar")
+def iniciar_practica_admin_con_bots_domino(usuario=Depends(obtener_usuario_actual)):
+    if usuario.get('rol') != 'admin':
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    conn = None
+    try:
+        conn = get_conn(); cur = conn.cursor(); _asegurar_tabla_domino(cur)
+        jugadores = [
+            {'id': '__admin_practica__', 'nombre': 'Administrador'}, {'id': -2, 'nombre': 'Jorge Bot'},
+            {'id': -3, 'nombre': 'Ana Bot'}, {'id': -4, 'nombre': 'Maria Bot'}
+        ]
+        codigo = _crear_codigo_domino(cur)
+        juego = _iniciar_mano_domino(jugadores, {'0': 0, '1': 0}, primera_mano=True)
+        juego['practica_bots'] = True
+        estado, juego = _avanzar_bots_hasta_humano_domino(juego, jugadores, 0)
+        cur.execute("INSERT INTO domino_partidas (codigo, estado, jugadores, juego) VALUES (%s, %s, %s, %s)", (codigo, estado, Json(jugadores), Json(juego)))
+        conn.commit()
+        return {'codigo': codigo}
+    except Exception as error:
+        if conn: conn.rollback()
+        raise HTTPException(status_code=500, detail=f"No se pudo iniciar la práctica: {str(error)}")
+    finally:
+        if conn: release_conn(conn)
+
 @app.post("/api/admin/domino/practica/{codigo}/avanzar")
 def avanzar_practica_bots_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
     if usuario.get('rol') != 'admin':
@@ -4018,6 +4042,12 @@ def _jugar_turno_bot_domino(juego, jugadores):
     juego['turno'] = (posicion + 1) % 4
     return 'jugando', juego
 
+def _avanzar_bots_hasta_humano_domino(juego, jugadores, posicion_humana):
+    estado = 'jugando'
+    while estado == 'jugando' and juego['turno'] != posicion_humana:
+        estado, juego = _jugar_turno_bot_domino(juego, jugadores)
+    return estado, juego
+
 def _simular_partida_bots_domino():
     jugadores = [
         {'id': -1, 'nombre': 'Ana Bot'}, {'id': -2, 'nombre': 'Jorge Bot'},
@@ -4050,6 +4080,11 @@ def _vista_practica_bots_domino(codigo, estado, jugadores, juego):
         'eventos': juego.get('eventos', [])[-8:]
     }
 
+def _jugador_id_domino(usuario):
+    if usuario.get('rol') == 'admin':
+        return '__admin_practica__'
+    return usuario.get('inversor_id')
+
 def _vista_domino(jugadores, juego, jugador_id, estado):
     posicion = next((indice for indice, jugador in enumerate(jugadores) if jugador['id'] == jugador_id), None)
     if posicion is None:
@@ -4070,7 +4105,7 @@ def _vista_domino(jugadores, juego, jugador_id, estado):
             'mis_fichas': juego['manos'].get(str(jugador_id), []),
             'pases_seguidos': juego['pases_seguidos'], 'eventos': juego.get('eventos', [])[-6:],
             'ganador': juego.get('ganador'),
-            'ubicacion_pareja_lista': all(
+            'ubicacion_pareja_lista': juego.get('practica_bots') or all(
                 str(jugadores[indice]['id']) in juego.get('ubicaciones', {})
                 for indice in (posicion, (posicion + 2) % 4)
             )
@@ -4180,7 +4215,7 @@ def obtener_partida_domino(codigo: str, usuario=Depends(obtener_usuario_actual))
         cur.execute("SELECT estado, jugadores, juego FROM domino_partidas WHERE codigo = %s", (codigo.upper(),))
         fila = cur.fetchone()
         if not fila: raise HTTPException(status_code=404, detail="Sala no encontrada")
-        return _vista_domino(fila[1] or [], fila[2], usuario.get('inversor_id'), fila[0])
+        return _vista_domino(fila[1] or [], fila[2], _jugador_id_domino(usuario), fila[0])
     except HTTPException:
         raise
     except Exception as error:
@@ -4198,7 +4233,8 @@ def _cargar_partida_para_jugada(cur, codigo, jugador_id):
     if posicion is None: raise HTTPException(status_code=403, detail="No perteneces a esta partida")
     if estado != 'jugando': raise HTTPException(status_code=400, detail="La partida no está en juego")
     if juego['turno'] != posicion: raise HTTPException(status_code=400, detail="No es tu turno")
-    _validar_distancia_pareja_domino(juego, jugadores, posicion)
+    if not juego.get('practica_bots'):
+        _validar_distancia_pareja_domino(juego, jugadores, posicion)
     return estado, jugadores, juego, posicion
 
 @app.post("/api/domino/partidas/{codigo}/ubicacion")
@@ -4214,7 +4250,7 @@ def actualizar_ubicacion_domino(codigo: str, datos: DominoUbicacionRequest, usua
         fila = cur.fetchone()
         if not fila: raise HTTPException(status_code=404, detail="Sala no encontrada")
         estado, jugadores, juego = fila[0], fila[1] or [], fila[2]
-        jugador_id = usuario.get('inversor_id')
+        jugador_id = _jugador_id_domino(usuario)
         if not any(jugador['id'] == jugador_id for jugador in jugadores):
             raise HTTPException(status_code=403, detail="No perteneces a esta partida")
         if estado != 'jugando' or not juego:
@@ -4240,8 +4276,9 @@ def jugar_domino(codigo: str, datos: DominoJugadaRequest, usuario=Depends(obtene
     try:
         conn = get_conn()
         cur = conn.cursor()
-        estado, jugadores, juego, posicion = _cargar_partida_para_jugada(cur, codigo, usuario.get('inversor_id'))
-        mano = juego['manos'][str(usuario.get('inversor_id'))]
+        jugador_id = _jugador_id_domino(usuario)
+        estado, jugadores, juego, posicion = _cargar_partida_para_jugada(cur, codigo, jugador_id)
+        mano = juego['manos'][str(jugador_id)]
         ficha = list(datos.ficha)
         ficha_real = ficha if ficha in mano else ficha[::-1] if ficha[::-1] in mano else None
         if not ficha_real: raise HTTPException(status_code=400, detail="No tienes esa ficha")
@@ -4271,9 +4308,11 @@ def jugar_domino(codigo: str, datos: DominoJugadaRequest, usuario=Depends(obtene
             estado, juego = _terminar_mano_domino(juego, jugadores, posicion % 2, 'cierre')
             if estado == 'finalizada': _registrar_resultado_torneo_domino(cur, codigo, juego)
         else: juego['turno'] = (posicion + 1) % 4
+        if estado == 'jugando' and juego.get('practica_bots'):
+            estado, juego = _avanzar_bots_hasta_humano_domino(juego, jugadores, posicion)
         cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))
         conn.commit()
-        return _vista_domino(jugadores, juego, usuario.get('inversor_id'), estado)
+        return _vista_domino(jugadores, juego, jugador_id, estado)
     except HTTPException:
         if conn: conn.rollback()
         raise
@@ -4289,8 +4328,9 @@ def pasar_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
     try:
         conn = get_conn()
         cur = conn.cursor()
-        estado, jugadores, juego, posicion = _cargar_partida_para_jugada(cur, codigo, usuario.get('inversor_id'))
-        mano = juego['manos'][str(usuario.get('inversor_id'))]
+        jugador_id = _jugador_id_domino(usuario)
+        estado, jugadores, juego, posicion = _cargar_partida_para_jugada(cur, codigo, jugador_id)
+        mano = juego['manos'][str(jugador_id)]
         if juego['mesa']:
             extremos = {juego['mesa'][0][0], juego['mesa'][-1][1]}
             if any(valor in extremos for ficha in mano for valor in ficha): raise HTTPException(status_code=400, detail="Tienes una ficha que puedes jugar")
@@ -4304,9 +4344,11 @@ def pasar_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
             if estado == 'finalizada': _registrar_resultado_torneo_domino(cur, codigo, juego)
         else:
             juego['turno'] = (posicion + 1) % 4
+        if estado == 'jugando' and juego.get('practica_bots'):
+            estado, juego = _avanzar_bots_hasta_humano_domino(juego, jugadores, posicion)
         cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))
         conn.commit()
-        return _vista_domino(jugadores, juego, usuario.get('inversor_id'), estado)
+        return _vista_domino(jugadores, juego, jugador_id, estado)
     except HTTPException:
         if conn: conn.rollback()
         raise
