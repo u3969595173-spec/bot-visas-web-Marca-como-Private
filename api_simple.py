@@ -299,11 +299,6 @@ async def repartir_diario(datos: PayoutRequest, usuario = Depends(obtener_usuari
             WHERE (estado = 'Aprobada' OR estado = 'Activa') 
               AND fecha_aprobacion IS NOT NULL
               AND fecha_aprobacion + INTERVAL '72 hours' <= CURRENT_TIMESTAMP
-                            AND NOT EXISTS (
-                                    SELECT 1 FROM pagos_rentabilidad pr
-                                    WHERE pr.aportacion_id = aportaciones.id
-                                        AND pr.created_at::date = CURRENT_DATE
-                            )
         """)
         oportunidades = cur.fetchall()
         

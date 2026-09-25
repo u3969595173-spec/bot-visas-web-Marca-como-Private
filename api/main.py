@@ -1619,7 +1619,6 @@ async def repartir_diario(datos: PayoutRequest, usuario=Depends(obtener_usuario_
             WHERE (estado = 'Aprobada' OR estado = 'Activa')
               AND fecha_aprobacion IS NOT NULL
               AND fecha_aprobacion + INTERVAL '72 hours' <= CURRENT_TIMESTAMP
-              AND (ultima_fecha_pago IS NULL OR ultima_fecha_pago < CURRENT_DATE)
         """)
         oportunidades = cur.fetchall()
 
@@ -1650,7 +1649,7 @@ async def repartir_diario(datos: PayoutRequest, usuario=Depends(obtener_usuario_
                     WHERE id = %s
                 """, (nuevo_ganado, estado, a_id))
                 pagados += 1
-                total_repartido += pago_de_hoy
+                total_repartido += nuevo_ganado - ganado
 
         conn.commit()
         return {"mensaje": f"Reparto completado. {pagados} contratos procesados.", "total_pagado": total_repartido}
