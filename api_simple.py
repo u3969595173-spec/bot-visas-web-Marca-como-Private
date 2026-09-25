@@ -3715,8 +3715,7 @@ def iniciar_practica_admin_con_bots_domino(usuario=Depends(obtener_usuario_actua
         codigo = _crear_codigo_domino(cur)
         juego = _iniciar_mano_domino(jugadores, {'0': 0, '1': 0}, primera_mano=True)
         juego['practica_bots'] = True
-        estado, juego = _avanzar_bots_hasta_humano_domino(juego, jugadores, 0)
-        cur.execute("INSERT INTO domino_partidas (codigo, estado, jugadores, juego) VALUES (%s, %s, %s, %s)", (codigo, estado, Json(jugadores), Json(juego)))
+        cur.execute("INSERT INTO domino_partidas (codigo, estado, jugadores, juego) VALUES (%s, 'jugando', %s, %s)", (codigo, Json(jugadores), Json(juego)))
         conn.commit()
         return {'codigo': codigo}
     except Exception as error:
@@ -3737,10 +3736,12 @@ def avanzar_practica_bots_domino(codigo: str, usuario=Depends(obtener_usuario_ac
         if not fila: raise HTTPException(status_code=404, detail="Práctica no encontrada")
         estado, jugadores, juego = fila
         if estado == 'jugando':
+            if juego.get('practica_bots') and jugadores[juego['turno']]['id'] == '__admin_practica__':
+                raise HTTPException(status_code=409, detail="Es el turno del administrador")
             estado, juego = _jugar_turno_bot_domino(juego, jugadores)
             cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))
         conn.commit()
-        return _vista_practica_bots_domino(codigo.upper(), estado, jugadores, juego)
+        return _vista_domino(jugadores, juego, '__admin_practica__', estado)
     except HTTPException:
         if conn: conn.rollback()
         raise
@@ -3978,6 +3979,8 @@ def _terminar_mano_domino(juego, jugadores, equipo_ganador, motivo):
         juego['eventos'].append(f"La pareja {equipo_ganador + 1} gana la partida.")
         return 'finalizada', juego
     siguiente = _iniciar_mano_domino(jugadores, juego['puntuacion'], juego['salidor'], numero_mano=juego['mano'] + 1)
+    if juego.get('practica_bots'):
+        siguiente['practica_bots'] = True
     siguiente['ubicaciones'] = juego.get('ubicaciones', {})
     siguiente['eventos'] = juego['eventos'][-5:] + siguiente['eventos']
     return 'jugando', siguiente
@@ -4099,7 +4102,7 @@ def _vista_domino(jugadores, juego, jugador_id, estado):
             'rama_izquierda': juego.get('rama_izquierda', []), 'rama_derecha': juego.get('rama_derecha', []),
             'mis_fichas': juego['manos'].get(str(jugador_id), []),
             'pases_seguidos': juego['pases_seguidos'], 'eventos': juego.get('eventos', [])[-6:],
-            'ganador': juego.get('ganador'),
+            'ganador': juego.get('ganador'), 'practica_bots': bool(juego.get('practica_bots')),
             'ubicacion_pareja_lista': juego.get('practica_bots') or all(
                 str(jugadores[indice]['id']) in juego.get('ubicaciones', {})
                 for indice in (posicion, (posicion + 2) % 4)
@@ -4303,8 +4306,6 @@ def jugar_domino(codigo: str, datos: DominoJugadaRequest, usuario=Depends(obtene
             estado, juego = _terminar_mano_domino(juego, jugadores, posicion % 2, 'cierre')
             if estado == 'finalizada': _registrar_resultado_torneo_domino(cur, codigo, juego)
         else: juego['turno'] = (posicion + 1) % 4
-        if estado == 'jugando' and juego.get('practica_bots'):
-            estado, juego = _avanzar_bots_hasta_humano_domino(juego, jugadores, posicion)
         cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))
         conn.commit()
         return _vista_domino(jugadores, juego, jugador_id, estado)
@@ -4339,8 +4340,6 @@ def pasar_domino(codigo: str, usuario=Depends(obtener_usuario_actual)):
             if estado == 'finalizada': _registrar_resultado_torneo_domino(cur, codigo, juego)
         else:
             juego['turno'] = (posicion + 1) % 4
-        if estado == 'jugando' and juego.get('practica_bots'):
-            estado, juego = _avanzar_bots_hasta_humano_domino(juego, jugadores, posicion)
         cur.execute("UPDATE domino_partidas SET estado = %s, juego = %s, updated_at = CURRENT_TIMESTAMP WHERE codigo = %s", (estado, Json(juego), codigo.upper()))
         conn.commit()
         return _vista_domino(jugadores, juego, jugador_id, estado)

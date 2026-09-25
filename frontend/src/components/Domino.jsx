@@ -39,6 +39,7 @@ function Domino() {
   const [partida, setPartida] = React.useState(null)
   const [seleccionada, setSeleccionada] = React.useState(null)
   const [accionando, setAccionando] = React.useState(false)
+  const [botPensando, setBotPensando] = React.useState(false)
   const [error, setError] = React.useState('')
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
@@ -66,6 +67,26 @@ function Domino() {
     const intervalo = setInterval(() => cargarPartida(codigo), 4000)
     return () => clearInterval(intervalo)
   }, [codigo])
+
+  React.useEffect(() => {
+    const esTurnoDeBot = partida?.practica_bots && partida.estado === 'jugando' && partida.turno !== partida.mi_posicion
+    if (!esTurnoDeBot || botPensando) return undefined
+    const siguienteBot = setTimeout(async () => {
+      setBotPensando(true)
+      try {
+        const respuesta = await fetch(`${API}/api/admin/domino/practica/${codigo}/avanzar`, { method: 'POST', headers })
+        const datos = await respuesta.json()
+        if (!respuesta.ok) throw new Error(datos.detail || 'No se pudo avanzar la jugada del bot.')
+        setPartida(datos)
+        setError('')
+      } catch (requestError) {
+        setError(requestError.message || 'No se pudo avanzar la jugada del bot.')
+      } finally {
+        setBotPensando(false)
+      }
+    }, 2400)
+    return () => clearTimeout(siguienteBot)
+  }, [codigo, partida?.practica_bots, partida?.estado, partida?.turno, partida?.mi_posicion, botPensando])
 
   const enviarJugada = async lado => {
     if (!seleccionada || !codigo || accionando) return
@@ -134,7 +155,7 @@ function Domino() {
   const ganador = partida?.ganador === undefined || partida?.ganador === null ? null : `Pareja ${Number(partida.ganador) + 1}`
 
   return <main className="domino-page domino-partida">
-    <header className="domino-game-header"><button onClick={volverASalas} className="domino-link">Torneo</button><div><p className="domino-eyebrow">Mesa {codigo}</p><h1>Dominó suizo</h1></div><span className={miTurno ? 'domino-turno es-mi-turno' : 'domino-turno'}>{ganador ? `${ganador} ganó` : partida?.estado === 'esperando' ? `Esperando ${4 - (partida?.jugadores?.length || 0)} jugadores` : miTurno ? 'Tu turno' : `Turno de ${jugadorActual?.nombre || '...'}`}</span></header>
+    <header className="domino-game-header"><button onClick={volverASalas} className="domino-link">Torneo</button><div><p className="domino-eyebrow">Mesa {codigo}</p><h1>Dominó suizo</h1></div><span className={miTurno ? 'domino-turno es-mi-turno' : 'domino-turno'}>{ganador ? `${ganador} ganó` : partida?.estado === 'esperando' ? `Esperando ${4 - (partida?.jugadores?.length || 0)} jugadores` : miTurno ? 'Tu turno' : botPensando ? `${jugadorActual?.nombre || 'El bot'} está pensando...` : `Turno de ${jugadorActual?.nombre || '...'}`}</span></header>
     {error && <p className="domino-error">{error}</p>}
     <section className="domino-score">{[0, 1].map(pareja => <div key={pareja} className={partida?.mi_posicion % 2 === pareja ? 'mi-pareja' : ''}><span>Pareja {pareja + 1}</span><strong>{partida?.puntuacion?.[pareja] || 0}</strong><small>/ {partida?.limite_puntos || 200}</small></div>)}</section>
     {partida?.estado === 'jugando' && <section className={`domino-ubicacion ${partida.ubicacion_pareja_lista ? 'verificada' : ''}`}><span>{partida.ubicacion_pareja_lista ? 'Ubicación de la pareja verificada' : 'La pareja debe validar una distancia mínima de 1 km'}</span>{!partida.ubicacion_pareja_lista && <button className="domino-secondary" onClick={activarUbicacion} disabled={accionando}>Activar ubicación</button>}</section>}
