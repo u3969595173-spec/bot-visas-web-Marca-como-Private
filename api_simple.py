@@ -3977,8 +3977,7 @@ def _validar_distancia_pareja_domino(juego, jugadores, posicion):
         raise HTTPException(status_code=400, detail="Los compañeros deben estar separados al menos 1 km")
 
 def _terminar_mano_domino(juego, jugadores, equipo_ganador, motivo):
-    equipo_perdedor = 1 - equipo_ganador
-    puntos = sum(sum(ficha) for indice in (equipo_perdedor, equipo_perdedor + 2) for ficha in juego['manos'][str(jugadores[indice]['id'])])
+    puntos = _sumar_fichas_restantes(juego)
     juego['puntuacion'][str(equipo_ganador)] += puntos
     juego['eventos'].append(f"La pareja {equipo_ganador + 1} gana {puntos} puntos por {motivo}.")
     if juego['puntuacion'][str(equipo_ganador)] >= DOMINO_LIMITE_PUNTOS:
