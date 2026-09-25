@@ -29,7 +29,8 @@ function claseRama(lado, indice) {
 }
 
 function RamaDomino({ lado, fichas }) {
-  return <div className={`domino-rama ${lado}`}>{fichas.map((ficha, indice) => <Ficha key={`${fichaKey(ficha)}-${indice}`} ficha={ficha} compacta mesaClase={claseRama(lado, indice)} style={{ '--pos': indice < 6 ? indice : indice < 10 ? indice - 6 : indice - 10 }} />)}</div>
+  const segmentos = [fichas.slice(0, 6), fichas.slice(6, 10), fichas.slice(10)]
+  return <div className={`domino-rama ${lado}`}>{segmentos.map((segmento, segmentoIndice) => <div className={`rama-segmento segmento-${segmentoIndice}`} key={`${lado}-${segmentoIndice}`}>{segmento.map((ficha, indice) => <Ficha key={`${fichaKey(ficha)}-${segmentoIndice}-${indice}`} ficha={ficha} compacta mesaClase={claseRama(lado, segmentoIndice * 6 + indice)} />)}</div>)}</div>
 }
 
 function Domino() {
@@ -40,6 +41,7 @@ function Domino() {
   const [seleccionada, setSeleccionada] = React.useState(null)
   const [accionando, setAccionando] = React.useState(false)
   const [botPensando, setBotPensando] = React.useState(false)
+  const botAvanceActivo = React.useRef(false)
   const [error, setError] = React.useState('')
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
@@ -64,14 +66,18 @@ function Domino() {
   React.useEffect(() => {
     if (!codigo) return undefined
     cargarPartida(codigo)
-    const intervalo = setInterval(() => cargarPartida(codigo), 4000)
+    const intervalo = setInterval(() => {
+      if (!botAvanceActivo.current) cargarPartida(codigo)
+    }, 4000)
     return () => clearInterval(intervalo)
   }, [codigo])
 
   React.useEffect(() => {
-    const esTurnoDeBot = partida?.practica_bots && partida.estado === 'jugando' && partida.turno !== partida.mi_posicion
-    if (!esTurnoDeBot || botPensando) return undefined
+    const jugadorEnTurno = partida?.jugadores?.find(jugador => jugador.posicion === partida.turno)
+    const esTurnoDeBot = partida?.practica_bots && partida.estado === 'jugando' && jugadorEnTurno && jugadorEnTurno.id !== '__admin_practica__'
+    if (!esTurnoDeBot || botAvanceActivo.current) return undefined
     const siguienteBot = setTimeout(async () => {
+      botAvanceActivo.current = true
       setBotPensando(true)
       try {
         const respuesta = await fetch(`${API}/api/admin/domino/practica/${codigo}/avanzar`, { method: 'POST', headers })
@@ -83,10 +89,11 @@ function Domino() {
         setError(requestError.message || 'No se pudo avanzar la jugada del bot.')
       } finally {
         setBotPensando(false)
+        botAvanceActivo.current = false
       }
-    }, 2400)
+    }, 3600)
     return () => clearTimeout(siguienteBot)
-  }, [codigo, partida?.practica_bots, partida?.estado, partida?.turno, partida?.mi_posicion, botPensando])
+  }, [codigo, partida?.practica_bots, partida?.estado, partida?.turno, partida?.jugadores])
 
   const enviarJugada = async lado => {
     if (!seleccionada || !codigo || accionando) return
