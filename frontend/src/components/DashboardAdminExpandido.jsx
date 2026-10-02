@@ -1838,20 +1838,52 @@ function DashboardAdminExpandido({ onLogout }) {
             <div className="card">
               {(() => {
                 const ahora = new Date()
-                const mesCerrado = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1)
+                const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1)
+                const finMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
+                const mesCerrado = inicioMes
                 const nombreMes = mesCerrado.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })
-                const totales = sumarPorMoneda(pagosRentabilidad)
+                const transferenciasP2PMes = transferenciasP2P.filter(transferencia => {
+                  const fecha = new Date(transferencia.fecha)
+                  return fecha >= inicioMes && fecha < finMes
+                })
+                const totalesPagos = sumarPorMoneda(pagosRentabilidad)
+                const totalesTransferencias = sumarPorMoneda(transferenciasP2PMes)
+                const totalesCombinados = { ...totalesPagos }
+                Object.entries(totalesTransferencias).forEach(([moneda, importe]) => {
+                  totalesCombinados[moneda] = (totalesCombinados[moneda] || 0) + importe
+                })
+                const movimientos = [
+                  ...pagosRentabilidad.map(pago => [
+                    pago.fecha, pago.nombre || '—', `#${pago.aportacion_id}`,
+                    `${Number(pago.porcentaje).toLocaleString('es-ES')}%`,
+                    formatCurrency(Number(pago.importe), pago.moneda)
+                  ]),
+                  ...transferenciasP2PMes.map(transferencia => [
+                    transferencia.fecha,
+                    `${transferencia.origen_nombre || '—'} → ${transferencia.receptor_nombre || '—'}`,
+                    'Transferencia interna P2P', '—',
+                    formatCurrency(Number(transferencia.importe), transferencia.moneda)
+                  ])
+                ].sort((a, b) => new Date(b[0]) - new Date(a[0]))
                 return (
                     <>
                       <div className="section-header"><h2>Resumen de pagos: {nombreMes}</h2></div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', margin: '1rem 0 1.5rem' }}>
                         <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f8fafc' }}>
-                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Pagos registrados</span>
-                          <strong style={{ display: 'block', marginTop: 5 }}>{pagosRentabilidad.length}</strong>
+                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Movimientos pagados</span>
+                          <strong style={{ display: 'block', marginTop: 5 }}>{pagosRentabilidad.length + transferenciasP2PMes.length}</strong>
                         </div>
                         <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f0fdf4' }}>
-                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Total pagado</span>
-                          <strong style={{ display: 'block', marginTop: 5, color: '#047857' }}>{mostrarTotalesPorMoneda(totales)}</strong>
+                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Rentabilidad pagada</span>
+                          <strong style={{ display: 'block', marginTop: 5, color: '#047857' }}>{mostrarTotalesPorMoneda(totalesPagos)}</strong>
+                        </div>
+                        <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f8fafc' }}>
+                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Transferencias internas P2P</span>
+                          <strong style={{ display: 'block', marginTop: 5 }}>{mostrarTotalesPorMoneda(totalesTransferencias)}</strong>
+                        </div>
+                        <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f0fdf4' }}>
+                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Total pagado + transferencias</span>
+                          <strong style={{ display: 'block', marginTop: 5, color: '#047857' }}>{mostrarTotalesPorMoneda(totalesCombinados)}</strong>
                         </div>
                         <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f8fafc' }}>
                           <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Porcentaje aplicado en el mes</span>
@@ -1859,10 +1891,9 @@ function DashboardAdminExpandido({ onLogout }) {
                         </div>
                       </div>
                       {table(
-                        ['Fecha', 'Inversor', 'Contrato', 'Porcentaje', 'Acreditado'],
-                        pagosRentabilidad.length ? pagosRentabilidad.map(pago => [
-                          formatDate(pago.fecha), pago.nombre || '—', `#${pago.aportacion_id}`,
-                          `${Number(pago.porcentaje).toLocaleString('es-ES')}%`, formatCurrency(Number(pago.importe), pago.moneda)
+                        ['Fecha', 'Inversor / transferencia', 'Concepto', 'Porcentaje', 'Importe'],
+                        movimientos.length ? movimientos.map(([fecha, nombre, concepto, porcentaje, importe]) => [
+                          formatDate(fecha), nombre, concepto, porcentaje, importe
                         ]) : [[`Sin pagos registrados en ${nombreMes}`, '—', '—', '—', '—']]
                       )}
                     </>
