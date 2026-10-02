@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from jose import JWTError, jwt
 import bcrypt
 import os
@@ -411,8 +411,14 @@ def obtener_ultimo_reparto_diario(usuario = Depends(obtener_usuario_actual)):
 
 
 @app.get("/api/pagos-rentabilidad")
-def obtener_pagos_rentabilidad(usuario = Depends(obtener_usuario_actual)):
+def obtener_pagos_rentabilidad(
+    usuario = Depends(obtener_usuario_actual),
+    desde: Optional[date] = Query(None),
+    hasta: Optional[date] = Query(None),
+):
     """Historial de pagos de rentabilidad; el inversor solo ve los propios."""
+    if (desde is None) != (hasta is None) or (desde and hasta <= desde):
+        raise HTTPException(status_code=400, detail="Indica un intervalo de fechas válido.")
     conn = None
     try:
         conn = get_conn()
@@ -429,23 +435,56 @@ def obtener_pagos_rentabilidad(usuario = Depends(obtener_usuario_actual)):
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS repartos_diarios (
+                id SERIAL PRIMARY KEY,
+                porcentaje DECIMAL(8,4) NOT NULL,
+                contratos_procesados INT NOT NULL DEFAULT 0,
+                total_pagado DECIMAL(14,2) NOT NULL DEFAULT 0,
+                fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        filtro_periodo = "created_at >= %s AND created_at < %s" if desde else None
+        parametros_periodo = (desde, hasta) if desde else ()
         if usuario.get('rol') == 'admin':
-            cur.execute("""
+            limite = "" if desde else " LIMIT 200"
+            where = f" WHERE {filtro_periodo}" if filtro_periodo else ""
+            cur.execute(f"""
                 SELECT id, aportacion_id, inversor_id, nombre, moneda, porcentaje, importe, created_at
-                FROM pagos_rentabilidad ORDER BY created_at DESC, id DESC LIMIT 200
-            """)
+                FROM pagos_rentabilidad{where}
+                ORDER BY created_at DESC, id DESC{limite}
+            """, parametros_periodo)
+            filas_pagos = cur.fetchall()
+            if desde:
+                cur.execute("""
+                    SELECT COALESCE(SUM(porcentaje), 0)
+                    FROM repartos_diarios WHERE fecha >= %s AND fecha < %s
+                """, (desde, hasta))
+                porcentaje_mes = float(cur.fetchone()[0])
+            else:
+                porcentaje_mes = None
         else:
-            cur.execute("""
+            condiciones = ["inversor_id = %s"]
+            parametros = [usuario.get('inversor_id')]
+            if desde:
+                condiciones.append(filtro_periodo)
+                parametros.extend(parametros_periodo)
+            limite = "" if desde else " LIMIT 200"
+            cur.execute(f"""
                 SELECT id, aportacion_id, inversor_id, nombre, moneda, porcentaje, importe, created_at
-                FROM pagos_rentabilidad WHERE inversor_id = %s ORDER BY created_at DESC, id DESC LIMIT 200
-            """, (usuario.get('inversor_id'),))
+                FROM pagos_rentabilidad WHERE {' AND '.join(condiciones)}
+                ORDER BY created_at DESC, id DESC{limite}
+            """, parametros)
+            filas_pagos = cur.fetchall()
+            porcentaje_mes = None
         pagos = [{
             "id": row[0], "aportacion_id": row[1], "inversor_id": row[2], "nombre": row[3],
             "moneda": row[4], "porcentaje": float(row[5]), "importe": float(row[6]),
             "fecha": row[7].isoformat() if row[7] else None
-        } for row in cur.fetchall()]
+        } for row in filas_pagos]
         conn.commit()
-        return {"pagos": pagos}
+        return {"pagos": pagos, "porcentaje_mes": porcentaje_mes}
     except Exception as e:
         if conn:
             conn.rollback()
