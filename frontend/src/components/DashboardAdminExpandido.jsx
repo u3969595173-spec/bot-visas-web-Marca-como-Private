@@ -1869,25 +1869,25 @@ function DashboardAdminExpandido({ onLogout }) {
                     <>
                       <div className="section-header"><h2>Resumen de pagos: {nombreMes}</h2></div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', margin: '1rem 0 1.5rem' }}>
-                        <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f8fafc' }}>
-                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Movimientos pagados</span>
-                          <strong style={{ display: 'block', marginTop: 5 }}>{pagosRentabilidad.length + transferenciasP2PMes.length}</strong>
+                        <div style={{ padding: '1rem', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, background: '#17233a' }}>
+                          <span style={{ display: 'block', color: '#cbd5e1', fontSize: 12 }}>Movimientos pagados</span>
+                          <strong style={{ display: 'block', marginTop: 5, color: '#f8fafc' }}>{pagosRentabilidad.length + transferenciasP2PMes.length}</strong>
                         </div>
-                        <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f0fdf4' }}>
-                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Rentabilidad pagada</span>
-                          <strong style={{ display: 'block', marginTop: 5, color: '#047857' }}>{mostrarTotalesPorMoneda(totalesPagos)}</strong>
+                        <div style={{ padding: '1rem', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, background: '#17233a' }}>
+                          <span style={{ display: 'block', color: '#cbd5e1', fontSize: 12 }}>Rentabilidad pagada</span>
+                          <strong style={{ display: 'block', marginTop: 5, color: '#6ee7b7' }}>{mostrarTotalesPorMoneda(totalesPagos)}</strong>
                         </div>
-                        <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f8fafc' }}>
-                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Transferencias internas P2P</span>
-                          <strong style={{ display: 'block', marginTop: 5 }}>{mostrarTotalesPorMoneda(totalesTransferencias)}</strong>
+                        <div style={{ padding: '1rem', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, background: '#17233a' }}>
+                          <span style={{ display: 'block', color: '#cbd5e1', fontSize: 12 }}>Transferencias internas P2P</span>
+                          <strong style={{ display: 'block', marginTop: 5, color: '#f8fafc' }}>{mostrarTotalesPorMoneda(totalesTransferencias)}</strong>
                         </div>
-                        <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f0fdf4' }}>
-                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Total pagado + transferencias</span>
-                          <strong style={{ display: 'block', marginTop: 5, color: '#047857' }}>{mostrarTotalesPorMoneda(totalesCombinados)}</strong>
+                        <div style={{ padding: '1rem', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, background: '#17233a' }}>
+                          <span style={{ display: 'block', color: '#cbd5e1', fontSize: 12 }}>Total pagado + transferencias</span>
+                          <strong style={{ display: 'block', marginTop: 5, color: '#6ee7b7' }}>{mostrarTotalesPorMoneda(totalesCombinados)}</strong>
                         </div>
-                        <div style={{ padding: '1rem', border: '1px solid #d1d5db', borderRadius: 8, background: '#f8fafc' }}>
-                          <span style={{ display: 'block', color: '#475569', fontSize: 12 }}>Porcentaje aplicado en el mes</span>
-                          <strong style={{ display: 'block', marginTop: 5 }}>{porcentajeMesPagado == null ? '—' : `${Number(porcentajeMesPagado).toLocaleString('es-ES')}%`}</strong>
+                        <div style={{ padding: '1rem', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 8, background: '#17233a' }}>
+                          <span style={{ display: 'block', color: '#cbd5e1', fontSize: 12 }}>Porcentaje aplicado en el mes</span>
+                          <strong style={{ display: 'block', marginTop: 5, color: '#f8fafc' }}>{porcentajeMesPagado == null ? '—' : `${Number(porcentajeMesPagado).toLocaleString('es-ES')}%`}</strong>
                         </div>
                       </div>
                       {table(
